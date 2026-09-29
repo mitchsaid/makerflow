@@ -91,7 +91,9 @@ begin
   insert into public.profiles (id, display_name)
   values (
     new.id,
-    nullif(btrim(coalesce(new.raw_user_meta_data ->> 'full_name', '')), '')
+    -- Truncated so an unusually long provider-supplied name can never make
+    -- sign-up fail on the profiles length check.
+    left(nullif(btrim(coalesce(new.raw_user_meta_data ->> 'full_name', '')), ''), 120)
   );
   return new;
 end;
@@ -104,14 +106,16 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ---------------------------------------------------------------------------
--- First-sign-in organisation. Idempotent: returns the user's existing
--- organisation if they already belong to one. The advisory lock stops two
--- concurrent first page loads from creating two organisations.
+-- First-sign-in organisation. The app asks for the business name during
+-- onboarding and passes it here. Idempotent: if the user already belongs to an
+-- organisation it is returned unchanged (the name argument is ignored), so a
+-- repeated call cannot rename or duplicate anything. The advisory lock stops
+-- two concurrent submissions from creating two organisations.
 -- Note for the employees layer: invited staff must join an existing
 -- organisation, so the app calls this only for users who signed up directly.
 -- ---------------------------------------------------------------------------
 
-create function public.ensure_organisation()
+create function public.ensure_organisation(org_name text)
 returns uuid
 language plpgsql
 security definer
@@ -120,6 +124,7 @@ as $$
 declare
   uid uuid := auth.uid();
   org uuid;
+  clean_name text := btrim(coalesce(org_name, ''));
 begin
   if uid is null then
     raise exception 'not authenticated' using errcode = '28000';
@@ -138,8 +143,13 @@ begin
     return org;
   end if;
 
+  if char_length(clean_name) not between 1 and 120 then
+    raise exception 'business name must be between 1 and 120 characters'
+      using errcode = '22023';
+  end if;
+
   insert into public.organisations (name)
-  values ('My workshop')
+  values (clean_name)
   returning id into org;
 
   insert into public.memberships (organisation_id, user_id, role)
@@ -149,8 +159,8 @@ begin
 end;
 $$;
 
-revoke execute on function public.ensure_organisation() from public, anon;
-grant execute on function public.ensure_organisation() to authenticated;
+revoke execute on function public.ensure_organisation(text) from public, anon;
+grant execute on function public.ensure_organisation(text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Privileges. Start from nothing, then grant the minimum. There are no direct

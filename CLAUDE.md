@@ -15,6 +15,7 @@ Read `docs/product-brief.md` for principles, decisions and the delivery layers. 
 - Issued invoices and credit notes are immutable and are never deleted. Corrections are credit notes. Numbering is sequential and gapless per organisation.
 - South African rules (VAT, document titles, required fields) live in a locale configuration, not scattered in code.
 - No demo, seed or "reset" shortcuts in product code paths. Fixtures live in a separate dev-only script that refuses to run against production.
+  - One deliberate exception: the **public demo account** on the landing page (see `docs/product-brief.md`, section 4). It is a designed feature, not a shortcut: demo data lives only in isolated demo organisations that cannot touch real ones, is built server-side, and the builder refuses to run on any non-demo organisation. Demo accounts never send real email or take real payments.
 - Advanced features are offered through friendly, dismissable prompts and never forced on the user.
 - Design mobile-first.
 - Never commit secrets or `.env` files.

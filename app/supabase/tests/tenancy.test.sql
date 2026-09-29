@@ -17,27 +17,59 @@ declare
   nm text;
 begin
   -- Setup as superuser: three auth users. The trigger creates their profiles.
-  insert into auth.users (id, email) values
-    (a, 'a@example.test'), (b, 'b@example.test'), (c, 'c@example.test');
+  insert into auth.users (id, email, raw_user_meta_data) values
+    (a, 'a@example.test', '{"full_name": "  Alice  "}'),
+    (b, 'b@example.test', null),
+    (c, 'c@example.test', json_build_object('full_name', repeat('x', 500))::jsonb);
 
   assert (select count(*) from public.profiles where id in (a, b, c)) = 3,
     'profile trigger did not create a profile for each new user';
+  assert (select display_name from public.profiles where id = a) = 'Alice',
+    'display name was not trimmed';
+  assert (select char_length(display_name) from public.profiles where id = c) = 120,
+    'overlong provider name was not truncated (sign-up would fail)';
 
   -- User A signs in for the first time.
   perform set_config('request.jwt.claims',
     json_build_object('sub', a, 'role', 'authenticated')::text, true);
   set local role authenticated;
-  org_a := public.ensure_organisation();
-  org_a_again := public.ensure_organisation();
+
+  -- A blank or whitespace-only business name is rejected, and nothing is created.
+  begin
+    perform public.ensure_organisation('   ');
+    raise exception 'FAIL: blank business name was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  begin
+    perform public.ensure_organisation(null);
+    raise exception 'FAIL: null business name was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  begin
+    perform public.ensure_organisation(repeat('x', 121));
+    raise exception 'FAIL: overlong business name was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  select count(*) into n from public.organisations;
+  assert n = 0, 'a rejected name still created an organisation';
+
+  org_a := public.ensure_organisation('  Alice''s Bakery  ');
   assert org_a is not null, 'ensure_organisation returned null';
+  assert (select name from public.organisations where id = org_a) = 'Alice''s Bakery',
+    'business name was not trimmed and stored';
+
+  -- Repeat call is idempotent: same organisation, and the name is NOT changed.
+  org_a_again := public.ensure_organisation('Something else');
   assert org_a = org_a_again, 'ensure_organisation is not idempotent';
+  assert (select name from public.organisations where id = org_a) = 'Alice''s Bakery',
+    'repeat call renamed the organisation';
   reset role;
 
   -- User B signs in for the first time.
   perform set_config('request.jwt.claims',
     json_build_object('sub', b, 'role', 'authenticated')::text, true);
   set local role authenticated;
-  org_b := public.ensure_organisation();
+  org_b := public.ensure_organisation('Bob''s Jewellery');
   reset role;
   assert org_a <> org_b, 'two users share one organisation';
 
@@ -133,7 +165,7 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
-    perform public.ensure_organisation();
+    perform public.ensure_organisation('Anon Co');
     raise exception 'FAIL: anon could call ensure_organisation';
   exception when insufficient_privilege then null;
   end;

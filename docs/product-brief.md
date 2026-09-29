@@ -49,6 +49,9 @@ Engineering
 | Analytics | Privacy-friendly page and sign-up tracking plus a few key product events. No advertising trackers. |
 | Invoice numbering | Simple sequence with an editable prefix and start number (for example INV-0001). Sequential and gapless per business. Makers migrating from another system can continue their numbers. |
 | Hosted projects | Supabase, EU region (no SA region exists). `makerflow-dev` https://mbbfjhjzhilathupnxdb.supabase.co and `makerflow-prod` https://ziusocayienstklwockp.supabase.co. Project URLs are not secrets. Keys and passwords are never stored in the repo. |
+| Business name at sign-up | The app asks for the business name during onboarding (no default such as "My workshop"). |
+| Staff visibility | Staff can see the roles of colleagues in their organisation. |
+| Public demo | The landing page offers a live demo account visitors can try, with data that resets. Design open, see section 4a. |
 | Product name | Undecided. **Batchwork** is the leading candidate. Check CIPC, trademark, domains and app stores first. MakerFlow is the working title. |
 
 ## 4. Core journeys (target)
@@ -63,11 +66,27 @@ Engineering
 8. **Import products:** bring a Shopify or CSV product list into the catalogue.
 9. **Team:** invite employees with roles and permissions.
 
+## 4a. Public demo account (requirement)
+
+The landing page has a live demo that visitors can try without signing up, with sample data that resets.
+
+Why it needs care: it is the one place where demo data is a real feature, and it is open to the public. It must never let a visitor reach real customers' data, and it must not send real emails or take real payments.
+
+Design options (decision pending):
+- **A. A private sandbox per visitor (recommended).** Each visitor gets their own temporary demo organisation, filled with sample data, that expires after some hours and can be reset with a button. Visitors can't see or vandalise each other's edits. Uses anonymous sign-in, bot protection, and a scheduled clean-up job.
+- **B. One shared demo account that resets on a timer.** Simplest, and matches the wording most literally. But everyone edits the same data, visitors can leave junk or offensive content for the next person, and concurrent use gets confusing.
+
+Design implications already in mind:
+- Demo organisations are flagged in the database and carry an expiry.
+- Sample data is created by a server-side builder that only runs on demo organisations.
+- Demo organisations are blocked from sending real email and from any payment features.
+- The demo grows with the product: it starts with what exists (profile, customers, invoices) and gains quotes, jobs and costing as those layers ship.
+
 ## 5. Delivery layers (proposal)
 
 0. **Walking skeleton:** landing page, sign-up and sign-in, empty organisation, database with migrations, dev and prod environments, CI, error tracking.
 1. **Business profile and customers.**
-2. **Custom invoice, VAT-aware, immutable on issue, gapless numbering, branded PDF.** Payments, deposits and credit notes follow directly.
+2. **Custom invoice, VAT-aware, immutable on issue, gapless numbering, branded PDF.** Payments, deposits and credit notes follow directly. The public demo account starts here and grows with each later layer.
 3. **Quotes with revisions, PDF, and convert-to-invoice.**
 4. **Jobs and fulfilment tracking, and the "create invoice?" prompt.**
 5. **Materials, products and costing, and margin.**
