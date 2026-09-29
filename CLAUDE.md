@@ -30,5 +30,10 @@ Run from `app/` with pnpm:
 - `pnpm lint` — ESLint
 - `pnpm typecheck` — TypeScript, no emit
 - `pnpm build` — production build
+- `pnpm db:start` / `pnpm db:stop` — local Supabase stack (needs Docker); starting it applies every migration in `app/supabase/migrations/`
+- `pnpm db:reset` — rebuild the **local** database from the migrations
+- `pnpm db:test` — SQL security tests against the local stack
+- `pnpm db:test:plain` — same tests on plain Postgres with an auth stand-in (sandboxes without Docker; set `DATABASE_URL` to a scratch database)
 
-Still to add as the skeleton lands: test, database migrate, and local Supabase commands.
+Database changes are migration files only, never dashboard edits. Every new table needs RLS and a test in `app/supabase/tests/`.
+Still to add: app unit tests and browser tests.
