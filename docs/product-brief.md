@@ -42,7 +42,7 @@ Engineering
 | Sign-in | Email magic link and Google. |
 | VAT | Both VAT-registered and non-registered makers supported from the first invoice slice. |
 | Pricing model | **Deferred** until real-user feedback. Data model keeps room for plans and limits, no billing code yet. |
-| Stack direction | Managed services, Supabase-style (auth, Postgres, storage, backups). Front-end framework and host are proposed, not yet decided. |
+| Stack direction | Managed services, Supabase-style (auth, Postgres, storage, backups). Next.js on Vercel, see `docs/adr/0001-stack.md`. |
 | Tone | Neutral with warmth and friendliness. |
 
 ## 4. Core journeys (target)
@@ -90,4 +90,4 @@ Accounting-package integrations, native mobile apps, other countries, online pay
 - Product name, domain and branding of the app itself.
 - Deposit model: a deposit invoice, or a payment on account against a later invoice.
 - Which product-import formats to support first (Shopify CSV, generic CSV).
-- Front-end framework and host (proposed: Next.js and Vercel). To be settled in an ADR when the skeleton starts.
+- Front-end framework and host: decided, see `docs/adr/0001-stack.md`.
