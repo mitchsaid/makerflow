@@ -14,10 +14,12 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
   const next = safeNextPath(searchParams.get("next"));
 
-  if (tokenHash && type === "email") {
+  // New users receive a "signup" confirmation email and returning users a "email"
+  // (magic link) one. Both carry the same kind of one-time token.
+  if (tokenHash && (type === "email" || type === "signup")) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({
-      type: "email",
+      type,
       token_hash: tokenHash,
     });
     if (!error) redirect(next);

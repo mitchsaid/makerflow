@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { uniqueEmail, waitForSignInLink } from "./helpers";
+import { existingEmailIds, uniqueEmail, waitForSignInLink } from "./helpers";
 
 test("visitor can sign up by email link, name their business, and land in their workspace", async ({
   page,
@@ -39,6 +39,38 @@ test("visitor can sign up by email link, name their business, and land in their 
   await phone.goto("/app");
   await expect(phone).toHaveURL(/\/sign-in$/);
   await other.close();
+});
+
+test("returning user signs in again by email link and skips onboarding", async ({ browser }) => {
+  const email = uniqueEmail("returning");
+
+  async function requestLink(page: import("@playwright/test").Page) {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill(email);
+    await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+    await expect(page.getByRole("status")).toContainText("Check your email");
+  }
+
+  // First visit: sign up and finish onboarding.
+  const first = await browser.newContext();
+  const p1 = await first.newPage();
+  await requestLink(p1);
+  const seen = await existingEmailIds(email);
+  await p1.goto(await waitForSignInLink(email));
+  await p1.getByLabel("Business name").fill("Returning Co");
+  await p1.getByRole("button", { name: "Continue" }).click();
+  await expect(p1.getByTestId("business-name")).toHaveText("Returning Co");
+  await p1.getByRole("button", { name: "Sign out" }).click();
+  await first.close();
+
+  // Later visit, fresh browser: a different kind of email, straight to the workspace.
+  const second = await browser.newContext();
+  const p2 = await second.newPage();
+  await requestLink(p2);
+  await p2.goto(await waitForSignInLink(email, seen));
+  await expect(p2).toHaveURL(/\/app$/);
+  await expect(p2.getByTestId("business-name")).toHaveText("Returning Co");
+  await second.close();
 });
 
 test("blank business name is rejected with a friendly message", async ({ browser, page }) => {
