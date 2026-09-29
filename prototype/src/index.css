@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-stone-50: #FAF8F4;
+  --color-stone-100: #F2EFE9;
+  --color-stone-200: #E5E2D9;
+  --color-stone-300: #D0CBBF;
+  --color-stone-400: #A3A095;
+  --color-stone-500: #827F75;
+  --color-stone-600: #6B6E63;
+  --color-stone-700: #4B4D44;
+  --color-stone-800: #2C2E25;
+  --color-stone-900: #1B1C17;
+
+  --color-amber-50: #FAF6EE;
+  --color-amber-100: #F2EAD6;
+  --color-amber-200: #EADCB8;
+  --color-amber-300: #DEC793;
+  --color-amber-400: #CFAC6C;
+  --color-amber-500: #D17A5E; /* Terracotta Clay Red */
+  --color-amber-600: #B25F45; /* Dark Terracotta */
+  --color-amber-700: #5D634B; /* Moss Green / Dark Clay */
+  --color-amber-800: #4A4E3B;
+  --color-amber-900: #2C2E25;
+}
+
+body {
+  background-color: #FDFCFB !important;
+  color: #2C2E25 !important;
+  font-family: var(--font-sans);
+}
+
+/* Custom soft decorative styling to match Warm Organic Theme */
+h1, h2, h3 {
+  font-family: var(--font-sans);
+}
+.font-serif {
+  font-family: var(--font-serif), serif;
+}
+
+/* Base custom classes */
+.clay-card {
+  background-color: #ffffff;
+  border: 1px solid #E5E2D9;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px -2px rgba(93, 99, 75, 0.04);
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html, body {
+    background-color: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  header, 
+  aside, 
+  nav,
+  button, 
+  select,
+  form:not(.printable-form),
+  input,
+  textarea,
+  .print\:hidden,
+  [data-print-hide="true"],
+  [data-internal-financials="true"] {
+    display: none !important;
+  }
+
+  #main-working-canvas {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  #printable-quote-area,
+  #printable-invoice-area,
+  #printable-credit-note-area,
+  #customer-statement-printable {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+  }
+
+  /* Prevent awkward table row breaks across pages */
+  tr, .grid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+

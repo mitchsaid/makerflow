@@ -1,0 +1,6 @@
+{
+  "name": "MakerFlow",
+  "description": "A responsive PWA web application for South African makers and artisans to manage business profiles, create quotes and tax invoices, and track job progress.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
