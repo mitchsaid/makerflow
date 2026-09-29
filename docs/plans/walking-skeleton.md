@@ -40,5 +40,6 @@ Any maker feature (customers, invoices, quotes, jobs, costing), billing, AI, tea
 - Review the RLS policies and the sign-up flow before anything real goes into prod.
 
 ## Risks
+- **Cloud-session network limits.** In the current Claude Code cloud environment the network policy blocks supabase.com, vercel.com, and the CDN that serves the Supabase Docker images, so the full local Supabase stack cannot start there and hosted projects cannot be reached. Plan: run the real stack (`supabase start`) and the migrations in GitHub Actions, and in the cloud session test migrations and row-level-security policies against a plain local Postgres with a small stand-in for Supabase's `auth` schema. The founder's own machine, or an environment with those hosts allowed, can run the full stack.
 - Docker is required for local Supabase. Confirm your machine can run it.
 - Supabase and Vercel region choices affect speed for South African users. Confirm current region availability before creating projects.

@@ -18,7 +18,8 @@ Status: accepted (founder approved Next.js on Vercel and Supabase-style managed 
 ## Trade-offs and follow-ups
 - Vercel's free plan is for non-commercial use. Expect a paid plan once there are real users. Check current terms.
 - Serverless limits: simple PDFs (React-PDF) are fine. Heavier headless-browser rendering may need a workaround later.
-- Verify region availability. Supabase has a Cape Town region. Confirm where Vercel functions can run and keep them close to the database.
+- **Region:** Supabase has no South African region (confirmed by the founder when creating the projects). Both hosted projects are in an EU region, so South African users see extra latency. Keep Vercel functions in the matching region so app-to-database calls stay fast.
+- **POPIA:** customer personal information will be stored outside South Africa. Cross-border transfer is permitted under conditions in POPIA (section 72). Confirm the position and the privacy-policy wording with a South African legal adviser before launch.
 - Next.js moves quickly. Pin versions and rely on tests.
 
 ## Not yet decided

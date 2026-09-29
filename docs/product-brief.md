@@ -48,6 +48,7 @@ Engineering
 | Landing page | Lives in the same Next.js app. |
 | Analytics | Privacy-friendly page and sign-up tracking plus a few key product events. No advertising trackers. |
 | Invoice numbering | Simple sequence with an editable prefix and start number (for example INV-0001). Sequential and gapless per business. Makers migrating from another system can continue their numbers. |
+| Hosted projects | Supabase, EU region (no SA region exists). `makerflow-dev` https://mbbfjhjzhilathupnxdb.supabase.co and `makerflow-prod` https://ziusocayienstklwockp.supabase.co. Project URLs are not secrets. Keys and passwords are never stored in the repo. |
 | Product name | Undecided. **Batchwork** is the leading candidate. Check CIPC, trademark, domains and app stores first. MakerFlow is the working title. |
 
 ## 4. Core journeys (target)
@@ -87,6 +88,7 @@ Accounting-package integrations, native mobile apps, other countries, online pay
 
 - Required fields on a South African tax invoice, and treatment of VAT on deposits and part-payments.
 - Rules for credit notes and corrections, and for retention of records.
+- Data stored in the EU: POPIA cross-border transfer conditions and privacy-policy wording (see ADR 0001).
 - How comparable tools (for example FreshBooks, QuickBooks) handle editing, voiding and audit trails on issued invoices. This informs the lock-on-issue design. It has not yet been checked against those products.
 - POPIA obligations for customer personal data.
 
