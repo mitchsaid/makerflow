@@ -44,7 +44,7 @@ Engineering
 | Pricing model | **Deferred** until real-user feedback. Data model keeps room for plans and limits, no billing code yet. |
 | Stack direction | Managed services, Supabase-style (auth, Postgres, storage, backups). Next.js on Vercel, see `docs/adr/0001-stack.md`. |
 | Tone | Neutral with warmth and friendliness. |
-| Environments | Local Supabase for development, a hosted dev project, and a separate prod project. Prod on a paid plan for backups. |
+| Environments | Local Supabase for development, a hosted dev project, and a separate prod project. **Both hosted projects on Supabase free during the closed alpha** (testers told it is a trial). Nightly database dumps to storage we control via a scheduled CI job. **Upgrade prod to Pro before anyone relies on it for real invoices.** |
 | Landing page | Lives in the same Next.js app. |
 | Analytics | Privacy-friendly page and sign-up tracking plus a few key product events. No advertising trackers. |
 | Invoice numbering | Simple sequence with an editable prefix and start number (for example INV-0001). Sequential and gapless per business. Makers migrating from another system can continue their numbers. |

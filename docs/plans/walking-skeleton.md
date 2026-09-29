@@ -14,7 +14,11 @@ Goal: a thin, real slice that proves the whole pipeline (sign-up, database, secu
    - Database tests proving one organisation cannot read or write another's data.
    - One browser test: sign up and land in an empty app.
 6. **CI (GitHub Actions).** Lint, typecheck and tests on every push. Migration check. Secret scanning.
-7. **Environments.** Vercel preview deploy per branch, a dev environment, a prod environment. Secrets live in hosting settings, never in git.
+7. **Environments.** Vercel preview deploy per branch, a dev environment, a prod environment. Secrets live in hosting settings, never in git. Supabase free tier for both hosted projects during the closed alpha (no backups, pauses after 7 days idle, built-in email is rate-limited):
+   - scheduled nightly `pg_dump` to storage we control (GitHub Action);
+   - a scheduled keep-alive check to avoid pausing;
+   - a custom email sender (free tier) for magic links, set up early;
+   - upgrade prod to Pro before any real-invoice use.
 8. **Error tracking** and basic observability.
 9. **Analytics.** Privacy-friendly page and sign-up tracking plus a few product events. No advertising trackers. Nothing collected beyond what is needed.
 10. **Mobile-first shell.** Navigation, layout and the neutral-but-warm visual base.
