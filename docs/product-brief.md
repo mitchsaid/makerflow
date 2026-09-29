@@ -44,6 +44,11 @@ Engineering
 | Pricing model | **Deferred** until real-user feedback. Data model keeps room for plans and limits, no billing code yet. |
 | Stack direction | Managed services, Supabase-style (auth, Postgres, storage, backups). Next.js on Vercel, see `docs/adr/0001-stack.md`. |
 | Tone | Neutral with warmth and friendliness. |
+| Environments | Local Supabase for development, a hosted dev project, and a separate prod project. Prod on a paid plan for backups. |
+| Landing page | Lives in the same Next.js app. |
+| Analytics | Privacy-friendly page and sign-up tracking plus a few key product events. No advertising trackers. |
+| Invoice numbering | Simple sequence with an editable prefix and start number (for example INV-0001). Sequential and gapless per business. Makers migrating from another system can continue their numbers. |
+| Product name | Undecided. **Batchwork** is the leading candidate. Check CIPC, trademark, domains and app stores first. MakerFlow is the working title. |
 
 ## 4. Core journeys (target)
 
@@ -87,7 +92,7 @@ Accounting-package integrations, native mobile apps, other countries, online pay
 
 ## 8. Open questions
 
-- Product name, domain and branding of the app itself.
+- Final product name, domain and branding of the app itself (see the decisions table).
 - Deposit model: a deposit invoice, or a payment on account against a later invoice.
 - Which product-import formats to support first (Shopify CSV, generic CSV).
 - Front-end framework and host: decided, see `docs/adr/0001-stack.md`.
