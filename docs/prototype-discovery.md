@@ -77,13 +77,6 @@ The **content** of the six presets is still useful as realistic fixtures for aut
 
 A real "delete my account and data" flow (POPIA) is a separate, deliberate feature and replaces the prototype's "Reset".
 
-## 7. Open questions
+## 7. Open questions (answered)
 
-1. **When is the invoice created?** The prototype invoices automatically on quote acceptance. The vision describes invoicing *after the work is done*. Options: on acceptance, on completion, or both (deposit or pro-forma, then final).
-2. **Payments.** The prototype has only paid and unpaid, with no payment records, although statements reference "Payment" transactions. Do we need partial payments and deposits in v1?
-3. **Product complexity.** Variations, extras, price breaks, wholesale tiers, conditional stages and per-unit tracking are a lot for a solo maker. Which of these are v1, and which can wait?
-4. **Services vs products.** They share one model in the prototype. Keep it that way?
-5. **Stock.** Are both raw-material stock and finished-goods stock in v1, or costing only?
-6. **AI.** Is there an intended Gemini or Claude-powered feature (for example drafting quote text), or is the dependency just scaffolding?
-7. **Customer-facing link.** Should quotes and invoices go out as an emailed link the customer can open, accept and pay from, or as a PDF attachment first?
-8. **Time tracking.** Should logged time feed labour cost on a job, or stay a standalone timer?
+Answers were given by the founder and are recorded in `product-brief.md`, section 3. In short: invoice conversion is the maker's choice with a prompt on job completion; partial payments and deposits are in scope; complexity is layered in; quotes go out as PDF first; time tracking feeding labour cost is a per-user choice; AI is expected later. A product-import onboarding journey (for example from a Shopify export) was added as a new requirement.
