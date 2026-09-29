@@ -6,7 +6,7 @@ Read `docs/product-brief.md` for principles, decisions and the delivery layers. 
 
 ## Repo layout
 - `prototype/` — the original AI Studio prototype. **Reference only.** Do not edit it, build on it, or copy its data or state code.
-- `app/` — the production app (not created yet).
+- `app/` — the production app (Next.js, TypeScript, Tailwind, pnpm). Read `app/AGENTS.md` first: this Next.js version differs from older training data, so check `app/node_modules/next/dist/docs/` before writing framework code.
 - `docs/` — brief, discovery notes, and (later) `docs/adr/` decision records.
 
 ## Rules
@@ -25,4 +25,10 @@ Read `docs/product-brief.md` for principles, decisions and the delivery layers. 
 - Do not create a pull request unless asked.
 
 ## Commands
-To be filled in when `app/` is scaffolded (dev, test, lint, typecheck, migrate).
+Run from `app/` with pnpm:
+- `pnpm dev` — dev server
+- `pnpm lint` — ESLint
+- `pnpm typecheck` — TypeScript, no emit
+- `pnpm build` — production build
+
+Still to add as the skeleton lands: test, database migrate, and local Supabase commands.
