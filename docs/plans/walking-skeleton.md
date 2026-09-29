@@ -4,6 +4,10 @@ Status: draft for founder review. Nothing here is built yet.
 
 Goal: a thin, real slice that proves the whole pipeline (sign-up, database, security, tests, CI, deploys) with no maker features. Every later layer is built inside this safety net.
 
+## Progress
+- Done: scaffold, first migration and security tests, business-name onboarding, magic-link sign-in, protected workspace page, mobile-first shell, unit and browser tests, CI workflow (not yet run on GitHub).
+- Not yet: Google sign-in verified against a real Google project, hosted dev environment wired up, Vercel deploys, error tracking, analytics, nightly backups, custom email sender.
+
 ## Scope
 1. **Scaffold `app/`.** Next.js, TypeScript, Tailwind. Lint, format and typecheck scripts. Pin versions.
 2. **Supabase.** Local Supabase for development (needs Docker), a hosted dev project, and a hosted prod project. All schema changes are migration files in git.

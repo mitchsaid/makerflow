@@ -34,7 +34,10 @@ Run from `app/` with pnpm:
 - `pnpm db:start` / `pnpm db:stop` — local Supabase stack (needs Docker); starting it applies every migration in `app/supabase/migrations/`
 - `pnpm db:reset` — rebuild the **local** database from the migrations
 - `pnpm db:test` — SQL security tests against the local stack
+- `pnpm stack:start` / `pnpm stack:stop` — local Supabase with auth, API and a mailbox (needed to run the app and browser tests); copy its printed values into `app/.env.local` (see `app/.env.example`)
+- `pnpm test` — unit tests (Vitest)
+- `pnpm test:e2e` — browser tests (Playwright, phone viewport). Needs the stack running; starts the dev server itself
 - `pnpm db:test:plain` — same tests on plain Postgres with an auth stand-in (sandboxes without Docker; set `DATABASE_URL` to a scratch database)
 
 Database changes are migration files only, never dashboard edits. Every new table needs RLS and a test in `app/supabase/tests/`.
-Still to add: app unit tests and browser tests.
+Sign-in uses email magic links (verified server-side, so they work across browsers) and Google (off until configured). Google sign-in is NOT yet tested against a real Google project.

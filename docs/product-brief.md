@@ -51,7 +51,7 @@ Engineering
 | Hosted projects | Supabase, EU region (no SA region exists). `makerflow-dev` https://mbbfjhjzhilathupnxdb.supabase.co and `makerflow-prod` https://ziusocayienstklwockp.supabase.co. Project URLs are not secrets. Keys and passwords are never stored in the repo. |
 | Business name at sign-up | The app asks for the business name during onboarding (no default such as "My workshop"). |
 | Staff visibility | Staff can see the roles of colleagues in their organisation. |
-| Public demo | The landing page offers a live demo account visitors can try, with data that resets. Design open, see section 4a. |
+| Public demo | The landing page offers a live demo that visitors can try, with data that resets. **Private temporary sandbox per visitor**, see section 4a. |
 | Product name | Undecided. **Batchwork** is the leading candidate. Check CIPC, trademark, domains and app stores first. MakerFlow is the working title. |
 
 ## 4. Core journeys (target)
@@ -72,7 +72,9 @@ The landing page has a live demo that visitors can try without signing up, with 
 
 Why it needs care: it is the one place where demo data is a real feature, and it is open to the public. It must never let a visitor reach real customers' data, and it must not send real emails or take real payments.
 
-Design options (decision pending):
+Decision: **A, a private sandbox per visitor** (chosen by the founder). Option B is kept below for the record.
+
+Design options:
 - **A. A private sandbox per visitor (recommended).** Each visitor gets their own temporary demo organisation, filled with sample data, that expires after some hours and can be reset with a button. Visitors can't see or vandalise each other's edits. Uses anonymous sign-in, bot protection, and a scheduled clean-up job.
 - **B. One shared demo account that resets on a timer.** Simplest, and matches the wording most literally. But everyone edits the same data, visitors can leave junk or offensive content for the next person, and concurrent use gets confusing.
 
