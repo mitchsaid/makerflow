@@ -7,6 +7,8 @@ import { signInWithGoogle } from "./actions";
 const ERRORS: Record<string, string> = {
   link: "That sign-in link has expired or was already used. Request a new one below.",
   oauth: "We couldn't sign you in with Google. Please try again, or use email.",
+  callback:
+    "We couldn't complete that sign-in. If you opened the link in a different browser or app than the one you asked from, request a new link below and open it in the same browser.",
 };
 
 export default async function SignInPage({ searchParams }: PageProps<"/sign-in">) {

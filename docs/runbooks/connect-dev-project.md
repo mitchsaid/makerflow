@@ -20,11 +20,11 @@ Authentication settings on the hosted project must match `app/supabase/config.to
 1. **URL Configuration**
    - Site URL: the stable URL of the deployed dev app (the Vercel project's main `.vercel.app` address, from step 3). Until it exists, use `http://localhost:3000`.
    - Redirect URLs: add that same URL with `/**`, plus `http://localhost:3000/**`.
-   - The sign-in email builds its link from the Site URL. Per-branch preview URLs will therefore send links to the stable dev address, not the preview. Test sign-in on the stable address.
-2. **Email Templates**: set both templates to the files in `app/supabase/templates/`:
+   - Default emails return to the address the app asked for (allowed by the redirect list above). Once custom templates are used, their links are built from the Site URL, so per-branch preview URLs would send links to the stable dev address. Test sign-in on the stable address.
+2. **Email Templates**: Supabase only lets you edit the email templates on a hosted project once **custom SMTP** is set up. Until then, leave Supabase's default emails as they are. The app works with them (tested locally) with one limit: the default link must be opened in the **same browser** that asked for it. On a phone, tap it in Mail and let it open in the browser you used to request it. If someone opens it somewhere else they see a message asking them to request a new link.
+   Once custom SMTP exists, set both templates to the files in `app/supabase/templates/`. Those links work in any browser or app:
    - "Confirm signup" = `confirmation.html` (link has `type=signup`)
    - "Magic Link" = `magic_link.html` (link has `type=email`)
-   New users get the first, returning users the second. Both links point at `/auth/confirm`.
 3. **Sign In / Providers > Email**: keep "Confirm email" on (matches local config). Leave Google off until it is configured.
 4. Email sending: the built-in sender is heavily rate-limited. Fine for a few test sign-ins. Set up a proper sender before real testers.
 

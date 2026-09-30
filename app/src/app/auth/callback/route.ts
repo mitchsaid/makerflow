@@ -3,7 +3,11 @@ import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/validation";
 
-/** Return point for "Continue with Google" (OAuth code exchange). */
+/**
+ * Return point for "Continue with Google" and for Supabase's default email links
+ * (one-time code exchange). The default email link only works in the browser that
+ * asked for it, so a failure here is often "opened in a different browser".
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
@@ -15,5 +19,5 @@ export async function GET(request: NextRequest) {
     if (!error) redirect(next);
   }
 
-  redirect("/sign-in?error=oauth");
+  redirect("/sign-in?error=callback");
 }
