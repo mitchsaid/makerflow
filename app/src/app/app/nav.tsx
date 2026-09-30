@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const ITEMS = [
+  { href: "/app", label: "Home", match: (p: string) => p === "/app", icon: HomeIcon },
+  {
+    href: "/app/settings",
+    label: "Settings",
+    match: (p: string) => p.startsWith("/app/settings"),
+    icon: SettingsIcon,
+  },
+] as const;
+
+/**
+ * Bottom tab bar on phones, left sidebar from tablet width up.
+ * Only sections that exist are listed; more appear as features ship.
+ */
+export function WorkspaceNav({ businessName }: { businessName: string }) {
+  const pathname = usePathname();
+
+  return (
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface md:static md:w-56 md:shrink-0 md:border-r md:border-t-0"
+    >
+      <p className="hidden truncate px-4 pt-5 pb-3 text-sm font-semibold md:block">
+        {businessName}
+      </p>
+      <ul className="flex md:flex-col md:gap-1 md:px-2">
+        {ITEMS.map(({ href, label, match, icon: Icon }) => {
+          const active = match(pathname);
+          return (
+            <li key={href} className="flex-1 md:flex-none">
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-3 py-2 text-xs md:min-h-11 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:text-sm ${
+                  active
+                    ? "font-semibold text-accent md:bg-background"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                <Icon />
+                <span>{label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+    </svg>
+  );
+}

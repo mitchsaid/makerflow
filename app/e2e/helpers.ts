@@ -1,3 +1,5 @@
+import { expect, type Page } from "@playwright/test";
+
 const mailpit = process.env.LOCAL_MAILPIT_URL ?? "http://127.0.0.1:54324";
 
 async function messageIds(address: string): Promise<string[]> {
@@ -37,4 +39,29 @@ export async function waitForSignInLink(
 
 export function uniqueEmail(label: string) {
   return `${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
+}
+
+/** Signs a brand-new person up by email link (same browser) and finishes onboarding. */
+export async function signUpAndOnboard(
+  page: Page,
+  label: string,
+  businessName: string,
+): Promise<string> {
+  const email = uniqueEmail(label);
+  await page.goto("/sign-in");
+  await page.getByLabel("Email address").fill(email);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await expect(page.getByRole("status")).toContainText("Check your email");
+  await page.goto(await waitForSignInLink(email));
+  await page.getByLabel("Business name").fill(businessName);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByTestId("business-name")).toHaveText(businessName);
+  return email;
+}
+
+/** Sign out is in Settings. */
+export async function signOut(page: Page) {
+  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/$/);
 }

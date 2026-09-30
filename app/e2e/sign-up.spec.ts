@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { existingEmailIds, uniqueEmail, waitForSignInLink } from "./helpers";
+import { existingEmailIds, signOut, uniqueEmail, waitForSignInLink } from "./helpers";
 
 test("visitor can sign up by email link, name their business, and land in their workspace", async ({
   page,
@@ -34,8 +34,7 @@ test("visitor can sign up by email link, name their business, and land in their 
   await expect(phone).toHaveURL(/\/app$/);
 
   // Sign out puts the protected pages out of reach again.
-  await phone.getByRole("button", { name: "Sign out" }).click();
-  await expect(phone).toHaveURL(/\/$/);
+  await signOut(phone);
   await phone.goto("/app");
   await expect(phone).toHaveURL(/\/sign-in$/);
   await other.close();
@@ -60,7 +59,7 @@ test("returning user signs in again by email link and skips onboarding", async (
   await p1.getByLabel("Business name").fill("Returning Co");
   await p1.getByRole("button", { name: "Continue" }).click();
   await expect(p1.getByTestId("business-name")).toHaveText("Returning Co");
-  await p1.getByRole("button", { name: "Sign out" }).click();
+  await signOut(p1);
   await first.close();
 
   // Later visit, fresh browser: a different kind of email, straight to the workspace.

@@ -35,7 +35,10 @@ Engineering
 | Invoice creation | The maker chooses when to convert a quote to an invoice. When a job is completed, a smart prompt offers to create the invoice. |
 | Payments | Partial payments and deposits are in scope from early on. Invoice balance and status are **derived from recorded payments**. |
 | Complexity | Everything in the prototype is wanted eventually, delivered iteratively (see section 5). |
-| Quotes out | PDF first. A hosted, online-viewable and acceptable quote comes later. |
+| Quotes out | PDF first. A hosted, online-viewable and acceptable quote comes later. **Quotes are the first document to build** (founder priority). |
+| Navigation | Mobile: bottom tab bar. Desktop: left sidebar. |
+| Logo upload | Later, with the branded document templates. |
+| Customer form | Name only required. A "this is a business" switch reveals VAT number, company registration and contact person. Email, phone and addresses optional. |
 | Time tracking | Feeds labour cost only if the maker chooses (a per-user setting). |
 | AI | Expected eventually. Not in early slices. |
 | Onboarding | Not in the prototype. Wanted: import an existing product list (for example a Shopify export) to seed the product set with sensible configuration. |
@@ -86,20 +89,23 @@ Design implications already in mind:
 
 ## 5. Delivery layers (proposal)
 
-0. **Walking skeleton:** landing page, sign-up and sign-in, empty organisation, database with migrations, dev and prod environments, CI, error tracking.
-1. **Business profile and customers.**
-2. **Custom invoice, VAT-aware, immutable on issue, gapless numbering, branded PDF.** Payments, deposits and credit notes follow directly. The public demo account starts here and grows with each later layer.
-3. **Quotes with revisions, PDF, and convert-to-invoice.**
-4. **Jobs and fulfilment tracking, and the "create invoice?" prompt.**
-5. **Materials, products and costing, and margin.**
-6. **Templates and branding customisation.**
-7. **Stock (raw materials and finished goods).**
-8. **Product import and onboarding.**
-9. **Hosted quotes with online acceptance.**
-10. **Employees, roles, permissions.**
-11. **AI features, and paid plans once decided.**
+Founder priority (set 2026-09-30): **quotes are the first document to build**, because a quote comes first in a maker's workflow of work. Everything before it is kept as lean as possible.
 
-Layers 5–7 can be reordered after user feedback. The data model is designed for all of them up front.
+0. **Walking skeleton:** landing page, sign-up and sign-in, empty organisation, database with migrations, dev and prod environments, CI, error tracking. *(Core done; hardening items remain: backups, error tracking, bot protection, custom email.)*
+1. **App shell and lean business profile:** bottom-tab navigation, business contact details and address, VAT status. Bank details are deliberately left for the invoice layer. Includes the first dismissable prompt.
+2. **Customers:** list, add (name only required), edit, archive. Customers can also be added from inside the quote form.
+3. **Quotes (the first document):** custom line items, VAT-aware totals, statuses (draft, sent, accepted, declined, expired), revisions (v1, v2 with history kept), sequential quote numbers with editable prefix, branded PDF. The public demo starts here.
+4. **Jobs and fulfilment tracking:** accepted quote becomes a job; collection or delivery status.
+5. **Invoices:** convert from a quote (maker's choice, with the "create invoice?" prompt when a job completes), VAT-aware, immutable on issue, gapless numbering, bank details, payments and deposits, credit notes.
+6. **Materials, products and costing, and margin.**
+7. **Templates and branding customisation (including logo upload).**
+8. **Stock (raw materials and finished goods).**
+9. **Product import and onboarding.**
+10. **Hosted quotes with online acceptance.**
+11. **Employees, roles, permissions.**
+12. **AI features, and paid plans once decided.**
+
+Later layers can be reordered after user feedback. The data model is designed for all of them up front.
 
 ## 6. Non-goals for now
 
