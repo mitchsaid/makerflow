@@ -21,7 +21,13 @@ export async function requestMagicLink(
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: email.value,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      // Used by Supabase's default email (a link that returns here with a one-time
+      // code). Our own templates link to /auth/confirm instead and ignore this.
+      // Supabase only honours it if it is on the project's allowed redirect list.
+      emailRedirectTo: `${await siteOrigin()}/auth/callback`,
+    },
   });
 
   if (error) {
@@ -34,16 +40,19 @@ export async function requestMagicLink(
   return { status: "sent", email: email.value };
 }
 
-export async function signInWithGoogle() {
+async function siteOrigin() {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  return `${protocol}://${host}`;
+}
 
+export async function signInWithGoogle() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     // Supabase only honours this if it is on the project's allowed redirect list.
-    options: { redirectTo: `${protocol}://${host}/auth/callback` },
+    options: { redirectTo: `${await siteOrigin()}/auth/callback` },
   });
 
   if (error || !data.url) {
