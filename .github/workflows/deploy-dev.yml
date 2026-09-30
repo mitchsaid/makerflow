@@ -13,7 +13,7 @@ concurrency: deploy-dev-database
 jobs:
   migrate:
     name: Apply migrations to dev
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: dev
     env:
       # Session-pooler connection string for makerflow-dev (includes the database

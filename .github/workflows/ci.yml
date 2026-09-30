@@ -10,7 +10,7 @@ permissions:
 jobs:
   app:
     name: Lint, typecheck, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: app
@@ -36,7 +36,7 @@ jobs:
 
   database:
     name: Migrations and security tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: app
@@ -58,7 +58,7 @@ jobs:
 
   e2e:
     name: Browser tests (real local Supabase)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: app
