@@ -10,7 +10,7 @@ We use the database connection string and **no Supabase access token**. A token 
 1. Supabase, dev project: **Project Settings > Database > Reset database password.** Choose a generated password with **letters and numbers only** (special characters must be percent-encoded in a connection string and are easy to get wrong). Save it in a password manager.
 2. Supabase: click **Connect** at the top of the dev project, choose the **Session pooler** connection string (not "Direct connection": GitHub's servers only speak IPv4, and the direct address is IPv6-only unless you buy an add-on). It looks like `postgresql://postgres.<ref>:[YOUR-PASSWORD]@<host>.pooler.supabase.com:5432/postgres`. Replace `[YOUR-PASSWORD]` with the password from step 1.
 3. GitHub: repo **Settings > Environments > New environment** named `dev`. Add one **environment secret** named `SUPABASE_DB_URL` containing the full string from step 2.
-4. GitHub: **Actions > Deploy database to dev > Run workflow**. The "Show what would change" step lists what will be applied, then the next step applies it.
+4. GitHub: **Actions > Deploy database to dev > Run workflow**. This only appears once the workflow file is on the repository's default branch (`main`). Until the work is merged there, GitHub lists only the CI workflow. The "Show what would change" step lists what will be applied, then the next step applies it.
 5. Check: Supabase dashboard > Table Editor shows `organisations`, `memberships`, `profiles`, and Authentication > Policies shows the rules.
 
 The connection string is a powerful secret (full access to that database). It lives only in the GitHub `dev` environment. Prod gets its own separate secret and an environment that requires your approval before it runs.
@@ -43,4 +43,5 @@ On the stable dev URL, on a phone: sign up with your email, open the email link 
 ## Known limits
 - Google sign-in not yet configured or tested.
 - CAPTCHA not yet added (see `docs/security-notes.md`).
-- This workflow has not yet run against a real project.
+- The deploy workflow has not yet run against a real project. (The CI workflow has, and passes.)
+- GitHub environment protection: leave `dev` with no rules and no branch restriction. For `prod`, add yourself as required reviewer, untick "Allow administrators to bypass configured protection rules" so the approval step always applies, and restrict deployments to `main`.
