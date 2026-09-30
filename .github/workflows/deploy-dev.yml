@@ -1,0 +1,45 @@
+name: Deploy database to dev
+
+# Manual only. Applies the migrations in app/supabase/migrations to the hosted DEV
+# Supabase project. The secret comes from the GitHub "dev" environment, never from the repo.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: deploy-dev-database
+
+jobs:
+  migrate:
+    name: Apply migrations to dev
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      # Session-pooler connection string for makerflow-dev (includes the database
+      # password). Connects to this one database only: no Supabase account token needed.
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Refuse to run unless the secret is the dev project
+        run: |
+          case "$SUPABASE_DB_URL" in
+            *mbbfjhjzhilathupnxdb*) echo "Connection string is for makerflow-dev." ;;
+            *) echo "SUPABASE_DB_URL does not belong to the dev project (mbbfjhjzhilathupnxdb). Stopping."; exit 1 ;;
+          esac
+      - name: Show what would change
+        run: pnpm exec supabase db push --db-url "$SUPABASE_DB_URL" --skip-vault --dry-run
+      - name: Apply migrations
+        run: pnpm exec supabase db push --db-url "$SUPABASE_DB_URL" --skip-vault

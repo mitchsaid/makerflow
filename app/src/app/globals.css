@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* Neutral, calm, with some warmth. Brand personality lives in the maker's own documents. */
+:root {
+  --background: #faf8f5;
+  --surface: #ffffff;
+  --foreground: #211e1a;
+  --muted: #6a635a;
+  --line: #e6e0d6;
+  --accent: #a94f33;
+  --accent-hover: #93422a;
+  --accent-contrast: #ffffff;
+  --danger: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1815;
+    --surface: #242019;
+    --foreground: #f1ece4;
+    --muted: #a59d92;
+    --line: #38332b;
+    --accent: #d9805f;
+    --accent-hover: #e39476;
+    --accent-contrast: #1a1815;
+    --danger: #f2877e;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-surface p-4;
+  }
+  .field {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-base text-foreground;
+    @apply placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+  .btn-primary,
+  .btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-base font-medium;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+  .btn-primary:disabled {
+    @apply opacity-60;
+  }
+  .btn-secondary {
+    @apply border border-line bg-surface text-foreground hover:bg-background;
+  }
+}
