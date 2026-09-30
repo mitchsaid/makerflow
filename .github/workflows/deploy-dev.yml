@@ -33,6 +33,12 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: Refuse to run unless the secret is the dev project
+        run: |
+          case "$SUPABASE_DB_URL" in
+            *mbbfjhjzhilathupnxdb*) echo "Connection string is for makerflow-dev." ;;
+            *) echo "SUPABASE_DB_URL does not belong to the dev project (mbbfjhjzhilathupnxdb). Stopping."; exit 1 ;;
+          esac
       - name: Show what would change
         run: pnpm exec supabase db push --db-url "$SUPABASE_DB_URL" --skip-vault --dry-run
       - name: Apply migrations
