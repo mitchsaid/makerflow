@@ -2,16 +2,18 @@
 
 Project: `makerflow-dev` (ref `mbbfjhjzhilathupnxdb`, EU region). Do this for `makerflow-prod` only after dev works and the migration has been reviewed.
 
-Never paste keys, tokens or passwords into a chat or commit them. They go into GitHub and Vercel secret settings only.
+Never paste keys, tokens, passwords or connection strings into a chat or commit them. They go into GitHub and Vercel secret settings only.
 
-## 1. Put the database in place (GitHub secrets, then a manual run)
-1. Supabase: Account (avatar) > **Access Tokens** > generate a token named `github-deploy-dev`. Copy it once.
-2. Supabase: the dev project's **database password** (the one saved when it was created; reset it in Project Settings > Database if lost).
-3. GitHub: repo **Settings > Environments > New environment** named `dev`. Add two **environment secrets**:
-   - `SUPABASE_ACCESS_TOKEN` = the token from step 1
-   - `SUPABASE_DB_PASSWORD` = the password from step 2
-4. GitHub: **Actions > Deploy database to dev > Run workflow**. The "Show what would change" step lists what will be applied. The migration creates the tenancy tables and security rules.
+## 1. Put the database in place (one GitHub secret, then a manual run)
+We use the database connection string and **no Supabase access token**. A token can manage your whole Supabase account, while the connection string only reaches this one database. If you already created a token, delete it (Account > Access Tokens).
+
+1. Supabase, dev project: **Project Settings > Database > Reset database password.** Choose a generated password with **letters and numbers only** (special characters must be percent-encoded in a connection string and are easy to get wrong). Save it in a password manager.
+2. Supabase: click **Connect** at the top of the dev project, choose the **Session pooler** connection string (not "Direct connection": GitHub's servers only speak IPv4, and the direct address is IPv6-only unless you buy an add-on). It looks like `postgresql://postgres.<ref>:[YOUR-PASSWORD]@<host>.pooler.supabase.com:5432/postgres`. Replace `[YOUR-PASSWORD]` with the password from step 1.
+3. GitHub: repo **Settings > Environments > New environment** named `dev`. Add one **environment secret** named `SUPABASE_DB_URL` containing the full string from step 2.
+4. GitHub: **Actions > Deploy database to dev > Run workflow**. The "Show what would change" step lists what will be applied, then the next step applies it.
 5. Check: Supabase dashboard > Table Editor shows `organisations`, `memberships`, `profiles`, and Authentication > Policies shows the rules.
+
+The connection string is a powerful secret (full access to that database). It lives only in the GitHub `dev` environment. Prod gets its own separate secret and an environment that requires your approval before it runs.
 
 ## 2. Configure sign-in on the dev project (dashboard)
 Authentication settings on the hosted project must match `app/supabase/config.toml`:
