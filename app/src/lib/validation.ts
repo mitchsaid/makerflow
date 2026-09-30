@@ -46,3 +46,18 @@ export function safeNextPath(input: unknown, fallback = "/app"): string {
   if (/[\u0000-\u001f]/.test(input)) return fallback;
   return input;
 }
+
+/** Lenient phone check: digits with optional spaces, dashes, brackets and a leading +. */
+export function validatePhone(input: unknown): ValidationResult<string> {
+  const value = typeof input === "string" ? input.trim() : "";
+  const digits = value.replace(/\D/g, "");
+  if (
+    value.length > 40 ||
+    !/^[+()\d][\d\s()+-]*$/.test(value) ||
+    digits.length < 7 ||
+    digits.length > 15
+  ) {
+    return { ok: false, error: "That doesn't look like a phone number." };
+  }
+  return { ok: true, value };
+}
