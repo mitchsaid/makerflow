@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Keeps the GitHub Actions used by our workflows current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Keeps the app's dependencies current (pnpm is handled by the npm ecosystem).
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
