@@ -22,8 +22,10 @@ Goal: see every change in your browser the moment it's made, and only push when 
 
 **2. Get the code.** Install GitHub Desktop (desktop.github.com), sign in, choose "Clone a repository", pick `mitchsaid/makerflow`. Remember the folder it uses.
 
-**3. Install the Claude desktop app** (claude.ai/download, or the link in the Claude Code docs), open it and **sign in with your personal Claude account**. Check the account name shown in the app's settings is your personal one, not your work one.
-If you also use Claude for work, the desktop app signs in to one account at a time. Keep work in the terminal (`claude`) and MakerFlow in the desktop app, or sign out and in when you switch.
+**3. Install the Claude desktop app** (claude.ai/download, or the link in the Claude Code docs) and open it.
+- To work on MakerFlow, **sign out of your work account and sign in with your personal one**. Check the account name in the app's settings is your personal one.
+- When you want your work account back, sign out and sign in again. Nothing in this project changes how your work account is set up.
+- Switching accounts applies to the whole app (including its Chat tab), so finish anything in progress for work first.
 
 **4. Open MakerFlow.** In the **Code** tab choose **Local**, click **Select folder**, and pick the `makerflow` folder from step 2. Then send:
 
@@ -44,9 +46,15 @@ It installs what is missing (asking your permission), downloads the database ima
 
 When you finish for the day, quit Docker Desktop (or ask Claude to run `pnpm stack:stop`).
 
-## Prefer a terminal or VS Code instead?
-- **Terminal:** give MakerFlow its own login so a work login stays untouched. Run once: `echo "alias claude-mf='CLAUDE_CONFIG_DIR=~/.claude-makerflow claude'" >> ~/.zshrc && source ~/.zshrc`. Then `cd` into the repo and run `claude-mf`; the first time, log in with your personal account and check `/status`.
-- **VS Code (or Cursor):** install the Claude Code extension. It shares settings and conversation history with the terminal version. To use a separate account, set `CLAUDE_CONFIG_DIR` in the extension's `environmentVariables` setting. This is more fiddly than the desktop app, so only choose it if you want to read and edit the code yourself.
+## What this setup does and doesn't touch on your computer
+- **Does not touch your Claude accounts or settings.** Nothing here reads or changes your Claude login, your work setup, `~/.claude`, or your shell profile.
+- **`.claude/launch.json`** lives inside the MakerFlow folder only. It holds no account details. It just tells the desktop app how to start this app's dev server (`pnpm local`, port 3000), and it is only used when a session is opened on the MakerFlow folder.
+- **`CLAUDE.md` files** are project instructions that only load when Claude works in this folder.
+- **`./scripts/setup-local.sh`** installs project dependencies inside the repo, downloads a test browser (Playwright's cache folder), and pulls Docker images. If Node or pnpm are missing it tells you what to install, and it runs `corepack enable` (a standard Node step) if pnpm isn't found.
+- **To remove everything:** quit Docker Desktop, delete the `makerflow` folder, and delete the Docker images if you want the space back.
+
+## Other ways to work (only if you change your mind)
+A terminal or an editor such as VS Code also works with Claude Code. Both would need their own sign-in handling, so with your preference to keep work untouched, the desktop app plus signing in and out is the simplest. Ask me if you want the details.
 
 ## Quick reference (Claude runs these; you can too, from the `app` folder)
 | Command | What it does |
