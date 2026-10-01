@@ -7,8 +7,9 @@ import type { BusinessProfile, PromptKey } from "@/lib/business-profile";
 /**
  * Data access layer: who is signed in, and which business they are working in.
  * Every protected page and Server Action goes through here, so the checks live in
- * one place. It is deliberately cheap: one local token check and ONE database query
- * per request, because every extra round trip to the database is felt on each click.
+ * one place. It is deliberately cheap: the page's data is ONE query, with the
+ * session check running at the same time as it (not before it), because every
+ * extra serial round trip to Supabase is felt on each click.
  */
 
 export type SessionUser = { id: string; email: string | null };
@@ -25,21 +26,34 @@ export type Workspace = {
 };
 
 /**
- * The signed-in user, or null.
- *
- * Uses getClaims(): the token's signature and expiry are verified locally with
- * the project's public signing key, so there is no network call to Supabase on
- * most requests. Trade-off: a session ended elsewhere is only noticed when its
- * token expires (about an hour). Data access is unaffected, because the database
- * checks the same token. For sensitive actions (deleting an account, changing
- * roles) call supabase.auth.getUser() instead, which asks the auth server.
+ * The user according to the token alone: signature and expiry are checked locally
+ * (no network call). A token outlives the session behind it by up to an hour, so this
+ * is never enough on its own to allow access: pair it with sessionIsActive().
  */
-export const getUser = cache(async (): Promise<SessionUser | null> => {
+const getTokenUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (error || !claims?.sub) return null;
   return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+});
+
+/**
+ * Does the session behind this token still exist? Asks the database
+ * (session_is_active, see migration 20261001090000). This is what makes signing out on
+ * one device lock every other device on its next request, and what stops removed
+ * accounts, rather than waiting for the token to expire.
+ */
+const sessionIsActive = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("session_is_active");
+  return !error && data === true;
+});
+
+/** The signed-in user, or null. The session is confirmed with the database. */
+export const getUser = cache(async (): Promise<SessionUser | null> => {
+  const [user, active] = await Promise.all([getTokenUser(), sessionIsActive()]);
+  return user && active ? user : null;
 });
 
 export async function requireUser() {
@@ -76,11 +90,11 @@ const one = <T,>(value: T | T[] | null | undefined): T | null =>
  * Row-level security limits every part of this to what the user may see.
  */
 export const getWorkspace = cache(async (): Promise<Workspace | null> => {
-  const user = await getUser();
-  if (!user) return null;
+  const tokenUser = await getTokenUser();
+  if (!tokenUser) return null;
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const membershipQuery = supabase
     .from("memberships")
     .select(
       `role,
@@ -93,10 +107,17 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
          prompt_dismissals ( prompt_key )
        )`,
     )
-    .eq("user_id", user.id)
+    .eq("user_id", tokenUser.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+
+  // The session check and the data query run side by side; the data is only
+  // used if the session is confirmed. (session_is_active also requires the
+  // session to belong to the token's user.)
+  const [active, { data, error }] = await Promise.all([sessionIsActive(), membershipQuery]);
+  if (!active) return null;
+  const user = tokenUser;
 
   if (error) throw new Error(`Could not load workspace: ${error.message}`);
   const membership = data as unknown as MembershipRow | null;
@@ -125,9 +146,11 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
 
 /** Signed in AND onboarded. Otherwise redirects to the right place. */
 export async function requireOrganisation(): Promise<Workspace> {
-  await requireUser();
   const workspace = await getWorkspace();
-  if (!workspace) redirect("/onboarding");
+  if (!workspace) {
+    await requireUser(); // cached: redirects to sign-in if the session is gone
+    redirect("/onboarding");
+  }
   return workspace;
 }
 

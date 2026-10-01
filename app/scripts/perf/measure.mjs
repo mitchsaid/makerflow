@@ -40,9 +40,11 @@ page.on("request", (r) => {
   }
 });
 
-// "Reacted" = the destination's real content is on screen.
-const SETTINGS_REACTED = () => document.querySelector("main h1")?.textContent === "Settings";
-const HOME_REACTED = () => !!document.querySelector('[data-testid="business-name"]');
+// "Reacted" = a loading skeleton is showing, or the destination's real content is.
+const SETTINGS_REACTED = () =>
+  !!document.querySelector('[data-testid="page-loading"]') || document.querySelector("main h1")?.textContent === "Settings";
+const HOME_REACTED = () =>
+  !!document.querySelector('[data-testid="page-loading"]') || !!document.querySelector('[data-testid="business-name"]');
 
 await fetch(proxy + "/__take");
 const rows = [];

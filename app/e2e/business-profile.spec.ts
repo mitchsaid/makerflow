@@ -109,10 +109,25 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   expect(box!.width).toBeGreaterThan(viewport.width - 2); // full width
 
   await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+
+  // Selecting a tab must not nudge any label: record where each sits, then compare.
+  const labelBoxes = async () =>
+    Promise.all(
+      ["Home", "Settings"].map((name) =>
+        nav.getByRole("link", { name }).locator("span span").last().boundingBox(),
+      ),
+    );
+  const before = await labelBoxes();
   await nav.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/app\/settings$/);
   await expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current", "page");
+  const after = await labelBoxes();
+  for (const i of [0, 1]) {
+    expect(after[i]!.x).toBeCloseTo(before[i]!.x, 1);
+    expect(after[i]!.width).toBeCloseTo(before[i]!.width, 1);
+    expect(after[i]!.y).toBeCloseTo(before[i]!.y, 1);
+  }
 });
 
 test("signing out from settings locks the workspace again", async ({ page }) => {

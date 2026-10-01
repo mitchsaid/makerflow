@@ -107,3 +107,39 @@ test("open-redirect attempts are ignored", async ({ page }) => {
   await page.goto("/auth/confirm?token_hash=x&type=email&next=https://evil.example");
   await expect(page).toHaveURL(/localhost:3000\/sign-in/);
 });
+
+test("signing out on one device locks every other device straight away", async ({ browser }) => {
+  const email = uniqueEmail("elsewhere");
+
+  async function requestLink(page: import("@playwright/test").Page) {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill(email);
+    await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+    await expect(page.getByRole("status")).toContainText("Check your email");
+  }
+
+  // Signed in on a "laptop".
+  const laptop = await browser.newContext();
+  const l = await laptop.newPage();
+  await requestLink(l);
+  const seen = await existingEmailIds(email);
+  await l.goto(await waitForSignInLink(email));
+  await l.getByLabel("Business name").fill("Elsewhere Co");
+  await l.getByRole("button", { name: "Continue" }).click();
+  await expect(l.getByTestId("business-name")).toHaveText("Elsewhere Co");
+
+  // Also signed in on a "phone".
+  const phone = await browser.newContext();
+  const p = await phone.newPage();
+  await requestLink(p);
+  await p.goto(await waitForSignInLink(email, seen));
+  await expect(p.getByTestId("business-name")).toHaveText("Elsewhere Co");
+
+  // Sign out on the laptop. The phone must not get another page of private data.
+  await signOut(l);
+  await p.getByRole("link", { name: "Settings" }).click();
+  await expect(p).toHaveURL(/\/sign-in$/);
+
+  await laptop.close();
+  await phone.close();
+});

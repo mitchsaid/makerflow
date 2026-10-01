@@ -18,7 +18,7 @@ Read `docs/project-context.md` first (current state, working agreements, next st
   - One deliberate exception: the **public demo account** on the landing page (see `docs/product-brief.md`, section 4). It is a designed feature, not a shortcut: demo data lives only in isolated demo organisations that cannot touch real ones, is built server-side, and the builder refuses to run on any non-demo organisation. Demo accounts never send real email or take real payments.
 - Advanced features are offered through friendly, dismissable prompts and never forced on the user.
 - Design mobile-first.
-- Speed is a feature (the app is used as an installed PWA). Each protected page makes at most one database call for its main data, loads through `getWorkspace()`, and is checked with `pnpm perf`. See `docs/adr/0002-performance.md`.
+- Speed is a feature (the app is used as an installed PWA). Each protected page makes one query for its main data (plus the parallel session check), loads through `getWorkspace()`, and is checked with `pnpm perf`. See `docs/adr/0002-performance.md`.
 - Never commit secrets or `.env` files.
 
 ## Working style
