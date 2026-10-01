@@ -7,8 +7,8 @@ Get each maker to a first useful result without feeling they are filling in form
 
 ## Decisions (founder, 2026-10-01)
 1. **Just in time.** No setup wizard. Setup happens in context, around the first thing the maker wants to do.
-2. **"Where shall we start?"** An outcome-based, single-choice screen, a starting point and not a gate. Options: send a quote, track a job, work out my costs and profit, invoice someone (plus a quiet "not sure yet"). The answer sets the first guided task, which Home card leads and which prompts appear first. Nothing is locked or hidden, and it can be changed later. It is **not** a feature checklist and its answers are never used for marketing.
-3. **One skippable "head start" screen after it.** Paste or upload an old quote or invoice, bring in a product list or spreadsheet, or start fresh. Products also appear later, at the point of need (quote form, job, or "Add product").
+2. **"Where shall we start?"** A **first-time-only** screen (shown once per person per business, after the business name; invited staff never see it). An outcome-based, single-choice screen, a starting point and not a gate. Options: send a quote, track a job, work out my costs and profit, invoice someone (plus a quiet "not sure yet"). The answer sets the first guided task, which Home card leads and which prompts appear first. Nothing is locked or hidden, and it can be changed later. It is **not** a feature checklist and its answers are never used for marketing.
+3. **One skippable "head start" screen after it, about an old quote or invoice only** (paste or upload, or start fresh). *Proposed 2026-10-01 after the founder asked for thoughts; confirm.* It is shown for the quote, invoice and "not sure yet" starts, and skipped for the job and costing starts. It does not ship until the reader exists (a screen with a single "start fresh" option is pointless). **Product-list imports (Shopify, CSV) are not in onboarding:** they are offered the first time a maker touches products (see "Products" below).
 4. **Products are optional and built up in layers.** A product with only a name and a price is complete. The app then offers small, dismissable steps to add more (see "Products" below). The full model is stored from the start.
 5. **Reading an old quote or invoice (AI) is the headline head start, but: test first, build after the manual path.** A throwaway test on real sample documents measures accuracy and cost; the manual path ships first as the fallback.
 6. **Business details are asked for at the first customer-facing document** (first quote, invoice or PDF), not in onboarding. **The business name stays in onboarding** (already built). The "Make your quotes look right" prompt on Home goes. Settings keeps the full business form.
@@ -17,7 +17,7 @@ Get each maker to a first useful result without feeling they are filling in form
 1. Sign in (exists).
 2. Business name (exists).
 3. Where shall we start? (new, skippable)
-4. Head start (new, skippable): paste/upload a quote or invoice, bring a product list or spreadsheet, or start fresh.
+4. Head start (new, skippable, only once the reader exists): paste/upload an old quote or invoice, or start fresh.
 5. The first guided task for the chosen start, in context:
    - **Quote:** pick or add a customer, add lines (typed, or from products), see totals. Business details are asked for when they first produce the PDF.
    - **Job:** create a job (jobs can exist without a quote), with customer and items.
@@ -35,10 +35,13 @@ Grounded in the prototype (`prototype/src/types.ts`, `components/Products.tsx`, 
 - A quote line is a product plus the chosen options plus a quantity; even a one-off "custom item" in the prototype can carry all of this.
 - **Layered disclosure in the UI** (phone-sized steps, not the prototype's three-tab form): name and price → options → what it costs to make → quantity discounts → production steps → stock. Each layer is offered by a friendly prompt and can be skipped.
 - Learnings to apply (from `docs/prototype-discovery.md`): a defined unit system (the prototype's unit conversions had bugs), no fuzzy name matching, stock as a ledger of movements.
-- Likely business-wide setting: a default hourly rate, offered the first time labour is added.
+- **Creating the first product** follows the prototype but stays in context: in the quote's "add a line" picker (Products, Custom item) there is an "Add new product" option. In the prototype that button closes the picker and sends the maker to the Products page (what happens to the half-built quote there is unverified). In production it should open the product builder over the quote and return with the new product already on the line. The same builder serves the Products screen and later jobs and invoices.
+- **Shopify and CSV import** are offered at the first product contact: as a discreet choice beside "Add new product" in the quote picker ("Add one product" or "Import from Shopify or a CSV"), more prominently in the empty state of the Products screen, and later as a quieter menu item. It needs a real Shopify product export (the founder knows makers with Shopify sites and can ask for one; product data is public, so privacy is not a concern).
+- **Labour rates and employees.** The first time someone adds a labour input, ask what their hourly rate is and save it as a named business-wide rate (for example "My time"). Recipes reference a **named rate** (not a typed number on each product), so changing a rate updates costs everywhere. When employees arrive, rates attach to roles (for example baker, decorator, owner) and recipes keep pointing at the role's rate. Pay rates and margins are sensitive, so who can see or edit rates and margins belongs to the roles and permissions layer (staff can already see colleagues' roles; rates and margin views are owner and admin by default). Quote and invoice lines snapshot their cost when created, so changing a rate never rewrites history. Time tracking, if a maker turns it on, records actual hours against the estimate.
+- Open: whether "services" are a separate kind from products, as in the prototype, or products with no stock. Decide when the products slice is planned.
 
 ## Heavy lifting, in order
-1. **Deterministic first:** CSV and Shopify product import (needs a real sample export; the Shopify format is unverified, and Shopify variants carry absolute prices that must be converted into a base price plus uplifts).
+1. **Deterministic first:** CSV and Shopify product import, offered at the first product contact (see "Products"). Needs a real sample export; the Shopify format is unverified, and Shopify variants carry absolute prices that must be converted into a base price plus uplifts.
 2. **Reading an old quote or invoice** (PDF, photo, screenshot, or pasted text such as a WhatsApp quote). Could pre-fill: business name, contact details, VAT status and number, numbering pattern, payment terms, and product lines with prices. Several documents together can build a product list from what the maker actually sells.
 3. **Reading a costing spreadsheet** to build recipes (hypothesis: makers keep costing in spreadsheets; to validate).
 4. Website reading: lowest priority (many small makers sell through Instagram, Facebook or WhatsApp; to validate).
@@ -61,16 +64,21 @@ Grounded in the prototype (`prototype/src/types.ts`, `components/Products.tsx`, 
 ## Phasing (dependencies matter)
 The start screen needs destinations to send people to, so it ships after the features it points at.
 - **Now (small):** remove the Home business-details prompt. Settings and business-name onboarding stay. Update its browser test.
-- **Alongside the quotes work:** the guided first quote, business details asked at the first PDF or send, and the quote form's "add a product" path.
+- **Alongside the quotes work:** the guided first quote, business details asked at the first PDF or send, and the quote line picker with **minimal products** (name, price, perhaps options) created in context through "Add new product". Products with the quotes work is decided (see below).
 - **Products (layers, minimal first), costing and jobs:** each slice adds its own guided first task and its layers of prompts.
-- **When at least two destinations exist:** "Where shall we start?" and the head-start screen (start fresh and CSV/Shopify first).
-- **In parallel from now:** the extraction experiment. After it, the reader as a head-start option.
+- **When at least two destinations exist:** "Where shall we start?". CSV/Shopify import arrives with the products work.
+- **In parallel from now:** the extraction experiment. After it, the reader, and with it the head-start screen.
 
-## Open questions
-1. **Roadmap placement of products.** The brief puts products and costing at layer 6, after quotes, jobs and invoices. Since products are central and optional, should a minimal product (name, price, options) come before or with quotes so quote lines can pick one? Recommendation: yes, minimal products with the quotes work; recipes and costing later. Needs the founder's decision when the quotes slice is planned.
-2. **Does the start choice reorder navigation, or only the first task and Home?** Recommendation: only the first task and Home, nothing hidden.
-3. Where do makers keep their documents and costings (see the experiment).
-4. Default hourly rate: when to ask, and whether it is per business or per person.
+## Decisions on the earlier open questions (founder, 2026-10-01)
+1. **Products and quotes:** follow the prototype. The first product is created from "Add new product" while building a quote, so minimal products come with the quotes work.
+2. **Navigation is not reordered** by the start choice. It only sets the first task and what leads on Home.
+3. **Where makers keep their documents and costings:** unknown yet; deferred until the founder learns. Shopify exports are likely useful for building products and are offered at the first product contact, with a more discreet option afterwards.
+4. **Hourly rate:** asked when a maker first sets up inputs in a product, as a named rate; designed to scale to employees (see "Products").
+
+## Still open
+- Confirm the narrowed head start (quote or invoice only; skipped for job and costing starts).
+- Services as a separate kind or not.
+- Where rates and margins are visible once employees exist (roles and permissions layer).
 
 ## Tests per phase
 SQL tests for any new table or column (row-level security, `session_required`, and a guard for new tables); browser tests for each journey including skipping every optional screen; accessibility cases for each new screen; `pnpm perf` for each new protected page; an extraction eval with a fixed sample set before any AI path ships.
