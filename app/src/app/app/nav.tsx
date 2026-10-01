@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
@@ -36,20 +36,45 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-3 py-2 text-xs md:min-h-11 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:text-sm ${
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-3 py-2 text-xs font-medium md:min-h-11 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:text-sm ${
                   active
-                    ? "font-semibold text-accent md:bg-background"
+                    ? "text-accent md:bg-background"
                     : "text-muted hover:text-foreground"
                 }`}
               >
-                <Icon />
-                <span>{label}</span>
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-accent md:inset-x-auto md:bottom-2 md:left-0 md:top-2 md:h-auto md:w-0.5"
+                  />
+                )}
+                <TabContent label={label} icon={<Icon />} />
               </Link>
             </li>
           );
         })}
       </ul>
     </nav>
+  );
+}
+
+/**
+ * Instant feedback: the tapped tab lights up the moment it is pressed, before the
+ * next page arrives (the page itself shows a loading skeleton, see loading.tsx).
+ * Nothing here changes size between states (same font weight, indicator is
+ * absolutely positioned), so tabs never shift when selected.
+ */
+function TabContent({ label, icon }: { label: string; icon: React.ReactNode }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      className={`flex flex-col items-center gap-0.5 md:flex-row md:gap-3 ${
+        pending ? "text-accent" : ""
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </span>
   );
 }
 

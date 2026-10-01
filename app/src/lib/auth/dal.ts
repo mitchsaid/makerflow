@@ -5,18 +5,55 @@ import { createClient } from "@/lib/supabase/server";
 import type { BusinessProfile, PromptKey } from "@/lib/business-profile";
 
 /**
- * Data access layer for "who is signed in and which business are they in".
- * Every protected page and Server Action goes through these, so the checks
- * live in one place.
+ * Data access layer: who is signed in, and which business they are working in.
+ * Every protected page and Server Action goes through here, so the checks live in
+ * one place. It is deliberately cheap: the page's data is ONE query, with the
+ * session check running at the same time as it (not before it), because every
+ * extra serial round trip to Supabase is felt on each click.
  */
 
-/** The signed-in user, verified with Supabase's auth server, or null. */
-export const getUser = cache(async () => {
+export type SessionUser = { id: string; email: string | null };
+export type Organisation = { id: string; name: string };
+
+export type Workspace = {
+  user: SessionUser;
+  organisation: Organisation;
+  /** "owner", "admin" or "staff" */
+  role: string;
+  profile: BusinessProfile;
+  /** Keys of the friendly prompts this person has dismissed in this business. */
+  dismissedPrompts: string[];
+};
+
+/**
+ * The user according to the token alone: signature and expiry are checked locally
+ * (no network call). A token outlives the session behind it by up to an hour, so this
+ * is never enough on its own to allow access: pair it with sessionIsActive().
+ */
+const getTokenUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (error || !claims?.sub) return null;
+  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+});
+
+/**
+ * Does the session behind this token still exist? Asks the database
+ * (session_is_active, see migration 20261001090000). This is what makes signing out on
+ * one device lock every other device on its next request, and what stops removed
+ * accounts, rather than waiting for the token to expire.
+ */
+const sessionIsActive = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("session_is_active");
+  return !error && data === true;
+});
+
+/** The signed-in user, or null. The session is confirmed with the database. */
+export const getUser = cache(async (): Promise<SessionUser | null> => {
+  const [user, active] = await Promise.all([getTokenUser(), sessionIsActive()]);
+  return user && active ? user : null;
 });
 
 export async function requireUser() {
@@ -25,96 +62,98 @@ export async function requireUser() {
   return user;
 }
 
-export type Organisation = { id: string; name: string };
+type ProfileRow = {
+  phone: string | null;
+  email: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  region: string | null;
+  postal_code: string | null;
+  vat_registered: boolean;
+  vat_number: string | null;
+};
+type OrganisationRow = {
+  id: string;
+  name: string;
+  business_profiles: ProfileRow | ProfileRow[] | null;
+  prompt_dismissals: { prompt_key: string }[] | null;
+};
+type MembershipRow = { role: string; organisations: OrganisationRow | OrganisationRow[] | null };
 
-/** The user's business, or null if they have not finished onboarding. */
-export const getOrganisation = cache(async (): Promise<Organisation | null> => {
-  const user = await getUser();
-  if (!user) return null;
+const one = <T,>(value: T | T[] | null | undefined): T | null =>
+  Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+
+/**
+ * The user's business, their role in it, its profile and their dismissed prompts,
+ * fetched in a single query. Null if they have not finished onboarding.
+ * Row-level security limits every part of this to what the user may see.
+ */
+export const getWorkspace = cache(async (): Promise<Workspace | null> => {
+  const tokenUser = await getTokenUser();
+  if (!tokenUser) return null;
 
   const supabase = await createClient();
-  // Row-level security limits this to organisations the user belongs to.
-  const { data, error } = await supabase
-    .from("organisations")
-    .select("id, name")
+  const membershipQuery = supabase
+    .from("memberships")
+    .select(
+      `role,
+       organisations (
+         id, name,
+         business_profiles (
+           phone, email, address_line1, address_line2, city, region, postal_code,
+           vat_registered, vat_number
+         ),
+         prompt_dismissals ( prompt_key )
+       )`,
+    )
+    .eq("user_id", tokenUser.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (error) throw new Error(`Could not load organisation: ${error.message}`);
-  return data;
+  // The session check and the data query run side by side; the data is only
+  // used if the session is confirmed. (session_is_active also requires the
+  // session to belong to the token's user.)
+  const [active, { data, error }] = await Promise.all([sessionIsActive(), membershipQuery]);
+  if (!active) return null;
+  const user = tokenUser;
+
+  if (error) throw new Error(`Could not load workspace: ${error.message}`);
+  const membership = data as unknown as MembershipRow | null;
+  const org = one(membership?.organisations);
+  if (!membership || !org) return null;
+
+  const p = one(org.business_profiles);
+  return {
+    user,
+    organisation: { id: org.id, name: org.name },
+    role: membership.role,
+    profile: {
+      phone: p?.phone ?? null,
+      email: p?.email ?? null,
+      addressLine1: p?.address_line1 ?? null,
+      addressLine2: p?.address_line2 ?? null,
+      city: p?.city ?? null,
+      region: p?.region ?? null,
+      postalCode: p?.postal_code ?? null,
+      vatRegistered: p?.vat_registered ?? false,
+      vatNumber: p?.vat_number ?? null,
+    },
+    dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),
+  };
 });
 
 /** Signed in AND onboarded. Otherwise redirects to the right place. */
-export async function requireOrganisation() {
-  const user = await requireUser();
-  const organisation = await getOrganisation();
-  if (!organisation) redirect("/onboarding");
-  return { user, organisation };
+export async function requireOrganisation(): Promise<Workspace> {
+  const workspace = await getWorkspace();
+  if (!workspace) {
+    await requireUser(); // cached: redirects to sign-in if the session is gone
+    redirect("/onboarding");
+  }
+  return workspace;
 }
 
-/** The signed-in user's role in the organisation ("owner", "admin", "staff"), or null. */
-export const getMyRole = cache(async (organisationId: string): Promise<string | null> => {
-  const user = await getUser();
-  if (!user) return null;
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("organisation_id", organisationId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) throw new Error(`Could not load role: ${error.message}`);
-  return data?.role ?? null;
-});
-
-/** The business profile (contact details, address, VAT status) for an organisation. */
-export const getBusinessProfile = cache(
-  async (organisationId: string): Promise<BusinessProfile> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("business_profiles")
-      .select(
-        "phone, email, address_line1, address_line2, city, region, postal_code, vat_registered, vat_number",
-      )
-      .eq("organisation_id", organisationId)
-      .maybeSingle();
-
-    if (error) throw new Error(`Could not load business profile: ${error.message}`);
-    // A profile row is created with every organisation; fall back to empty just in case.
-    return {
-      phone: data?.phone ?? null,
-      email: data?.email ?? null,
-      addressLine1: data?.address_line1 ?? null,
-      addressLine2: data?.address_line2 ?? null,
-      city: data?.city ?? null,
-      region: data?.region ?? null,
-      postalCode: data?.postal_code ?? null,
-      vatRegistered: data?.vat_registered ?? false,
-      vatNumber: data?.vat_number ?? null,
-    };
-  },
-);
-
-/** Has this user dismissed the given friendly prompt in this organisation? */
-export async function isPromptDismissed(
-  organisationId: string,
-  key: PromptKey,
-): Promise<boolean> {
-  const user = await getUser();
-  if (!user) return false;
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("prompt_dismissals")
-    .select("prompt_key")
-    .eq("organisation_id", organisationId)
-    .eq("user_id", user.id)
-    .eq("prompt_key", key)
-    .maybeSingle();
-
-  if (error) throw new Error(`Could not load prompt state: ${error.message}`);
-  return data !== null;
+export function isPromptDismissed(workspace: Workspace, key: PromptKey): boolean {
+  return workspace.dismissedPrompts.includes(key);
 }

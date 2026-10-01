@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { existingEmailIds, signOut, uniqueEmail, waitForSignInLink } from "./helpers";
+import {
+  accessTokenFrom,
+  existingEmailIds,
+  localSupabase,
+  signOut,
+  uniqueEmail,
+  waitForSignInLink,
+} from "./helpers";
 
 test("visitor can sign up by email link, name their business, and land in their workspace", async ({
   page,
@@ -106,4 +113,53 @@ test("expired or reused sign-in link shows a clear message", async ({ page }) =>
 test("open-redirect attempts are ignored", async ({ page }) => {
   await page.goto("/auth/confirm?token_hash=x&type=email&next=https://evil.example");
   await expect(page).toHaveURL(/localhost:3000\/sign-in/);
+});
+
+test("signing out on one device locks every other device straight away", async ({ browser }) => {
+  const email = uniqueEmail("elsewhere");
+
+  async function requestLink(page: import("@playwright/test").Page) {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill(email);
+    await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+    await expect(page.getByRole("status")).toContainText("Check your email");
+  }
+
+  // Signed in on a "laptop".
+  const laptop = await browser.newContext();
+  const l = await laptop.newPage();
+  await requestLink(l);
+  const seen = await existingEmailIds(email);
+  await l.goto(await waitForSignInLink(email));
+  await l.getByLabel("Business name").fill("Elsewhere Co");
+  await l.getByRole("button", { name: "Continue" }).click();
+  await expect(l.getByTestId("business-name")).toHaveText("Elsewhere Co");
+
+  // Also signed in on a "phone".
+  const phone = await browser.newContext();
+  const p = await phone.newPage();
+  await requestLink(p);
+  await p.goto(await waitForSignInLink(email, seen));
+  await expect(p.getByTestId("business-name")).toHaveText("Elsewhere Co");
+
+  // The phone's token, used straight against the database (not through the app).
+  const { url, key } = localSupabase();
+  const token = accessTokenFrom(await phone.cookies());
+  const asPhone = async () => {
+    const res = await fetch(`${url}/rest/v1/organisations?select=name`, {
+      headers: { apikey: key, authorization: `Bearer ${token}` },
+    });
+    return (await res.json()) as { name: string }[];
+  };
+  expect(await asPhone()).toEqual([{ name: "Elsewhere Co" }]);
+
+  // Sign out on the laptop. The phone must not get another page of private data,
+  // and its token is useless against the database too.
+  await signOut(l);
+  expect(await asPhone()).toEqual([]);
+  await p.getByRole("link", { name: "Settings" }).click();
+  await expect(p).toHaveURL(/\/sign-in$/);
+
+  await laptop.close();
+  await phone.close();
 });

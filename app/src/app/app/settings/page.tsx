@@ -1,14 +1,10 @@
-import { getBusinessProfile, getMyRole, requireOrganisation } from "@/lib/auth/dal";
+import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { signOut } from "../actions";
 import { BusinessProfileForm, type FormValues } from "./business-profile-form";
 
 export default async function SettingsPage() {
-  const { organisation } = await requireOrganisation();
-  const [profile, role] = await Promise.all([
-    getBusinessProfile(organisation.id),
-    getMyRole(organisation.id),
-  ]);
+  const { organisation, profile, role } = await requireOrganisation();
 
   const initial: FormValues = {
     name: organisation.name,
