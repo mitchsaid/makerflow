@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { getUser } from "@/lib/auth/dal";
 import { SignInForm } from "./sign-in-form";
 import { signInWithGoogle } from "./actions";
@@ -22,35 +24,35 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">
       <div className="space-y-1 text-center">
         <h1 className="text-2xl font-semibold">Sign in or create an account</h1>
-        <p className="text-muted">
+        <p className="text-muted-foreground">
           New here? Enter your email and we&apos;ll set you up.
         </p>
       </div>
 
       {errorMessage && (
-        <p role="alert" className="card border-danger text-danger">
-          {errorMessage}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
       )}
 
       <SignInForm />
 
       {googleEnabled && (
         <>
-          <div className="flex items-center gap-3 text-sm text-muted">
-            <span className="h-px flex-1 bg-line" />
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
             or
-            <span className="h-px flex-1 bg-line" />
+            <span className="h-px flex-1 bg-border" />
           </div>
           <form action={signInWithGoogle}>
-            <button type="submit" className="btn-secondary w-full">
+            <Button type="submit" variant="outline" className="w-full">
               Continue with Google
-            </button>
+            </Button>
           </form>
         </>
       )}
 
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-sm text-muted-foreground">
         <Link href="/" className="underline">
           Back to the home page
         </Link>

@@ -23,7 +23,7 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface md:static md:w-56 md:shrink-0 md:border-r md:border-t-0"
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card md:static md:w-56 md:shrink-0 md:border-r md:border-t-0"
     >
       <p className="hidden truncate px-4 pt-5 pb-3 text-sm font-semibold md:block">
         {businessName}
@@ -38,14 +38,14 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
                 aria-current={active ? "page" : undefined}
                 className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-3 py-2 text-xs font-medium md:min-h-11 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:text-sm ${
                   active
-                    ? "text-accent md:bg-background"
-                    : "text-muted hover:text-foreground"
+                    ? "text-primary md:bg-background"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {active && (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-accent md:inset-x-auto md:bottom-2 md:left-0 md:top-2 md:h-auto md:w-0.5"
+                    className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary md:inset-x-auto md:bottom-2 md:left-0 md:top-2 md:h-auto md:w-0.5"
                   />
                 )}
                 <TabContent label={label} icon={<Icon />} />
@@ -69,7 +69,7 @@ function TabContent({ label, icon }: { label: string; icon: React.ReactNode }) {
   return (
     <span
       className={`flex flex-col items-center gap-0.5 md:flex-row md:gap-3 ${
-        pending ? "text-accent" : ""
+        pending ? "text-primary" : ""
       }`}
     >
       {icon}

@@ -1,74 +1,94 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Neutral, calm, with some warmth. Brand personality lives in the maker's own documents. */
+/* Dark mode follows the phone's setting (no manual toggle yet). */
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+/*
+ * Neutral, calm, with some warmth. Brand personality lives in the maker's own documents.
+ * Names follow shadcn/ui so its components pick the palette up unchanged:
+ *   primary = our terracotta brand colour, accent = subtle hover surface (not the brand colour).
+ */
 :root {
   --background: #faf8f5;
-  --surface: #ffffff;
   --foreground: #211e1a;
-  --muted: #6a635a;
-  --line: #e6e0d6;
-  --accent: #a94f33;
-  --accent-hover: #93422a;
-  --accent-contrast: #ffffff;
-  --danger: #b3261e;
+  --card: #ffffff;
+  --card-foreground: #211e1a;
+  --popover: #ffffff;
+  --popover-foreground: #211e1a;
+  --primary: #a94f33;
+  --primary-foreground: #ffffff;
+  --secondary: #f1ece4;
+  --secondary-foreground: #211e1a;
+  --muted: #f1ece4;
+  --muted-foreground: #6a635a;
+  --accent: #f1ece4;
+  --accent-foreground: #211e1a;
+  --destructive: #b3261e;
+  --border: #e6e0d6;
+  --input: #d9d2c6;
+  --ring: #a94f33;
+  --radius: 0.625rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #1a1815;
-    --surface: #242019;
     --foreground: #f1ece4;
-    --muted: #a59d92;
-    --line: #38332b;
-    --accent: #d9805f;
-    --accent-hover: #e39476;
-    --accent-contrast: #1a1815;
-    --danger: #f2877e;
+    --card: #242019;
+    --card-foreground: #f1ece4;
+    --popover: #242019;
+    --popover-foreground: #f1ece4;
+    --primary: #d9805f;
+    --primary-foreground: #1a1815;
+    --secondary: #2e2922;
+    --secondary-foreground: #f1ece4;
+    --muted: #2e2922;
+    --muted-foreground: #a59d92;
+    --accent: #2e2922;
+    --accent-foreground: #f1ece4;
+    --destructive: #f2877e;
+    --border: #38332b;
+    --input: #4a443a;
+    --ring: #d9805f;
   }
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
-  --color-line: var(--line);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-danger: var(--danger);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
-
-@layer components {
-  .card {
-    @apply rounded-xl border border-line bg-surface p-4;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-  .field {
-    @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-base text-foreground;
-    @apply placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
-  }
-  .btn-primary,
-  .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-base font-medium;
-    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
-  }
-  .btn-primary {
-    background: var(--accent);
-    color: var(--accent-contrast);
-  }
-  .btn-primary:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
-  .btn-primary:disabled {
-    @apply opacity-60;
-  }
-  .btn-secondary {
-    @apply border border-line bg-surface text-foreground hover:bg-background;
+  body {
+    @apply bg-background text-foreground font-sans;
   }
 }

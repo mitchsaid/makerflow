@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPromptDismissed, requireOrganisation } from "@/lib/auth/dal";
 import {
   PROMPTS,
@@ -23,34 +25,38 @@ export default async function WorkspacePage() {
       </h1>
 
       {showDetailsPrompt && (
-        <section aria-labelledby="details-prompt-title" className="card space-y-3">
-          <h2 id="details-prompt-title" className="text-lg font-semibold">
-            Make your quotes look right
-          </h2>
-          <p className="text-muted">
-            Add your contact details and address once, and they&apos;ll appear on every
-            quote you send. It only takes a minute.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/app/settings" className="btn-primary">
+        <Card aria-labelledby="details-prompt-title" role="region">
+          <CardHeader>
+            <CardTitle id="details-prompt-title" className="text-lg">
+              Make your quotes look right
+            </CardTitle>
+            <CardDescription className="text-base">
+              Add your contact details and address once, and they&apos;ll appear on every
+              quote you send. It only takes a minute.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Link href="/app/settings" className={buttonVariants()}>
               Add my details
             </Link>
             <form action={dismissBusinessDetailsPrompt}>
-              <button type="submit" className="btn-secondary">
+              <Button type="submit" variant="outline">
                 Not now
-              </button>
+              </Button>
             </form>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
 
-      <section className="card space-y-2">
-        <h2 className="text-lg font-semibold">You&apos;re all set up</h2>
-        <p className="text-muted">
-          This is your workspace. Customers and quotes will appear here as we build
-          them.
-        </p>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">You&apos;re all set up</CardTitle>
+          <CardDescription className="text-base">
+            This is your workspace. Customers and quotes will appear here as we build
+            them.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     </main>
   );
 }

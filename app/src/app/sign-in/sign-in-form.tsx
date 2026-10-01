@@ -1,6 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { requestMagicLink, type SignInState } from "./actions";
 
 const initial: SignInState = { status: "idle" };
@@ -10,40 +14,38 @@ export function SignInForm() {
 
   if (state.status === "sent") {
     return (
-      <div role="status" className="card space-y-2 text-center">
+      <Card role="status" className="p-4 text-center">
         <h2 className="text-lg font-semibold">Check your email</h2>
-        <p className="text-muted">
+        <p className="text-muted-foreground">
           We sent a sign-in link to <strong>{state.email}</strong>. Tap it on this
           device or any other. It works once and expires soon.
         </p>
-      </div>
+      </Card>
     );
   }
 
+  const hasError = state.status === "error";
+
   return (
-    <form action={formAction} className="space-y-3" noValidate>
-      <label htmlFor="email" className="block text-sm font-medium">
-        Email address
-      </label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        inputMode="email"
-        autoComplete="email"
-        required
-        placeholder="you@example.com"
-        className="field"
-        aria-describedby={state.status === "error" ? "email-error" : undefined}
-      />
-      {state.status === "error" && (
-        <p id="email-error" role="alert" className="text-sm text-danger">
-          {state.message}
-        </p>
-      )}
-      <button type="submit" disabled={pending} className="btn-primary w-full">
+    <form action={formAction} className="space-y-4" noValidate>
+      <Field data-invalid={hasError}>
+        <FieldLabel htmlFor="email">Email address</FieldLabel>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          required
+          placeholder="you@example.com"
+          aria-invalid={hasError}
+          aria-describedby={hasError ? "email-error" : undefined}
+        />
+        {hasError && <FieldError id="email-error">{state.message}</FieldError>}
+      </Field>
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Sending…" : "Email me a sign-in link"}
-      </button>
+      </Button>
     </form>
   );
 }
