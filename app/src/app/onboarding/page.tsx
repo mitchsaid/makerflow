@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getOrganisation, requireUser } from "@/lib/auth/dal";
+import { getWorkspace, requireUser } from "@/lib/auth/dal";
 import { OnboardingForm } from "./onboarding-form";
 
 export default async function OnboardingPage() {
   await requireUser();
-  if (await getOrganisation()) redirect("/app");
+  if (await getWorkspace()) redirect("/app");
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">

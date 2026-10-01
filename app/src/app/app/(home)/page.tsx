@@ -1,27 +1,20 @@
 import Link from "next/link";
-import {
-  getBusinessProfile,
-  getMyRole,
-  isPromptDismissed,
-  requireOrganisation,
-} from "@/lib/auth/dal";
+import { isPromptDismissed, requireOrganisation } from "@/lib/auth/dal";
 import {
   PROMPTS,
   canEditBusinessProfile,
   isBusinessProfileComplete,
 } from "@/lib/business-profile";
-import { dismissBusinessDetailsPrompt } from "./actions";
+import { dismissBusinessDetailsPrompt } from "../actions";
 
 export default async function WorkspacePage() {
-  const { organisation } = await requireOrganisation();
-  const [profile, role, dismissed] = await Promise.all([
-    getBusinessProfile(organisation.id),
-    getMyRole(organisation.id),
-    isPromptDismissed(organisation.id, PROMPTS.businessDetails),
-  ]);
+  const workspace = await requireOrganisation();
+  const { organisation, profile, role } = workspace;
 
   const showDetailsPrompt =
-    canEditBusinessProfile(role) && !isBusinessProfileComplete(profile) && !dismissed;
+    canEditBusinessProfile(role) &&
+    !isBusinessProfileComplete(profile) &&
+    !isPromptDismissed(workspace, PROMPTS.businessDetails);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">

@@ -33,9 +33,10 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Verifies the token locally with the project's public key (no network call on most
+  // requests) and refreshes the cookie when it has expired.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const path = request.nextUrl.pathname;
   const isProtected = PROTECTED_PREFIXES.some(

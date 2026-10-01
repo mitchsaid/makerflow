@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getMyRole, requireOrganisation } from "@/lib/auth/dal";
+import { requireOrganisation } from "@/lib/auth/dal";
 import {
   canEditBusinessProfile,
   parseBusinessProfileForm,
@@ -18,10 +18,9 @@ export async function saveBusinessProfile(
   _previous: SaveState,
   formData: FormData,
 ): Promise<SaveState> {
-  const { organisation } = await requireOrganisation();
+  const { organisation, role } = await requireOrganisation();
 
   // The database enforces this too. Checking here gives a clear message.
-  const role = await getMyRole(organisation.id);
   if (!canEditBusinessProfile(role)) {
     return { status: "error", message: "Only owners and admins can change these details." };
   }
