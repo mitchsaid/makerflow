@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      // Starts the local database, sign-in and mailbox, then the app, from the app/ folder.
+      "name": "makerflow",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["local"],
+      "cwd": "app",
+      "port": 3000
+    }
+  ]
+}

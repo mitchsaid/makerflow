@@ -1,7 +1,11 @@
 name: CI
 
+# Runs on pull requests and on main. Pushing a branch on its own does not start CI:
+# iterate locally, push when happy, and open a pull request to run the full suite once.
+# (Required checks come from the pull_request run, so merging is unaffected.)
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -76,13 +80,7 @@ jobs:
       - name: Start local Supabase (database, auth, API, mailbox)
         run: pnpm stack:start
       - name: Write local environment file
-        run: |
-          eval "$(pnpm exec supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|MAILPIT_URL)=')"
-          {
-            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
-            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
-            echo "LOCAL_MAILPIT_URL=$MAILPIT_URL"
-          } > .env.local
+        run: pnpm env:local --force
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7

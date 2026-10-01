@@ -35,9 +35,14 @@ Run from `app/` with pnpm:
 - `pnpm db:reset` — rebuild the **local** database from the migrations
 - `pnpm db:test` — SQL security tests against the local stack
 - `pnpm stack:start` / `pnpm stack:stop` — local Supabase with auth, API and a mailbox (needed to run the app and browser tests); copy its printed values into `app/.env.local` (see `app/.env.example`)
+- `pnpm local` — start the local database and the app at http://localhost:3000 (one command)
+- `pnpm check` — lint, typecheck and unit tests (the quick pre-commit check, ~30s)
+- `pnpm env:local` — write `app/.env.local` from the running local stack (refuses to overwrite a hosted one without `--force`)
 - `pnpm test` — unit tests (Vitest)
 - `pnpm test:e2e` — browser tests (Playwright, phone viewport). Needs the stack running; starts the dev server itself
 - `pnpm db:test:plain` — same tests on plain Postgres with an auth stand-in (sandboxes without Docker; set `DATABASE_URL` to a scratch database)
+
+Fast local loop and daily routine: `docs/runbooks/local-development.md`. First-time setup on a new computer: `./scripts/setup-local.sh` (checks tools, installs dependencies, starts the local stack, writes `app/.env.local`). CI runs on pull requests and on `main`, not on every branch push.
 
 Database changes are migration files only, never dashboard edits. Every new table needs RLS and a test in `app/supabase/tests/`.
 Sign-in uses email magic links (verified server-side, so they work across browsers) and Google (off until configured). Google sign-in is NOT yet tested against a real Google project.
