@@ -8,7 +8,7 @@ Get each maker to a first useful result without feeling they are filling in form
 ## Decisions (founder, 2026-10-01)
 1. **Just in time.** No setup wizard. Setup happens in context, around the first thing the maker wants to do.
 2. **"Where shall we start?"** A **first-time-only** screen (shown once per person per business, after the business name; invited staff never see it). An outcome-based, single-choice screen, a starting point and not a gate. Options: send a quote, track a job, work out my costs and profit, invoice someone (plus a quiet "not sure yet"). The answer sets the first guided task, which Home card leads and which prompts appear first. Nothing is locked or hidden, and it can be changed later. It is **not** a feature checklist and its answers are never used for marketing.
-3. **One skippable "head start" screen after it, about an old quote or invoice only** (paste or upload, or start fresh). *Proposed 2026-10-01 after the founder asked for thoughts; confirm.* It is shown for the quote, invoice and "not sure yet" starts, and skipped for the job and costing starts. It does not ship until the reader exists (a screen with a single "start fresh" option is pointless). **Product-list imports (Shopify, CSV) are not in onboarding:** they are offered the first time a maker touches products (see "Products" below).
+3. **One skippable "head start" screen after it, about an old quote or invoice only** (paste or upload, or start fresh). *Confirmed by the founder 2026-10-01.* It is shown for the quote, invoice and "not sure yet" starts, and skipped for the job and costing starts. It does not ship until the reader exists (a screen with a single "start fresh" option is pointless). **Product-list imports (Shopify, CSV) are not in onboarding:** they are offered the first time a maker touches products (see "Products" below).
 4. **Products are optional and built up in layers.** A product with only a name and a price is complete. The app then offers small, dismissable steps to add more (see "Products" below). The full model is stored from the start.
 5. **Reading an old quote or invoice (AI) is the headline head start, but: test first, build after the manual path.** A throwaway test on real sample documents measures accuracy and cost; the manual path ships first as the fallback.
 6. **Business details are asked for at the first customer-facing document** (first quote, invoice or PDF), not in onboarding. **The business name stays in onboarding** (already built). The "Make your quotes look right" prompt on Home goes. Settings keeps the full business form.
@@ -88,7 +88,6 @@ The start screen needs destinations to send people to, so it ships after the fea
 4. **Hourly rate:** asked when a maker first sets up inputs in a product, as a named rate; designed to scale to employees (see "Products").
 
 ## Still open
-- Confirm the narrowed head start (quote or invoice only; skipped for job and costing starts).
 - Services as a separate kind or not.
 - Where rates and margins are visible once employees exist (roles and permissions layer).
 
