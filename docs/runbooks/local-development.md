@@ -8,7 +8,7 @@ Goal: see every change in your browser the moment it's made, and only push when 
 | | You | Claude (Code tab, on your computer) |
 |---|---|---|
 | Install Docker Desktop and the Claude desktop app | yes | no |
-| Get the code onto your computer | yes (once) | no |
+| Sign in to GitHub and get the code onto your computer | yes (once, 5 commands) | no |
 | Sign in with your personal Claude account | yes (once) | no |
 | Install Node and pnpm, install dependencies, start the local database, write settings, run checks | **no** | **yes**, via `./scripts/setup-local.sh` (it asks your permission) |
 | Start the app, edit code, run tests, commit and push | **no** | **yes** |
@@ -21,7 +21,16 @@ Disk space needed: about 4 to 5 GB if you already have Docker (about 1 GB less i
 
 **1. Install Docker Desktop.** Download it from docker.com/products/docker-desktop (Apple chip or Intel, to match your Mac), drag it to Applications, open it once and let it finish starting. It can stay in the background.
 
-**2. Get the code.** Install GitHub Desktop (desktop.github.com), sign in, choose "Clone a repository", pick `mitchsaid/makerflow`. Remember the folder it uses.
+**2. Get the code with the GitHub CLI (`gh`).** It signs you in to GitHub once, which also lets Claude push and open pull requests for you (the desktop app's pull-request features need it anyway). GitHub Desktop is not needed.
+In Terminal (the Mac app called Terminal):
+```bash
+git --version                       # if this asks to install developer tools, accept (most Macs with dev tools already have it)
+brew install gh                     # no Homebrew? download the installer from cli.github.com instead
+gh auth login                       # choose: GitHub.com, HTTPS, "Yes" to authenticate git, "Login with a web browser"
+mkdir -p ~/Projects && cd ~/Projects
+gh repo clone mitchsaid/makerflow
+```
+This creates the folder `~/Projects/makerflow`.
 
 **3. Install the Claude desktop app** (claude.ai/download, or the link in the Claude Code docs) and open it.
 - To work on MakerFlow, **sign out of your work account and sign in with your personal one**. Check the account name in the app's settings is your personal one.
