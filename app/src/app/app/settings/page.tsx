@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { signOut } from "../actions";
@@ -26,23 +28,29 @@ export default async function SettingsPage() {
       {canEditBusinessProfile(role) ? (
         <BusinessProfileForm initial={initial} />
       ) : (
-        <section className="card space-y-2">
-          <h2 className="text-lg font-semibold">Business details</h2>
-          <p className="text-muted">
-            Only owners and admins can change these details. You can see them on your
-            quotes and invoices.
-          </p>
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Business details</CardTitle>
+            <CardDescription className="text-base">
+              Only owners and admins can change these details. You can see them on your
+              quotes and invoices.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
-      <section className="card space-y-3">
-        <h2 className="text-lg font-semibold">Your account</h2>
-        <form action={signOut}>
-          <button type="submit" className="btn-secondary">
-            Sign out
-          </button>
-        </form>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Your account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={signOut}>
+            <Button type="submit" variant="outline">
+              Sign out
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

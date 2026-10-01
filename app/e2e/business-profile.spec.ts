@@ -22,7 +22,7 @@ test("prompt leads to settings; details save, validate and persist; prompt goes 
   await expect(page.getByText("Saved.")).toBeVisible();
 
   // VAT: a wrong number is rejected with a helpful message, a right one saves.
-  await page.getByLabel("I'm registered for VAT").check();
+  await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
   await page.getByLabel("VAT number").fill("12345");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("10 digits and start with 4")).toBeVisible();
@@ -35,7 +35,7 @@ test("prompt leads to settings; details save, validate and persist; prompt goes 
   await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("021 123 4567");
   await expect(page.getByLabel("Street address")).toHaveValue("12 Long Street");
   await expect(page.getByLabel("Province")).toHaveValue("Western Cape");
-  await expect(page.getByLabel("I'm registered for VAT")).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "I'm registered for VAT" })).toBeChecked();
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
 
   // With the details filled in, the prompt no longer appears on Home.
@@ -61,19 +61,19 @@ test("business name can be changed, and unticking VAT clears the number", async 
   await page.getByRole("link", { name: "Settings" }).click();
 
   await page.getByLabel("Business name").fill("New Name");
-  await page.getByLabel("I'm registered for VAT").check();
+  await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
   await page.getByLabel("VAT number").fill("4123456789");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
-  await page.getByLabel("I'm registered for VAT").uncheck();
+  await page.getByRole("checkbox", { name: "I'm registered for VAT" }).uncheck();
   await expect(page.getByLabel("VAT number")).toHaveCount(0);
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
   await page.reload();
   await expect(page.getByLabel("Business name")).toHaveValue("New Name");
-  await expect(page.getByLabel("I'm registered for VAT")).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "I'm registered for VAT" })).not.toBeChecked();
   await expect(page.getByLabel("VAT number")).toHaveCount(0);
 
   await page.getByRole("link", { name: "Home" }).click();

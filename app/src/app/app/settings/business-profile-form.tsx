@@ -1,6 +1,21 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ZA_PROVINCES } from "@/lib/locale/za";
 import type { FieldErrors } from "@/lib/business-profile";
 import { saveBusinessProfile, type SaveState } from "./actions";
@@ -45,134 +60,146 @@ export function BusinessProfileForm({ initial }: { initial: FormValues }) {
     startTransition(() => formAction(formData));
   }
 
+  // One text input with its label and its error message, wired together for screen readers.
+  const text = (
+    key: keyof FormValues & string,
+    label: string,
+    props: ExtraInputProps = {},
+  ) => (
+    <TextField
+      id={key}
+      label={label}
+      error={errors[key as keyof FieldErrors]}
+      value={values[key] as string}
+      onChange={(value) => set(key)(value as never)}
+      {...props}
+    />
+  );
+
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
-      <fieldset className="card space-y-4">
-        <legend className="px-1 text-base font-semibold">Your business</legend>
-        <Field id="name" label="Business name" error={errors.name}>
-          <input id="name" name="name" type="text" autoComplete="organization" required
-            maxLength={120} className="field" value={values.name}
-            onChange={(e) => set("name")(e.target.value)}
-            aria-describedby={errors.name ? "name-error" : undefined} />
-        </Field>
-      </fieldset>
+      <Section title="Your business">
+        {text("name", "Business name", { autoComplete: "organization", required: true, maxLength: 120 })}
+      </Section>
 
-      <fieldset className="card space-y-4">
-        <legend className="px-1 text-base font-semibold">How customers reach you</legend>
-        <Field id="phone" label="Phone" error={errors.phone}>
-          <input id="phone" name="phone" type="tel" autoComplete="tel" className="field"
-            value={values.phone} onChange={(e) => set("phone")(e.target.value)}
-            aria-describedby={errors.phone ? "phone-error" : undefined} />
-        </Field>
-        <Field id="email" label="Email" error={errors.email}>
-          <input id="email" name="email" type="email" inputMode="email" autoComplete="email"
-            className="field" value={values.email}
-            onChange={(e) => set("email")(e.target.value)}
-            aria-describedby={errors.email ? "email-error" : undefined} />
-        </Field>
-      </fieldset>
+      <Section title="How customers reach you">
+        {text("phone", "Phone", { type: "tel", autoComplete: "tel" })}
+        {text("email", "Email", { type: "email", inputMode: "email", autoComplete: "email" })}
+      </Section>
 
-      <fieldset className="card space-y-4">
-        <legend className="px-1 text-base font-semibold">Address</legend>
-        <Field id="addressLine1" label="Street address" error={errors.addressLine1}>
-          <input id="addressLine1" name="addressLine1" type="text"
-            autoComplete="address-line1" className="field" value={values.addressLine1}
-            onChange={(e) => set("addressLine1")(e.target.value)}
-            aria-describedby={errors.addressLine1 ? "addressLine1-error" : undefined} />
-        </Field>
-        <Field id="addressLine2" label="Suburb or building (optional)" error={errors.addressLine2}>
-          <input id="addressLine2" name="addressLine2" type="text"
-            autoComplete="address-line2" className="field" value={values.addressLine2}
-            onChange={(e) => set("addressLine2")(e.target.value)}
-            aria-describedby={errors.addressLine2 ? "addressLine2-error" : undefined} />
-        </Field>
-        <Field id="city" label="City or town" error={errors.city}>
-          <input id="city" name="city" type="text" autoComplete="address-level2"
-            className="field" value={values.city}
-            onChange={(e) => set("city")(e.target.value)}
-            aria-describedby={errors.city ? "city-error" : undefined} />
-        </Field>
-        <Field id="region" label="Province" error={errors.region}>
-          <select id="region" name="region" autoComplete="address-level1" className="field"
-            value={values.region} onChange={(e) => set("region")(e.target.value)}
-            aria-describedby={errors.region ? "region-error" : undefined}>
-            <option value="">Choose a province</option>
+      <Section title="Address">
+        {text("addressLine1", "Street address", { autoComplete: "address-line1" })}
+        {text("addressLine2", "Suburb or building (optional)", { autoComplete: "address-line2" })}
+        {text("city", "City or town", { autoComplete: "address-level2" })}
+        <Field data-invalid={!!errors.region}>
+          <FieldLabel htmlFor="region">Province</FieldLabel>
+          <NativeSelect
+            id="region"
+            name="region"
+            autoComplete="address-level1"
+            value={values.region}
+            onChange={(e) => set("region")(e.target.value)}
+            aria-invalid={!!errors.region}
+            aria-describedby={errors.region ? "region-error" : undefined}
+          >
+            <NativeSelectOption value="">Choose a province</NativeSelectOption>
             {ZA_PROVINCES.map((p) => (
-              <option key={p} value={p}>{p}</option>
+              <NativeSelectOption key={p} value={p}>
+                {p}
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
+          {errors.region && <FieldError id="region-error">{errors.region}</FieldError>}
         </Field>
-        <Field id="postalCode" label="Postal code" error={errors.postalCode}>
-          <input id="postalCode" name="postalCode" type="text" inputMode="numeric"
-            autoComplete="postal-code" maxLength={4} className="field"
-            value={values.postalCode} onChange={(e) => set("postalCode")(e.target.value)}
-            aria-describedby={errors.postalCode ? "postalCode-error" : undefined} />
-        </Field>
-      </fieldset>
+        {text("postalCode", "Postal code", { inputMode: "numeric", autoComplete: "postal-code", maxLength: 4 })}
+      </Section>
 
-      <fieldset className="card space-y-4">
-        <legend className="px-1 text-base font-semibold">VAT</legend>
-        <label className="flex min-h-11 items-center gap-3">
-          <input type="checkbox" name="vatRegistered" className="h-5 w-5 accent-[var(--accent)]"
+      <Section title="VAT">
+        <Field orientation="horizontal" className="min-h-11 items-center">
+          <Checkbox
+            id="vatRegistered"
+            name="vatRegistered"
             checked={values.vatRegistered}
-            onChange={(e) => set("vatRegistered")(e.target.checked)} />
-          <span>I&apos;m registered for VAT</span>
-        </label>
-        <p className="text-sm text-muted">
+            onCheckedChange={(checked) => set("vatRegistered")(checked)}
+          />
+          <FieldLabel htmlFor="vatRegistered" className="text-base">
+            I&apos;m registered for VAT
+          </FieldLabel>
+        </Field>
+        <FieldDescription>
           Only tick this if you&apos;re registered with SARS. Your quotes and invoices will
           show VAT and your VAT number.
-        </p>
-        {values.vatRegistered && (
-          <Field id="vatNumber" label="VAT number" error={errors.vatNumber}>
-            <input id="vatNumber" name="vatNumber" type="text" inputMode="numeric"
-              className="field" value={values.vatNumber}
-              onChange={(e) => set("vatNumber")(e.target.value)}
-              aria-describedby={errors.vatNumber ? "vatNumber-error" : undefined} />
-          </Field>
-        )}
-      </fieldset>
+        </FieldDescription>
+        {values.vatRegistered && text("vatNumber", "VAT number", { inputMode: "numeric" })}
+      </Section>
 
       {state.status === "error" && state.message && (
-        <p role="alert" className="text-sm text-danger">{state.message}</p>
+        <Alert variant="destructive">
+          <AlertDescription>{state.message}</AlertDescription>
+        </Alert>
       )}
       {state.status === "error" && state.errors && (
-        <p role="alert" className="text-sm text-danger">
-          Some details need a look. They&apos;re marked above.
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>Some details need a look. They&apos;re marked above.</AlertDescription>
+        </Alert>
       )}
       {state.status === "saved" && !pending && !editedSinceSave && (
         <p role="status" className="text-sm font-medium">Saved.</p>
       )}
 
-      <button type="submit" disabled={pending} className="btn-primary w-full sm:w-auto">
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving…" : "Save details"}
-      </button>
+      </Button>
     </form>
   );
 }
 
-function Field({
+type ExtraInputProps = Omit<
+  React.ComponentProps<typeof Input>,
+  "value" | "onChange" | "id" | "name"
+>;
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent>
+        <FieldSet>
+          <FieldLegend>{title}</FieldLegend>
+          <FieldGroup className="gap-4">{children}</FieldGroup>
+        </FieldSet>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TextField({
   id,
   label,
   error,
-  children,
-}: {
+  value,
+  onChange,
+  ...props
+}: ExtraInputProps & {
   id: string;
   label: string;
   error?: string;
-  children: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p id={`${id}-error`} className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-    </div>
+    <Field data-invalid={!!error}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
+        id={id}
+        name={id}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
+        {...props}
+      />
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+    </Field>
   );
 }

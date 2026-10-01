@@ -1,6 +1,8 @@
 # Plan: UI foundation with shadcn/ui (slice 1b, before customers and quotes)
 
-Status: **proposed**, founder asked for it on 2026-10-01. Not started.
+Status: **built and tested locally**, 2026-10-01 (awaiting review and merge). Decisions and what changed: `docs/adr/0003-ui-components.md`.
+
+Outcome of step 1 (the spike): the shadcn CLI (4.21) works with Next.js 16.3 and Tailwind v4 from this sandbox. Init overwrote our theme and left a self-referencing font variable, so the theme was rewritten by hand (step 2).
 
 ## Why
 The app currently has hand-written Tailwind styles (`.card`, `.field`, `.btn-*` in `app/src/app/globals.css`) and no component library. That was never a decision, only the minimum for the first screens. Quotes, customers and invoices bring forms, pickers, dialogs, tables, toasts and date inputs. Those are costly to build accessibly by hand and easy to get subtly wrong on phones. The whole UI is about 660 lines today, so moving now is cheap; each new screen makes it dearer.

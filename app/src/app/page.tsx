@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -7,18 +8,18 @@ export default function Home() {
         <h1 className="text-4xl font-semibold tracking-tight">
           Quotes, jobs and invoices for people who make things
         </h1>
-        <p className="text-lg text-muted">
+        <p className="text-lg text-muted-foreground">
           Send a beautiful quote, track the job, invoice for the work, and see your
           margin on every order.
         </p>
       </div>
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-        <Link href="/sign-in" className="btn-primary">
+        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
           Get started
         </Link>
-        <span className="btn-secondary cursor-not-allowed opacity-60" aria-disabled="true">
+        <Button variant="outline" size="lg" disabled>
           Try the demo (coming soon)
-        </span>
+        </Button>
       </div>
     </main>
   );
