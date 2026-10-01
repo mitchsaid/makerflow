@@ -16,7 +16,9 @@
     "stack:start": "supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor",
     "stack:stop": "supabase stop",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "env:local": "bash scripts/write-env-local.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
