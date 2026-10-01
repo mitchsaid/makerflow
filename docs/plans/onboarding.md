@@ -50,7 +50,7 @@ Grounded in the prototype (`prototype/src/types.ts`, `components/Products.tsx`, 
     - Prices could include or exclude VAT, and the CSV does not say. The importer must ask ("Do your prices include VAT?").
   - Not covered by the docs I read: whether real exports differ from the documented format. A real export is still worth getting as a test fixture.
 - **Labour rates and employees.** The first time someone adds a labour input, ask what their hourly rate is and save it as a named business-wide rate (for example "My time"). Recipes reference a **named rate** (not a typed number on each product), so changing a rate updates costs everywhere. When employees arrive, rates attach to roles (for example baker, decorator, owner) and recipes keep pointing at the role's rate. Pay rates and margins are sensitive, so who can see or edit rates and margins belongs to the roles and permissions layer (staff can already see colleagues' roles; rates and margin views are owner and admin by default). Quote and invoice lines snapshot their cost when created, so changing a rate never rewrites history. Time tracking, if a maker turns it on, records actual hours against the estimate.
-- Open: whether "services" are a separate kind from products, as in the prototype, or products with no stock. Decide when the products slice is planned.
+- **Services live parallel to products** (founder, 2026-10-01): separate in the interface, as in the prototype's Products and Services tabs. Advice: one underlying table with a `kind` (product or service) so options, price breaks, recipes and the quote line picker are built once; services differ only in defaults (no stock, labour-led, possibly priced per hour or fixed). Only the stock behaviour of the prototype's Services form was verified; confirm the rest when the products slice is planned.
 
 ## Heavy lifting, in order
 1. **Deterministic first:** CSV and Shopify product import, offered at the first product contact (see "Products"). Needs a real sample export; the Shopify format is unverified, and Shopify variants carry absolute prices that must be converted into a base price plus uplifts.
@@ -75,7 +75,7 @@ Grounded in the prototype (`prototype/src/types.ts`, `components/Products.tsx`, 
 
 ## Phasing (dependencies matter)
 The start screen needs destinations to send people to, so it ships after the features it points at.
-- **Now (small):** remove the Home business-details prompt. Settings and business-name onboarding stay. Update its browser test.
+- **Done 2026-10-01:** the Home business-details prompt is removed (Settings and business-name onboarding stay; its browser test is rewritten). The `prompt_dismissals` table and its database tests stay for the next prompts; the app no longer reads dismissals in `getWorkspace()` (add that back when the first new prompt needs it). `isBusinessProfileComplete()` stays for the first-document check.
 - **Alongside the quotes work:** the guided first quote, business details asked at the first PDF or send, and the quote line picker with **minimal products** (name, price, perhaps options) created in context through "Add new product". Products with the quotes work is decided (see below).
 - **Products (layers, minimal first), costing and jobs:** each slice adds its own guided first task and its layers of prompts.
 - **When at least two destinations exist:** "Where shall we start?". CSV/Shopify import arrives with the products work.
@@ -88,7 +88,6 @@ The start screen needs destinations to send people to, so it ships after the fea
 4. **Hourly rate:** asked when a maker first sets up inputs in a product, as a named rate; designed to scale to employees (see "Products").
 
 ## Still open
-- Services as a separate kind or not.
 - Where rates and margins are visible once employees exist (roles and permissions layer).
 
 ## Tests per phase

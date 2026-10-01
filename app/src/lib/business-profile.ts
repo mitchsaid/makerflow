@@ -127,18 +127,15 @@ export function parseBusinessProfileForm(form: FormData): ParsedBusinessProfileF
   };
 }
 
-/** Enough for a quote header: an address and some way to get in touch. */
+/**
+ * Enough for a quote header: an address and some way to get in touch. Used when the first
+ * customer-facing document is made (see docs/plans/onboarding.md).
+ */
 export function isBusinessProfileComplete(profile: BusinessProfile): boolean {
   return Boolean(
     profile.addressLine1 && profile.city && (profile.phone || profile.email),
   );
 }
-
-export const PROMPTS = {
-  businessDetails: "business-details",
-} as const;
-
-export type PromptKey = (typeof PROMPTS)[keyof typeof PROMPTS];
 
 export function canEditBusinessProfile(role: string | null): boolean {
   return role === "owner" || role === "admin";
