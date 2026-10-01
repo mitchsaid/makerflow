@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
@@ -42,14 +42,33 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
                     : "text-muted hover:text-foreground"
                 }`}
               >
-                <Icon />
-                <span>{label}</span>
+                <TabContent label={label} icon={<Icon />} />
               </Link>
             </li>
           );
         })}
       </ul>
     </nav>
+  );
+}
+
+/**
+ * Instant feedback: the tapped tab lights up the moment it is pressed, before the
+ * next page arrives. (A loading skeleton was tried and removed: React holds the
+ * real page back for up to ~300 ms after showing one, which made fast pages feel
+ * slower. See docs/adr/0002-performance.md.)
+ */
+function TabContent({ label, icon }: { label: string; icon: React.ReactNode }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      className={`flex flex-col items-center gap-0.5 md:flex-row md:gap-3 ${
+        pending ? "text-accent" : ""
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </span>
   );
 }
 

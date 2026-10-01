@@ -18,6 +18,7 @@ Read `docs/project-context.md` first (current state, working agreements, next st
   - One deliberate exception: the **public demo account** on the landing page (see `docs/product-brief.md`, section 4). It is a designed feature, not a shortcut: demo data lives only in isolated demo organisations that cannot touch real ones, is built server-side, and the builder refuses to run on any non-demo organisation. Demo accounts never send real email or take real payments.
 - Advanced features are offered through friendly, dismissable prompts and never forced on the user.
 - Design mobile-first.
+- Speed is a feature (the app is used as an installed PWA). Each protected page makes at most one database call for its main data, loads through `getWorkspace()`, and is checked with `pnpm perf`. See `docs/adr/0002-performance.md`.
 - Never commit secrets or `.env` files.
 
 ## Working style
@@ -39,6 +40,7 @@ Run from `app/` with pnpm:
 - `pnpm check` — lint, typecheck and unit tests (the quick pre-commit check, ~30s)
 - `pnpm env:local` — write `app/.env.local` from the running local stack (refuses to overwrite a hosted one without `--force`)
 - `pnpm test` — unit tests (Vitest)
+- `pnpm perf [db_ms] [phone_ms]` — navigation speed check with simulated latency (needs the local stack; set `CHROMIUM_PATH` if Playwright's browser is not installed)
 - `pnpm test:e2e` — browser tests (Playwright, phone viewport). Needs the stack running; starts the dev server itself
 - `pnpm db:test:plain` — same tests on plain Postgres with an auth stand-in (sandboxes without Docker; set `DATABASE_URL` to a scratch database)
 
