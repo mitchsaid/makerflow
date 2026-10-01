@@ -15,6 +15,7 @@ Goal: see every change in your browser the moment it's made, and only push when 
 | Look at the result, review changes, merge pull requests | yes | no |
 
 ## One-time setup (about 30 minutes, mostly downloads)
+Disk space needed: about 4 to 5 GB if you already have Docker (about 3 GB less if you skip the test browser, see step 4). Without Docker already installed, add about 3 GB.
 
 **0. Merge the open pull request first.** It contains the setup script and the preview settings.
 
@@ -30,6 +31,8 @@ Goal: see every change in your browser the moment it's made, and only push when 
 **4. Open MakerFlow.** In the **Code** tab choose **Local**, click **Select folder**, and pick the `makerflow` folder from step 2. Then send:
 
 > Set up this project for local development. Run ./scripts/setup-local.sh and fix anything that stops it.
+
+Short on disk space? Add `--skip-browsers` to the command (saves about 1 GB). You still see the app live and run the quick checks; the full browser tests then run on GitHub when you open a pull request.
 
 It installs what is missing (asking your permission), downloads the database images (the first time is large), starts everything and runs the checks. When it says "All set", you're done.
 
