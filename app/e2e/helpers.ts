@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 
 const mailpit = process.env.LOCAL_MAILPIT_URL ?? "http://127.0.0.1:54324";
@@ -64,4 +65,29 @@ export async function signOut(page: Page) {
   await page.getByRole("link", { name: "Settings" }).click();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
+}
+
+/** The local stack's URL and publishable (public) key, from the environment or .env.local. */
+export function localSupabase() {
+  const fromFile: Record<string, string> = {};
+  if (existsSync(".env.local")) {
+    for (const line of readFileSync(".env.local", "utf8").split("\n")) {
+      const i = line.indexOf("=");
+      if (i > 0 && !line.startsWith("#")) fromFile[line.slice(0, i)] = line.slice(i + 1).trim();
+    }
+  }
+  const get = (k: string) => process.env[k] ?? fromFile[k] ?? "";
+  return {
+    url: get("NEXT_PUBLIC_SUPABASE_URL"),
+    key: get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+  };
+}
+
+/** The access token a browser holds, read from its Supabase session cookie (maybe chunked). */
+export function accessTokenFrom(cookies: { name: string; value: string }[]): string {
+  const parts = cookies
+    .filter((c) => /^sb-.*-auth-token(\.\d+)?$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const raw = parts.map((c) => c.value).join("").replace(/^base64-/, "");
+  return JSON.parse(Buffer.from(raw, "base64url").toString("utf8")).access_token;
 }

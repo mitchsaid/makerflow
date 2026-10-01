@@ -5,6 +5,16 @@
 
 begin;
 
+-- Test helper: a signed-in user has a real session, as in production.
+create function pg_temp.as_user(uid uuid) returns void language plpgsql as $f$
+declare sid uuid := md5('session-' || uid::text)::uuid;
+begin
+  insert into auth.sessions (id, user_id) values (sid, uid) on conflict do nothing;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', uid, 'role', 'authenticated', 'session_id', sid)::text, true);
+end
+$f$;
+
 do $$
 declare
   a uuid := '00000000-0000-4000-8000-00000000000a';
@@ -30,8 +40,7 @@ begin
     'overlong provider name was not truncated (sign-up would fail)';
 
   -- User A signs in for the first time.
-  perform set_config('request.jwt.claims',
-    json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(a);
   set local role authenticated;
 
   -- A blank or whitespace-only business name is rejected, and nothing is created.
@@ -66,16 +75,14 @@ begin
   reset role;
 
   -- User B signs in for the first time.
-  perform set_config('request.jwt.claims',
-    json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(b);
   set local role authenticated;
   org_b := public.ensure_organisation('Bob''s Jewellery');
   reset role;
   assert org_a <> org_b, 'two users share one organisation';
 
   -- A sees only their own organisation and membership.
-  perform set_config('request.jwt.claims',
-    json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(a);
   set local role authenticated;
 
   select count(*) into n from public.organisations;
@@ -139,8 +146,7 @@ begin
   values (org_a, c, 'staff');
 
   -- Staff can see the organisation but cannot rename it.
-  perform set_config('request.jwt.claims',
-    json_build_object('sub', c, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(c);
   set local role authenticated;
 
   select name into nm from public.organisations where id = org_a;

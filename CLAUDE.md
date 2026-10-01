@@ -11,7 +11,7 @@ Read `docs/project-context.md` first (current state, working agreements, next st
 
 ## Rules
 - Money is never a JavaScript float. Store integer minor units plus a currency code. Compute totals on the server.
-- Every business table has an `organisation_id` and row-level security. Access goes through memberships and roles.
+- Every business table has an `organisation_id` and row-level security. Access goes through memberships and roles. Every table in `public` also gets the restrictive `session_required` policy (see `docs/plans/session-bound-rls.md`); a guard test fails if one is missing.
 - Issued invoices and credit notes are immutable and are never deleted. Corrections are credit notes. Numbering is sequential and gapless per organisation.
 - South African rules (VAT, document titles, required fields) live in a locale configuration, not scattered in code.
 - No demo, seed or "reset" shortcuts in product code paths. Fixtures live in a separate dev-only script that refuses to run against production.
@@ -46,5 +46,5 @@ Run from `app/` with pnpm:
 
 Fast local loop and daily routine: `docs/runbooks/local-development.md`. First-time setup on a new computer: `./scripts/setup-local.sh` (checks tools, installs dependencies, starts the local stack, writes `app/.env.local`). CI runs on pull requests and on `main`, not on every branch push.
 
-Database changes are migration files only, never dashboard edits. Every new table needs RLS and a test in `app/supabase/tests/`.
+Database changes are migration files only, never dashboard edits. Every new table needs RLS, the `session_required` policy and a test in `app/supabase/tests/`. SQL tests simulate a signed-in user with a real session (`pg_temp.as_user`, copy the helper from an existing test file).
 Sign-in uses email magic links (verified server-side, so they work across browsers) and Google (off until configured). Google sign-in is NOT yet tested against a real Google project.

@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { existingEmailIds, signOut, uniqueEmail, waitForSignInLink } from "./helpers";
+import {
+  accessTokenFrom,
+  existingEmailIds,
+  localSupabase,
+  signOut,
+  uniqueEmail,
+  waitForSignInLink,
+} from "./helpers";
 
 test("visitor can sign up by email link, name their business, and land in their workspace", async ({
   page,
@@ -135,8 +142,21 @@ test("signing out on one device locks every other device straight away", async (
   await p.goto(await waitForSignInLink(email, seen));
   await expect(p.getByTestId("business-name")).toHaveText("Elsewhere Co");
 
-  // Sign out on the laptop. The phone must not get another page of private data.
+  // The phone's token, used straight against the database (not through the app).
+  const { url, key } = localSupabase();
+  const token = accessTokenFrom(await phone.cookies());
+  const asPhone = async () => {
+    const res = await fetch(`${url}/rest/v1/organisations?select=name`, {
+      headers: { apikey: key, authorization: `Bearer ${token}` },
+    });
+    return (await res.json()) as { name: string }[];
+  };
+  expect(await asPhone()).toEqual([{ name: "Elsewhere Co" }]);
+
+  // Sign out on the laptop. The phone must not get another page of private data,
+  // and its token is useless against the database too.
   await signOut(l);
+  expect(await asPhone()).toEqual([]);
   await p.getByRole("link", { name: "Settings" }).click();
   await expect(p).toHaveURL(/\/sign-in$/);
 

@@ -3,6 +3,16 @@
 
 begin;
 
+-- Test helper: a signed-in user has a real session, as in production.
+create function pg_temp.as_user(uid uuid) returns void language plpgsql as $f$
+declare sid uuid := md5('session-' || uid::text)::uuid;
+begin
+  insert into auth.sessions (id, user_id) values (sid, uid) on conflict do nothing;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', uid, 'role', 'authenticated', 'session_id', sid)::text, true);
+end
+$f$;
+
 do $$
 declare
   a uuid := '00000000-0000-4000-8000-0000000000a1';
@@ -18,12 +28,12 @@ begin
     (a, 'pa@example.test'), (b, 'pb@example.test'), (c, 'pc@example.test');
 
   -- A and B each create a business.
-  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(a);
   set local role authenticated;
   org_a := public.ensure_organisation('A Co');
   reset role;
 
-  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(b);
   set local role authenticated;
   org_b := public.ensure_organisation('B Co');
   -- Calling again must not create a second profile or fail.
@@ -44,7 +54,7 @@ begin
   ----------------------------------------------------------------------
   -- Owner A
   ----------------------------------------------------------------------
-  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(a);
   set local role authenticated;
 
   select count(*) into n from public.business_profiles;
@@ -133,7 +143,7 @@ begin
   ----------------------------------------------------------------------
   -- Staff C: can read the business profile, cannot change it.
   ----------------------------------------------------------------------
-  perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(c);
   set local role authenticated;
 
   select count(*) into n from public.business_profiles where organisation_id = org_a;
@@ -146,7 +156,7 @@ begin
   ----------------------------------------------------------------------
   -- Prompt dismissals
   ----------------------------------------------------------------------
-  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(a);
   set local role authenticated;
 
   insert into public.prompt_dismissals (user_id, organisation_id, prompt_key)
@@ -186,7 +196,7 @@ begin
   reset role;
 
   -- B cannot see A's dismissals.
-  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(b);
   set local role authenticated;
   select count(*) into n from public.prompt_dismissals;
   assert n = 0, 'B can see A''s dismissals';
@@ -196,7 +206,7 @@ begin
   reset role;
 
   -- A can undo their own dismissal.
-  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform pg_temp.as_user(a);
   set local role authenticated;
   delete from public.prompt_dismissals where prompt_key = 'business-details';
   get diagnostics n = row_count;
