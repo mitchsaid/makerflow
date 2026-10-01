@@ -24,4 +24,4 @@ http.createServer(async (req, res) => {
   if (cookies.length) out["set-cookie"] = cookies;
   res.writeHead(r.status, out); res.end(buf);
   log.push(req.method + " " + req.url.split("?")[0]);
-}).listen(54399, () => console.log("proxy up, delay", DELAY));
+}).listen(54399, "127.0.0.1", () => console.log("proxy up, delay", DELAY));
