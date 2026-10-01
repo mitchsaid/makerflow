@@ -15,7 +15,7 @@ Goal: see every change in your browser the moment it's made, and only push when 
 | Look at the result, review changes, merge pull requests | yes | no |
 
 ## One-time setup (about 30 minutes, mostly downloads)
-Disk space needed: about 4 to 5 GB if you already have Docker (about 3 GB less if you skip the test browser, see step 4). Without Docker already installed, add about 3 GB.
+Disk space needed: about 4 to 5 GB if you already have Docker (about 1 GB less if you skip the test browser, see step 4). Without Docker already installed, add about 3 GB.
 
 **0. Merge the open pull request first.** It contains the setup script and the preview settings.
 
