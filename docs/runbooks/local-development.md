@@ -46,6 +46,14 @@ It installs what is missing (asking your permission), downloads the database ima
 
 When you finish for the day, quit Docker Desktop (or ask Claude to run `pnpm stack:stop`).
 
+## Sharing Docker with another project (for example work)
+You don't need a second Docker. MakerFlow runs happily on whichever Docker you already have (Docker Desktop, OrbStack, Colima and similar). The setup only needs `docker info` to work.
+- **Space:** you already have the Docker app itself, so MakerFlow adds only its images (about 2 GB).
+- **Containers:** ours are all named `supabase_*_app`, so they are easy to tell apart from your work containers.
+- **Ports on your computer:** 54321 (API), 54322 (database), 54324 (mailbox) and 3000 (the app). If your work project uses any of these, stop one of the two before starting the other.
+- **Memory:** the stack uses roughly 250 MB, small next to a typical work stack.
+- **Cleaning up:** don't run `docker system prune -a` on a shared Docker: it also removes your work project's unused images. Stop only MakerFlow with `pnpm stack:stop`, and wipe only MakerFlow's local data with `pnpm db:reset`. Neither touches other containers.
+
 ## What this setup does and doesn't touch on your computer
 - **Does not touch your Claude accounts or settings.** Nothing here reads or changes your Claude login, your work setup, `~/.claude`, or your shell profile.
 - **`.claude/launch.json`** lives inside the MakerFlow folder only. It holds no account details. It just tells the desktop app how to start this app's dev server (`pnpm local`, port 3000), and it is only used when a session is opened on the MakerFlow folder.
