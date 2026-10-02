@@ -5,7 +5,7 @@ Status: approved by the founder on 2026-09-30 (design choices), built in two sli
 Progress: slice 1 built and tested locally (awaiting review and merge). Slice 2 (customers) not started.
 
 ## Slice 1: app shell and lean business profile
-- Bottom tab bar on phones, left sidebar on desktop. Only sections that exist are shown (Home, Settings for now).
+- Bottom tab bar on phones, left sidebar on desktop. Only sections that exist are shown (Home, Business, Settings for now). **Business profile vs Settings (decided 2026-10-02):** the Business profile screen (`/app/business`) holds facts about the business (name, contact, address, VAT, price entry, and later document numbering, bank details, logo and terms). Settings (`/app/settings`) is for the person and the app (account, sign out, later display and notification preferences). When Quotes and Customers arrive and the phone tab bar runs out of room, Business and Settings fold into a "More" tab (bottom of the sidebar on desktop).
 - `business_profiles` table, one row per organisation: contact phone and email, generic address fields (line 1, line 2, city, region, postal code), VAT registered flag and VAT number, country and currency (fixed to ZA and ZAR for now).
   - VAT rule in the database: registered if and only if a VAT number is present.
   - Owners and admins can edit. Every member can read. No direct inserts or deletes: the row is created by `ensure_organisation()` and backfilled for existing organisations.
@@ -14,6 +14,8 @@ Progress: slice 1 built and tested locally (awaiting review and merge). Slice 2 
 - Not in this slice: bank details (invoice layer), logo (branded templates layer), business registration number.
 
 ## Slice 2: customers
+> Folded into the quotes plan (`docs/plans/quotes.md`, 2026-10-02): customers are built as slice 2 of that plan, with inline creation in the quote picker.
+
 - `customers` table: name (required), individual or business, contact person, email, phone, billing and optional shipping address, VAT number and company registration number (business only), notes, archived flag.
   - Any member can add and edit. Archive, never delete (documents will reference customers). Unique on (organisation, id) so later documents can reference customers with a composite key that cannot cross businesses.
 - Screens: list with search, add, edit, archive and restore.

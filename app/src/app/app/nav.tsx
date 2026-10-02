@@ -6,6 +6,12 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/app", label: "Home", match: (p: string) => p === "/app", icon: HomeIcon },
   {
+    href: "/app/business",
+    label: "Business",
+    match: (p: string) => p.startsWith("/app/business"),
+    icon: BusinessIcon,
+  },
+  {
     href: "/app/settings",
     label: "Settings",
     match: (p: string) => p.startsWith("/app/settings"),
@@ -84,6 +90,18 @@ function HomeIcon() {
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 10.5 12 3l9 7.5" />
       <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+    </svg>
+  );
+}
+
+function BusinessIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5 4.5 4h15L21 9.5" />
+      <path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+      <path d="M5 12.5V20h14v-7.5" />
+      <path d="M10 20v-4.5h4V20" />
     </svg>
   );
 }

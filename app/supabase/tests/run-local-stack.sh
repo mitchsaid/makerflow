@@ -8,3 +8,4 @@ for f in "$here"/*.test.sql; do
   echo "running $(basename "$f")"
   psql -v ON_ERROR_STOP=1 -q "$url" -f "$f"
 done
+bash "$here/concurrency/numbering.sh" "$url"

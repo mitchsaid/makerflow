@@ -80,3 +80,6 @@ A real "delete my account and data" flow (POPIA) is a separate, deliberate featu
 ## 7. Open questions (answered)
 
 Answers were given by the founder and are recorded in `product-brief.md`, section 3. In short: invoice conversion is the maker's choice with a prompt on job completion; partial payments and deposits are in scope; complexity is layered in; quotes go out as PDF first; time tracking feeding labour cost is a per-user choice; AI is expected later. A product-import onboarding journey (for example from a Shopify export) was added as a new requirement.
+
+## 8. Deeper reads
+- Quotes: `docs/prototype-quotes-analysis.md` (2026-10-02).

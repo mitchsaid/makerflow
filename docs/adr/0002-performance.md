@@ -21,7 +21,7 @@ Options considered:
 4. The tapped tab lights up immediately (`useLinkStatus`), and each tab page has a loading skeleton.
 5. Tabs do not shift when selected (same font weight; the selected marker is absolutely positioned). Covered by an e2e test.
 
-## Measured (local rig, `pnpm perf`, Home to Settings and back, phone viewport)
+## Measured (local rig, `pnpm perf`, Home to Business profile and back, phone viewport (the rig used Settings until 2026-10-02, when the business form moved))
 Simulated: phone to server 190 ms (South Africa to Europe); server to database 8 ms (same region) or 90 ms (US function, Irish database; phone to server 280 ms).
 
 | | Server to Supabase calls per click | Same region (8 ms) | Far region (90 ms) |

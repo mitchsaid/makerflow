@@ -1,6 +1,6 @@
 # Project context: read this first in any new session
 
-Last updated: 2026-10-01. Keep it current; it is how a fresh session (local or cloud) picks up where the last one left off.
+Last updated: 2026-10-02. Keep it current; it is how a fresh session (local or cloud) picks up where the last one left off.
 
 ## Working with the founder
 - Solo founder. Prefers plain language, short numbered steps, and an explicit "who does what" (founder vs Claude).
@@ -26,14 +26,14 @@ Hosted setup (nothing here is secret):
 ## Immediate next steps
 1. Founder merges the open pull request, then runs "Deploy database to dev" (applies the business-profile migration).
 2. Founder sets up local development with the Claude desktop app (`docs/runbooks/local-development.md`).
-3. **Onboarding:** decisions affirmed and the plan is written (`docs/plans/onboarding.md`); awaiting founder approval before any code. Founder to supply sample quotes or invoices (anonymised) for the extraction experiment, and to say where makers keep their quotes, price lists and costings. The Home business-details prompt has been removed (done). Next: plan the quotes slice (customers inline, line picker with minimal products via "Add new product", business details asked at the first PDF).
+3. **Onboarding:** decisions affirmed and the plan is written (`docs/plans/onboarding.md`); awaiting founder approval before any code. Founder to supply sample quotes or invoices (anonymised) for the extraction experiment, and to say where makers keep their quotes, price lists and costings. The Home business-details prompt has been removed (done). Quotes: plan approved 2026-10-02; **slice 1 (foundations) built**, awaiting review: money module `app/src/lib/money`, document numbering (migration `20261002100000`), VAT price-entry setting (migration `20261002100100`), error standard (`docs/adr/0005-form-errors.md`), locale packs (`app/src/lib/locale`, `docs/locales/`, `docs/adr/0004-locale-packs.md`). Business information now lives in the **Business profile** screen (`/app/business`); Settings is only account and app preferences. Next: slice 2 (customers). Earlier: prototype analysed (`docs/prototype-quotes-analysis.md`), SARS VAT rules read (`docs/locales/za/vat-and-documents.md`), plan drafted and awaiting founder approval (`docs/plans/quotes.md`).
 4. Slice 2: customers (see `docs/plans/business-profile-and-customers.md`), then quotes.
 5. Hardening backlog and launch checklist: `docs/security-notes.md` (backups, error tracking, bot protection, custom email on a domain we own, Google sign-in test, prod project).
 - Product name is undecided (MakerFlow is the working title; Batchwork is the leading candidate, availability unchecked).
 
 ## Things learned the hard way
 - Next.js here is v16: `proxy.ts` replaces middleware, `cookies()` is async. Read `app/AGENTS.md` and `app/node_modules/next/dist/docs/` before framework code.
-- React resets a `<form action>` after the action finishes, which desynced a controlled checkbox. Controlled forms submit by hand (see `app/src/app/app/settings/business-profile-form.tsx`).
+- React resets a `<form action>` after the action finishes, which desynced a controlled checkbox. Controlled forms submit by hand (see `app/src/app/app/business/business-profile-form.tsx`).
 - Hosted Supabase: custom email templates need custom SMTP; new users get the "confirm signup" email, returning users the magic link; the direct database connection is IPv6-only, so CI uses the session pooler connection string.
 - Added migrations must never edit an already-applied one; write a new file.
 - A path-filtered required CI check never reports and blocks merges. Keep the three required jobs unconditional.

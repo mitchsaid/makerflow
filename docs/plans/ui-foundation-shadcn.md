@@ -24,7 +24,7 @@ Out: new features, new screens, logo/branding, anything for customers or quotes.
 2. **Theme mapping.** Map our tokens (`--background`, `--surface`, `--foreground`, `--muted`, `--line`, `--accent`, `--danger`) to shadcn's variable names. Keep the warm neutral look, light and dark. Use `rounded-lg` as the default radius to match today's.
 3. **Phone rules baked into the components.** Tap targets at least 44 px high, input text at least 16 px (smaller makes iPhones zoom the page), visible focus ring in the accent colour. Adjust shadcn's defaults where they are smaller.
 4. **Add only what current screens use:** Button, Input, Label, Checkbox, Select (province), Card, Alert (errors, "Saved"), Skeleton (replace the hand-made loading blocks). Add Dialog or Sheet, Dropdown, Table, Tabs, Command (customer picker), Sonner (toasts) and a date picker later, when a screen needs them.
-5. **Move screens one at a time**, each leaving the app working: sign-in, onboarding, Home (prompt card), Settings (business form), then the bottom nav (kept as our own component for the tab behaviour, but using the same tokens).
+5. **Move screens one at a time**, each leaving the app working: sign-in, onboarding, Home (prompt card), Settings (business form, now the Business profile), then the bottom nav (kept as our own component for the tab behaviour, but using the same tokens).
 6. **Delete** `.card`, `.field`, `.btn-*` once nothing uses them.
 7. **Record the decision:** `docs/adr/0003-ui-components.md`, plus a `CLAUDE.md` rule: new UI uses `components/ui`, no ad-hoc buttons or inputs; any new primitive is added through the shadcn CLI.
 

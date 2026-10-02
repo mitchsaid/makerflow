@@ -6,8 +6,8 @@ test("business details save, validate and persist", async ({
 }) => {
   await signUpAndOnboard(page, "profile", "Sweet Nothings");
 
-  await page.getByRole("link", { name: "Settings" }).click();
-  await expect(page).toHaveURL(/\/app\/settings$/);
+  await page.getByRole("link", { name: "Business" }).click();
+  await expect(page).toHaveURL(/\/app\/business$/);
 
   await page.getByLabel("Phone", { exact: true }).fill("021 123 4567");
   await page.getByLabel("Email", { exact: true }).fill("hello@sweet.example");
@@ -22,8 +22,11 @@ test("business details save, validate and persist", async ({
   await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
   await page.getByLabel("VAT number").fill("12345");
   await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByText("10 digits and start with 4")).toBeVisible();
+  await expect(page.locator("#vatNumber-error")).toContainText("10 digits and start with 4");
   await page.getByLabel("VAT number").fill("412 345 6789");
+  // Prices are typed including VAT unless the maker says otherwise.
+  await expect(page.getByLabel("When I type a price, it is")).toHaveValue("inclusive");
+  await page.getByLabel("When I type a price, it is").selectOption("exclusive");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
@@ -34,11 +37,12 @@ test("business details save, validate and persist", async ({
   await expect(page.getByLabel("Province")).toHaveValue("Western Cape");
   await expect(page.getByRole("checkbox", { name: "I'm registered for VAT" })).toBeChecked();
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
+  await expect(page.getByLabel("When I type a price, it is")).toHaveValue("exclusive");
 });
 
 test("business name can be changed, and unticking VAT clears the number", async ({ page }) => {
   await signUpAndOnboard(page, "vat", "Old Name");
-  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("link", { name: "Business" }).click();
 
   await page.getByLabel("Business name").fill("New Name");
   await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
@@ -62,7 +66,7 @@ test("business name can be changed, and unticking VAT clears the number", async 
 
 test("each business only ever sees its own details", async ({ page, browser }) => {
   await signUpAndOnboard(page, "owner-a", "Business A");
-  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("link", { name: "Business" }).click();
   await page.getByLabel("Phone", { exact: true }).fill("021 111 2222");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
@@ -70,7 +74,7 @@ test("each business only ever sees its own details", async ({ page, browser }) =
   const other = await browser.newContext({ ...devices["Pixel 7"] });
   const pageB = await other.newPage();
   await signUpAndOnboard(pageB, "owner-b", "Business B");
-  await pageB.getByRole("link", { name: "Settings" }).click();
+  await pageB.getByRole("link", { name: "Business" }).click();
   await expect(pageB.getByLabel("Business name")).toHaveValue("Business B");
   await expect(pageB.getByLabel("Phone", { exact: true })).toHaveValue("");
   await other.close();
@@ -93,21 +97,35 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   // Selecting a tab must not nudge any label: record where each sits, then compare.
   const labelBoxes = async () =>
     Promise.all(
-      ["Home", "Settings"].map((name) =>
+      ["Home", "Business", "Settings"].map((name) =>
         nav.getByRole("link", { name }).locator("span span").last().boundingBox(),
       ),
     );
   const before = await labelBoxes();
+  await nav.getByRole("link", { name: "Business" }).click();
+  await expect(page).toHaveURL(/\/app\/business$/);
+  await expect(nav.getByRole("link", { name: "Business" })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current", "page");
   await nav.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/app\/settings$/);
   await expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
-  await expect(nav.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Business" })).not.toHaveAttribute("aria-current", "page");
   const after = await labelBoxes();
-  for (const i of [0, 1]) {
+  for (const i of [0, 1, 2]) {
     expect(after[i]!.x).toBeCloseTo(before[i]!.x, 1);
     expect(after[i]!.width).toBeCloseTo(before[i]!.width, 1);
     expect(after[i]!.y).toBeCloseTo(before[i]!.y, 1);
   }
+});
+
+test("settings holds the account and preferences, not the business details", async ({ page }) => {
+  const email = await signUpAndOnboard(page, "acct", "Acct Co");
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+  await expect(page.getByTestId("account-email")).toHaveText(email);
+  await expect(page.getByTestId("account-role")).toHaveText("Owner");
+  await expect(page.getByLabel("Business name")).toHaveCount(0);
+  await expect(page.getByLabel("Phone", { exact: true })).toHaveCount(0);
 });
 
 test("signing out from settings locks the workspace again", async ({ page }) => {
@@ -115,4 +133,42 @@ test("signing out from settings locks the workspace again", async ({ page }) => 
   await signOut(page);
   await page.goto("/app/settings");
   await expect(page).toHaveURL(/\/sign-in$/);
+});
+
+test("a failed save lists what to fix, takes you to the first problem, and keeps what you typed", async ({
+  page,
+}) => {
+  await signUpAndOnboard(page, "errors", "Error Co");
+  await page.getByRole("link", { name: "Business" }).click();
+  await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
+
+  // Nothing is shown before the person has tried to save.
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
+
+  await page.getByLabel("Phone", { exact: true }).fill("abc");
+  await page.getByLabel("Email", { exact: true }).fill("not-an-email");
+  await page.getByLabel("City or town").fill("Cape Town");
+  await page.getByRole("button", { name: "Save details" }).click();
+
+  // The button was enabled; the summary appears, takes focus and counts the problems.
+  const summary = page.getByTestId("form-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText("2 things need fixing");
+  await expect(summary).toBeFocused();
+  // Each problem is also marked at its field.
+  await expect(page.locator("#phone-error")).toBeVisible();
+  await expect(page.locator("#email-error")).toBeVisible();
+  // What was typed is still there.
+  await expect(page.getByLabel("City or town")).toHaveValue("Cape Town");
+
+  // A link in the summary goes straight to the field.
+  await summary.getByRole("link", { name: "Email" }).click();
+  await expect(page.getByLabel("Email", { exact: true })).toBeFocused();
+
+  // Fixing everything and saving again clears the summary.
+  await page.getByLabel("Phone", { exact: true }).fill("021 123 4567");
+  await page.getByLabel("Email", { exact: true }).fill("hello@errors.example");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
 });

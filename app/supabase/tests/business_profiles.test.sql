@@ -73,6 +73,16 @@ begin
   get diagnostics n = row_count;
   assert n = 1, 'owner could not set VAT details';
 
+  -- VAT price entry mode: includes VAT by default, owners can change it.
+  assert (select prices_include_vat from public.business_profiles where organisation_id = org_a) = true,
+    'prices should include VAT by default';
+  update public.business_profiles set prices_include_vat = false where organisation_id = org_a;
+  get diagnostics n = row_count;
+  assert n = 1, 'owner could not change the price entry mode';
+  assert (select prices_include_vat from public.business_profiles where organisation_id = org_a) = false,
+    'price entry mode was not saved';
+  update public.business_profiles set prices_include_vat = true where organisation_id = org_a;
+
   -- updated_at moves forward on update.
   reset role;
   select created_at, updated_at into created, updated
@@ -151,6 +161,9 @@ begin
   update public.business_profiles set phone = 'staff edit' where organisation_id = org_a;
   get diagnostics n = row_count;
   assert n = 0, 'staff member edited the business profile';
+  update public.business_profiles set prices_include_vat = false where organisation_id = org_a;
+  get diagnostics n = row_count;
+  assert n = 0, 'staff member changed the price entry mode';
   reset role;
 
   ----------------------------------------------------------------------

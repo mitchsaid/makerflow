@@ -1,4 +1,4 @@
-import { ZA_PROVINCES, validatePostalCode, validateVatNumber } from "./locale/za";
+import type { LocalePack } from "./locale";
 import {
   validateBusinessName,
   validateEmail,
@@ -7,6 +7,10 @@ import {
 } from "./validation";
 
 export type BusinessProfile = {
+  /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
+  countryCode: string;
+  /** ISO currency code. Not editable yet. */
+  currencyCode: string;
   phone: string | null;
   email: string | null;
   addressLine1: string | null;
@@ -16,6 +20,8 @@ export type BusinessProfile = {
   postalCode: string | null;
   vatRegistered: boolean;
   vatNumber: string | null;
+  /** Does the business type its prices including VAT? Only matters when VAT registered. */
+  pricesIncludeVat: boolean;
 };
 
 export type FieldName =
@@ -66,7 +72,10 @@ function optionalValidated(
  * null (the database stores NULL, never empty strings). VAT number is required
  * when "registered for VAT" is ticked and dropped when it is not.
  */
-export function parseBusinessProfileForm(form: FormData): ParsedBusinessProfileForm {
+export function parseBusinessProfileForm(
+  form: FormData,
+  locale: LocalePack,
+): ParsedBusinessProfileForm {
   const errors: FieldErrors = {};
 
   const name = validateBusinessName(form.get("name"));
@@ -90,23 +99,27 @@ export function parseBusinessProfileForm(form: FormData): ParsedBusinessProfileF
   const regionRaw = typeof form.get("region") === "string" ? String(form.get("region")).trim() : "";
   let region: string | null = null;
   if (regionRaw !== "") {
-    if ((ZA_PROVINCES as readonly string[]).includes(regionRaw)) {
+    if (locale.address.regions.includes(regionRaw)) {
       region = regionRaw;
     } else {
-      errors.region = "Please choose a province from the list.";
+      errors.region = `Please choose a ${locale.address.regionLabel.toLowerCase()} from the list.`;
     }
   }
 
-  const postalCode = optionalValidated(form.get("postalCode"), validatePostalCode);
+  const postalCode = optionalValidated(form.get("postalCode"), locale.address.validatePostalCode);
   if (!postalCode.ok) errors.postalCode = postalCode.error;
 
   const vatRegistered = form.get("vatRegistered") === "on";
   let vatNumber: string | null = null;
   if (vatRegistered) {
-    const vat = validateVatNumber(form.get("vatNumber"));
+    const vat = locale.tax.validateRegistrationNumber(form.get("vatNumber"));
     if (vat.ok) vatNumber = vat.value;
     else errors.vatNumber = vat.error;
   }
+
+  // Price entry mode: only asked of VAT-registered businesses. Anything but an explicit
+  // "exclusive" means including VAT, the safe default (quoted prices must include VAT).
+  const pricesIncludeVat = !(vatRegistered && form.get("pricesIncludeVat") === "exclusive");
 
   if (Object.keys(errors).length > 0 || !name.ok) return { ok: false, errors };
 
@@ -114,6 +127,8 @@ export function parseBusinessProfileForm(form: FormData): ParsedBusinessProfileF
     ok: true,
     name: name.value,
     profile: {
+      countryCode: locale.countryCode,
+      currencyCode: locale.currencyCode,
       phone: phone.ok ? phone.value : null,
       email: email.ok ? email.value : null,
       addressLine1: addressLine1.ok ? addressLine1.value : null,
@@ -123,18 +138,22 @@ export function parseBusinessProfileForm(form: FormData): ParsedBusinessProfileF
       postalCode: postalCode.ok ? postalCode.value : null,
       vatRegistered,
       vatNumber,
+      pricesIncludeVat,
     },
   };
 }
 
 /**
- * Enough for a quote header: an address and some way to get in touch. Used when the first
- * customer-facing document is made (see docs/plans/onboarding.md).
+ * What is still missing before the business can send a QUOTE or issue an INVOICE. The rules
+ * differ by country, so they come from the business's locale pack (for South Africa: a quote
+ * needs only a way to be contacted; an invoice also needs the address of the premises).
  */
-export function isBusinessProfileComplete(profile: BusinessProfile): boolean {
-  return Boolean(
-    profile.addressLine1 && profile.city && (profile.phone || profile.email),
-  );
+export function missingForQuote(profile: BusinessProfile, locale: LocalePack): FieldName[] {
+  return locale.documents.missingForQuote(profile);
+}
+
+export function missingForInvoice(profile: BusinessProfile, locale: LocalePack): FieldName[] {
+  return locale.documents.missingForInvoice(profile);
 }
 
 export function canEditBusinessProfile(role: string | null): boolean {
