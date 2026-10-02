@@ -14,6 +14,8 @@ Progress: slice 1 built and tested locally (awaiting review and merge). Slice 2 
 - Not in this slice: bank details (invoice layer), logo (branded templates layer), business registration number.
 
 ## Slice 2: customers
+> Folded into the quotes plan (`docs/plans/quotes.md`, 2026-10-02): customers are built as slice 2 of that plan, with inline creation in the quote picker.
+
 - `customers` table: name (required), individual or business, contact person, email, phone, billing and optional shipping address, VAT number and company registration number (business only), notes, archived flag.
   - Any member can add and edit. Archive, never delete (documents will reference customers). Unique on (organisation, id) so later documents can reference customers with a composite key that cannot cross businesses.
 - Screens: list with search, add, edit, archive and restore.
