@@ -93,7 +93,9 @@ How it works on screen: tapping Send, Share or Mark as sent with a requirement m
 Per decision 4. Components: field-level error text, a form summary with links to the first problem, a "still needed" hint. Messages say how to fix the problem ("Choose a customer so we know who the quote is for"). Typed data is never lost on a failed save; the server's validation errors map back to fields. A follow-up small slice retrofits the sign-in, onboarding and settings forms. Written up as `docs/adr/0005-form-errors.md`; the components exist (`app/src/components/form-feedback.tsx`) and the Settings form already follows it.
 
 ## Delivery in thin slices (each its own PR, each with tests)
-1. **Foundations:** the money module (cents, VAT order of operations, deposit and rounding, with unit tests), the shared document-number sequence (also used by invoices), the error standard ADR and components, the VAT-entry column on the business profile.
+**Progress:** slice 1 (foundations) built and tested locally on 2026-10-02, awaiting review and merge. It includes the money module, document numbering (database), the error standard, the VAT-entry setting and the locale packs (added at the founder's request so that country rules are recorded as applying to a South African user).
+
+1. **Foundations (built):** the money module (cents, VAT order of operations, deposit and rounding, with unit tests), the shared document-number sequence (also used by invoices), the error standard ADR and components, the VAT-entry column on the business profile.
 2. **Customers:** table, list, add, edit, archive, the picker (usable on its own).
 3. **Quote draft builder:** header, customer inline, typed lines, totals, delivery or collection line, discount. Drafts only, saved server-side.
 4. **Issuing:** number assignment, snapshot, server PDF, share, mark sent, status rules, derived expiry, activity log.
@@ -110,7 +112,7 @@ New tables (all with `organisation_id`, row-level security, the `session_require
 SQL: isolation between businesses, `session_required` and the guard, immutability of sent quotes, numbering (sequence, concurrency, no gaps from drafts), revisions. Unit: the money module (rounding, inclusive and exclusive VAT, discounts, deposits). Browser (phone viewport): build a quote with an inline customer, a typed line, delivery, a deposit; send or mark sent; revise; record accepted; derived expiry; every error message and the summary jump. Accessibility cases for each new screen. `pnpm perf` for each new protected page (one query for its main data).
 
 ## Open questions
-1. Products before or after the builder (slice 7 position). Currently last so typed lines ship sooner.
-2. Quantity precision: how many decimals, and which units (the prototype had an unreliable conversion system, so units stay a plain label until costing).
+1. Products before or after the builder (slice 7 position): **decided** (founder accepted the recommendation, 2026-10-02): last, so typed lines ship sooner.
+2. Quantity precision: **decided** (founder accepted the recommendation, 2026-10-02): up to 3 decimals, stored as whole thousandths; units stay a plain label until costing.
 
 The accounting questions raised earlier (exclusive-mode display, delivery VAT, deposits, quote content, minimum details) are answered in `docs/locales/za/vat-and-documents.md`.
