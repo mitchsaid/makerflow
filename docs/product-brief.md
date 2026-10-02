@@ -114,7 +114,7 @@ Accounting-package integrations, native mobile apps, other countries, online pay
 
 ## 7. To verify with an accountant before launch
 
-- Required fields on a South African tax invoice, and treatment of VAT on deposits and part-payments. (Researched against the VAT Act, SARS's VAT 404 guide and the Consumer Protection Act in `docs/research/sars-vat-documents.md`, with conservative choices made; a short accountant review before launch is still recommended.)
+- Required fields on a South African tax invoice, and treatment of VAT on deposits and part-payments. (Answered from the VAT Act, SARS's VAT 404 guide and the Consumer Protection Act and its regulations in `docs/research/sars-vat-documents.md`.)
 - Rules for credit notes and corrections, and for retention of records.
 - Data stored in the EU: POPIA cross-border transfer conditions and privacy-policy wording (see ADR 0001).
 - How comparable tools (for example FreshBooks, QuickBooks) handle editing, voiding and audit trails on issued invoices. This informs the lock-on-issue design. It has not yet been checked against those products.
