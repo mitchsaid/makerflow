@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { BusinessProfile, PromptKey } from "@/lib/business-profile";
+import type { BusinessProfile } from "@/lib/business-profile";
 
 /**
  * Data access layer: who is signed in, and which business they are working in.
@@ -21,8 +21,6 @@ export type Workspace = {
   /** "owner", "admin" or "staff" */
   role: string;
   profile: BusinessProfile;
-  /** Keys of the friendly prompts this person has dismissed in this business. */
-  dismissedPrompts: string[];
 };
 
 /**
@@ -77,7 +75,6 @@ type OrganisationRow = {
   id: string;
   name: string;
   business_profiles: ProfileRow | ProfileRow[] | null;
-  prompt_dismissals: { prompt_key: string }[] | null;
 };
 type MembershipRow = { role: string; organisations: OrganisationRow | OrganisationRow[] | null };
 
@@ -85,7 +82,7 @@ const one = <T,>(value: T | T[] | null | undefined): T | null =>
   Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
 
 /**
- * The user's business, their role in it, its profile and their dismissed prompts,
+ * The user's business, their role in it and its profile,
  * fetched in a single query. Null if they have not finished onboarding.
  * Row-level security limits every part of this to what the user may see.
  */
@@ -103,8 +100,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
          business_profiles (
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number
-         ),
-         prompt_dismissals ( prompt_key )
+         )
        )`,
     )
     .eq("user_id", tokenUser.id)
@@ -140,7 +136,6 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       vatRegistered: p?.vat_registered ?? false,
       vatNumber: p?.vat_number ?? null,
     },
-    dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),
   };
 });
 
@@ -152,8 +147,4 @@ export async function requireOrganisation(): Promise<Workspace> {
     redirect("/onboarding");
   }
   return workspace;
-}
-
-export function isPromptDismissed(workspace: Workspace, key: PromptKey): boolean {
-  return workspace.dismissedPrompts.includes(key);
 }

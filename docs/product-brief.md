@@ -40,8 +40,9 @@ Engineering
 | Logo upload | Later, with the branded document templates. |
 | Customer form | Name only required. A "this is a business" switch reveals VAT number, company registration and contact person. Email, phone and addresses optional. |
 | Time tracking | Feeds labour cost only if the maker chooses (a per-user setting). |
-| AI | Expected eventually. Not in early slices. |
-| Onboarding | Not in the prototype. Wanted: import an existing product list (for example a Shopify export) to seed the product set with sensible configuration. |
+| AI | Expected eventually. **One exception pulled earlier:** reading an old quote or invoice to pre-fill onboarding (tested on real samples first, built after the manual path). See `docs/plans/onboarding.md`. |
+| Onboarding | Just in time, no setup wizard. Business name, then an outcome-based "Where shall we start?" (a starting point, not a gate), then one skippable head-start screen (paste or upload an old quote or invoice, bring a product list or spreadsheet, or start fresh). Business details are asked for at the first customer-facing document. Plan: `docs/plans/onboarding.md`. |
+| Products | Rich and optional: a product can be just a name and a price, or grow through layers (options, costs and recipes, price breaks, production stages, stock). The full model is stored from the start; the UI discloses it through friendly prompts. |
 | Sign-in | Email magic link and Google. |
 | VAT | Both VAT-registered and non-registered makers supported from the first invoice slice. |
 | Pricing model | **Deferred** until real-user feedback. Data model keeps room for plans and limits, no billing code yet. |
@@ -100,7 +101,7 @@ Founder priority (set 2026-09-30): **quotes are the first document to build**, b
 6. **Materials, products and costing, and margin.**
 7. **Templates and branding customisation (including logo upload).**
 8. **Stock (raw materials and finished goods).**
-9. **Product import and onboarding.**
+9. **Product import and onboarding.** (Pieces of this arrive earlier, with each feature's guided first task; see `docs/plans/onboarding.md`.)
 10. **Hosted quotes with online acceptance.**
 11. **Employees, roles, permissions.**
 12. **AI features, and paid plans once decided.**

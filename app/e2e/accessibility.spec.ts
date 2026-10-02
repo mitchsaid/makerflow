@@ -32,7 +32,7 @@ for (const scheme of ["light", "dark"] as const) {
 
     test("signed-in pages", async ({ page }) => {
       await signUpAndOnboard(page, `a11y-${scheme}`, "Axe Co");
-      await expectNoViolations(page, "home with the details prompt");
+      await expectNoViolations(page, "home");
 
       await page.getByRole("link", { name: "Settings" }).click();
       await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();

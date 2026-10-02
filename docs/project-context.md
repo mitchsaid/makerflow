@@ -26,7 +26,7 @@ Hosted setup (nothing here is secret):
 ## Immediate next steps
 1. Founder merges the open pull request, then runs "Deploy database to dev" (applies the business-profile migration).
 2. Founder sets up local development with the Claude desktop app (`docs/runbooks/local-development.md`).
-3. **Discuss and plan a proper onboarding flow** (not in the prototype). Founder wants: a guided first run, friendly dismissable prompts, and the ability to import an existing product list (for example a Shopify export) to seed the catalogue with sensible configuration. Write the plan to `docs/plans/` before building.
+3. **Onboarding:** decisions affirmed and the plan is written (`docs/plans/onboarding.md`); awaiting founder approval before any code. Founder to supply sample quotes or invoices (anonymised) for the extraction experiment, and to say where makers keep their quotes, price lists and costings. The Home business-details prompt has been removed (done). Next: plan the quotes slice (customers inline, line picker with minimal products via "Add new product", business details asked at the first PDF).
 4. Slice 2: customers (see `docs/plans/business-profile-and-customers.md`), then quotes.
 5. Hardening backlog and launch checklist: `docs/security-notes.md` (backups, error tracking, bot protection, custom email on a domain we own, Google sign-in test, prod project).
 - Product name is undecided (MakerFlow is the working title; Batchwork is the leading candidate, availability unchecked).

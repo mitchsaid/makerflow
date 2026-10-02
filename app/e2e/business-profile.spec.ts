@@ -1,15 +1,12 @@
 import { devices, expect, test } from "@playwright/test";
 import { signOut, signUpAndOnboard } from "./helpers";
 
-const promptHeading = "Make your quotes look right";
-
-test("prompt leads to settings; details save, validate and persist; prompt goes away", async ({
+test("business details save, validate and persist", async ({
   page,
 }) => {
   await signUpAndOnboard(page, "profile", "Sweet Nothings");
-  await expect(page.getByRole("heading", { name: promptHeading })).toBeVisible();
 
-  await page.getByRole("link", { name: "Add my details" }).click();
+  await page.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/app\/settings$/);
 
   await page.getByLabel("Phone", { exact: true }).fill("021 123 4567");
@@ -37,23 +34,6 @@ test("prompt leads to settings; details save, validate and persist; prompt goes 
   await expect(page.getByLabel("Province")).toHaveValue("Western Cape");
   await expect(page.getByRole("checkbox", { name: "I'm registered for VAT" })).toBeChecked();
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
-
-  // With the details filled in, the prompt no longer appears on Home.
-  await page.getByRole("link", { name: "Home" }).click();
-  await expect(page.getByTestId("business-name")).toHaveText("Sweet Nothings");
-  await expect(page.getByRole("heading", { name: promptHeading })).toHaveCount(0);
-});
-
-test("the prompt can be dismissed and stays dismissed", async ({ page }) => {
-  await signUpAndOnboard(page, "dismiss", "Quiet Co");
-  await expect(page.getByRole("heading", { name: promptHeading })).toBeVisible();
-
-  await page.getByRole("button", { name: "Not now" }).click();
-  await expect(page.getByRole("heading", { name: promptHeading })).toHaveCount(0);
-
-  await page.reload();
-  await expect(page.getByTestId("business-name")).toHaveText("Quiet Co");
-  await expect(page.getByRole("heading", { name: promptHeading })).toHaveCount(0);
 });
 
 test("business name can be changed, and unticking VAT clears the number", async ({ page }) => {
