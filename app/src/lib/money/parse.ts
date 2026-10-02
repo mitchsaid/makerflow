@@ -8,9 +8,9 @@ import {
 } from "./primitives";
 
 /**
- * Turns what a person typed into exact integers. South African habits are accepted: a
- * comma or a dot as the decimal mark, spaces (including non-breaking ones) between
- * thousands, an optional leading "R". Nothing here uses floating point.
+ * Turns what a person typed into exact integers. Lenient about habits that differ by
+ * country: a comma or a dot as the decimal mark, spaces (including non-breaking ones)
+ * between thousands, an optional leading "R" (rand). Nothing here uses floating point.
  */
 
 type Split = { whole: string; fraction: string } | null;

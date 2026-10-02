@@ -1,6 +1,6 @@
 # Plan: quotes (layer 3, the first document)
 
-Status: **proposed 2026-10-02, accounting questions researched and answered (see `docs/research/sars-vat-documents.md`, "Answers to the accounting questions"), awaiting founder approval. Nothing built.** Inputs: `docs/prototype-quotes-analysis.md` (what the prototype does and gets wrong), `docs/research/sars-vat-documents.md` (what SARS requires), `docs/plans/onboarding.md`, and the founder's answers below.
+Status: **proposed 2026-10-02, accounting questions researched and answered (see `docs/locales/za/vat-and-documents.md`, "Answers to the accounting questions"), awaiting founder approval. Nothing built.** Inputs: `docs/prototype-quotes-analysis.md` (what the prototype does and gets wrong), `docs/locales/za/vat-and-documents.md` (what SARS requires), `docs/plans/onboarding.md`, and the founder's answers below.
 
 ## Goal
 A maker can build a quote on a phone in a couple of minutes, with exact money, a document that is correct for South African VAT, and a clear record of what was sent, revised, accepted or declined. Quotes are the first document, so what we build here (numbering, money maths, line items, snapshots, PDF) is the base for jobs and invoices.
@@ -23,6 +23,8 @@ Proposed, not yet explicitly confirmed (unless the founder objects): numbering, 
 - **Private (never on the document):** unit cost and margin per line when known, and customer notes shown while quoting.
 
 ## Money and VAT (the part that must be right)
+> **Everything in this section about VAT, wording, thresholds and minimum details is South African (`country_code` = `ZA`).** It is implemented in the South African locale pack (`app/src/lib/locale/za.ts`) and documented in `docs/locales/za/vat-and-documents.md`; the money arithmetic itself is generic. Each quote stores the **country code, the tax rate, the price-entry mode and the wording used** at the time it is sent (a snapshot), so later rule changes never alter it. See `docs/adr/0004-locale-packs.md`.
+
 - All amounts are **whole cents** (integers) with a currency code. There is one calculation module, shared by the server (authoritative, stored at issue) and the screen (live preview), with unit tests including rounding. No floating point.
 - **Order of operations (documented and fixed):** line amount = quantity x unit price, rounded to the cent; line discount; quote discount shared across lines in proportion, so VAT is charged on discounted amounts; then **VAT once per VAT rate on the total of the lines at that rate** (SARS's own example: "VAT @ 15% on R16 000"), rounded half up to the cent; document totals follow. This avoids the prototype's double tax and tax-after-discount errors (analysis items 2 and 3) and avoids per-line rounding drift. Early-payment discounts are different for VAT and are not quote discounts.
 - **VAT setting on the business profile:** VAT registered or not (exists), and **prices entered including or excluding VAT** (new column). Each quote snapshots the mode and the rate used.
@@ -111,4 +113,4 @@ SQL: isolation between businesses, `session_required` and the guard, immutabilit
 1. Products before or after the builder (slice 7 position). Currently last so typed lines ship sooner.
 2. Quantity precision: how many decimals, and which units (the prototype had an unreliable conversion system, so units stay a plain label until costing).
 
-The accounting questions raised earlier (exclusive-mode display, delivery VAT, deposits, quote content, minimum details) are answered in `docs/research/sars-vat-documents.md`.
+The accounting questions raised earlier (exclusive-mode display, delivery VAT, deposits, quote content, minimum details) are answered in `docs/locales/za/vat-and-documents.md`.

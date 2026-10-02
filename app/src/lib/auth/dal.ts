@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessProfile } from "@/lib/business-profile";
+import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
 
 /**
  * Data access layer: who is signed in, and which business they are working in.
@@ -61,6 +62,8 @@ export async function requireUser() {
 }
 
 type ProfileRow = {
+  country_code: string;
+  currency_code: string;
   phone: string | null;
   email: string | null;
   address_line1: string | null;
@@ -70,6 +73,7 @@ type ProfileRow = {
   postal_code: string | null;
   vat_registered: boolean;
   vat_number: string | null;
+  prices_include_vat: boolean;
 };
 type OrganisationRow = {
   id: string;
@@ -98,8 +102,9 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
        organisations (
          id, name,
          business_profiles (
+           country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
-           vat_registered, vat_number
+           vat_registered, vat_number, prices_include_vat
          )
        )`,
     )
@@ -126,6 +131,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
     organisation: { id: org.id, name: org.name },
     role: membership.role,
     profile: {
+      countryCode: p?.country_code ?? DEFAULT_COUNTRY_CODE,
+      currencyCode: p?.currency_code ?? getLocalePack(DEFAULT_COUNTRY_CODE).currencyCode,
       phone: p?.phone ?? null,
       email: p?.email ?? null,
       addressLine1: p?.address_line1 ?? null,
@@ -135,6 +142,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       postalCode: p?.postal_code ?? null,
       vatRegistered: p?.vat_registered ?? false,
       vatNumber: p?.vat_number ?? null,
+      pricesIncludeVat: p?.prices_include_vat ?? true,
     },
   };
 });

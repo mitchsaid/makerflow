@@ -26,7 +26,7 @@ Hosted setup (nothing here is secret):
 ## Immediate next steps
 1. Founder merges the open pull request, then runs "Deploy database to dev" (applies the business-profile migration).
 2. Founder sets up local development with the Claude desktop app (`docs/runbooks/local-development.md`).
-3. **Onboarding:** decisions affirmed and the plan is written (`docs/plans/onboarding.md`); awaiting founder approval before any code. Founder to supply sample quotes or invoices (anonymised) for the extraction experiment, and to say where makers keep their quotes, price lists and costings. The Home business-details prompt has been removed (done). Quotes: prototype analysed (`docs/prototype-quotes-analysis.md`), SARS VAT rules read (`docs/research/sars-vat-documents.md`), plan drafted and awaiting founder approval (`docs/plans/quotes.md`).
+3. **Onboarding:** decisions affirmed and the plan is written (`docs/plans/onboarding.md`); awaiting founder approval before any code. Founder to supply sample quotes or invoices (anonymised) for the extraction experiment, and to say where makers keep their quotes, price lists and costings. The Home business-details prompt has been removed (done). Quotes: prototype analysed (`docs/prototype-quotes-analysis.md`), SARS VAT rules read (`docs/locales/za/vat-and-documents.md`), plan drafted and awaiting founder approval (`docs/plans/quotes.md`).
 4. Slice 2: customers (see `docs/plans/business-profile-and-customers.md`), then quotes.
 5. Hardening backlog and launch checklist: `docs/security-notes.md` (backups, error tracking, bot protection, custom email on a domain we own, Google sign-in test, prod project).
 - Product name is undecided (MakerFlow is the working title; Batchwork is the leading candidate, availability unchecked).

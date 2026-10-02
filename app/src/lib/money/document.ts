@@ -12,7 +12,7 @@ import {
 
 /**
  * Totals for a quote (and later an invoice). The order of operations is fixed and documented
- * in docs/plans/quotes.md and docs/research/sars-vat-documents.md:
+ * in docs/plans/quotes.md and docs/locales/za/vat-and-documents.md:
  *
  *  1. line amount = quantity x unit price, rounded to the cent (halves up);
  *  2. line discount (percentage or fixed) comes off that line;

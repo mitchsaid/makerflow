@@ -1,4 +1,6 @@
-# SARS rules for VAT documents (reference for quotes, invoices and credit notes)
+# South Africa (ZA): VAT and documents (reference for quotes, invoices and credit notes)
+
+> **Applies to businesses whose country is South Africa (`country_code` = `ZA`) and to no one else.** These rules are implemented in the South African locale pack, `app/src/lib/locale/za.ts`. Other countries get their own pack and their own folder under `docs/locales/`; see `docs/locales/README.md`. Do not apply anything below to another country.
 
 Read 2026-10-02 from SARS's **VAT 404 Guide for Vendors, Issue 15**
 (https://www.sars.gov.za/wp-content/uploads/Ops/Guides/Legal-Pub-Guide-VAT404-VAT-404-Guide-for-Vendors.pdf) and SARS's **Tax Invoice Checklist**

@@ -7,6 +7,7 @@ import {
   parseBusinessProfileForm,
   type FieldErrors,
 } from "@/lib/business-profile";
+import { getLocalePack } from "@/lib/locale";
 import { createClient } from "@/lib/supabase/server";
 
 export type SaveState =
@@ -18,14 +19,14 @@ export async function saveBusinessProfile(
   _previous: SaveState,
   formData: FormData,
 ): Promise<SaveState> {
-  const { organisation, role } = await requireOrganisation();
+  const { organisation, role, profile } = await requireOrganisation();
 
   // The database enforces this too. Checking here gives a clear message.
   if (!canEditBusinessProfile(role)) {
     return { status: "error", message: "Only owners and admins can change these details." };
   }
 
-  const parsed = parseBusinessProfileForm(formData);
+  const parsed = parseBusinessProfileForm(formData, getLocalePack(profile.countryCode));
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
 
   const supabase = await createClient();
@@ -53,6 +54,7 @@ export async function saveBusinessProfile(
       postal_code: p.postalCode,
       vat_registered: p.vatRegistered,
       vat_number: p.vatNumber,
+      prices_include_vat: p.pricesIncludeVat,
     })
     .eq("organisation_id", organisation.id)
     .select("organisation_id");

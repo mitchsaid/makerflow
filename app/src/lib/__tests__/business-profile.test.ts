@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   canEditBusinessProfile,
-  isBusinessProfileComplete,
+  missingForInvoice,
+  missingForQuote,
   parseBusinessProfileForm,
   type BusinessProfile,
 } from "../business-profile";
-import { validatePostalCode, validateVatNumber } from "../locale/za";
+import { ZA_LOCALE, validatePostalCode, validateVatNumber } from "../locale/za";
 import { validatePhone } from "../validation";
+
+/** The South African locale pack: these tests describe South African rules. */
+const parseZa = (f: FormData) => parseBusinessProfileForm(f, ZA_LOCALE);
 
 function form(entries: Record<string, string>) {
   const f = new FormData();
@@ -51,11 +55,13 @@ describe("validatePhone", () => {
 
 describe("parseBusinessProfileForm", () => {
   it("turns empty optional fields into null", () => {
-    const r = parseBusinessProfileForm(form({ name: "Sweet Nothings" }));
+    const r = parseZa(form({ name: "Sweet Nothings" }));
     expect(r).toEqual({
       ok: true,
       name: "Sweet Nothings",
       profile: {
+        countryCode: "ZA",
+        currencyCode: "ZAR",
         phone: null,
         email: null,
         addressLine1: null,
@@ -65,12 +71,13 @@ describe("parseBusinessProfileForm", () => {
         postalCode: null,
         vatRegistered: false,
         vatNumber: null,
+        pricesIncludeVat: true,
       },
     });
   });
 
   it("parses a full valid form", () => {
-    const r = parseBusinessProfileForm(
+    const r = parseZa(
       form({
         name: "  Sweet   Nothings ",
         phone: "021 123 4567",
@@ -93,13 +100,13 @@ describe("parseBusinessProfileForm", () => {
   });
 
   it("requires a VAT number when registered", () => {
-    const r = parseBusinessProfileForm(form({ name: "X", vatRegistered: "on" }));
+    const r = parseZa(form({ name: "X", vatRegistered: "on" }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors.vatNumber).toBeDefined();
   });
 
   it("drops a VAT number when not registered", () => {
-    const r = parseBusinessProfileForm(form({ name: "X", vatNumber: "4123456789" }));
+    const r = parseZa(form({ name: "X", vatNumber: "4123456789" }));
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.profile.vatRegistered).toBe(false);
@@ -108,7 +115,7 @@ describe("parseBusinessProfileForm", () => {
   });
 
   it("reports every problem at once, keyed by field", () => {
-    const r = parseBusinessProfileForm(
+    const r = parseZa(
       form({ name: "  ", phone: "abc", email: "nope", postalCode: "12", region: "Narnia" }),
     );
     expect(r.ok).toBe(false);
@@ -120,26 +127,43 @@ describe("parseBusinessProfileForm", () => {
   });
 
   it("rejects over-long address fields", () => {
-    const r = parseBusinessProfileForm(form({ name: "X", addressLine1: "a".repeat(121) }));
+    const r = parseZa(form({ name: "X", addressLine1: "a".repeat(121) }));
     expect(r.ok).toBe(false);
   });
 });
 
-describe("isBusinessProfileComplete", () => {
-  const empty: BusinessProfile = {
-    phone: null, email: null, addressLine1: null, addressLine2: null,
-    city: null, region: null, postalCode: null, vatRegistered: false, vatNumber: null,
-  };
-  it("needs an address and a way to get in touch", () => {
-    expect(isBusinessProfileComplete(empty)).toBe(false);
-    expect(isBusinessProfileComplete({ ...empty, addressLine1: "1 Main", city: "Cape Town" })).toBe(false);
-    expect(isBusinessProfileComplete({ ...empty, phone: "0211234567" })).toBe(false);
-    expect(
-      isBusinessProfileComplete({ ...empty, addressLine1: "1 Main", city: "Cape Town", phone: "0211234567" }),
-    ).toBe(true);
-    expect(
-      isBusinessProfileComplete({ ...empty, addressLine1: "1 Main", city: "Cape Town", email: "a@b.co" }),
-    ).toBe(true);
+const emptyProfile: BusinessProfile = {
+  countryCode: "ZA", currencyCode: "ZAR",
+  phone: null, email: null, addressLine1: null, addressLine2: null,
+  city: null, region: null, postalCode: null, vatRegistered: false, vatNumber: null,
+  pricesIncludeVat: true,
+};
+
+describe("what is missing before documents (South African rules, via the locale pack)", () => {
+  it("a quote needs only a way to be contacted; an invoice also needs the address", () => {
+    expect(missingForQuote(emptyProfile, ZA_LOCALE)).toEqual(["phone"]);
+    expect(missingForQuote({ ...emptyProfile, email: "a@b.co" }, ZA_LOCALE)).toEqual([]);
+    expect(missingForInvoice({ ...emptyProfile, email: "a@b.co" }, ZA_LOCALE)).toEqual([
+      "addressLine1",
+      "city",
+    ]);
+  });
+});
+
+describe("price entry mode", () => {
+  it("defaults to including VAT, and is only taken from the form when registered", () => {
+    const base = { name: "X", vatRegistered: "on", vatNumber: "4123456789" };
+    const parse = (extra: Record<string, string>) => {
+      const r = parseZa(form({ ...base, ...extra }));
+      return r.ok ? r.profile.pricesIncludeVat : "ERR";
+    };
+    expect(parse({})).toBe(true);
+    expect(parse({ pricesIncludeVat: "inclusive" })).toBe(true);
+    expect(parse({ pricesIncludeVat: "exclusive" })).toBe(false);
+    expect(parse({ pricesIncludeVat: "nonsense" })).toBe(true);
+    // not registered: the choice is ignored and stays at the default
+    const r = parseZa(form({ name: "X", pricesIncludeVat: "exclusive" }));
+    expect(r.ok && r.profile.pricesIncludeVat).toBe(true);
   });
 });
 

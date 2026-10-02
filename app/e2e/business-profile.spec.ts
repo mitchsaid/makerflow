@@ -24,6 +24,9 @@ test("business details save, validate and persist", async ({
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("10 digits and start with 4")).toBeVisible();
   await page.getByLabel("VAT number").fill("412 345 6789");
+  // Prices are typed including VAT unless the maker says otherwise.
+  await expect(page.getByLabel("When I type a price, it is")).toHaveValue("inclusive");
+  await page.getByLabel("When I type a price, it is").selectOption("exclusive");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
@@ -34,6 +37,7 @@ test("business details save, validate and persist", async ({
   await expect(page.getByLabel("Province")).toHaveValue("Western Cape");
   await expect(page.getByRole("checkbox", { name: "I'm registered for VAT" })).toBeChecked();
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
+  await expect(page.getByLabel("When I type a price, it is")).toHaveValue("exclusive");
 });
 
 test("business name can be changed, and unticking VAT clears the number", async ({ page }) => {

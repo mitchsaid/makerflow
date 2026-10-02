@@ -19,6 +19,7 @@ export default async function SettingsPage() {
     postalCode: profile.postalCode ?? "",
     vatRegistered: profile.vatRegistered,
     vatNumber: profile.vatNumber ?? "",
+    pricesIncludeVat: profile.pricesIncludeVat ? "inclusive" : "exclusive",
   };
 
   return (
@@ -26,7 +27,7 @@ export default async function SettingsPage() {
       <h1 className="text-xl font-semibold">Settings</h1>
 
       {canEditBusinessProfile(role) ? (
-        <BusinessProfileForm initial={initial} />
+        <BusinessProfileForm initial={initial} countryCode={profile.countryCode} />
       ) : (
         <Card>
           <CardHeader>

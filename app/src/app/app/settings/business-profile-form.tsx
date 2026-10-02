@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { ZA_PROVINCES } from "@/lib/locale/za";
+import { getLocalePack } from "@/lib/locale";
 import type { FieldErrors } from "@/lib/business-profile";
 import { saveBusinessProfile, type SaveState } from "./actions";
 
@@ -31,11 +31,19 @@ export type FormValues = {
   postalCode: string;
   vatRegistered: boolean;
   vatNumber: string;
+  pricesIncludeVat: "inclusive" | "exclusive";
 };
 
 const initialState: SaveState = { status: "idle" };
 
-export function BusinessProfileForm({ initial }: { initial: FormValues }) {
+export function BusinessProfileForm({
+  initial,
+  countryCode,
+}: {
+  initial: FormValues;
+  countryCode: string;
+}) {
+  const locale = getLocalePack(countryCode);
   const [state, formAction, pending] = useActionState(saveBusinessProfile, initialState);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<FormValues>(initial);
@@ -92,7 +100,7 @@ export function BusinessProfileForm({ initial }: { initial: FormValues }) {
         {text("addressLine2", "Suburb or building (optional)", { autoComplete: "address-line2" })}
         {text("city", "City or town", { autoComplete: "address-level2" })}
         <Field data-invalid={!!errors.region}>
-          <FieldLabel htmlFor="region">Province</FieldLabel>
+          <FieldLabel htmlFor="region">{locale.address.regionLabel}</FieldLabel>
           <NativeSelect
             id="region"
             name="region"
@@ -102,8 +110,8 @@ export function BusinessProfileForm({ initial }: { initial: FormValues }) {
             aria-invalid={!!errors.region}
             aria-describedby={errors.region ? "region-error" : undefined}
           >
-            <NativeSelectOption value="">Choose a province</NativeSelectOption>
-            {ZA_PROVINCES.map((p) => (
+            <NativeSelectOption value="">Choose a {locale.address.regionLabel.toLowerCase()}</NativeSelectOption>
+            {locale.address.regions.map((p) => (
               <NativeSelectOption key={p} value={p}>
                 {p}
               </NativeSelectOption>
@@ -127,10 +135,31 @@ export function BusinessProfileForm({ initial }: { initial: FormValues }) {
           </FieldLabel>
         </Field>
         <FieldDescription>
-          Only tick this if you&apos;re registered with SARS. Your quotes and invoices will
-          show VAT and your VAT number.
+          Only tick this if you&apos;re registered for {locale.tax.name} with the tax authority. Your
+          quotes and invoices will show {locale.tax.name} and your {locale.tax.registrationNumberLabel}.
         </FieldDescription>
-        {values.vatRegistered && text("vatNumber", "VAT number", { inputMode: "numeric" })}
+        {values.vatRegistered && text("vatNumber", locale.tax.registrationNumberLabel, { inputMode: "numeric" })}
+        {values.vatRegistered && (
+          <Field>
+            <FieldLabel htmlFor="pricesIncludeVat">When I type a price, it is</FieldLabel>
+            <NativeSelect
+              id="pricesIncludeVat"
+              name="pricesIncludeVat"
+              value={values.pricesIncludeVat}
+              onChange={(e) =>
+                set("pricesIncludeVat")(e.target.value === "exclusive" ? "exclusive" : "inclusive")
+              }
+            >
+              <NativeSelectOption value="inclusive">Including VAT</NativeSelectOption>
+              <NativeSelectOption value="exclusive">Excluding VAT</NativeSelectOption>
+            </NativeSelect>
+            <FieldDescription>
+              Including VAT is the usual choice when you sell to the public; excluding VAT is
+              common when you sell to other businesses. Either way, your quotes and invoices show
+              the VAT and the total including VAT clearly.
+            </FieldDescription>
+          </Field>
+        )}
       </Section>
 
       {state.status === "error" && state.message && (

@@ -81,12 +81,15 @@ describe("parsePercent", () => {
 
 describe("formatting", () => {
   it("formats in the South African style", () => {
-    expect(formatMoney(125050).replace(/\s/g, " ")).toBe("R 1 250,50");
-    expect(formatMoney(5).replace(/\s/g, " ")).toBe("R 0,05");
-    expect(formatQuantity(500)).toBe("0,5");
-    expect(formatQuantity(2000)).toBe("2");
-    expect(formatQuantity(1250)).toBe("1,25");
-    expect(formatPercent(1500)).toBe("15%");
-    expect(formatPercent(1250)).toBe("12,5%");
+    expect(formatMoney(125050, "ZAR", "en-ZA").replace(/\s/g, " ")).toBe("R 1 250,50");
+    expect(formatMoney(5, "ZAR", "en-ZA").replace(/\s/g, " ")).toBe("R 0,05");
+    // the same amounts in another country's style come from that country's locale tag
+    expect(formatMoney(125050, "GBP", "en-GB")).toBe("£1,250.50");
+    expect(formatQuantity(500, "en-ZA")).toBe("0,5");
+    expect(formatQuantity(500, "en-GB")).toBe("0.5");
+    expect(formatQuantity(2000, "en-ZA")).toBe("2");
+    expect(formatQuantity(1250, "en-ZA")).toBe("1,25");
+    expect(formatPercent(1500, "en-ZA")).toBe("15%");
+    expect(formatPercent(1250, "en-ZA")).toBe("12,5%");
   });
 });
