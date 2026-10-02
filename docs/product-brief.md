@@ -112,10 +112,12 @@ Later layers can be reordered after user feedback. The data model is designed fo
 
 Accounting-package integrations, native mobile apps, other countries, online payment gateways, AI features, and billing.
 
-## 7. To verify with an accountant before launch
+## 7. Tax, legal and accounting questions
+
+The VAT, tax invoice, deposit and quotation questions are answered in `docs/research/sars-vat-documents.md`. The remaining items below are still open.
 
 - Required fields on a South African tax invoice, and treatment of VAT on deposits and part-payments. (Answered from the VAT Act, SARS's VAT 404 guide and the Consumer Protection Act and its regulations in `docs/research/sars-vat-documents.md`.)
-- Rules for credit notes and corrections, and for retention of records.
+- Rules for credit notes and corrections, and for retention of records. (Answered in `docs/research/sars-vat-documents.md`: credit note particulars per guide 13.8.3, records kept at least five years.)
 - Data stored in the EU: POPIA cross-border transfer conditions and privacy-policy wording (see ADR 0001).
 - How comparable tools (for example FreshBooks, QuickBooks) handle editing, voiding and audit trails on issued invoices. This informs the lock-on-issue design. It has not yet been checked against those products.
 - POPIA obligations for customer personal data.
