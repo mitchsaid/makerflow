@@ -42,6 +42,33 @@ describe("parseMoney", () => {
   });
 });
 
+describe("thousands marks", () => {
+  const money = (s: string) => {
+    const r = parseMoney(s);
+    return r.ok ? r.value : `ERR:${r.error}`;
+  };
+  it("accepts a repeated mark as thousands, in any usual style", () => {
+    expect(money("1,234,567")).toBe(123_456_700);
+    expect(money("1.234.567")).toBe(123_456_700);
+    expect(money("R 1 234 567")).toBe(123_456_700);
+    expect(money("12,345,678")).toBe(1_234_567_800);
+    expect(money("1,234,567.89")).toBe(123_456_789);
+    expect(money("1.234.567,89")).toBe(123_456_789);
+    const q = parseQuantity("1,234,567");
+    expect(q.ok && q.value).toBe(1_234_567_000);
+  });
+  it("still rejects misplaced marks with a plain message", () => {
+    expect(money("1,23,456")).toMatch(/^ERR:.*numbers only/);
+    expect(money("1,2345,678")).toMatch(/^ERR:.*numbers only/);
+    expect(money("0,000,001")).toMatch(/^ERR:.*numbers only/);
+  });
+  it("says 'too large' for huge numbers, not 'too many decimals'", () => {
+    expect(money("12345678901234567890")).toMatch(/^ERR:That amount is too large/);
+    const q = parseQuantity("12345678901234567890");
+    expect(!q.ok && q.error).toMatch(/too large/);
+  });
+});
+
 describe("parseQuantity", () => {
   it("accepts up to three decimals and returns thousandths", () => {
     const q = (s: string) => {

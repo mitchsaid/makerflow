@@ -26,6 +26,17 @@ function splitNumber(raw: string): Split {
 
   if (lastSeparator === -1) return { whole: text, fraction: "" };
 
+  // The same mark more than once (1,234,567 or 1.234.567) can only be thousands marks:
+  // a decimal mark never repeats. Groups must be 3 digits after a short first group.
+  const marks = text.match(/[.,]/g)!;
+  if (marks.length > 1 && marks.every((m) => m === marks[0])) {
+    const groups = text.split(marks[0]!);
+    if (groups.some((g, i) => (i === 0 ? !/^[1-9]\d{0,2}$/.test(g) : !/^\d{3}$/.test(g)))) {
+      return null;
+    }
+    return { whole: groups.join(""), fraction: "" };
+  }
+
   const before = text.slice(0, lastSeparator);
   const after = text.slice(lastSeparator + 1);
   const otherSeparatorInBefore = /[.,]/.test(before);
@@ -49,13 +60,16 @@ function splitNumber(raw: string): Split {
   return { whole: before === "" ? "0" : before, fraction: after };
 }
 
-function scaled(split: NonNullable<Split>, decimals: number): number | null {
+const TOO_LARGE = "too large";
+
+/** The number as an integer count of 10^-decimals, or why it can't be one. */
+function scaled(split: NonNullable<Split>, decimals: number): number | typeof TOO_LARGE | null {
   if (split.fraction.length > decimals) return null;
   const fraction = split.fraction.padEnd(decimals, "0");
   const digits = (split.whole + fraction).replace(/^0+(?=\d)/, "");
-  if (digits.length > 15) return null;
+  if (digits.length > 15) return TOO_LARGE;
   const value = Number(digits);
-  return Number.isSafeInteger(value) ? value : null;
+  return Number.isSafeInteger(value) ? value : TOO_LARGE;
 }
 
 /** An amount of money, to the cent. Accepts "1250", "1 250,50", "R1,250.50". Not negative. */
@@ -65,6 +79,7 @@ export function parseMoney(input: unknown): ValidationResult<Cents> {
   const split = splitNumber(text);
   if (!split) return { ok: false, error: "Enter an amount using numbers only, like 1 250 or 1 250,50." };
   const cents = scaled(split, 2);
+  if (cents === TOO_LARGE) return { ok: false, error: "That amount is too large." };
   if (cents === null) {
     return { ok: false, error: "Amounts can have at most 2 decimals, like 49,95." };
   }
@@ -89,6 +104,7 @@ export function parseQuantity(input: unknown): ValidationResult<QuantityMilli> {
     };
   }
   const milli = scaled(split, 3);
+  if (milli === TOO_LARGE) return { ok: false, error: "That quantity is too large." };
   if (milli === null) {
     return { ok: false, error: "Quantities can have at most 3 decimals, like 0,25." };
   }
@@ -104,6 +120,7 @@ export function parsePercent(input: unknown): ValidationResult<BasisPoints> {
   const split = splitNumber(text);
   if (!split) return { ok: false, error: "Enter a percentage using numbers only, like 10 or 12,5." };
   const basisPoints = scaled(split, 2);
+  if (basisPoints === TOO_LARGE) return { ok: false, error: "A percentage can't be more than 100." };
   if (basisPoints === null) {
     return { ok: false, error: "Percentages can have at most 2 decimals, like 7,25." };
   }
