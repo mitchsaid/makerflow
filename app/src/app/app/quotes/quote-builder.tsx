@@ -102,8 +102,20 @@ export function QuoteBuilder({
     event.preventDefault();
     setEditedSinceSave(false);
     startTransition(async () => {
-      const result = await saveQuoteDraft(quoteId, values);
-      setState(result);
+      try {
+        setState(await saveQuoteDraft(quoteId, values));
+      } catch (error) {
+        // A new quote is saved by a redirect to its own page: that is not a failure.
+        const digest = (error as { digest?: unknown } | null)?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
+        // No signal, say: keep the form exactly as it is and say so, never an error page.
+        console.error("could not save the quote:", error);
+        setState({
+          status: "error",
+          message:
+            "Couldn't reach the server, so the draft was not saved. Check your connection and press Save again. Nothing you typed is lost.",
+        });
+      }
     });
   }
 

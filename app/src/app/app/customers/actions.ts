@@ -24,7 +24,7 @@ export type CustomerSaveState =
   | { status: "created"; option: CustomerSummaryOption }
   | { status: "error"; message?: string; errors?: CustomerFieldErrors }
   /** Looks like someone already on the list: ask before adding, never block. */
-  | { status: "duplicate"; matches: { id: string; name: string }[] };
+  | { status: "duplicate"; matches: CustomerSummaryOption[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
@@ -83,7 +83,9 @@ async function insertCustomer(
         ok: false,
         state: {
           status: "duplicate",
-          matches: matches.slice(0, 3).map(({ id, name }) => ({ id, name })),
+          matches: matches
+            .slice(0, 3)
+            .map(({ id, name, phone }) => ({ id, name, detail: phone ?? "" })),
         },
       };
     }

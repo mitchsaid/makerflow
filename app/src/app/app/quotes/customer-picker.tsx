@@ -69,7 +69,13 @@ export function CustomerPicker({
   // The highlighted option: -1 until the person types or uses the arrow keys, so that Enter on
   // a just-opened list does not pick someone by accident.
   const [active, setActive] = useState(-1);
+  // The sheet's content stays while it animates closed, so `sheet` is kept and `sheetOpen` says
+  // whether it is showing (otherwise the title flips to "Add a customer" as an edit sheet closes).
   const [sheet, setSheet] = useState<SheetState>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // A save is on its way: closing now would lose the result (the customer would exist but not
+  // be chosen).
+  const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
 
@@ -93,8 +99,18 @@ export function CustomerPicker({
     onChange(customerId);
     setQuery("");
     setOpen(false);
-    setSheet(null);
+    setSheetOpen(false);
     focusSoon(`${id}-edit`);
+  }
+
+  /** Choose someone the form found as a likely duplicate (they may not be in our list yet). */
+  function useExisting(option: CustomerSummaryOption) {
+    setCustomers((list) =>
+      list.some((c) => c.id === option.id)
+        ? list
+        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false }],
+    );
+    select(option.id);
   }
 
   function choose(choice: Choice) {
@@ -105,17 +121,25 @@ export function CustomerPicker({
     }
     setOpen(false);
     setSheet({ kind: "add", name: choice.name });
+    setSheetOpen(true);
   }
 
   function openEdit(customerId: string) {
     setLoadError(null);
     startOpening(async () => {
-      const result = await loadCustomerForEdit(customerId);
-      if (result.status === "error") {
-        setLoadError(result.message);
-        return;
+      try {
+        const result = await loadCustomerForEdit(customerId);
+        if (result.status === "error") {
+          setLoadError(result.message);
+          return;
+        }
+        setSheet({ kind: "edit", customer: result.customer });
+        setSheetOpen(true);
+      } catch (error) {
+        // No signal, say: show a message rather than losing the quote to an error page.
+        console.error("could not open the customer:", error);
+        setLoadError("Couldn't reach the server. Check your connection and try again.");
       }
-      setSheet({ kind: "edit", customer: result.customer });
     });
   }
 
@@ -130,15 +154,15 @@ export function CustomerPicker({
     if (kind === "add") {
       select(option.id);
     } else {
-      setSheet(null);
+      setSheetOpen(false);
       focusSoon(`${id}-edit`);
     }
   }
 
   function closeSheet() {
-    const kind = sheet?.kind;
-    setSheet(null);
-    focusSoon(kind === "edit" ? `${id}-edit` : id);
+    if (saving) return;
+    setSheetOpen(false);
+    focusSoon(sheet?.kind === "edit" ? `${id}-edit` : id);
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -159,7 +183,7 @@ export function CustomerPicker({
   }
 
   const sheetView = (
-    <Sheet open={sheet !== null} onOpenChange={(isOpen) => !isOpen && closeSheet()}>
+    <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && closeSheet()}>
       <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-lg">
         <SheetHeader className="pr-14">
           <SheetTitle className="text-lg">
@@ -179,7 +203,13 @@ export function CustomerPicker({
               action={createCustomerInQuote}
               initial={{ ...EMPTY_CUSTOMER, name: sheet.name }}
               countryCode={countryCode}
-              embedded={{ onDone: onSheetDone, onCancel: closeSheet, onUseExisting: select }}
+              embedded={{
+                onDone: onSheetDone,
+                onCancel: closeSheet,
+                onUseExisting: useExisting,
+                onPendingChange: setSaving,
+              }}
+              idPrefix="customer-sheet-"
             />
           )}
           {sheet?.kind === "edit" && (
@@ -189,7 +219,13 @@ export function CustomerPicker({
               action={updateCustomer.bind(null, sheet.customer.id)}
               initial={valuesFromCustomer(sheet.customer)}
               countryCode={countryCode}
-              embedded={{ onDone: onSheetDone, onCancel: closeSheet, onUseExisting: select }}
+              embedded={{
+                onDone: onSheetDone,
+                onCancel: closeSheet,
+                onUseExisting: useExisting,
+                onPendingChange: setSaving,
+              }}
+              idPrefix="customer-sheet-"
             />
           )}
         </div>

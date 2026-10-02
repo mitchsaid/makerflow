@@ -221,6 +221,43 @@ test("adding someone who already exists offers to use them instead", async ({ pa
   await expect(page.getByTestId("selected-customer-detail")).toHaveText("021 123 4567");
 });
 
+test("the sheet's fields do not collide with the quote's, and a lost connection keeps the quote", async ({ page, context }) => {
+  await signUpAndOnboard(page, "q-offline", "Offline Co");
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cupcakes", "12", "15");
+  await page.getByLabel("Notes for the customer (optional)").fill("Quote notes");
+
+  await page.getByLabel("Customer", { exact: true }).fill("Someone");
+  await page.getByRole("option", { name: /Add “Someone”/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Add a customer" });
+  await sheet.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+  // The customer's notes field has its own label and its own id, apart from the quote's notes.
+  await sheet.getByLabel("Notes (optional)").fill("Customer notes");
+  await expect(page.getByLabel("Notes for the customer (optional)")).toHaveValue("Quote notes");
+  await expect(sheet.getByLabel("Notes (optional)")).toHaveValue("Customer notes");
+  const ids = await page.locator("[id]").evaluateAll((els) => els.map((e) => e.id).filter(Boolean));
+  expect(ids.length).toBe(new Set(ids).size);
+
+  // Lose the connection while saving the customer: a message, the sheet and the quote stay.
+  await context.setOffline(true);
+  await sheet.getByRole("button", { name: "Add customer" }).click();
+  await expect(sheet.getByText(/Couldn't reach the server/)).toBeVisible();
+  await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue("Someone");
+  await context.setOffline(false);
+  await sheet.getByRole("button", { name: "Add customer" }).click();
+  await expect(page.getByTestId("selected-customer")).toHaveText("Someone");
+  await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Cupcakes");
+
+  // And the same for saving the quote itself.
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText(/Couldn't reach the server, so the draft was not saved/)).toBeVisible();
+  await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Cupcakes");
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}/);
+});
+
 test("discounts come off in the right order", async ({ page }) => {
   await signUpAndOnboard(page, "q-discount", "Discount Co");
   await page.goto("/app/quotes/new");
