@@ -119,6 +119,7 @@ export function SelectField({
   onChange,
   placeholder,
   options,
+  optionLabels,
   autoComplete,
 }: {
   id: string;
@@ -128,6 +129,8 @@ export function SelectField({
   onChange: (value: string) => void;
   placeholder: string;
   options: readonly string[];
+  /** What to show for an option, when it should read differently from its value. */
+  optionLabels?: Record<string, string>;
   autoComplete?: string;
 }) {
   return (
@@ -145,7 +148,7 @@ export function SelectField({
         <NativeSelectOption value="">{placeholder}</NativeSelectOption>
         {options.map((option) => (
           <NativeSelectOption key={option} value={option}>
-            {option}
+            {optionLabels?.[option] ?? option}
           </NativeSelectOption>
         ))}
       </NativeSelect>

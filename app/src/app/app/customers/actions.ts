@@ -6,6 +6,7 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import {
   findPossibleDuplicates,
   parseCustomerForm,
+  validateCustomerName,
   type CustomerFieldErrors,
   type CustomerFields,
 } from "@/lib/customers";
@@ -143,4 +144,34 @@ export async function setCustomerArchived(
   revalidatePath("/app/customers");
   if (archived) redirect("/app/customers");
   return { status: "idle" };
+}
+
+export type QuickCustomerState =
+  | { status: "created"; customer: { id: string; name: string } }
+  | { status: "error"; message: string };
+
+/**
+ * Adds a customer with just a name, from the quote's customer picker. The details can be
+ * filled in later on the customer's own page. No duplicate warning here: the picker already
+ * only offers "Add" when the typed name matches nobody on the list.
+ */
+export async function addCustomerByName(name: string): Promise<QuickCustomerState> {
+  const { organisation } = await requireOrganisation();
+
+  const checked = validateCustomerName(name);
+  if (!checked.ok) return { status: "error", message: checked.error };
+
+  const supabase = await createClient();
+  const { data: created, error } = await supabase
+    .from("customers")
+    .insert({ organisation_id: organisation.id, name: checked.value })
+    .select("id, name")
+    .single();
+  if (error || !created) {
+    console.error("could not add customer by name:", error?.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/customers");
+  return { status: "created", customer: { id: created.id, name: created.name } };
 }

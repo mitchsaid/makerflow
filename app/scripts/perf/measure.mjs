@@ -41,7 +41,7 @@ page.on("request", (r) => {
 });
 
 // "Reacted" = a loading skeleton is showing, or the destination's real content is.
-const HEADINGS = { Business: "Business profile", Customers: "Customers" };
+const HEADINGS = { Quotes: "Quotes", Customers: "Customers", More: "More" };
 // Runs in the browser, so it must not use anything from this file: the heading comes in as the argument.
 const REACTED = (heading) =>
   !!document.querySelector('[data-testid="page-loading"]') ||
@@ -52,7 +52,7 @@ const REACTED = (heading) =>
 await fetch(proxy + "/__take");
 const rows = [];
 for (let i = 0; i < 6; i++) {
-  for (const to of ["Customers", "Business", "Home"]) {
+  for (const to of ["Quotes", "Customers", "More", "Home"]) {
     await page.waitForTimeout(900);
     pending = [];
     const t0 = Date.now();
@@ -69,7 +69,7 @@ for (let i = 0; i < 6; i++) {
 const use = rows.slice(2); // ignore warm-up
 const avg = (a) => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
 console.log(`   first reaction: avg ${avg(use.map((r) => r.feedback))} ms | content: avg ${avg(use.map((r) => r.content))} ms | Supabase calls per click: ${[...new Set(use.map((r) => r.calls.length))].join("/")}`);
-for (const to of ["Customers", "Business", "Home"]) {
+for (const to of ["Quotes", "Customers", "More", "Home"]) {
   const r = use.filter((x) => x.to === to);
   console.log(`   -> ${to}: reaction ${avg(r.map((x) => x.feedback))} ms, content ${avg(r.map((x) => x.content))} ms | browser requests: ${r[0].reqs.join(" | ") || "(none)"} | DB/auth calls: ${r[0].calls.join(" | ")}`);
 }

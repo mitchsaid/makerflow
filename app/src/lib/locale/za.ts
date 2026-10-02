@@ -1,4 +1,4 @@
-import { formatPercent } from "../money/format";
+import { formatPercent, type NumberStyle } from "../money/format";
 import type { BasisPoints } from "../money/primitives";
 import type { ValidationResult } from "../validation";
 import type { ContactFacts, LocalePack, ProfileField } from "./types";
@@ -20,6 +20,14 @@ export const ZA_PROVINCES = [
   "Northern Cape",
   "Western Cape",
 ] as const;
+
+/** "R 1 250,50": space between thousands, comma for decimals, symbol first. */
+export const ZA_NUMBER_STYLE: NumberStyle = {
+  decimalMark: ",",
+  groupSeparator: "\u00a0",
+  currencySymbols: { ZAR: "R" },
+  symbolSpace: "\u00a0",
+};
 
 /** SARS VAT registration numbers are 10 digits and start with 4. Spaces and hyphens are ignored. */
 export function validateVatNumber(input: unknown): ValidationResult<string> {
@@ -66,6 +74,8 @@ export const ZA_LOCALE: LocalePack = {
   countryName: "South Africa",
   currencyCode: "ZAR",
   formatLocale: "en-ZA",
+  numberStyle: ZA_NUMBER_STYLE,
+  timeZone: "Africa/Johannesburg",
   address: {
     regionLabel: "Province",
     regions: ZA_PROVINCES,
@@ -79,7 +89,7 @@ export const ZA_LOCALE: LocalePack = {
     // A tax invoice for R5 000 or more must be a full tax invoice (VAT 404 guide, 13.3).
     fullInvoiceThresholdCents: 500_000,
     // VAT Act section 65: a quoted price must say it includes VAT (or show both prices).
-    inclusiveStatement: (rateBp) => `All prices include VAT at ${formatPercent(rateBp, "en-ZA")}.`,
+    inclusiveStatement: (rateBp) => `All prices include VAT at ${formatPercent(rateBp, ZA_NUMBER_STYLE)}.`,
   },
   documents: {
     quoteTitle: "Quotation",

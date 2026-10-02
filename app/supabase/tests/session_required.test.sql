@@ -51,7 +51,11 @@ begin
     join pg_namespace ns on ns.oid = p.pronamespace
    where ns.nspname = 'public'
      and has_function_privilege('authenticated', p.oid, 'execute')
-     and p.proname not in ('ensure_organisation', 'has_org_role', 'is_org_member', 'session_is_active');
+     and p.proname not in (
+       'ensure_organisation', 'has_org_role', 'is_org_member', 'session_is_active',
+       -- security invoker: every statement runs under the caller's row-level security
+       'save_quote_draft'
+     );
   assert missing is null,
     format('unexpected functions callable by signed-in users (do they check the session?): %s', missing);
 
