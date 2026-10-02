@@ -140,6 +140,11 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   // The match, then the offer to add "bong" as someone new; Enter takes the first.
   await expect(options).toHaveCount(2);
   await expect(options.first()).toContainText("Bongani Dube");
+  // The list is part of the page, not floating inside the card, so nothing in it is cut off.
+  const card = page.getByRole("group", { name: "Customer" });
+  const cardBox = (await card.boundingBox())!;
+  const lastBox = (await options.last().boundingBox())!;
+  expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height);
   await input.press("Enter");
   await expect(page.getByTestId("selected-customer")).toHaveText("Bongani Dube");
   // Focus moves to the customer card instead of being lost.
@@ -160,6 +165,34 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   await expect(page.getByRole("option", { name: /Add “Carla”/ })).toBeVisible();
   await page.getByLabel("Customer", { exact: true }).press("Escape");
   await expect(options).toHaveCount(0);
+});
+
+test("adding a customer never depends on pressing Enter or finding the option", async ({ page }) => {
+  await signUpAndOnboard(page, "q-addbtn", "Add Button Co");
+  await page.goto("/app/quotes/new");
+
+  // The button is there before anything is typed.
+  await page.getByRole("button", { name: "Add new customer" }).click();
+  const sheet = page.getByRole("dialog", { name: "Add a customer" });
+  await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue("");
+  // On a phone the sheet is the whole screen, with Save in reach without scrolling.
+  const box = (await sheet.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(box.width).toBeGreaterThan(viewport.width - 2);
+  expect(box.height).toBeGreaterThan(viewport.height - 2);
+  await expect(sheet.getByRole("button", { name: "Add customer" })).toBeInViewport();
+  await sheet.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // Typing a name and walking away does not quietly leave a name that isn't a customer.
+  await page.getByLabel("Customer", { exact: true }).fill("Lerato Mokoena");
+  await page.getByLabel("Quote date", { exact: true }).click();
+  await expect(page.getByTestId("customer-not-chosen")).toContainText("“Lerato Mokoena” isn't chosen yet");
+  await page.getByRole("button", { name: "Add “Lerato Mokoena” as a new customer" }).click();
+  await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue("Lerato Mokoena");
+  await sheet.getByRole("button", { name: "Add customer" }).click();
+  await expect(page.getByTestId("selected-customer")).toHaveText("Lerato Mokoena");
+  await expect(page.getByTestId("customer-not-chosen")).toHaveCount(0);
 });
 
 test("the chosen customer can be configured from the quote, and the customer is real and saved", async ({ page }) => {
