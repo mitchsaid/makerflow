@@ -38,6 +38,31 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
       await expectNoViolations(page, "settings");
 
+      await page.getByRole("link", { name: "Customers" }).click();
+      await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "customers, empty");
+
+      await page.getByRole("link", { name: "Add your first customer" }).click();
+      await expect(page.getByRole("heading", { name: "Add a customer", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "add customer");
+      await page.getByRole("checkbox", { name: "This is a business" }).check();
+      await page.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+      await expectNoViolations(page, "add customer, business with all sections");
+      await page.getByLabel("Phone", { exact: true }).fill("bad");
+      await page.getByRole("button", { name: "Add customer" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "add customer with errors");
+
+      await page.getByLabel("Name", { exact: true }).fill("Axe Customer");
+      await page.getByLabel("Phone", { exact: true }).fill("021 123 4567");
+      await page.getByRole("button", { name: "Add customer" }).click();
+      await expect(page.getByTestId("customer-added")).toBeVisible();
+      await expectNoViolations(page, "customers, with a customer");
+
+      await page.getByRole("link", { name: /Axe Customer/ }).click();
+      await expect(page.getByRole("heading", { name: "Axe Customer", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "edit customer");
+
       await page.getByRole("link", { name: "Business" }).click();
       await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
       await expectNoViolations(page, "business profile");

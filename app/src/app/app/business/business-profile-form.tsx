@@ -3,19 +3,10 @@
 import { useActionState, useState, useTransition } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Input } from "@/components/ui/input";
+import { Section, SelectField, TextField, type ExtraInputProps } from "@/components/form-fields";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { getLocalePack } from "@/lib/locale";
 import type { FieldErrors } from "@/lib/business-profile";
@@ -117,26 +108,16 @@ export function BusinessProfileForm({
         {text("addressLine1", "Street address", { autoComplete: "address-line1" })}
         {text("addressLine2", "Suburb or building (optional)", { autoComplete: "address-line2" })}
         {text("city", "City or town", { autoComplete: "address-level2" })}
-        <Field data-invalid={!!errors.region}>
-          <FieldLabel htmlFor="region">{locale.address.regionLabel}</FieldLabel>
-          <NativeSelect
-            id="region"
-            name="region"
-            autoComplete="address-level1"
-            value={values.region}
-            onChange={(e) => set("region")(e.target.value)}
-            aria-invalid={!!errors.region}
-            aria-describedby={errors.region ? "region-error" : undefined}
-          >
-            <NativeSelectOption value="">Choose a {locale.address.regionLabel.toLowerCase()}</NativeSelectOption>
-            {locale.address.regions.map((p) => (
-              <NativeSelectOption key={p} value={p}>
-                {p}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          {errors.region && <FieldError id="region-error">{errors.region}</FieldError>}
-        </Field>
+        <SelectField
+          id="region"
+          label={locale.address.regionLabel}
+          error={errors.region}
+          value={values.region}
+          onChange={set("region")}
+          placeholder={`Choose a ${locale.address.regionLabel.toLowerCase()}`}
+          options={locale.address.regions}
+          autoComplete="address-level1"
+        />
         {text("postalCode", "Postal code", { inputMode: "numeric", autoComplete: "postal-code", maxLength: 4 })}
       </Section>
 
@@ -194,55 +175,5 @@ export function BusinessProfileForm({
         {pending ? "Saving…" : "Save details"}
       </Button>
     </form>
-  );
-}
-
-type ExtraInputProps = Omit<
-  React.ComponentProps<typeof Input>,
-  "value" | "onChange" | "id" | "name"
->;
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardContent>
-        <FieldSet>
-          <FieldLegend>{title}</FieldLegend>
-          <FieldGroup className="gap-4">{children}</FieldGroup>
-        </FieldSet>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TextField({
-  id,
-  label,
-  error,
-  value,
-  onChange,
-  ...props
-}: ExtraInputProps & {
-  id: string;
-  label: string;
-  error?: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <Field data-invalid={!!error}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input
-        id={id}
-        name={id}
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
-      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
-    </Field>
   );
 }

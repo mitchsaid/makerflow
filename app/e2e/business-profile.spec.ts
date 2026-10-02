@@ -97,7 +97,7 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   // Selecting a tab must not nudge any label: record where each sits, then compare.
   const labelBoxes = async () =>
     Promise.all(
-      ["Home", "Business", "Settings"].map((name) =>
+      ["Home", "Customers", "Business", "Settings"].map((name) =>
         nav.getByRole("link", { name }).locator("span span").last().boundingBox(),
       ),
     );
@@ -111,7 +111,7 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   await expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: "Business" })).not.toHaveAttribute("aria-current", "page");
   const after = await labelBoxes();
-  for (const i of [0, 1, 2]) {
+  for (const i of [0, 1, 2, 3]) {
     expect(after[i]!.x).toBeCloseTo(before[i]!.x, 1);
     expect(after[i]!.width).toBeCloseTo(before[i]!.width, 1);
     expect(after[i]!.y).toBeCloseTo(before[i]!.y, 1);
