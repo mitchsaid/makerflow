@@ -58,6 +58,7 @@ export async function createCustomer(
     const { data: existing, error: lookupError } = await supabase
       .from("customers")
       .select("id, name, phone")
+      .eq("organisation_id", organisation.id)
       .limit(5000);
     if (lookupError) {
       console.error("could not check for duplicate customers:", lookupError.message);
@@ -92,7 +93,7 @@ export async function updateCustomer(
   _previous: CustomerSaveState,
   formData: FormData,
 ): Promise<CustomerSaveState> {
-  const { profile } = await requireOrganisation();
+  const { organisation, profile } = await requireOrganisation();
   if (!UUID.test(id)) return { status: "error", message: GENERIC_ERROR };
 
   const parsed = parseCustomerForm(formData, getLocalePack(profile.countryCode));
@@ -103,6 +104,7 @@ export async function updateCustomer(
     .from("customers")
     .update(toRow(parsed.value))
     .eq("id", id)
+    .eq("organisation_id", organisation.id)
     .select("id");
   if (error || !saved || saved.length !== 1) {
     console.error("could not save customer:", error?.message);
@@ -123,7 +125,7 @@ export async function setCustomerArchived(
   id: string,
   archived: boolean,
 ): Promise<ArchiveState> {
-  await requireOrganisation();
+  const { organisation } = await requireOrganisation();
   if (!UUID.test(id)) redirect("/app/customers");
 
   const supabase = await createClient();
@@ -131,6 +133,7 @@ export async function setCustomerArchived(
     .from("customers")
     .update({ archived_at: archived ? new Date().toISOString() : null })
     .eq("id", id)
+    .eq("organisation_id", organisation.id)
     .select("id");
   if (error || !saved || saved.length !== 1) {
     console.error("could not archive or restore customer:", error?.message);

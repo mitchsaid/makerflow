@@ -4,14 +4,18 @@ import { createClient } from "../supabase/server";
 import type { Customer, CustomerKind, CustomerSummary } from "./index";
 
 /**
- * Customer reads. Row-level security limits every query to the signed-in person's own
- * business, so none of these filter by organisation (and a signed-out session sees nothing).
+ * Customer reads. Row-level security limits every query to businesses the signed-in person
+ * belongs to (and a signed-out session sees nothing), but a person can belong to more than
+ * one. The current business is only known once the workspace has loaded, and the pages load
+ * both at the same time to stay fast, so these return the business of each row and the page
+ * keeps only the current one: see forOrganisation() in ./index.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type SummaryRow = {
   id: string;
+  organisation_id: string;
   name: string;
   kind: CustomerKind;
   contact_person: string | null;
@@ -26,12 +30,13 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, name, kind, contact_person, phone, email, city, archived_at")
+    .select("id, organisation_id, name, kind, contact_person, phone, email, city, archived_at")
     .order("name", { ascending: true })
     .limit(5000);
   if (error) throw new Error(`Could not load customers: ${error.message}`);
   return (data as SummaryRow[]).map((row) => ({
     id: row.id,
+    organisationId: row.organisation_id,
     name: row.name,
     kind: row.kind,
     contactPerson: row.contact_person,
@@ -60,7 +65,7 @@ export async function getCustomer(id: string): Promise<Customer> {
   const { data, error } = await supabase
     .from("customers")
     .select(
-      `id, name, kind, contact_person, phone, email, city, archived_at,
+      `id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
        address_line1, address_line2, region, postal_code, delivery_address,
        vat_number, company_registration_number, notes`,
     )
@@ -71,6 +76,7 @@ export async function getCustomer(id: string): Promise<Customer> {
   const row = data as FullRow;
   return {
     id: row.id,
+    organisationId: row.organisation_id,
     name: row.name,
     kind: row.kind,
     contactPerson: row.contact_person,

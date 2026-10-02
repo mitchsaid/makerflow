@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { forOrganisation } from "@/lib/customers";
 import { getCustomers } from "@/lib/customers/data";
 import { CustomerList } from "./customer-list";
 
 export default async function CustomersPage({ searchParams }: PageProps<"/app/customers">) {
   // The customers query runs beside the workspace check, not after it.
-  const [customers, , params] = await Promise.all([
+  const [allCustomers, { organisation }, params] = await Promise.all([
     getCustomers(),
     requireOrganisation(),
     searchParams,
   ]);
+  const customers = forOrganisation(allCustomers, organisation.id);
   const added = typeof params.added === "string" ? params.added : undefined;
   const addedName = customers.find((c) => c.id === added)?.name;
 

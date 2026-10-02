@@ -29,11 +29,13 @@ export type CustomerFields = {
   notes: string | null;
 };
 
-export type Customer = CustomerFields & { id: string; archived: boolean };
+export type Customer = CustomerFields & { id: string; organisationId: string; archived: boolean };
 
 /** A row of the customers list: just what the list shows and searches. */
 export type CustomerSummary = {
   id: string;
+  /** The business it belongs to. Callers show only their current business's customers. */
+  organisationId: string;
   name: string;
   kind: CustomerKind;
   contactPerson: string | null;
@@ -163,6 +165,14 @@ export function parseCustomerForm(form: FormData, locale: LocalePack): ParsedCus
       notes: notes.ok ? notes.value : null,
     },
   };
+}
+
+/** Keeps only the rows of the business the person is currently working in. */
+export function forOrganisation<T extends { organisationId: string }>(
+  rows: readonly T[],
+  organisationId: string,
+): T[] {
+  return rows.filter((row) => row.organisationId === organisationId);
 }
 
 /** Phone numbers compare by digits only, so "021 123 4567" and "(021) 123-4567" match. */

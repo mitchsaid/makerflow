@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ZA_LOCALE } from "../../locale/za";
 import {
   findPossibleDuplicates,
+  forOrganisation,
   matchesSearch,
   parseCustomerForm,
   validateCustomerName,
@@ -130,6 +131,7 @@ describe("findPossibleDuplicates", () => {
 describe("matchesSearch", () => {
   const c: CustomerSummary = {
     id: "1",
+    organisationId: "org-a",
     name: "Cape Cakes",
     kind: "business",
     contactPerson: "Sam Jacobs",
@@ -147,5 +149,17 @@ describe("matchesSearch", () => {
     expect(matchesSearch(c, "0215550000")).toBe(true);
     expect(matchesSearch(c, "555")).toBe(true);
     expect(matchesSearch(c, "99")).toBe(false);
+  });
+});
+
+describe("forOrganisation", () => {
+  it("keeps only the current business's rows, for someone who belongs to several", () => {
+    const rows = [
+      { id: "1", organisationId: "x" },
+      { id: "2", organisationId: "y" },
+      { id: "3", organisationId: "x" },
+    ];
+    expect(forOrganisation(rows, "x").map((r) => r.id)).toEqual(["1", "3"]);
+    expect(forOrganisation(rows, "z")).toEqual([]);
   });
 });

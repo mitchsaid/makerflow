@@ -70,8 +70,12 @@ export function CustomerForm({
       ["notes", "Private notes"],
     ] as const
   ).flatMap(([field, label]) => {
+    // Business-only fields are not on screen when "this is a business" is off.
+    const onScreen =
+      values.isBusiness ||
+      !["contactPerson", "vatNumber", "companyRegistrationNumber"].includes(field);
     const message = errors[field];
-    return message ? [{ fieldId: field, label, message }] : [];
+    return message && onScreen ? [{ fieldId: field, label, message }] : [];
   });
 
   const set =

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomer } from "@/lib/customers/data";
@@ -10,7 +11,12 @@ import { ArchiveButton } from "./archive-button";
 export default async function CustomerPage({ params }: PageProps<"/app/customers/[id]">) {
   const { id } = await params;
   // The customer query runs beside the workspace check, not after it.
-  const [customer, { profile }] = await Promise.all([getCustomer(id), requireOrganisation()]);
+  const [customer, { organisation, profile }] = await Promise.all([
+    getCustomer(id),
+    requireOrganisation(),
+  ]);
+  // Another business of the same person is not this workspace's customer.
+  if (customer.organisationId !== organisation.id) notFound();
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
