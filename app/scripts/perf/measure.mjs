@@ -41,22 +41,25 @@ page.on("request", (r) => {
 });
 
 // "Reacted" = a loading skeleton is showing, or the destination's real content is.
-const BUSINESS_REACTED = () =>
-  !!document.querySelector('[data-testid="page-loading"]') || document.querySelector("main h1")?.textContent === "Business profile";
-const HOME_REACTED = () =>
-  !!document.querySelector('[data-testid="page-loading"]') || !!document.querySelector('[data-testid="business-name"]');
+const HEADINGS = { Business: "Business profile", Customers: "Customers" };
+// Runs in the browser, so it must not use anything from this file: the heading comes in as the argument.
+const REACTED = (heading) =>
+  !!document.querySelector('[data-testid="page-loading"]') ||
+  (heading
+    ? document.querySelector("main h1")?.textContent === heading
+    : !!document.querySelector('[data-testid="business-name"]'));
 
 await fetch(proxy + "/__take");
 const rows = [];
 for (let i = 0; i < 6; i++) {
-  for (const to of ["Business", "Home"]) {
+  for (const to of ["Customers", "Business", "Home"]) {
     await page.waitForTimeout(900);
     pending = [];
     const t0 = Date.now();
     await page.getByRole("link", { name: to }).click();
-    await page.waitForFunction(to === "Business" ? BUSINESS_REACTED : HOME_REACTED);
+    await page.waitForFunction(REACTED, HEADINGS[to] ?? null);
     const feedback = Date.now() - t0;
-    if (to === "Business") await page.getByRole("heading", { name: "Business profile", level: 1 }).waitFor();
+    if (HEADINGS[to]) await page.getByRole("heading", { name: HEADINGS[to], level: 1 }).waitFor();
     else await page.getByTestId("business-name").waitFor();
     const content = Date.now() - t0;
     const calls = await (await fetch(proxy + "/__take")).json();
@@ -66,7 +69,7 @@ for (let i = 0; i < 6; i++) {
 const use = rows.slice(2); // ignore warm-up
 const avg = (a) => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
 console.log(`   first reaction: avg ${avg(use.map((r) => r.feedback))} ms | content: avg ${avg(use.map((r) => r.content))} ms | Supabase calls per click: ${[...new Set(use.map((r) => r.calls.length))].join("/")}`);
-for (const to of ["Business", "Home"]) {
+for (const to of ["Customers", "Business", "Home"]) {
   const r = use.filter((x) => x.to === to);
   console.log(`   -> ${to}: reaction ${avg(r.map((x) => x.feedback))} ms, content ${avg(r.map((x) => x.content))} ms | browser requests: ${r[0].reqs.join(" | ") || "(none)"} | DB/auth calls: ${r[0].calls.join(" | ")}`);
 }

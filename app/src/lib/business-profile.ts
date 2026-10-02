@@ -1,9 +1,9 @@
+import { optionalChoice, optionalText, optionalValidated } from "./form-values";
 import type { LocalePack } from "./locale";
 import {
   validateBusinessName,
   validateEmail,
   validatePhone,
-  type ValidationResult,
 } from "./validation";
 
 export type BusinessProfile = {
@@ -43,30 +43,6 @@ export type ParsedBusinessProfileForm =
 
 const MAX = { addressLine1: 120, addressLine2: 120, city: 80 } as const;
 
-/** Empty becomes null. Over-long is an error. */
-function optionalText(
-  raw: FormDataEntryValue | null,
-  max: number,
-  label: string,
-): ValidationResult<string | null> {
-  const value = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
-  if (value === "") return { ok: true, value: null };
-  if (value.length > max) {
-    return { ok: false, error: `${label} can be up to ${max} characters.` };
-  }
-  return { ok: true, value };
-}
-
-/** Same, but runs a stricter validator when something was entered. */
-function optionalValidated(
-  raw: FormDataEntryValue | null,
-  validate: (input: unknown) => ValidationResult<string>,
-): ValidationResult<string | null> {
-  const value = typeof raw === "string" ? raw.trim() : "";
-  if (value === "") return { ok: true, value: null };
-  return validate(value);
-}
-
 /**
  * Turns the settings form into validated values. Empty optional fields become
  * null (the database stores NULL, never empty strings). VAT number is required
@@ -96,15 +72,13 @@ export function parseBusinessProfileForm(
   const city = optionalText(form.get("city"), MAX.city, "City");
   if (!city.ok) errors.city = city.error;
 
-  const regionRaw = typeof form.get("region") === "string" ? String(form.get("region")).trim() : "";
-  let region: string | null = null;
-  if (regionRaw !== "") {
-    if (locale.address.regions.includes(regionRaw)) {
-      region = regionRaw;
-    } else {
-      errors.region = `Please choose a ${locale.address.regionLabel.toLowerCase()} from the list.`;
-    }
-  }
+  const regionResult = optionalChoice(
+    form.get("region"),
+    locale.address.regions,
+    `Please choose a ${locale.address.regionLabel.toLowerCase()} from the list.`,
+  );
+  if (!regionResult.ok) errors.region = regionResult.error;
+  const region = regionResult.ok ? regionResult.value : null;
 
   const postalCode = optionalValidated(form.get("postalCode"), locale.address.validatePostalCode);
   if (!postalCode.ok) errors.postalCode = postalCode.error;

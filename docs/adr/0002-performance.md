@@ -35,7 +35,7 @@ The "same region" row is dominated by the simulated phone-to-server distance, so
 A skeleton plus the instantly lit tab gives feedback after about 55 ms. The cost, measured on the rig: React holds the real page back for up to roughly 300 ms after showing any loading fallback, so the real content lands later than it would without a skeleton (about 0.35 to 0.8 s versus 0.24 to 0.33 s on the rig; the rig's timing is noisy). The founder judged the better perceived responsiveness worth it. Revisit if content timings matter more than feedback, or once prefetching/caching (option B) means the fallback rarely shows. The table above was measured without skeletons.
 
 ## Rule (also in CLAUDE.md)
-Every protected page makes one query for its main data (plus the parallel session check) and is checked with `pnpm perf` before release. Add a screen to `scripts/perf/measure.mjs` when it becomes a main tab.
+Every protected page makes one query for its main data (plus the parallel session check) and is checked with `pnpm perf` before release. Add a screen to `scripts/perf/measure.mjs` when it becomes a main tab. The main query runs beside `getWorkspace()` (which the layout already awaited, cached), never after it: Customers makes three calls (session check, workspace, customers) in parallel and lands as fast as the pages with two.
 
 ## Still to do
 - PWA: manifest, icons, installability, then a service worker for the app shell (separate slice).

@@ -52,6 +52,7 @@ A per-business sequence for quotes, with an **editable prefix and next number** 
 - Typing a new name in the picker offers "Add 'X'" and creates the customer on the spot, then offers "Add contact details". A duplicate check warns on the same name or phone.
 - The quote **copies the customer's details when it is sent** (name, contact, addresses, VAT number), so later edits never change a sent quote. Drafts show live details.
 - Customers are archived, never deleted. A customers list (search, add, edit, archive and restore) ships in the same slice. The prototype's unused retail or wholesale field is dropped.
+- **As built:** the delivery address is one free-text field (several lines), not structured, because it is only ever shown as typed. A customer's tax number is only checked for shape (letters and digits), never against the business's own country rules, because a customer can be a business in another country and refusing a real number is worse than keeping a typo. The duplicate warning compares names ignoring case and spacing, and phone numbers by digits; it never blocks. Private notes never appear on a document.
 
 ## Lifecycle, revisions and records
 - **Statuses:** draft, sent, accepted, declined, withdrawn; **expired is derived** from the valid-until date (the prototype never set it). "Viewed" arrives with hosted quotes. Transitions follow a table (for example a draft cannot be "accepted" without being sent or marked sent first); no free status dropdown.
@@ -96,7 +97,7 @@ Per decision 4. Components: field-level error text, a form summary with links to
 **Progress:** slice 1 (foundations) built and tested locally on 2026-10-02, awaiting review and merge. It includes the money module, document numbering (database), the error standard, the VAT-entry setting and the locale packs (added at the founder's request so that country rules are recorded as applying to a South African user).
 
 1. **Foundations (built):** the money module (cents, VAT order of operations, deposit and rounding, with unit tests), the shared document-number sequence (also used by invoices), the error standard ADR and components, the VAT-entry column on the business profile.
-2. **Customers:** table, list, add, edit, archive, the picker (usable on its own).
+2. **Customers (built 2026-10-02, awaiting review):** table, list with search, add, edit, archive and restore, duplicate warning. **The picker with "Add 'X'" moves into slice 3**: it has no screen to live on until the quote builder exists, and building it alone would be dead code. The customer rules it needs (`parseCustomerForm`, `findPossibleDuplicates`, `matchesSearch`, the create action) are already here and tested.
 3. **Quote draft builder:** header, customer inline, typed lines, totals, delivery or collection line, discount. Drafts only, saved server-side.
 4. **Issuing:** number assignment, snapshot, server PDF, share, mark sent, status rules, derived expiry, activity log.
 5. **Deposit, inclusions and exclusions, notes and terms** on the document and in the builder.
