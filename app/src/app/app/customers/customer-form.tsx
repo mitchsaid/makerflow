@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,12 +10,43 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import type { CustomerFieldErrors } from "@/lib/customers";
 import { getLocalePack } from "@/lib/locale";
-import type { CustomerSaveState } from "./actions";
+import type { CustomerSaveState, CustomerSummaryOption } from "./actions";
 import type { CustomerFormValues } from "./customer-values";
 
 const initialState: CustomerSaveState = { status: "idle" };
 
 type Action = (previous: CustomerSaveState, formData: FormData) => Promise<CustomerSaveState>;
+
+/**
+ * Set when the form is shown in a sheet over something else (the quote): instead of
+ * navigating, it hands the saved customer back and leaves the page underneath untouched.
+ */
+export type EmbeddedCustomerForm = {
+  onDone: (customer: CustomerSummaryOption) => void;
+  onCancel: () => void;
+  /** "Use Thandi instead" on the duplicate warning, rather than a link that leaves the page. */
+  onUseExisting: (customer: CustomerSummaryOption) => void;
+  /** The sheet must not close while a save is on its way: the result would be lost. */
+  onPendingChange: (pending: boolean) => void;
+};
+
+const OFFLINE_MESSAGE =
+  "Couldn't reach the server. Check your connection and try again. Nothing you typed is lost.";
+
+/**
+ * In a sheet, a failed request (no signal, say) must show a message, not throw the whole page
+ * away with the quote underneath. Only for actions that never redirect.
+ */
+function guarded(action: Action): Action {
+  return async (previous, formData) => {
+    try {
+      return await action(previous, formData);
+    } catch (error) {
+      console.error("customer form request failed:", error);
+      return { status: "error", message: OFFLINE_MESSAGE };
+    }
+  };
+}
 
 /**
  * Add or edit a customer. Only the name is needed; everything else is optional and can be
@@ -27,14 +58,23 @@ export function CustomerForm({
   initial,
   countryCode,
   mode,
+  embedded,
+  idPrefix = "",
 }: {
   action: Action;
   initial: CustomerFormValues;
   countryCode: string;
   mode: "add" | "edit";
+  embedded?: EmbeddedCustomerForm;
+  /**
+   * Put in front of every field's id. A form in a sheet sits on a page that has its own
+   * fields ("notes"): without a prefix two elements share an id and labels point at the wrong one.
+   */
+  idPrefix?: string;
 }) {
   const locale = getLocalePack(countryCode);
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const fid = (key: string) => `${idPrefix}${key}`;
+  const [state, formAction, pending] = useActionState(embedded ? guarded(action) : action, initialState);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<CustomerFormValues>(initial);
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -49,6 +89,20 @@ export function CustomerForm({
     initial.notes,
   ].some((v) => v !== "");
   const [showMore, setShowMore] = useState(mode === "edit" || hasMore);
+
+  // Hand the result to whoever opened the sheet, once per result.
+  const embeddedRef = useRef(embedded);
+  useEffect(() => {
+    embeddedRef.current = embedded;
+  });
+  useEffect(() => {
+    if (state.status === "created" || (state.status === "saved" && embeddedRef.current)) {
+      embeddedRef.current?.onDone(state.option);
+    }
+  }, [state]);
+  useEffect(() => {
+    embeddedRef.current?.onPendingChange(pending);
+  }, [pending]);
 
   const errors: CustomerFieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
   const duplicates = state.status === "duplicate" && !editedSinceSave ? state.matches : null;
@@ -75,7 +129,7 @@ export function CustomerForm({
       values.isBusiness ||
       !["contactPerson", "vatNumber", "companyRegistrationNumber"].includes(field);
     const message = errors[field];
-    return message && onScreen ? [{ fieldId: field, label, message }] : [];
+    return message && onScreen ? [{ fieldId: fid(field), label, message }] : [];
   });
 
   const set =
@@ -91,7 +145,8 @@ export function CustomerForm({
     props: Omit<React.ComponentProps<typeof TextField>, "id" | "label" | "value" | "onChange" | "error"> = {},
   ) => (
     <TextField
-      id={key}
+      id={fid(key)}
+      name={key}
       label={label}
       error={errors[key]}
       value={values[key]}
@@ -103,6 +158,9 @@ export function CustomerForm({
   // Submitted by hand (see the business profile form for why).
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // In a sheet this form sits inside the quote's form in the React tree: without this the
+    // submit would bubble up and save the quote too.
+    event.stopPropagation();
     const formData = new FormData(event.currentTarget);
     // The person has seen the "looks like someone you already have" note and chose to go on.
     if (duplicates) formData.set("confirmDuplicate", "yes");
@@ -124,13 +182,13 @@ export function CustomerForm({
         {text("name", "Name", { autoComplete: "off", required: true, maxLength: 120 })}
         <Field orientation="horizontal" className="min-h-11 items-center">
           <Checkbox
-            id="isBusiness"
+            id={fid("isBusiness")}
             name="kind"
             value="business"
             checked={values.isBusiness}
             onCheckedChange={(checked) => set("isBusiness")(checked)}
           />
-          <FieldLabel htmlFor="isBusiness" className="text-base">
+          <FieldLabel htmlFor={fid("isBusiness")} className="text-base">
             This is a business
           </FieldLabel>
         </Field>
@@ -161,7 +219,8 @@ export function CustomerForm({
             {text("addressLine2", "Suburb or building (optional)", { autoComplete: "off" })}
             {text("city", "City or town", { autoComplete: "off" })}
             <SelectField
-              id="region"
+              id={fid("region")}
+              name="region"
               label={locale.address.regionLabel}
               error={errors.region}
               value={values.region}
@@ -173,7 +232,8 @@ export function CustomerForm({
           </Section>
           <Section title="Delivery">
             <TextAreaField
-              id="deliveryAddress"
+              id={fid("deliveryAddress")}
+              name="deliveryAddress"
               label="Delivery address (optional)"
               hint="Only if it is different from the address above."
               error={errors.deliveryAddress}
@@ -184,7 +244,8 @@ export function CustomerForm({
           </Section>
           <Section title="Private notes">
             <TextAreaField
-              id="notes"
+              id={fid("notes")}
+              name="notes"
               label="Notes (optional)"
               hint="Only you and your team see these. They never appear on a quote or invoice."
               error={errors.notes}
@@ -218,9 +279,20 @@ export function CustomerForm({
               {duplicates.map((d, i) => (
                 <span key={d.id}>
                   {i > 0 && ", "}
-                  <Link href={`/app/customers/${d.id}`} className="font-medium underline">
-                    {d.name}
-                  </Link>
+                  {embedded ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 align-baseline"
+                      onClick={() => embedded.onUseExisting(d)}
+                    >
+                      Use {d.name} instead
+                    </Button>
+                  ) : (
+                    <Link href={`/app/customers/${d.id}`} className="font-medium underline">
+                      {d.name}
+                    </Link>
+                  )}
                 </span>
               ))}
               . Add anyway if this is a different person.
@@ -229,7 +301,7 @@ export function CustomerForm({
         </Alert>
       )}
       <FormSummary problems={problems} trigger={state} />
-      {state.status === "saved" && !pending && !editedSinceSave && (
+      {state.status === "saved" && !embedded && !pending && !editedSinceSave && (
         <p role="status" className="text-sm font-medium">
           Saved.
         </p>
@@ -239,7 +311,18 @@ export function CustomerForm({
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {submitLabel}
         </Button>
-        {mode === "add" && (
+        {embedded && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={pending}
+            onClick={embedded.onCancel}
+          >
+            Cancel
+          </Button>
+        )}
+        {mode === "add" && !embedded && (
           <Link
             href="/app/customers"
             className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto" })}

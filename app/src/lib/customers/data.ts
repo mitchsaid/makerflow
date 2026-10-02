@@ -58,9 +58,9 @@ type FullRow = SummaryRow & {
   notes: string | null;
 };
 
-/** One customer with every detail. Shows the "not found" page for a bad or foreign id. */
-export async function getCustomer(id: string): Promise<Customer> {
-  if (!UUID.test(id)) notFound();
+/** One customer with every detail, or null for a bad id or one that is not visible to this person. */
+export async function findCustomer(id: string): Promise<Customer | null> {
+  if (!UUID.test(id)) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
@@ -72,7 +72,7 @@ export async function getCustomer(id: string): Promise<Customer> {
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Could not load the customer: ${error.message}`);
-  if (!data) notFound();
+  if (!data) return null;
   const row = data as FullRow;
   return {
     id: row.id,
@@ -93,4 +93,11 @@ export async function getCustomer(id: string): Promise<Customer> {
     notes: row.notes,
     archived: row.archived_at !== null,
   };
+}
+
+/** One customer with every detail. Shows the "not found" page for a bad or foreign id. */
+export async function getCustomer(id: string): Promise<Customer> {
+  const customer = await findCustomer(id);
+  if (!customer) notFound();
+  return customer;
 }

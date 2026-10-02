@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ZA_LOCALE } from "../../locale/za";
 import {
+  customerDetail,
   findPossibleDuplicates,
   forOrganisation,
   matchesSearch,
@@ -161,5 +162,15 @@ describe("forOrganisation", () => {
     ];
     expect(forOrganisation(rows, "x").map((r) => r.id)).toEqual(["1", "3"]);
     expect(forOrganisation(rows, "z")).toEqual([]);
+  });
+});
+
+describe("customerDetail", () => {
+  it("joins what tells two customers apart, skipping what is missing", () => {
+    expect(customerDetail({ contactPerson: "Sam", phone: "021 555 0000", email: "s@x.example", city: "Cape Town" })).toBe(
+      "Sam · 021 555 0000 · Cape Town",
+    );
+    expect(customerDetail({ contactPerson: null, phone: null, email: "s@x.example", city: null })).toBe("s@x.example");
+    expect(customerDetail({ contactPerson: null, phone: null, email: null, city: null })).toBe("");
   });
 });

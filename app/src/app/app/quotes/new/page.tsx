@@ -45,6 +45,7 @@ export default async function NewQuotePage() {
         customers={customerOptions(customers)}
         vat={vatSettingsFor(profile, locale)}
         currencyCode={profile.currencyCode}
+        countryCode={profile.countryCode}
         numberStyle={locale.numberStyle}
         taxName={locale.tax.name}
         justSaved={false}

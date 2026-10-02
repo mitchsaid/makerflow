@@ -1,22 +1,32 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { addCustomerByName } from "../customers/actions";
-
-export type CustomerOption = {
-  id: string;
-  name: string;
-  /** Phone, email or town: whatever helps tell two people apart. */
-  detail: string;
-  archived: boolean;
-};
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import type { Customer, CustomerOption } from "@/lib/customers";
+import {
+  createCustomerInQuote,
+  loadCustomerForEdit,
+  updateCustomer,
+  type CustomerSummaryOption,
+} from "../customers/actions";
+import { CustomerForm } from "../customers/customer-form";
+import { EMPTY_CUSTOMER, valuesFromCustomer } from "../customers/customer-values";
 
 type Choice =
   | { kind: "customer"; customer: CustomerOption }
   | { kind: "add"; name: string };
+
+/** The customer form, shown over the quote: adding someone new, or changing the chosen customer. */
+type SheetState = { kind: "add"; name: string } | { kind: "edit"; customer: Customer } | null;
 
 const MAX_SHOWN = 8;
 
@@ -24,20 +34,29 @@ function tidy(text: string): string {
   return text.trim().replace(/\s+/g, " ");
 }
 
+/** Move keyboard focus once the next render has put the element on the page. */
+function focusSoon(elementId: string) {
+  setTimeout(() => document.getElementById(elementId)?.focus(), 0);
+}
+
 /**
- * Choose who the quote is for. Type to search; if nobody matches, “Add 'Name'” creates the
- * customer on the spot (name only: the details can be added later on their own page).
- * Keyboard: arrows move, Enter chooses, Escape closes.
+ * Choose who the quote is for. Type to search; if nobody matches, “Add 'Name' as a new
+ * customer” opens the full customer form over the quote (name filled in) and, once saved,
+ * the new customer is chosen. The chosen customer can be edited the same way. The quote
+ * underneath keeps everything typed. Keyboard: arrows move, Enter chooses, Escape closes.
  */
 export function CustomerPicker({
   id,
   customers: initialCustomers,
+  countryCode,
   value,
   onChange,
   error,
 }: {
   id: string;
   customers: CustomerOption[];
+  /** The business's country, for the customer form's province list and so on. */
+  countryCode: string;
   /** The chosen customer's id, or "". */
   value: string;
   onChange: (customerId: string) => void;
@@ -50,19 +69,15 @@ export function CustomerPicker({
   // The highlighted option: -1 until the person types or uses the arrow keys, so that Enter on
   // a just-opened list does not pick someone by accident.
   const [active, setActive] = useState(-1);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [addError, setAddError] = useState<string | null>(null);
-  const [adding, startAdding] = useTransition();
-  // Where keyboard focus should land after the picker swaps between "search" and "chosen".
-  const focusNext = useRef<string | null>(null);
-  const addingRef = useRef(false);
-
-  useEffect(() => {
-    if (focusNext.current) {
-      document.getElementById(focusNext.current)?.focus();
-      focusNext.current = null;
-    }
-  }, [value]);
+  // The sheet's content stays while it animates closed, so `sheet` is kept and `sheetOpen` says
+  // whether it is showing (otherwise the title flips to "Add a customer" as an edit sheet closes).
+  const [sheet, setSheet] = useState<SheetState>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // A save is on its way: closing now would lose the result (the customer would exist but not
+  // be chosen).
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [opening, startOpening] = useTransition();
 
   const selected = customers.find((c) => c.id === value);
   const q = tidy(query).toLowerCase();
@@ -80,34 +95,74 @@ export function CustomerPicker({
 
   const optionId = (i: number) => `${listId}-option-${i}`;
 
+  function select(customerId: string) {
+    onChange(customerId);
+    setQuery("");
+    setOpen(false);
+    setSheetOpen(false);
+    focusSoon(`${id}-edit`);
+  }
+
+  /** Choose someone the form found as a likely duplicate (they may not be in our list yet). */
+  function useExisting(option: CustomerSummaryOption) {
+    setCustomers((list) =>
+      list.some((c) => c.id === option.id)
+        ? list
+        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false }],
+    );
+    select(option.id);
+  }
+
   function choose(choice: Choice) {
-    setAddError(null);
+    setLoadError(null);
     if (choice.kind === "customer") {
-      setNotice(null);
-      focusNext.current = `${id}-change`;
-      onChange(choice.customer.id);
-      setQuery("");
-      setOpen(false);
+      select(choice.customer.id);
       return;
     }
-    // A fast double tap must not add the same person twice.
-    if (addingRef.current) return;
-    addingRef.current = true;
-    startAdding(async () => {
-      const result = await addCustomerByName(choice.name);
-      addingRef.current = false;
-      if (result.status === "error") {
-        setAddError(result.message);
-        return;
+    setOpen(false);
+    setSheet({ kind: "add", name: choice.name });
+    setSheetOpen(true);
+  }
+
+  function openEdit(customerId: string) {
+    setLoadError(null);
+    startOpening(async () => {
+      try {
+        const result = await loadCustomerForEdit(customerId);
+        if (result.status === "error") {
+          setLoadError(result.message);
+          return;
+        }
+        setSheet({ kind: "edit", customer: result.customer });
+        setSheetOpen(true);
+      } catch (error) {
+        // No signal, say: show a message rather than losing the quote to an error page.
+        console.error("could not open the customer:", error);
+        setLoadError("Couldn't reach the server. Check your connection and try again.");
       }
-      const created = result.customer;
-      setCustomers((list) => [...list, { id: created.id, name: created.name, detail: "", archived: false }]);
-      setNotice(`Added ${created.name}. You can add their phone and address later in Customers.`);
-      focusNext.current = `${id}-change`;
-      onChange(created.id);
-      setQuery("");
-      setOpen(false);
     });
+  }
+
+  function onSheetDone(option: CustomerSummaryOption) {
+    const kind = sheet?.kind;
+    setCustomers((list) => {
+      const existing = list.find((c) => c.id === option.id);
+      return existing
+        ? list.map((c) => (c.id === option.id ? { ...c, name: option.name, detail: option.detail } : c))
+        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false }];
+    });
+    if (kind === "add") {
+      select(option.id);
+    } else {
+      setSheetOpen(false);
+      focusSoon(`${id}-edit`);
+    }
+  }
+
+  function closeSheet() {
+    if (saving) return;
+    setSheetOpen(false);
+    focusSoon(sheet?.kind === "edit" ? `${id}-edit` : id);
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -127,36 +182,97 @@ export function CustomerPicker({
     }
   }
 
+  const sheetView = (
+    <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && closeSheet()}>
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-lg">
+        <SheetHeader className="pr-14">
+          <SheetTitle className="text-lg">
+            {sheet?.kind === "edit" ? "Customer details" : "Add a customer"}
+          </SheetTitle>
+          <SheetDescription className="text-base">
+            {sheet?.kind === "edit"
+              ? "Changes are saved to the customer, not just this quote."
+              : "Only a name is needed. Your quote is kept as it is."}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="px-4 pb-8">
+          {sheet?.kind === "add" && (
+            <CustomerForm
+              key="add"
+              mode="add"
+              action={createCustomerInQuote}
+              initial={{ ...EMPTY_CUSTOMER, name: sheet.name }}
+              countryCode={countryCode}
+              embedded={{
+                onDone: onSheetDone,
+                onCancel: closeSheet,
+                onUseExisting: useExisting,
+                onPendingChange: setSaving,
+              }}
+              idPrefix="customer-sheet-"
+            />
+          )}
+          {sheet?.kind === "edit" && (
+            <CustomerForm
+              key={sheet.customer.id}
+              mode="edit"
+              action={updateCustomer.bind(null, sheet.customer.id)}
+              initial={valuesFromCustomer(sheet.customer)}
+              countryCode={countryCode}
+              embedded={{
+                onDone: onSheetDone,
+                onCancel: closeSheet,
+                onUseExisting: useExisting,
+                onPendingChange: setSaving,
+              }}
+              idPrefix="customer-sheet-"
+            />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
   if (selected) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-input bg-card px-3 py-2">
+        <div className="space-y-3 rounded-lg border border-input bg-card px-3 py-3">
           <div className="min-w-0">
             <p className="truncate text-base font-medium" data-testid="selected-customer">
               {selected.name}
             </p>
             {selected.detail && (
-              <p className="truncate text-sm text-muted-foreground">{selected.detail}</p>
+              <p className="truncate text-sm text-muted-foreground" data-testid="selected-customer-detail">
+                {selected.detail}
+              </p>
             )}
           </div>
-          <Button
-            id={`${id}-change`}
-            type="button"
-            variant="outline"
-            onClick={() => {
-              focusNext.current = id;
-              onChange("");
-              setNotice(null);
-            }}
-          >
-            Change<span className="sr-only"> customer</span>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              id={`${id}-edit`}
+              type="button"
+              variant="outline"
+              disabled={opening}
+              onClick={() => openEdit(selected.id)}
+            >
+              {opening ? "Opening…" : "Edit details"}
+              <span className="sr-only"> for {selected.name}</span>
+            </Button>
+            <Button
+              id={`${id}-change`}
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onChange("");
+                focusSoon(id);
+              }}
+            >
+              Change<span className="sr-only"> customer</span>
+            </Button>
+          </div>
         </div>
-        {notice && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {notice}
-          </p>
-        )}
+        {loadError && <FieldError>{loadError}</FieldError>}
+        {sheetView}
       </div>
     );
   }
@@ -178,7 +294,6 @@ export function CustomerPicker({
           autoComplete="off"
           placeholder="Search, or type a new name"
           value={query}
-          readOnly={adding}
           onChange={(e) => {
             setQuery(e.target.value);
             setActive(e.target.value.trim() === "" ? -1 : 0);
@@ -233,8 +348,8 @@ export function CustomerPicker({
           No customers yet. Type a name to add the first one.
         </p>
       )}
-      {addError && <FieldError>{addError}</FieldError>}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+      {sheetView}
     </Field>
   );
 }

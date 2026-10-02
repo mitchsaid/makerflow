@@ -39,6 +39,7 @@ export function Section({ title, children }: { title: string; children: React.Re
 
 export function TextField({
   id,
+  name,
   label,
   error,
   value,
@@ -46,6 +47,8 @@ export function TextField({
   ...props
 }: ExtraInputProps & {
   id: string;
+  /** What the browser submits under. Defaults to the id. */
+  name?: string;
   label: string;
   error?: string;
   value: string;
@@ -56,7 +59,7 @@ export function TextField({
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Input
         id={id}
-        name={id}
+        name={name ?? id}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -71,6 +74,7 @@ export function TextField({
 
 export function TextAreaField({
   id,
+  name,
   label,
   error,
   value,
@@ -79,6 +83,7 @@ export function TextAreaField({
   ...props
 }: Omit<React.ComponentProps<typeof Textarea>, "value" | "onChange" | "id" | "name"> & {
   id: string;
+  name?: string;
   label: string;
   error?: string;
   hint?: string;
@@ -93,7 +98,7 @@ export function TextAreaField({
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Textarea
         id={id}
-        name={id}
+        name={name ?? id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={!!error}
@@ -113,6 +118,7 @@ export function TextAreaField({
 /** A native picker (phones show their own, which is faster and familiar). */
 export function SelectField({
   id,
+  name,
   label,
   error,
   value,
@@ -123,6 +129,7 @@ export function SelectField({
   autoComplete,
 }: {
   id: string;
+  name?: string;
   label: string;
   error?: string;
   value: string;
@@ -138,7 +145,7 @@ export function SelectField({
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <NativeSelect
         id={id}
-        name={id}
+        name={name ?? id}
         autoComplete={autoComplete}
         value={value}
         onChange={(e) => onChange(e.target.value)}
