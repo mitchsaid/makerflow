@@ -78,7 +78,7 @@ How it works on screen: tapping Send, Share or Mark as sent with a requirement m
 - Title "Quotation", and the line "This quotation is not a tax invoice."
 - The **scope and the valid-until date**, because the Consumer Protection Act (section 15(4)) stops a supplier charging more than an estimate given, without the customer's authority. A change of scope is a new version the customer accepts.
 - The VAT presentation above (VAT-registered businesses only).
-- **Repairs and alterations to the customer's own item (left to the maker, not enforced; founder, 2026-10-02):** the software does not add repair-specific fields or block anything. The Consumer Protection Act's estimate rules for such work (the 2011 notice: a breakdown and total, the nature and extent of the work, the validity period, and the period to collect the item and the consequence) stay the maker's responsibility. Support is light and optional: a **suggested wording** snippet, "Repair or alteration estimate", sits in the saved-wording menu beside the notes and terms field (an editable text the maker can insert), and a short help note explains the rule. No prompt appears unless the founder later wants one. (As far as I could find, mainstream quote tools such as Xero and Zoho document templates, expiry dates and copying quotes, and none of the pages I found mention this rule, so this is not a gap against the market. I could not test the products themselves.)
+- **Repairs and alterations to the customer's own item: not built** (founder, 2026-10-02: it adds complexity for very few users). No fields, no snippet, no help note, no prompt. The Consumer Protection Act's estimate rules for such work remain the maker's own responsibility. The research note records what the rule says in case it is revisited.
 
 ## Screens (mobile first; shadcn components; one accessibility case each)
 - **Quotes list:** search by customer or number, status chips with counts (including a derived Expired), cards on phones, a table on wide screens.
@@ -110,6 +110,5 @@ SQL: isolation between businesses, `session_required` and the guard, immutabilit
 ## Open questions
 1. Products before or after the builder (slice 7 position). Currently last so typed lines ship sooner.
 2. Quantity precision: how many decimals, and which units (the prototype had an unreliable conversion system, so units stay a plain label until costing).
-3. The default wording of the "Repair or alteration estimate" snippet (proposed in the build; the maker can edit or ignore it).
 
 The accounting questions raised earlier (exclusive-mode display, delivery VAT, deposits, quote content, minimum details) are answered in `docs/research/sars-vat-documents.md`.
