@@ -42,7 +42,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Phone", { exact: true }).fill("bad");
       await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
       await page.getByRole("button", { name: "Save details" }).click();
-      await expect(page.getByText("Some details need a look")).toBeVisible();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "settings with errors");
     });
   });

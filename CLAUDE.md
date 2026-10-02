@@ -17,6 +17,7 @@ Read `docs/project-context.md` first (current state, working agreements, next st
 - No demo, seed or "reset" shortcuts in product code paths. Fixtures live in a separate dev-only script that refuses to run against production.
   - One deliberate exception: the **public demo account** on the landing page (see `docs/product-brief.md`, section 4). It is a designed feature, not a shortcut: demo data lives only in isolated demo organisations that cannot touch real ones, is built server-side, and the builder refuses to run on any non-demo organisation. Demo accounts never send real email or take real payments.
 - Advanced features are offered through friendly, dismissable prompts and never forced on the user.
+- Forms: primary buttons stay enabled; clicking with problems shows them at the fields and in a summary that jumps to the first one; errors appear only after interaction; messages say how to fix it; typed data is never lost. See `docs/adr/0005-form-errors.md`.
 - Design mobile-first. UI is built from `app/src/components/ui` (shadcn/ui, see `docs/adr/0003-ui-components.md`): no hand-written buttons, inputs or cards; tap targets at least 44 px, input text at least 16 px; new screens get a case in `e2e/accessibility.spec.ts`.
 - Speed is a feature (the app is used as an installed PWA). Each protected page makes one query for its main data (plus the parallel session check), loads through `getWorkspace()`, and is checked with `pnpm perf`. See `docs/adr/0002-performance.md`.
 - Never commit secrets or `.env` files.

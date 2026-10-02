@@ -22,7 +22,7 @@ test("business details save, validate and persist", async ({
   await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
   await page.getByLabel("VAT number").fill("12345");
   await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByText("10 digits and start with 4")).toBeVisible();
+  await expect(page.locator("#vatNumber-error")).toContainText("10 digits and start with 4");
   await page.getByLabel("VAT number").fill("412 345 6789");
   // Prices are typed including VAT unless the maker says otherwise.
   await expect(page.getByLabel("When I type a price, it is")).toHaveValue("inclusive");
@@ -119,4 +119,42 @@ test("signing out from settings locks the workspace again", async ({ page }) => 
   await signOut(page);
   await page.goto("/app/settings");
   await expect(page).toHaveURL(/\/sign-in$/);
+});
+
+test("a failed save lists what to fix, takes you to the first problem, and keeps what you typed", async ({
+  page,
+}) => {
+  await signUpAndOnboard(page, "errors", "Error Co");
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+
+  // Nothing is shown before the person has tried to save.
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
+
+  await page.getByLabel("Phone", { exact: true }).fill("abc");
+  await page.getByLabel("Email", { exact: true }).fill("not-an-email");
+  await page.getByLabel("City or town").fill("Cape Town");
+  await page.getByRole("button", { name: "Save details" }).click();
+
+  // The button was enabled; the summary appears, takes focus and counts the problems.
+  const summary = page.getByTestId("form-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText("2 things need fixing");
+  await expect(summary).toBeFocused();
+  // Each problem is also marked at its field.
+  await expect(page.locator("#phone-error")).toBeVisible();
+  await expect(page.locator("#email-error")).toBeVisible();
+  // What was typed is still there.
+  await expect(page.getByLabel("City or town")).toHaveValue("Cape Town");
+
+  // A link in the summary goes straight to the field.
+  await summary.getByRole("link", { name: "Email" }).click();
+  await expect(page.getByLabel("Email", { exact: true })).toBeFocused();
+
+  // Fixing everything and saving again clears the summary.
+  await page.getByLabel("Phone", { exact: true }).fill("021 123 4567");
+  await page.getByLabel("Email", { exact: true }).fill("hello@errors.example");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
 });

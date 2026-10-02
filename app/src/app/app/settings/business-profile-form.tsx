@@ -14,6 +14,7 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
+import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { getLocalePack } from "@/lib/locale";
@@ -50,6 +51,23 @@ export function BusinessProfileForm({
   // "Saved." should only be shown while it is still true: hide it once the form is edited.
   const [editedSinceSave, setEditedSinceSave] = useState(false);
   const errors: FieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
+  // The summary lists problems in the order the fields appear on screen.
+  const problems: FormProblem[] = (
+    [
+      ["name", "Business name"],
+      ["phone", "Phone"],
+      ["email", "Email"],
+      ["addressLine1", "Street address"],
+      ["addressLine2", "Suburb or building"],
+      ["city", "City or town"],
+      ["region", locale.address.regionLabel],
+      ["postalCode", "Postal code"],
+      ["vatNumber", locale.tax.registrationNumberLabel],
+    ] as const
+  ).flatMap(([field, label]) => {
+    const message = errors[field];
+    return message ? [{ fieldId: field, label, message }] : [];
+  });
 
   const set =
     <K extends keyof FormValues>(key: K) =>
@@ -167,11 +185,7 @@ export function BusinessProfileForm({
           <AlertDescription>{state.message}</AlertDescription>
         </Alert>
       )}
-      {state.status === "error" && state.errors && (
-        <Alert variant="destructive">
-          <AlertDescription>Some details need a look. They&apos;re marked above.</AlertDescription>
-        </Alert>
-      )}
+      <FormSummary problems={problems} trigger={state} />
       {state.status === "saved" && !pending && !editedSinceSave && (
         <p role="status" className="text-sm font-medium">Saved.</p>
       )}

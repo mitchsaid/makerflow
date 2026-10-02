@@ -90,7 +90,7 @@ How it works on screen: tapping Send, Share or Mark as sent with a requirement m
 - **Home:** the empty state invites the first quote.
 
 ## Errors (applies to every form, new and old)
-Per decision 4. Components: field-level error text, a form summary with links to the first problem, a "still needed" hint. Messages say how to fix the problem ("Choose a customer so we know who the quote is for"). Typed data is never lost on a failed save; the server's validation errors map back to fields. A follow-up small slice retrofits the sign-in, onboarding and settings forms. Written up as an ADR when the first quote form is built.
+Per decision 4. Components: field-level error text, a form summary with links to the first problem, a "still needed" hint. Messages say how to fix the problem ("Choose a customer so we know who the quote is for"). Typed data is never lost on a failed save; the server's validation errors map back to fields. A follow-up small slice retrofits the sign-in, onboarding and settings forms. Written up as `docs/adr/0005-form-errors.md`; the components exist (`app/src/components/form-feedback.tsx`) and the Settings form already follows it.
 
 ## Delivery in thin slices (each its own PR, each with tests)
 1. **Foundations:** the money module (cents, VAT order of operations, deposit and rounding, with unit tests), the shared document-number sequence (also used by invoices), the error standard ADR and components, the VAT-entry column on the business profile.
