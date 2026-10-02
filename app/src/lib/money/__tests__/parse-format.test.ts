@@ -58,6 +58,22 @@ describe("parseQuantity", () => {
     expect(q("x")).toMatch(/^ERR:/);
     expect(q("")).toMatch(/^ERR:Enter a quantity/);
   });
+
+  it("asks instead of guessing when one separator and three digits could be a decimal or thousands", () => {
+    const err = (s: string) => {
+      const r = parseQuantity(s);
+      return r.ok ? `OK:${r.value}` : r.error;
+    };
+    expect(err("1.250")).toBe("Not sure if you mean 1250 or 1,25. Type 1250 with no separator, or 1,25 for the decimal.");
+    expect(err("2,500")).toContain("2,5 for the decimal");
+    expect(err("10.999")).toContain("10,999 for the decimal");
+    // Unambiguous forms still work.
+    expect(err("1250")).toBe("OK:1250000");
+    expect(err("1 250")).toBe("OK:1250000");
+    expect(err("1,25")).toBe("OK:1250");
+    expect(err("0,250")).toBe("OK:250");
+    expect(err("1,250.5")).toBe("OK:1250500");
+  });
 });
 
 describe("parsePercent", () => {

@@ -13,7 +13,7 @@ import {
  * between thousands, an optional leading "R" (rand). Nothing here uses floating point.
  */
 
-type Split = { whole: string; fraction: string } | null;
+type Split = { whole: string; fraction: string; ambiguous?: boolean } | null;
 
 /** "1 250,50" -> {whole:"1250", fraction:"50"}. Null when the shape is not a plain number. */
 function splitNumber(raw: string): Split {
@@ -41,8 +41,9 @@ function splitNumber(raw: string): Split {
 
   // One separator. Three digits after it, with a short non-zero start, reads as thousands
   // ("1,500" means 1500); anything else reads as the decimal mark.
+  // The caller can tell that the other reading was possible (quantities do: 1.250 kg).
   if (/^\d{3}$/.test(after) && /^[1-9]\d{0,2}$/.test(before)) {
-    return { whole: before + after, fraction: "" };
+    return { whole: before + after, fraction: "", ambiguous: true };
   }
   if (!/^\d*$/.test(before) || !/^\d*$/.test(after)) return null;
   return { whole: before === "" ? "0" : before, fraction: after };
@@ -77,6 +78,16 @@ export function parseQuantity(input: unknown): ValidationResult<QuantityMilli> {
   if (text.trim() === "") return { ok: false, error: "Enter a quantity, like 1 or 0,5." };
   const split = splitNumber(text);
   if (!split) return { ok: false, error: "Enter a quantity using numbers only, like 1 or 0,5." };
+  // Quantities really do have 3 decimals ("1.250" kg), so one separator followed by exactly
+  // three digits could mean 1,25 or 1250. Guessing wrong is a 1 000x error: ask instead.
+  if (split.ambiguous) {
+    const whole = split.whole;
+    const decimal = `${whole.slice(0, -3)}${/[1-9]/.test(whole.slice(-3)) ? "," + whole.slice(-3).replace(/0+$/, "") : ""}`;
+    return {
+      ok: false,
+      error: `Not sure if you mean ${whole} or ${decimal}. Type ${whole} with no separator, or ${decimal} for the decimal.`,
+    };
+  }
   const milli = scaled(split, 3);
   if (milli === null) {
     return { ok: false, error: "Quantities can have at most 3 decimals, like 0,25." };
