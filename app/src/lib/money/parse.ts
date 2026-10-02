@@ -64,8 +64,11 @@ const TOO_LARGE = "too large";
 
 /** The number as an integer count of 10^-decimals, or why it can't be one. */
 function scaled(split: NonNullable<Split>, decimals: number): number | typeof TOO_LARGE | null {
-  if (split.fraction.length > decimals) return null;
-  const fraction = split.fraction.padEnd(decimals, "0");
+  // Zeros after the allowed decimals say nothing more ("1,5000" is 1,5), so they are ignored.
+  const trimmed = split.fraction.replace(/0+$/, "");
+  const significant = trimmed.length > decimals ? split.fraction : trimmed;
+  if (significant.length > decimals) return null;
+  const fraction = significant.padEnd(decimals, "0");
   const digits = (split.whole + fraction).replace(/^0+(?=\d)/, "");
   if (digits.length > 15) return TOO_LARGE;
   const value = Number(digits);

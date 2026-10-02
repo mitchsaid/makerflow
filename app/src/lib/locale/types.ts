@@ -27,6 +27,8 @@ export type LocalePack = {
   currencyCode: string;
   /** BCP 47 tag for formatting numbers, money and dates */
   formatLocale: string;
+  /** IANA time zone, for "today" on a new document (a document date is a calendar day) */
+  timeZone: string;
   address: {
     /** "Province", "State", "County" ... */
     regionLabel: string;

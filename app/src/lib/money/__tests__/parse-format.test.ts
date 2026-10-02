@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, formatPercent, formatQuantity } from "../format";
+import {
+  formatMoney,
+  formatPercent,
+  formatQuantity,
+  moneyToInput,
+  percentToInput,
+  quantityToInput,
+} from "../format";
 import { parseMoney, parsePercent, parseQuantity } from "../parse";
 
 const money = (s: string) => {
@@ -134,5 +141,54 @@ describe("formatting", () => {
     expect(formatQuantity(1250, "en-ZA")).toBe("1,25");
     expect(formatPercent(1500, "en-ZA")).toBe("15%");
     expect(formatPercent(1250, "en-ZA")).toBe("12,5%");
+  });
+});
+
+describe("input text round trip", () => {
+  it("shows saved values the way people type them, and reads them back exactly", () => {
+    for (const cents of [0, 1, 5, 50, 99, 100, 125050, 125000, 99_999_999_999]) {
+      const text = moneyToInput(cents, "en-ZA");
+      expect(money(text), `cents ${cents} as "${text}"`).toBe(cents);
+    }
+    expect(moneyToInput(125050, "en-ZA")).toBe("1250,50");
+    expect(moneyToInput(125000, "en-ZA")).toBe("1250");
+    expect(moneyToInput(1250, "en-ZA")).toBe("12,50");
+    expect(moneyToInput(1250, "en-GB")).toBe("12.50");
+  });
+
+  it("round-trips every quantity, including the ones that look like thousands", () => {
+    const values = [1, 10, 100, 500, 1000, 1001, 1125, 1250, 1500, 2000, 12_345, 123_456, 9_999_999_999];
+    for (const milli of values) {
+      const text = quantityToInput(milli, "en-ZA");
+      const r = parseQuantity(text);
+      expect(r.ok && r.value, `milli ${milli} as "${text}"`).toBe(milli);
+    }
+    expect(quantityToInput(1500, "en-ZA")).toBe("1,5");
+    expect(quantityToInput(2000, "en-ZA")).toBe("2");
+    expect(quantityToInput(500, "en-ZA")).toBe("0,5");
+    expect(quantityToInput(125, "en-ZA")).toBe("0,125");
+    expect(quantityToInput(1125, "en-ZA")).toBe("1,1250");
+  });
+
+  it("round-trips percentages", () => {
+    for (const bp of [0, 1, 50, 100, 725, 1000, 1250, 1500, 10_000]) {
+      const text = percentToInput(bp, "en-ZA");
+      const r = parsePercent(text);
+      expect(r.ok && r.value, `bp ${bp} as "${text}"`).toBe(bp);
+    }
+    expect(percentToInput(1250, "en-ZA")).toBe("12,5");
+  });
+
+  it("ignores zeros after the allowed decimals but not other digits", () => {
+    const q = (s: string) => {
+      const r = parseQuantity(s);
+      return r.ok ? r.value : `ERR:${r.error}`;
+    };
+    expect(q("1,5000")).toBe(1500);
+    expect(q("0,12500")).toBe(125);
+    expect(q("1,2345")).toMatch(/^ERR:.*3 decimals/);
+    expect(money("10,500")).toBe(1_050_000); // one separator and three digits is still thousands
+    expect(money("12,50")).toBe(1250);
+    expect(money("12,5000")).toBe(1250);
   });
 });

@@ -66,6 +66,7 @@ export const ZA_LOCALE: LocalePack = {
   countryName: "South Africa",
   currencyCode: "ZAR",
   formatLocale: "en-ZA",
+  timeZone: "Africa/Johannesburg",
   address: {
     regionLabel: "Province",
     regions: ZA_PROVINCES,
