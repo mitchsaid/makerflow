@@ -4,18 +4,24 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import {
+  customerDetail,
   findPossibleDuplicates,
   parseCustomerForm,
-  validateCustomerName,
   type CustomerFieldErrors,
   type CustomerFields,
 } from "@/lib/customers";
 import { getLocalePack } from "@/lib/locale";
+import { findCustomer } from "@/lib/customers/data";
 import { createClient } from "@/lib/supabase/server";
+
+/** What the quote's customer picker needs back after a customer is added or changed. */
+export type CustomerSummaryOption = { id: string; name: string; detail: string };
 
 export type CustomerSaveState =
   | { status: "idle" }
-  | { status: "saved" }
+  | { status: "saved"; option: CustomerSummaryOption }
+  /** Added from inside a quote: nothing is redirected, the quote keeps what was typed. */
+  | { status: "created"; option: CustomerSummaryOption }
   | { status: "error"; message?: string; errors?: CustomerFieldErrors }
   /** Looks like someone already on the list: ask before adding, never block. */
   | { status: "duplicate"; matches: { id: string; name: string }[] };
@@ -42,15 +48,21 @@ function toRow(c: CustomerFields) {
   };
 }
 
-/** Adds a customer. Any member of the business can. */
-export async function createCustomer(
-  _previous: CustomerSaveState,
+function optionFor(id: string, c: CustomerFields): CustomerSummaryOption {
+  return { id, name: c.name, detail: customerDetail(c) };
+}
+
+/**
+ * Checks, warns about likely duplicates (never blocks), and inserts. Returns the new
+ * customer, or the state to show (errors, or the duplicate warning).
+ */
+async function insertCustomer(
   formData: FormData,
-): Promise<CustomerSaveState> {
+): Promise<{ ok: true; option: CustomerSummaryOption } | { ok: false; state: CustomerSaveState }> {
   const { organisation, profile } = await requireOrganisation();
 
   const parsed = parseCustomerForm(formData, getLocalePack(profile.countryCode));
-  if (!parsed.ok) return { status: "error", errors: parsed.errors };
+  if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 
   const supabase = await createClient();
 
@@ -63,13 +75,16 @@ export async function createCustomer(
       .limit(5000);
     if (lookupError) {
       console.error("could not check for duplicate customers:", lookupError.message);
-      return { status: "error", message: GENERIC_ERROR };
+      return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
     }
     const matches = findPossibleDuplicates(parsed.value, existing ?? []);
     if (matches.length > 0) {
       return {
-        status: "duplicate",
-        matches: matches.slice(0, 3).map(({ id, name }) => ({ id, name })),
+        ok: false,
+        state: {
+          status: "duplicate",
+          matches: matches.slice(0, 3).map(({ id, name }) => ({ id, name })),
+        },
       };
     }
   }
@@ -81,11 +96,44 @@ export async function createCustomer(
     .single();
   if (error || !created) {
     console.error("could not add customer:", error?.message);
-    return { status: "error", message: GENERIC_ERROR };
+    return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
   }
 
   revalidatePath("/app/customers");
-  redirect(`/app/customers?added=${created.id}`);
+  return { ok: true, option: optionFor(created.id, parsed.value) };
+}
+
+/** Adds a customer from the Customers screen, then shows the list. Any member can. */
+export async function createCustomer(
+  _previous: CustomerSaveState,
+  formData: FormData,
+): Promise<CustomerSaveState> {
+  const result = await insertCustomer(formData);
+  if (!result.ok) return result.state;
+  redirect(`/app/customers?added=${result.option.id}`);
+}
+
+/** Adds a customer from inside a quote and hands it back, so the quote can use it right away. */
+export async function createCustomerInQuote(
+  _previous: CustomerSaveState,
+  formData: FormData,
+): Promise<CustomerSaveState> {
+  const result = await insertCustomer(formData);
+  return result.ok ? { status: "created", option: result.option } : result.state;
+}
+
+export type CustomerLoadState =
+  | { status: "ok"; customer: import("@/lib/customers").Customer }
+  | { status: "error"; message: string };
+
+/** Loads one customer's full details, for editing from inside a quote. */
+export async function loadCustomerForEdit(id: string): Promise<CustomerLoadState> {
+  const { organisation } = await requireOrganisation();
+  const customer = await findCustomer(id);
+  if (!customer || customer.organisationId !== organisation.id) {
+    return { status: "error", message: "Couldn't open that customer. Please try again." };
+  }
+  return { status: "ok", customer };
 }
 
 /** Saves changes to a customer. Any member of the business can. */
@@ -113,7 +161,7 @@ export async function updateCustomer(
   }
 
   revalidatePath("/app/customers");
-  return { status: "saved" };
+  return { status: "saved", option: optionFor(id, parsed.value) };
 }
 
 export type ArchiveState = { status: "idle" } | { status: "error"; message: string };
@@ -144,34 +192,4 @@ export async function setCustomerArchived(
   revalidatePath("/app/customers");
   if (archived) redirect("/app/customers");
   return { status: "idle" };
-}
-
-export type QuickCustomerState =
-  | { status: "created"; customer: { id: string; name: string } }
-  | { status: "error"; message: string };
-
-/**
- * Adds a customer with just a name, from the quote's customer picker. The details can be
- * filled in later on the customer's own page. No duplicate warning here: the picker already
- * only offers "Add" when the typed name matches nobody on the list.
- */
-export async function addCustomerByName(name: string): Promise<QuickCustomerState> {
-  const { organisation } = await requireOrganisation();
-
-  const checked = validateCustomerName(name);
-  if (!checked.ok) return { status: "error", message: checked.error };
-
-  const supabase = await createClient();
-  const { data: created, error } = await supabase
-    .from("customers")
-    .insert({ organisation_id: organisation.id, name: checked.value })
-    .select("id, name")
-    .single();
-  if (error || !created) {
-    console.error("could not add customer by name:", error?.message);
-    return { status: "error", message: GENERIC_ERROR };
-  }
-
-  revalidatePath("/app/customers");
-  return { status: "created", customer: { id: created.id, name: created.name } };
 }

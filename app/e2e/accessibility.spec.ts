@@ -81,7 +81,15 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("option", { name: /Add “Axe”/ })).toBeVisible();
       await expectNoViolations(page, "new quote, customer list open");
       await page.getByRole("option", { name: /Add “Axe”/ }).click();
+      await expect(page.getByRole("dialog", { name: "Add a customer" })).toBeVisible();
+      await expectNoViolations(page, "new quote, add customer sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Add customer" }).click();
       await expect(page.getByTestId("selected-customer")).toBeVisible();
+      await page.getByRole("button", { name: /Edit details/ }).click();
+      await expect(page.getByRole("dialog", { name: "Customer details" })).toBeVisible();
+      await expectNoViolations(page, "new quote, edit customer sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: "Add a description or discount" }).click();
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /Delivery/ }).check();

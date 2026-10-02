@@ -27,7 +27,8 @@ import {
   type QuoteFormValues,
 } from "@/lib/quotes";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
-import { CustomerPicker, type CustomerOption } from "./customer-picker";
+import type { CustomerOption } from "@/lib/customers";
+import { CustomerPicker } from "./customer-picker";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -43,6 +44,7 @@ export function QuoteBuilder({
   customers,
   vat,
   currencyCode,
+  countryCode,
   numberStyle,
   taxName,
   justSaved,
@@ -52,6 +54,7 @@ export function QuoteBuilder({
   customers: CustomerOption[];
   vat: VatSettings;
   currencyCode: string;
+  countryCode: string;
   /** How this country writes numbers and money (from its locale pack). */
   numberStyle: NumberStyle;
   /** "VAT": what the country calls its sales tax. */
@@ -140,6 +143,7 @@ export function QuoteBuilder({
         <CustomerPicker
           id="customer"
           customers={customers}
+          countryCode={countryCode}
           value={values.customerId}
           onChange={(customerId) => update({ customerId })}
           error={f.customerId}

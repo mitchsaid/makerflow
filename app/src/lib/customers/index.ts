@@ -192,6 +192,25 @@ export function findPossibleDuplicates<T extends { id: string; name: string; pho
   });
 }
 
+/** A short line that tells two customers apart: contact, phone or email, town. */
+export function customerDetail(c: {
+  contactPerson: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+}): string {
+  return [c.contactPerson, c.phone ?? c.email, c.city].filter(Boolean).join(" · ");
+}
+
+/** What the quote's customer picker needs to know about a customer. */
+export type CustomerOption = {
+  id: string;
+  name: string;
+  /** See customerDetail(). */
+  detail: string;
+  archived: boolean;
+};
+
 /** Does a list row match what the person typed in the search box? */
 export function matchesSearch(customer: CustomerSummary, query: string): boolean {
   const q = query.trim().toLowerCase();

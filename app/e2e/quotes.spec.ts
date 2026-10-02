@@ -21,9 +21,15 @@ async function fillItem(page: Page, n: number, name: string, quantity: string, p
 const rand = (whole: string, cents = "00") =>
   new RegExp(`^R\\s?${whole.replace(/ /g, "\\s")},${cents}$`);
 
-async function chooseNewCustomer(page: Page, name: string) {
+/** Types a new name in the picker and adds them through the full customer form in the sheet. */
+async function addCustomerInSheet(page: Page, name: string, details: { phone?: string } = {}) {
   await page.getByLabel("Customer", { exact: true }).fill(name);
   await page.getByRole("option", { name: new RegExp(`Add “${name}”`) }).click();
+  const sheet = page.getByRole("dialog", { name: "Add a customer" });
+  await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue(name);
+  if (details.phone) await sheet.getByLabel("Phone", { exact: true }).fill(details.phone);
+  await sheet.getByRole("button", { name: "Add customer" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByTestId("selected-customer")).toHaveText(name);
 }
 
@@ -35,10 +41,16 @@ test("build a quote: a new customer on the spot, two items, delivery; it saves a
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("0"));
 
-  await chooseNewCustomer(page, "Thandi Nkosi");
-  await expect(page.getByText("Added Thandi Nkosi.")).toBeVisible();
-
+  // Type an item first: adding the customer must leave the quote exactly as it is.
   await fillItem(page, 1, "Wedding cake", "1", "800");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
+
+  await addCustomerInSheet(page, "Thandi Nkosi", { phone: "021 123 4567" });
+  await expect(page.getByTestId("selected-customer-detail")).toHaveText("021 123 4567");
+  // Saving the customer did not save the quote, and did not touch it.
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
+  await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Wedding cake");
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
   await page.getByRole("button", { name: "Add another item" }).click();
   await expect(item(page, 2).getByLabel("Item name")).toBeFocused();
@@ -58,6 +70,7 @@ test("build a quote: a new customer on the spot, two items, delivery; it saves a
   // Everything is still there after a reload.
   await page.reload();
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+  await expect(page.getByTestId("selected-customer-detail")).toHaveText("021 123 4567");
   await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Wedding cake");
   await expect(item(page, 2).getByLabel("Quantity")).toHaveValue("12");
   await expect(item(page, 2).getByLabel("Price")).toHaveValue("15,50");
@@ -129,8 +142,8 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   await expect(options.first()).toContainText("Bongani Dube");
   await input.press("Enter");
   await expect(page.getByTestId("selected-customer")).toHaveText("Bongani Dube");
-  // Focus moves to the "Change" button instead of being lost.
-  await expect(page.getByRole("button", { name: "Change customer" })).toBeFocused();
+  // Focus moves to the customer card instead of being lost.
+  await expect(page.getByRole("button", { name: /Edit details/ })).toBeFocused();
 
   await page.getByRole("button", { name: "Change customer" }).click();
   // ...and back to the search box when changing.
@@ -147,6 +160,65 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   await expect(page.getByRole("option", { name: /Add “Carla”/ })).toBeVisible();
   await page.getByLabel("Customer", { exact: true }).press("Escape");
   await expect(options).toHaveCount(0);
+});
+
+test("the chosen customer can be configured from the quote, and the customer is real and saved", async ({ page }) => {
+  await signUpAndOnboard(page, "q-config", "Config Co");
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cupcakes", "12", "15");
+  await addCustomerInSheet(page, "Cape Cakes");
+
+  // Edit from the quote: make it a business with a contact and a phone.
+  await page.getByRole("button", { name: /Edit details/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Customer details" });
+  await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue("Cape Cakes");
+  await sheet.getByRole("checkbox", { name: "This is a business" }).check();
+  await sheet.getByLabel("Contact person").fill("Sam Jacobs");
+  await sheet.getByLabel("Phone", { exact: true }).fill("021 555 0000");
+  await sheet.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("selected-customer-detail")).toHaveText("Sam Jacobs · 021 555 0000");
+  // Still on the unsaved quote, with its items.
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Cupcakes");
+
+  // Cancelling closes without changing anything.
+  await page.getByRole("button", { name: /Edit details/ }).click();
+  await page.getByRole("dialog").getByLabel("Phone", { exact: true }).fill("000");
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("selected-customer-detail")).toHaveText("Sam Jacobs · 021 555 0000");
+
+  // The customer is a real, saved customer.
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}/);
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Customers" }).click();
+  const row = page.getByRole("link", { name: /Cape Cakes/ });
+  await expect(row).toContainText("Business");
+  await row.click();
+  await expect(page.getByLabel("Contact person")).toHaveValue("Sam Jacobs");
+  await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("021 555 0000");
+});
+
+test("adding someone who already exists offers to use them instead", async ({ page }) => {
+  await signUpAndOnboard(page, "q-dup", "Dup Quote Co");
+  await page.goto("/app/customers/new");
+  await page.getByLabel("Name", { exact: true }).fill("Thandi Nkosi");
+  await page.getByLabel("Phone", { exact: true }).fill("021 123 4567");
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await expect(page.getByTestId("customer-added")).toBeVisible();
+
+  await page.goto("/app/quotes/new");
+  await page.getByLabel("Customer", { exact: true }).fill("Thandi N");
+  await page.getByRole("option", { name: /Add “Thandi N”/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Add a customer" });
+  await sheet.getByLabel("Name", { exact: true }).fill("thandi nkosi");
+  await sheet.getByRole("button", { name: "Add customer" }).click();
+  await expect(sheet.getByTestId("duplicate-warning")).toBeVisible();
+  await sheet.getByRole("button", { name: "Use Thandi Nkosi instead" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+  await expect(page.getByTestId("selected-customer-detail")).toHaveText("021 123 4567");
 });
 
 test("discounts come off in the right order", async ({ page }) => {
