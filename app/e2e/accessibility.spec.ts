@@ -38,12 +38,16 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
       await expectNoViolations(page, "settings");
 
+      await page.getByRole("link", { name: "Business" }).click();
+      await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "business profile");
+
       // Error state: bad phone and a VAT number that is too short.
       await page.getByLabel("Phone", { exact: true }).fill("bad");
       await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
       await page.getByRole("button", { name: "Save details" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
-      await expectNoViolations(page, "settings with errors");
+      await expectNoViolations(page, "business profile with errors");
     });
   });
 }

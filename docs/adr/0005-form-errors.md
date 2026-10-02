@@ -17,7 +17,7 @@ Status: accepted (founder, 2026-10-02: buttons should not grey out silently; a m
 A greyed-out button hides *why* it is greyed out, which on a phone leaves a person guessing. Showing the problem where it is, and taking them to it, is faster and works for screen readers.
 
 ## Applied so far
-The Settings form (business details). The money parsers return plain-language messages. Remaining forms (sign-in, onboarding) have a single field and already show its error; they adopt the summary if they grow. The quote builder, customers and every later form follow this from the start.
+The Business profile form. The money parsers return plain-language messages. Remaining forms (sign-in, onboarding) have a single field and already show its error; they adopt the summary if they grow. The quote builder, customers and every later form follow this from the start.
 
 ## Where it is tested
 `e2e/business-profile.spec.ts`: the button is enabled, the summary appears and takes focus with the right count, each field shows its message, typed data stays, a summary link focuses its field, and fixing everything clears the summary. `e2e/accessibility.spec.ts` checks the error state with axe in light and dark.
