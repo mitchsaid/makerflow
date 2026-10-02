@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -47,10 +47,22 @@ export function CustomerPicker({
   const [customers, setCustomers] = useState(initialCustomers);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(0);
+  // The highlighted option: -1 until the person types or uses the arrow keys, so that Enter on
+  // a just-opened list does not pick someone by accident.
+  const [active, setActive] = useState(-1);
   const [notice, setNotice] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, startAdding] = useTransition();
+  // Where keyboard focus should land after the picker swaps between "search" and "chosen".
+  const focusNext = useRef<string | null>(null);
+  const addingRef = useRef(false);
+
+  useEffect(() => {
+    if (focusNext.current) {
+      document.getElementById(focusNext.current)?.focus();
+      focusNext.current = null;
+    }
+  }, [value]);
 
   const selected = customers.find((c) => c.id === value);
   const q = tidy(query).toLowerCase();
@@ -59,7 +71,8 @@ export function CustomerPicker({
     .filter((c) => !c.archived)
     .filter((c) => q === "" || `${c.name} ${c.detail}`.toLowerCase().includes(q))
     .slice(0, MAX_SHOWN);
-  const exactMatch = customers.some((c) => tidy(c.name).toLowerCase() === q);
+  // An archived customer with this name does not count: they are not offered, so adding is fine.
+  const exactMatch = customers.some((c) => !c.archived && tidy(c.name).toLowerCase() === q);
   const choices: Choice[] = [
     ...matches.map((customer): Choice => ({ kind: "customer", customer })),
     ...(q !== "" && !exactMatch ? [{ kind: "add", name: tidy(query) } as Choice] : []),
@@ -71,13 +84,18 @@ export function CustomerPicker({
     setAddError(null);
     if (choice.kind === "customer") {
       setNotice(null);
+      focusNext.current = `${id}-change`;
       onChange(choice.customer.id);
       setQuery("");
       setOpen(false);
       return;
     }
+    // A fast double tap must not add the same person twice.
+    if (addingRef.current) return;
+    addingRef.current = true;
     startAdding(async () => {
       const result = await addCustomerByName(choice.name);
+      addingRef.current = false;
       if (result.status === "error") {
         setAddError(result.message);
         return;
@@ -85,6 +103,7 @@ export function CustomerPicker({
       const created = result.customer;
       setCustomers((list) => [...list, { id: created.id, name: created.name, detail: "", archived: false }]);
       setNotice(`Added ${created.name}. You can add their phone and address later in Customers.`);
+      focusNext.current = `${id}-change`;
       onChange(created.id);
       setQuery("");
       setOpen(false);
@@ -99,9 +118,10 @@ export function CustomerPicker({
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setActive((i) => Math.max(i - 1, 0));
-    } else if (event.key === "Enter" && open && choices[active]) {
+    } else if (event.key === "Enter") {
+      // Enter here chooses a customer; it must never save the whole quote.
       event.preventDefault();
-      choose(choices[active]);
+      if (open && active >= 0 && choices[active]) choose(choices[active]);
     } else if (event.key === "Escape") {
       setOpen(false);
     }
@@ -120,9 +140,11 @@ export function CustomerPicker({
             )}
           </div>
           <Button
+            id={`${id}-change`}
             type="button"
             variant="outline"
             onClick={() => {
+              focusNext.current = id;
               onChange("");
               setNotice(null);
             }}
@@ -150,19 +172,23 @@ export function CustomerPicker({
           aria-expanded={open}
           aria-controls={listId}
           aria-autocomplete="list"
-          aria-activedescendant={open && choices[active] ? optionId(active) : undefined}
+          aria-activedescendant={open && active >= 0 && choices[active] ? optionId(active) : undefined}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
           autoComplete="off"
           placeholder="Search, or type a new name"
           value={query}
-          disabled={adding}
+          readOnly={adding}
           onChange={(e) => {
             setQuery(e.target.value);
-            setActive(0);
+            setActive(e.target.value.trim() === "" ? -1 : 0);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            // Coming back to a search that already has text keeps its highlighted match.
+            if (query.trim() === "") setActive(-1);
+          }}
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
         />

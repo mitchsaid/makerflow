@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { VatSettings } from "../../money";
 import {
   isBlankLine,
+  isQuoteFormValues,
   parseQuote,
   previewTotals,
   toDatabasePayload,
@@ -283,5 +284,42 @@ describe("toFormValues", () => {
       ["Delivery", 1000, 3500, "none", 0, "delivery"],
     ]);
     expect(payload.quote).toMatchObject({ quote_discount_kind: "percent", quote_discount_value: 750 });
+  });
+});
+
+describe("limits with delivery", () => {
+  const many = (n: number) => Array.from({ length: n }, (_, i) => line({ key: `k${i}`, name: `Item ${i}` }));
+  it("counts delivery or collection towards the 100 lines, with a message that says so", () => {
+    const e = errorsOf(quote({ lines: many(100), fulfilment: "delivery", deliveryFee: "10" }));
+    expect(e.fields.lines).toMatch(/up to 99 items, plus delivery or collection/);
+    expect(parseQuote(quote({ lines: many(99), fulfilment: "delivery", deliveryFee: "10" }), NOT_REGISTERED).ok).toBe(true);
+    expect(parseQuote(quote({ lines: many(100) }), NOT_REGISTERED).ok).toBe(true);
+  });
+});
+
+describe("isQuoteFormValues", () => {
+  it("accepts the real thing", () => {
+    expect(isQuoteFormValues(quote())).toBe(true);
+    expect(isQuoteFormValues(quote({ lines: [] }))).toBe(true);
+  });
+  it("rejects anything that is not the right shape, instead of throwing later", () => {
+    const good = quote();
+    const bad: unknown[] = [
+      null,
+      undefined,
+      "quote",
+      [],
+      { ...good, lines: undefined },
+      { ...good, lines: "nope" },
+      { ...good, lines: [null] },
+      { ...good, lines: [{ ...good.lines[0], name: 5 }] },
+      { ...good, lines: [{ ...good.lines[0], discountKind: "huge" }] },
+      { ...good, notes: undefined },
+      { ...good, neededBy: 20261001 },
+      { ...good, fulfilment: "drone" },
+      { ...good, discountKind: "free" },
+      { ...good, lines: Array.from({ length: 501 }, () => good.lines[0]) },
+    ];
+    for (const value of bad) expect(isQuoteFormValues(value), JSON.stringify(value)?.slice(0, 60)).toBe(false);
   });
 });

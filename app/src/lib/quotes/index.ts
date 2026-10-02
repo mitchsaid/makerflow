@@ -97,6 +97,34 @@ export type ParseQuoteResult = { ok: true; quote: ParsedQuote } | { ok: false; e
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const DISCOUNT_KINDS: readonly unknown[] = ["none", "percent", "fixed"];
+const FULFILMENTS: readonly unknown[] = ["none", "collection", "delivery"];
+/** Far more rows than a quote can hold, so a hand-built request can't make us parse thousands. */
+const MAX_RAW_LINES = 500;
+
+/**
+ * Is this really the shape of QuoteFormValues? The browser sends the form as a plain object, and
+ * a hand-built request can send anything, so the server checks the shape before it looks at any
+ * value. (parseQuote then checks the values.)
+ */
+export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  const strings = ["customerId", "issueDate", "validUntil", "neededBy", "deliveryFee", "discountValue", "notes"];
+  if (!strings.every((key) => typeof v[key] === "string")) return false;
+  if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
+  if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
+  return v.lines.every((line) => {
+    if (typeof line !== "object" || line === null) return false;
+    const l = line as Record<string, unknown>;
+    return (
+      ["key", "name", "description", "quantity", "unitPrice", "discountValue"].every(
+        (key) => typeof l[key] === "string",
+      ) && DISCOUNT_KINDS.includes(l.discountKind)
+    );
+  });
+}
+
 /** An empty item row, as a new quote starts with. */
 export function blankLine(key: string): LineFormValues {
   return {
@@ -236,8 +264,13 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   if (!notes.ok) errors.fields.notes = notes.error;
 
   const kept = values.lines.filter((l) => !isBlankLine(l));
-  if (kept.length > QUOTE_MAX_LINES) {
-    errors.fields.lines = `A quote can have up to ${QUOTE_MAX_LINES} items.`;
+  // Delivery or collection is stored as a line too, so it counts towards the limit.
+  const maxItems = QUOTE_MAX_LINES - (values.fulfilment === "none" ? 0 : 1);
+  if (kept.length > maxItems) {
+    errors.fields.lines =
+      values.fulfilment === "none"
+        ? `A quote can have up to ${QUOTE_MAX_LINES} items.`
+        : `A quote can have up to ${maxItems} items, plus delivery or collection.`;
   }
   const lines: ParsedLine[] = [];
   for (const line of kept) {

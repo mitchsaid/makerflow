@@ -129,8 +129,17 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   await expect(options.first()).toContainText("Bongani Dube");
   await input.press("Enter");
   await expect(page.getByTestId("selected-customer")).toHaveText("Bongani Dube");
+  // Focus moves to the "Change" button instead of being lost.
+  await expect(page.getByRole("button", { name: "Change customer" })).toBeFocused();
 
   await page.getByRole("button", { name: "Change customer" }).click();
+  // ...and back to the search box when changing.
+  await expect(page.getByLabel("Customer", { exact: true })).toBeFocused();
+  // Enter in the search box never saves the quote.
+  await page.getByLabel("Customer", { exact: true }).press("Enter");
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
+
   await page.getByLabel("Customer", { exact: true }).fill("Bongani Dube");
   // An exact match offers no "Add" option: no accidental duplicate.
   await expect(page.getByRole("option", { name: /Add “/ })).toHaveCount(0);

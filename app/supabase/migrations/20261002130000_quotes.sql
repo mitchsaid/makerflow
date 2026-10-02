@@ -5,7 +5,8 @@
 -- be attached). Lines live in quote_lines. Delivery and collection are ordinary lines with
 -- their own kind, at most one per quote.
 --
--- This migration only lets DRAFTS exist: every policy requires status = 'draft'. Sending
+-- This migration only lets DRAFTS be created, edited or deleted: the insert, update and delete
+-- policies all require status = 'draft' (reading is open to members whatever the status). Sending
 -- (numbering, snapshots, immutability) arrives with the issuing slice as separate, checked
 -- functions that move a quote out of draft; from then on members cannot edit or delete it
 -- through the API at all.

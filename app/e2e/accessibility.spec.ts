@@ -5,6 +5,9 @@ import { openBusinessProfile, openMore, openSettings, signUpAndOnboard } from ".
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
 async function expectNoViolations(page: Page, where: string) {
+  // The page title streams in just after the page itself; checking before it arrives reports a
+  // missing title that is not really missing.
+  await expect(page).toHaveTitle(/.+/);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

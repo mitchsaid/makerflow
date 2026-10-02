@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
-import { parseQuote, toDatabasePayload, type QuoteErrors, type QuoteFormValues } from "@/lib/quotes";
+import {
+  isQuoteFormValues,
+  parseQuote,
+  toDatabasePayload,
+  type QuoteErrors,
+  type QuoteFormValues,
+} from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
 
 export type SaveQuoteState =
@@ -26,6 +32,8 @@ export async function saveQuoteDraft(
 ): Promise<SaveQuoteState> {
   const { organisation, profile } = await requireOrganisation();
   if (quoteId !== null && !UUID.test(quoteId)) return { status: "error", message: GENERIC_ERROR };
+  // The form arrives from the browser as a plain object: check its shape before anything else.
+  if (!isQuoteFormValues(values)) return { status: "error", message: GENERIC_ERROR };
 
   const locale = getLocalePack(profile.countryCode);
   const parsed = parseQuote(values, vatSettingsFor(profile, locale));
