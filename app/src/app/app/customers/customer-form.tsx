@@ -307,7 +307,13 @@ export function CustomerForm({
         </p>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div
+        className={
+          embedded
+            ? "sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-border bg-popover px-4 py-3 sm:flex-row"
+            : "flex flex-col gap-3 sm:flex-row"
+        }
+      >
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {submitLabel}
         </Button>

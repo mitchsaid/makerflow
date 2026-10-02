@@ -28,7 +28,7 @@ type Choice =
 /** The customer form, shown over the quote: adding someone new, or changing the chosen customer. */
 type SheetState = { kind: "add"; name: string } | { kind: "edit"; customer: Customer } | null;
 
-const MAX_SHOWN = 8;
+const MAX_SHOWN = 6;
 
 function tidy(text: string): string {
   return text.trim().replace(/\s+/g, " ");
@@ -77,6 +77,9 @@ export function CustomerPicker({
   // be chosen).
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Left the search box with a name typed but nobody chosen: say so, or the quote is saved
+  // without a customer while the box still shows a name.
+  const [leftUnchosen, setLeftUnchosen] = useState(false);
   const [opening, startOpening] = useTransition();
 
   const selected = customers.find((c) => c.id === value);
@@ -97,6 +100,7 @@ export function CustomerPicker({
 
   function select(customerId: string) {
     onChange(customerId);
+    setLeftUnchosen(false);
     setQuery("");
     setOpen(false);
     setSheetOpen(false);
@@ -119,8 +123,13 @@ export function CustomerPicker({
       select(choice.customer.id);
       return;
     }
+    openAdd(choice.name);
+  }
+
+  function openAdd(name: string) {
     setOpen(false);
-    setSheet({ kind: "add", name: choice.name });
+    setLeftUnchosen(false);
+    setSheet({ kind: "add", name });
     setSheetOpen(true);
   }
 
@@ -184,8 +193,8 @@ export function CustomerPicker({
 
   const sheetView = (
     <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && closeSheet()}>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-lg">
-        <SheetHeader className="pr-14">
+      <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto">
+        <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
           <SheetTitle className="text-lg">
             {sheet?.kind === "edit" ? "Customer details" : "Add a customer"}
           </SheetTitle>
@@ -195,7 +204,7 @@ export function CustomerPicker({
               : "Only a name is needed. Your quote is kept as it is."}
           </SheetDescription>
         </SheetHeader>
-        <div className="px-4 pb-8">
+        <div className="px-4 pt-4">
           {sheet?.kind === "add" && (
             <CustomerForm
               key="add"
@@ -279,7 +288,10 @@ export function CustomerPicker({
 
   return (
     <Field data-invalid={!!error}>
-      <FieldLabel htmlFor={id}>Customer</FieldLabel>
+      {/* The section is already titled "Customer": the label is for screen readers. */}
+      <FieldLabel htmlFor={id} className="sr-only">
+        Customer
+      </FieldLabel>
       <div className="relative">
         <Input
           id={id}
@@ -295,6 +307,7 @@ export function CustomerPicker({
           placeholder="Search, or type a new name"
           value={query}
           onChange={(e) => {
+            setLeftUnchosen(false);
             setQuery(e.target.value);
             setActive(e.target.value.trim() === "" ? -1 : 0);
             setOpen(true);
@@ -304,7 +317,10 @@ export function CustomerPicker({
             // Coming back to a search that already has text keeps its highlighted match.
             if (query.trim() === "") setActive(-1);
           }}
-          onBlur={() => setOpen(false)}
+          onBlur={() => {
+            setOpen(false);
+            setLeftUnchosen(tidy(query) !== "");
+          }}
           onKeyDown={onKeyDown}
         />
         <ul
@@ -312,7 +328,7 @@ export function CustomerPicker({
           role="listbox"
           aria-label="Customers"
           hidden={!open || choices.length === 0}
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-auto rounded-lg border border-input bg-card py-1 shadow-md"
+          className="mt-1 rounded-lg border border-input bg-card py-1 shadow-sm"
         >
           {choices.map((choice, i) => (
             <li
@@ -343,12 +359,19 @@ export function CustomerPicker({
           ))}
         </ul>
       </div>
-      {customers.length === 0 && !query && (
-        <p className="text-sm text-muted-foreground">
-          No customers yet. Type a name to add the first one.
+      {leftUnchosen && !open && (
+        <p role="status" className="text-sm" data-testid="customer-not-chosen">
+          “{tidy(query)}” isn&apos;t chosen yet. Pick them from the list, or add them as a new
+          customer.
         </p>
       )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+      {/* In view whenever the list is not, so adding someone never depends on finding an option. */}
+      {!(open && choices.length > 0) && (
+        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => openAdd(tidy(query))}>
+          {tidy(query) !== "" ? `Add “${tidy(query)}” as a new customer` : "Add new customer"}
+        </Button>
+      )}
       {sheetView}
     </Field>
   );
