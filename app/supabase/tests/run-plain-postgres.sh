@@ -25,3 +25,4 @@ for f in "$here"/*.test.sql; do
   echo "running $(basename "$f")"
   psql_run -f "$f"
 done
+bash "$here/concurrency/numbering.sh" "$DATABASE_URL"
