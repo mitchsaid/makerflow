@@ -8,6 +8,8 @@ import {
   type LineFormValues,
   type QuoteFormValues,
 } from "../index";
+import { ZA_LOCALE } from "../../locale/za";
+import { toFormValues } from "../form-values";
 
 const NOT_REGISTERED: VatSettings = { registered: false };
 const INCLUSIVE: VatSettings = { registered: true, entry: "inclusive", standardRateBp: 1500 };
@@ -243,5 +245,43 @@ describe("toDatabasePayload", () => {
     expect(p.quote.quote_discount_value).toBe(0);
     expect(p.quote.customer_id).toBeNull();
     expect(p.quote.needed_by).toBeNull();
+  });
+});
+
+describe("toFormValues", () => {
+  const stored = {
+    customerId: "11111111-1111-4111-8111-111111111111",
+    issueDate: "2026-10-02",
+    validUntil: "2026-10-16",
+    neededBy: null,
+    discountKind: "percent" as const,
+    discountValue: 750,
+    notes: null,
+    lines: [
+      { id: "l2", sortOrder: 1, kind: "custom", name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
+      { id: "l3", sortOrder: 2, kind: "delivery", name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
+      { id: "l1", sortOrder: 0, kind: "custom", name: "Cake", description: null, quantityMilli: 1125, unitPriceCents: 80_000, discountKind: "fixed" as const, discountValue: 5000 },
+    ],
+  };
+
+  it("shows a stored quote as form text, in order, with delivery as a choice and a fee", () => {
+    const v = toFormValues(stored, ZA_LOCALE.numberStyle);
+    expect(v.lines.map((l) => [l.name, l.quantity, l.unitPrice, l.discountKind, l.discountValue])).toEqual([
+      ["Cake", "1,1250", "800", "fixed", "50"],
+      ["Cupcakes", "12", "15,50", "none", ""],
+    ]);
+    expect(v).toMatchObject({ fulfilment: "delivery", deliveryFee: "35", discountKind: "percent", discountValue: "7,5", neededBy: "", notes: "" });
+  });
+
+  it("saves back to exactly what was stored", () => {
+    const v = toFormValues(stored, ZA_LOCALE.numberStyle);
+    const q = parsed(v, EXCLUSIVE);
+    const payload = toDatabasePayload(q, { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.lines.map((l) => [l.name, l.quantity_milli, l.unit_price_cents, l.discount_kind, l.discount_value, l.kind])).toEqual([
+      ["Cake", 1125, 80000, "fixed", 5000, "custom"],
+      ["Cupcakes", 12000, 1550, "none", 0, "custom"],
+      ["Delivery", 1000, 3500, "none", 0, "delivery"],
+    ]);
+    expect(payload.quote).toMatchObject({ quote_discount_kind: "percent", quote_discount_value: 750 });
   });
 });

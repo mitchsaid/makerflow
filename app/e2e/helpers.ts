@@ -60,9 +60,27 @@ export async function signUpAndOnboard(
   return email;
 }
 
+/** On a phone, Business profile and Settings are behind the "More" tab. */
+export async function openMore(page: Page) {
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "More" }).click();
+  await expect(page.getByRole("heading", { name: "More", level: 1 })).toBeVisible();
+}
+
+export async function openBusinessProfile(page: Page) {
+  await openMore(page);
+  await page.getByRole("link", { name: /Business profile/ }).click();
+  await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
+}
+
+export async function openSettings(page: Page) {
+  await openMore(page);
+  await page.getByRole("link", { name: /^Settings/ }).click();
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+}
+
 /** Sign out is in Settings. */
 export async function signOut(page: Page) {
-  await page.getByRole("link", { name: "Settings" }).click();
+  await openSettings(page);
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
 }

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openMore, openSettings, signUpAndOnboard } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -31,11 +31,15 @@ for (const scheme of ["light", "dark"] as const) {
     });
 
     test("signed-in pages", async ({ page }) => {
+      // One long walk through every screen (and their error states); it grows with the app.
+      test.setTimeout(120_000);
       await signUpAndOnboard(page, `a11y-${scheme}`, "Axe Co");
       await expectNoViolations(page, "home");
 
-      await page.getByRole("link", { name: "Settings" }).click();
-      await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+      await openMore(page);
+      await expectNoViolations(page, "more");
+
+      await openSettings(page);
       await expectNoViolations(page, "settings");
 
       await page.getByRole("link", { name: "Customers" }).click();
@@ -63,8 +67,35 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Axe Customer", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit customer");
 
-      await page.getByRole("link", { name: "Business" }).click();
-      await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Quotes" }).click();
+      await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "quotes, empty");
+
+      await page.getByRole("link", { name: "Start your first quote" }).click();
+      await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "new quote");
+      await page.getByLabel("Customer", { exact: true }).fill("Axe");
+      await expect(page.getByRole("option", { name: /Add “Axe”/ })).toBeVisible();
+      await expectNoViolations(page, "new quote, customer list open");
+      await page.getByRole("option", { name: /Add “Axe”/ }).click();
+      await expect(page.getByTestId("selected-customer")).toBeVisible();
+      await page.getByRole("button", { name: "Add a description or discount" }).click();
+      await page.getByLabel("Discount on the whole quote").selectOption("percent");
+      await page.getByRole("radio", { name: /Delivery/ }).check();
+      await expectNoViolations(page, "new quote, all sections open");
+      await page.getByLabel("Quantity").fill("0");
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "new quote with errors");
+      await page.getByLabel("Item name").fill("Axe item");
+      await page.getByLabel("Quantity").fill("1");
+      await page.getByLabel("Price").fill("10");
+      await page.getByLabel("Discount (%)").first().fill("5");
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByText("Draft saved.")).toBeVisible();
+      await expectNoViolations(page, "saved quote");
+
+      await openBusinessProfile(page);
       await expectNoViolations(page, "business profile");
 
       // Error state: bad phone and a VAT number that is too short.

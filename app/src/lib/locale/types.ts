@@ -1,4 +1,5 @@
 import type { BasisPoints, Cents } from "../money/primitives";
+import type { NumberStyle } from "../money/format";
 import type { ValidationResult } from "../validation";
 
 /**
@@ -25,8 +26,10 @@ export type LocalePack = {
   countryName: string;
   /** Default currency (ISO 4217) for new businesses */
   currencyCode: string;
-  /** BCP 47 tag for formatting numbers, money and dates */
+  /** BCP 47 tag for formatting DATES (month names). Numbers and money use numberStyle. */
   formatLocale: string;
+  /** How numbers, money and percentages are written. Never uses the runtime's own locale data. */
+  numberStyle: NumberStyle;
   /** IANA time zone, for "today" on a new document (a document date is a calendar day) */
   timeZone: string;
   address: {

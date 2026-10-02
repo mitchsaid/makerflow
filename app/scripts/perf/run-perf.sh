@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Navigation speed check. Builds the app, starts it against the local Supabase stack
-# through a proxy that adds artificial delay, then times Home <-> Business profile clicks in a
+# through a proxy that adds artificial delay, then times Home, Quotes, Customers and More clicks in a
 # phone-sized browser. Run from app/ with the local stack up:  pnpm perf [db_ms] [phone_ms] [label]
 #   db_ms     delay added to every server -> Supabase call (default 8: same region; 90: far away)
 #   phone_ms  delay between phone and server (default 190: South Africa -> Europe)

@@ -3,27 +3,34 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
-const ITEMS = [
-  { href: "/app", label: "Home", match: (p: string) => p === "/app", icon: HomeIcon },
+type Item = {
+  href: string;
+  label: string;
+  match: (path: string) => boolean;
+  icon: () => React.ReactElement;
+  /** Only on the phone tab bar, or only in the desktop sidebar. Default: both. */
+  only?: "phone" | "desktop";
+};
+
+/**
+ * On a phone only four tabs fit comfortably, so Business and Settings sit behind "More".
+ * The desktop sidebar has room for everything and has no "More".
+ */
+const ITEMS: Item[] = [
+  { href: "/app", label: "Home", match: (p) => p === "/app", icon: HomeIcon },
+  { href: "/app/quotes", label: "Quotes", match: (p) => p.startsWith("/app/quotes"), icon: QuotesIcon },
+  { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon },
+  { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
+  { href: "/app/settings", label: "Settings", match: (p) => p.startsWith("/app/settings"), icon: SettingsIcon, only: "desktop" },
   {
-    href: "/app/customers",
-    label: "Customers",
-    match: (p: string) => p.startsWith("/app/customers"),
-    icon: CustomersIcon,
+    href: "/app/more",
+    label: "More",
+    match: (p) =>
+      p.startsWith("/app/more") || p.startsWith("/app/business") || p.startsWith("/app/settings"),
+    icon: MoreIcon,
+    only: "phone",
   },
-  {
-    href: "/app/business",
-    label: "Business",
-    match: (p: string) => p.startsWith("/app/business"),
-    icon: BusinessIcon,
-  },
-  {
-    href: "/app/settings",
-    label: "Settings",
-    match: (p: string) => p.startsWith("/app/settings"),
-    icon: SettingsIcon,
-  },
-] as const;
+];
 
 /**
  * Bottom tab bar on phones, left sidebar from tablet width up.
@@ -41,10 +48,12 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
         {businessName}
       </p>
       <ul className="flex md:flex-col md:gap-1 md:px-2">
-        {ITEMS.map(({ href, label, match, icon: Icon }) => {
+        {ITEMS.map(({ href, label, match, icon: Icon, only }) => {
           const active = match(pathname);
+          const visibility =
+            only === "desktop" ? "hidden md:block" : only === "phone" ? "md:hidden" : "";
           return (
-            <li key={href} className="flex-1 md:flex-none">
+            <li key={href} className={`flex-1 md:flex-none ${visibility}`}>
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
@@ -96,6 +105,29 @@ function HomeIcon() {
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 10.5 12 3l9 7.5" />
       <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+    </svg>
+  );
+}
+
+function QuotesIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13h6" />
+      <path d="M9 17h4" />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5" cy="12" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="19" cy="12" r="1.2" />
     </svg>
   );
 }

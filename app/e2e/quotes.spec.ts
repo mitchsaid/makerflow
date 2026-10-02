@@ -1,0 +1,253 @@
+import { devices, expect, test, type Page } from "@playwright/test";
+import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+
+const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
+
+async function openQuotes(page: Page) {
+  await nav(page).getByRole("link", { name: "Quotes" }).click();
+  await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
+}
+
+const item = (page: Page, n: number) => page.getByRole("group", { name: `Item ${n}` });
+
+async function fillItem(page: Page, n: number, name: string, quantity: string, price: string) {
+  const g = item(page, n);
+  await g.getByLabel("Item name").fill(name);
+  await g.getByLabel("Quantity").fill(quantity);
+  await g.getByLabel("Price").fill(price);
+}
+
+/** "R 1 036,00" in any of the spacing characters the browser might use. */
+const rand = (whole: string, cents = "00") =>
+  new RegExp(`^R\\s?${whole.replace(/ /g, "\\s")},${cents}$`);
+
+async function chooseNewCustomer(page: Page, name: string) {
+  await page.getByLabel("Customer", { exact: true }).fill(name);
+  await page.getByRole("option", { name: new RegExp(`Add “${name}”`) }).click();
+  await expect(page.getByTestId("selected-customer")).toHaveText(name);
+}
+
+test("build a quote: a new customer on the spot, two items, delivery; it saves and comes back", async ({ page }) => {
+  await signUpAndOnboard(page, "q-build", "Quote Co");
+  await openQuotes(page);
+  await expect(page.getByText("No quotes yet")).toBeVisible();
+  await page.getByRole("link", { name: "Start your first quote" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("0"));
+
+  await chooseNewCustomer(page, "Thandi Nkosi");
+  await expect(page.getByText("Added Thandi Nkosi.")).toBeVisible();
+
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
+  await page.getByRole("button", { name: "Add another item" }).click();
+  await expect(item(page, 2).getByLabel("Item name")).toBeFocused();
+  await fillItem(page, 2, "Cupcakes", "12", "15,50");
+  await expect(item(page, 2).getByText(/Item total R\s?186,00/)).toBeVisible();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("986"));
+
+  await page.getByRole("radio", { name: /Delivery/ }).check();
+  await page.getByLabel("Delivery fee").fill("50");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("1 036"));
+
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await expect(page.getByText("Draft saved.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Quote/, level: 1 })).toContainText("draft");
+
+  // Everything is still there after a reload.
+  await page.reload();
+  await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+  await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Wedding cake");
+  await expect(item(page, 2).getByLabel("Quantity")).toHaveValue("12");
+  await expect(item(page, 2).getByLabel("Price")).toHaveValue("15,50");
+  await expect(page.getByRole("radio", { name: /Delivery/ })).toBeChecked();
+  await expect(page.getByLabel("Delivery fee")).toHaveValue("50");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("1 036"));
+
+  // Edit: remove the cupcakes and save again.
+  await page.getByRole("button", { name: "Remove item 2" }).click();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("850"));
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText("Draft saved.")).toBeVisible();
+  await page.reload();
+  await expect(item(page, 2)).toHaveCount(0);
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("850"));
+
+  // The list shows it.
+  await openQuotes(page);
+  const row = page.getByRole("link", { name: /Thandi Nkosi/ });
+  await expect(row).toContainText("draft");
+  await expect(row).toContainText(/R\s?850,00/);
+});
+
+test("pressing Save with something missing says what, jumps to it, and keeps what you typed", async ({ page }) => {
+  await signUpAndOnboard(page, "q-errors", "Quote Errors Co");
+  await page.goto("/app/quotes/new");
+
+  await item(page, 1).getByLabel("Item name").fill("Cupcakes");
+  await item(page, 1).getByLabel("Quantity").fill("0");
+  await page.getByLabel("Quote date", { exact: true }).fill("2026-10-10");
+  await page.getByLabel("Valid until").fill("2026-10-01");
+  await page.getByRole("button", { name: "Save draft" }).click();
+
+  const summary = page.getByTestId("form-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText("3 things need fixing");
+  await expect(summary).toBeFocused();
+  await expect(page.locator("#validUntil-error")).toContainText("can't expire before");
+  // Typed data is still there.
+  await expect(item(page, 1).getByLabel("Item name")).toHaveValue("Cupcakes");
+
+  await summary.getByRole("link", { name: /Item 1: Price/ }).click();
+  await expect(item(page, 1).getByLabel("Price")).toBeFocused();
+
+  await item(page, 1).getByLabel("Quantity").fill("2");
+  await item(page, 1).getByLabel("Price").fill("10");
+  await page.getByLabel("Valid until").fill("2026-10-20");
+  // A draft needs no customer.
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await expect(page.getByTestId("form-summary")).toHaveCount(0);
+});
+
+test("choosing an existing customer by keyboard, and changing it", async ({ page }) => {
+  await signUpAndOnboard(page, "q-picker", "Picker Co");
+  for (const name of ["Alice Baker", "Bongani Dube"]) {
+    await page.goto("/app/customers/new");
+    await page.getByLabel("Name", { exact: true }).fill(name);
+    await page.getByRole("button", { name: "Add customer" }).click();
+    await expect(page.getByTestId("customer-added")).toBeVisible();
+  }
+  await page.goto("/app/quotes/new");
+
+  const input = page.getByLabel("Customer", { exact: true });
+  const options = page.getByRole("listbox", { name: "Customers" }).getByRole("option");
+  await input.fill("bong");
+  // The match, then the offer to add "bong" as someone new; Enter takes the first.
+  await expect(options).toHaveCount(2);
+  await expect(options.first()).toContainText("Bongani Dube");
+  await input.press("Enter");
+  await expect(page.getByTestId("selected-customer")).toHaveText("Bongani Dube");
+
+  await page.getByRole("button", { name: "Change customer" }).click();
+  await page.getByLabel("Customer", { exact: true }).fill("Bongani Dube");
+  // An exact match offers no "Add" option: no accidental duplicate.
+  await expect(page.getByRole("option", { name: /Add “/ })).toHaveCount(0);
+  await page.getByLabel("Customer", { exact: true }).fill("Carla");
+  await expect(page.getByRole("option", { name: /Add “Carla”/ })).toBeVisible();
+  await page.getByLabel("Customer", { exact: true }).press("Escape");
+  await expect(options).toHaveCount(0);
+});
+
+test("discounts come off in the right order", async ({ page }) => {
+  await signUpAndOnboard(page, "q-discount", "Discount Co");
+  await page.goto("/app/quotes/new");
+
+  await fillItem(page, 1, "Cake", "1", "1000");
+  await page.getByRole("button", { name: "Add a description or discount" }).click();
+  await item(page, 1).getByLabel("Discount on this item").selectOption("percent");
+  await item(page, 1).getByLabel("Item discount (%)").fill("10");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("900"));
+
+  await page.getByLabel("Discount on the whole quote").selectOption("fixed");
+  await page.getByLabel("Discount amount").fill("100");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
+  await expect(page.getByTestId("totals")).toContainText("Items before discount");
+
+  // A discount bigger than the quote is refused when saving.
+  await page.getByLabel("Discount amount").fill("5000");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.locator("#discountValue-error")).toContainText("more than the quote total");
+});
+
+test("valid-for shortcuts set the date, and prices follow the business's VAT setting", async ({ page }) => {
+  await signUpAndOnboard(page, "q-vat", "Vat Quote Co");
+
+  // Not registered: no VAT anywhere.
+  await page.goto("/app/quotes/new");
+  await expect(item(page, 1).getByLabel("Price", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("totals")).not.toContainText("VAT");
+
+  const issue = await page.getByLabel("Quote date", { exact: true }).inputValue();
+  await page.getByRole("button", { name: "Valid for 30 days" }).click();
+  const until = await page.getByLabel("Valid until").inputValue();
+  const days = (new Date(until).getTime() - new Date(issue).getTime()) / 86_400_000;
+  expect(days).toBe(30);
+  await expect(page.getByRole("button", { name: "Valid for 30 days" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  // Registered, prices typed including VAT (the default).
+  await openBusinessProfile(page);
+  await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
+  await page.getByLabel("VAT number").fill("4123456789");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cake", "1", "115");
+  await expect(item(page, 1).getByLabel("Price (including VAT)")).toBeVisible();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("115"));
+  await expect(page.getByTestId("totals")).toContainText("Includes VAT (15%)");
+  await expect(page.getByTestId("totals")).toContainText(/R\s?15,00/);
+
+  // Prices typed excluding VAT: VAT is added on top.
+  await openBusinessProfile(page);
+  await page.getByLabel("When I type a price, it is").selectOption("exclusive");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cake", "1", "100");
+  await page.getByRole("radio", { name: /Delivery/ }).check();
+  await page.getByLabel("Delivery fee (excluding VAT)").fill("50");
+  // 150 + 15% = 172,50
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("172", "50"));
+  await expect(page.getByTestId("totals")).toContainText("Total excluding VAT");
+  await expect(page.getByTestId("totals")).toContainText(/R\s?22,50/);
+});
+
+test("delete a draft, after being asked", async ({ page }) => {
+  await signUpAndOnboard(page, "q-delete", "Delete Co");
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cake", "1", "100");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}/);
+
+  await page.getByRole("button", { name: "Delete draft" }).click();
+  await page.getByRole("button", { name: "Keep it" }).click();
+  await expect(page.getByRole("button", { name: "Delete draft" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Delete draft" }).click();
+  await page.getByRole("button", { name: "Yes, delete the draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes$/);
+  await expect(page.getByText("No quotes yet")).toBeVisible();
+});
+
+test("each business only ever sees its own quotes", async ({ page, browser }) => {
+  await signUpAndOnboard(page, "q-a", "Business A");
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "A's secret cake", "1", "100");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}/);
+  const quoteUrl = page.url().split("?")[0]!;
+
+  const other = await browser.newContext({ ...devices["Pixel 7"] });
+  const pageB = await other.newPage();
+  await signUpAndOnboard(pageB, "q-b", "Business B");
+  await openQuotes(pageB);
+  await expect(pageB.getByText("No quotes yet")).toBeVisible();
+
+  await pageB.goto(quoteUrl);
+  await expect(pageB.getByText("This page could not be found")).toBeVisible();
+  await expect(pageB.getByText("A's secret cake")).toHaveCount(0);
+  await other.close();
+});
+
+test("a quote id that is not an id is a plain not-found page", async ({ page }) => {
+  await signUpAndOnboard(page, "q-404", "Nf Quote Co");
+  await page.goto("/app/quotes/not-an-id");
+  await expect(page.getByText("This page could not be found")).toBeVisible();
+});

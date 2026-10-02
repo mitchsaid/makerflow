@@ -157,7 +157,7 @@ test("signing out on one device locks every other device straight away", async (
   // and its token is useless against the database too.
   await signOut(l);
   expect(await asPhone()).toEqual([]);
-  await p.getByRole("link", { name: "Settings" }).click();
+  await p.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Quotes" }).click();
   await expect(p).toHaveURL(/\/sign-in$/);
 
   await laptop.close();

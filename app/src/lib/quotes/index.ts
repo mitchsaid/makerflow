@@ -97,6 +97,19 @@ export type ParseQuoteResult = { ok: true; quote: ParsedQuote } | { ok: false; e
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** An empty item row, as a new quote starts with. */
+export function blankLine(key: string): LineFormValues {
+  return {
+    key,
+    name: "",
+    description: "",
+    quantity: "1",
+    unitPrice: "",
+    discountKind: "none",
+    discountValue: "",
+  };
+}
+
 /** A line with nothing typed in it at all. Left-over blank rows are dropped, not complained about. */
 export function isBlankLine(line: LineFormValues): boolean {
   return (

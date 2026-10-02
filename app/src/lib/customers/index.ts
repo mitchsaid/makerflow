@@ -167,13 +167,7 @@ export function parseCustomerForm(form: FormData, locale: LocalePack): ParsedCus
   };
 }
 
-/** Keeps only the rows of the business the person is currently working in. */
-export function forOrganisation<T extends { organisationId: string }>(
-  rows: readonly T[],
-  organisationId: string,
-): T[] {
-  return rows.filter((row) => row.organisationId === organisationId);
-}
+export { forOrganisation } from "../scope";
 
 /** Phone numbers compare by digits only, so "021 123 4567" and "(021) 123-4567" match. */
 function phoneDigits(phone: string | null): string {

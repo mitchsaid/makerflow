@@ -6,6 +6,7 @@ import {
   moneyToInput,
   percentToInput,
   quantityToInput,
+  type NumberStyle,
 } from "../format";
 import { parseMoney, parsePercent, parseQuantity } from "../parse";
 
@@ -13,6 +14,15 @@ const money = (s: string) => {
   const r = parseMoney(s);
   return r.ok ? r.value : `ERR:${r.error}`;
 };
+
+/** Same rules as the South African locale pack, spelled out so these tests stand alone. */
+const ZA: NumberStyle = {
+  decimalMark: ",",
+  groupSeparator: "\u00a0",
+  currencySymbols: { ZAR: "R" },
+  symbolSpace: "\u00a0",
+};
+const UK: NumberStyle = { decimalMark: ".", groupSeparator: ",", currencySymbols: { GBP: "£" }, symbolSpace: "" };
 
 describe("parseMoney", () => {
   it("reads South African and English habits into exact cents", () => {
@@ -129,54 +139,67 @@ describe("parsePercent", () => {
   });
 });
 
+describe("formatting is the same everywhere", () => {
+  it("groups thousands and never depends on the runtime's locale data", () => {
+    expect(formatMoney(100_000_000_000 - 1, "ZAR", ZA).replace(/\u00a0/g, "_")).toBe("R_999_999_999,99");
+    expect(formatMoney(100, "ZAR", ZA).replace(/\u00a0/g, "_")).toBe("R_1,00");
+    expect(formatMoney(0, "ZAR", ZA).replace(/\u00a0/g, "_")).toBe("R_0,00");
+    expect(formatMoney(123_456_789, "GBP", UK)).toBe("£1,234,567.89");
+    expect(formatMoney(-1250, "ZAR", ZA).replace(/\u00a0/g, "_")).toBe("−R_12,50");
+    // A currency the style has no symbol for shows its code.
+    expect(formatMoney(1000, "USD", ZA).replace(/\u00a0/g, "_")).toBe("USD_10,00");
+    expect(formatQuantity(1_234_500, ZA).replace(/\u00a0/g, "_")).toBe("1_234,5");
+  });
+});
+
 describe("formatting", () => {
   it("formats in the South African style", () => {
-    expect(formatMoney(125050, "ZAR", "en-ZA").replace(/\s/g, " ")).toBe("R 1 250,50");
-    expect(formatMoney(5, "ZAR", "en-ZA").replace(/\s/g, " ")).toBe("R 0,05");
+    expect(formatMoney(125050, "ZAR", ZA).replace(/\s/g, " ")).toBe("R 1 250,50");
+    expect(formatMoney(5, "ZAR", ZA).replace(/\s/g, " ")).toBe("R 0,05");
     // the same amounts in another country's style come from that country's locale tag
-    expect(formatMoney(125050, "GBP", "en-GB")).toBe("£1,250.50");
-    expect(formatQuantity(500, "en-ZA")).toBe("0,5");
-    expect(formatQuantity(500, "en-GB")).toBe("0.5");
-    expect(formatQuantity(2000, "en-ZA")).toBe("2");
-    expect(formatQuantity(1250, "en-ZA")).toBe("1,25");
-    expect(formatPercent(1500, "en-ZA")).toBe("15%");
-    expect(formatPercent(1250, "en-ZA")).toBe("12,5%");
+    expect(formatMoney(125050, "GBP", UK)).toBe("£1,250.50");
+    expect(formatQuantity(500, ZA)).toBe("0,5");
+    expect(formatQuantity(500, UK)).toBe("0.5");
+    expect(formatQuantity(2000, ZA)).toBe("2");
+    expect(formatQuantity(1250, ZA)).toBe("1,25");
+    expect(formatPercent(1500, ZA)).toBe("15%");
+    expect(formatPercent(1250, ZA)).toBe("12,5%");
   });
 });
 
 describe("input text round trip", () => {
   it("shows saved values the way people type them, and reads them back exactly", () => {
     for (const cents of [0, 1, 5, 50, 99, 100, 125050, 125000, 99_999_999_999]) {
-      const text = moneyToInput(cents, "en-ZA");
+      const text = moneyToInput(cents, ZA);
       expect(money(text), `cents ${cents} as "${text}"`).toBe(cents);
     }
-    expect(moneyToInput(125050, "en-ZA")).toBe("1250,50");
-    expect(moneyToInput(125000, "en-ZA")).toBe("1250");
-    expect(moneyToInput(1250, "en-ZA")).toBe("12,50");
-    expect(moneyToInput(1250, "en-GB")).toBe("12.50");
+    expect(moneyToInput(125050, ZA)).toBe("1250,50");
+    expect(moneyToInput(125000, ZA)).toBe("1250");
+    expect(moneyToInput(1250, ZA)).toBe("12,50");
+    expect(moneyToInput(1250, UK)).toBe("12.50");
   });
 
   it("round-trips every quantity, including the ones that look like thousands", () => {
     const values = [1, 10, 100, 500, 1000, 1001, 1125, 1250, 1500, 2000, 12_345, 123_456, 9_999_999_999];
     for (const milli of values) {
-      const text = quantityToInput(milli, "en-ZA");
+      const text = quantityToInput(milli, ZA);
       const r = parseQuantity(text);
       expect(r.ok && r.value, `milli ${milli} as "${text}"`).toBe(milli);
     }
-    expect(quantityToInput(1500, "en-ZA")).toBe("1,5");
-    expect(quantityToInput(2000, "en-ZA")).toBe("2");
-    expect(quantityToInput(500, "en-ZA")).toBe("0,5");
-    expect(quantityToInput(125, "en-ZA")).toBe("0,125");
-    expect(quantityToInput(1125, "en-ZA")).toBe("1,1250");
+    expect(quantityToInput(1500, ZA)).toBe("1,5");
+    expect(quantityToInput(2000, ZA)).toBe("2");
+    expect(quantityToInput(500, ZA)).toBe("0,5");
+    expect(quantityToInput(125, ZA)).toBe("0,125");
+    expect(quantityToInput(1125, ZA)).toBe("1,1250");
   });
 
   it("round-trips percentages", () => {
     for (const bp of [0, 1, 50, 100, 725, 1000, 1250, 1500, 10_000]) {
-      const text = percentToInput(bp, "en-ZA");
+      const text = percentToInput(bp, ZA);
       const r = parsePercent(text);
       expect(r.ok && r.value, `bp ${bp} as "${text}"`).toBe(bp);
     }
-    expect(percentToInput(1250, "en-ZA")).toBe("12,5");
+    expect(percentToInput(1250, ZA)).toBe("12,5");
   });
 
   it("ignores zeros after the allowed decimals but not other digits", () => {
