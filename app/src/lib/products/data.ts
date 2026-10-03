@@ -1,0 +1,63 @@
+import "server-only";
+import { notFound } from "next/navigation";
+import { createClient } from "../supabase/server";
+import type { Product, ProductKind, ProductSummary } from "./index";
+
+/**
+ * Product reads. Row-level security limits every query to businesses the signed-in person
+ * belongs to; pages keep only the current business's rows (see lib/scope.ts).
+ */
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Row = {
+  id: string;
+  organisation_id: string;
+  kind: ProductKind;
+  name: string;
+  description: string | null;
+  unit_price_cents: number;
+  archived_at: string | null;
+};
+
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, archived_at";
+
+function fromRow(row: Row): ProductSummary {
+  return {
+    id: row.id,
+    organisationId: row.organisation_id,
+    kind: row.kind,
+    name: row.name,
+    description: row.description,
+    unitPriceCents: Number(row.unit_price_cents),
+    archived: row.archived_at !== null,
+  };
+}
+
+/** Every product of the business, archived ones included, A to Z. One query. */
+export async function getProducts(): Promise<ProductSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(COLUMNS)
+    .order("name", { ascending: true })
+    .limit(5000);
+  if (error) throw new Error(`Could not load products: ${error.message}`);
+  return (data as Row[]).map(fromRow);
+}
+
+/** One product, or null for a bad id or one this person cannot see. */
+export async function findProduct(id: string): Promise<Product | null> {
+  if (!UUID.test(id)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("products").select(COLUMNS).eq("id", id).maybeSingle();
+  if (error) throw new Error(`Could not load the product: ${error.message}`);
+  return data ? fromRow(data as Row) : null;
+}
+
+/** One product. Shows the "not found" page for a bad or foreign id. */
+export async function getProduct(id: string): Promise<Product> {
+  const product = await findProduct(id);
+  if (!product) notFound();
+  return product;
+}

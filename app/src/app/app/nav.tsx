@@ -13,13 +13,15 @@ type Item = {
 };
 
 /**
- * On a phone only four tabs fit comfortably, so Business and Settings sit behind "More".
+ * On a phone five tabs fit (founder chose Products as its own tab, 2026-10-03); Business and
+ * Settings sit behind "More".
  * The desktop sidebar has room for everything and has no "More".
  */
 const ITEMS: Item[] = [
   { href: "/app", label: "Home", match: (p) => p === "/app", icon: HomeIcon },
   { href: "/app/quotes", label: "Quotes", match: (p) => p.startsWith("/app/quotes"), icon: QuotesIcon },
   { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon },
+  { href: "/app/products", label: "Products", match: (p) => p.startsWith("/app/products"), icon: ProductsIcon },
   { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
   { href: "/app/settings", label: "Settings", match: (p) => p.startsWith("/app/settings"), icon: SettingsIcon, only: "desktop" },
   {
@@ -128,6 +130,16 @@ function MoreIcon() {
       <circle cx="5" cy="12" r="1.2" />
       <circle cx="12" cy="12" r="1.2" />
       <circle cx="19" cy="12" r="1.2" />
+    </svg>
+  );
+}
+
+function ProductsIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
     </svg>
   );
 }

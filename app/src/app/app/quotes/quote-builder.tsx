@@ -16,6 +16,7 @@ import {
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatMoney, formatPercent, type NumberStyle, type VatSettings } from "@/lib/money";
+import { priceEntryLabel } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import {
   blankLine,
@@ -141,11 +142,7 @@ export function QuoteBuilder({
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
 
-  const priceLabel = !vat.registered
-    ? "Price"
-    : vat.entry === "inclusive"
-      ? `Price (including ${taxName})`
-      : `Price (excluding ${taxName})`;
+  const priceLabel = priceEntryLabel(vat, taxName);
 
   const discountsCents = totals ? totals.lineDiscountsCents + totals.quoteDiscountCents : 0;
 
@@ -252,11 +249,7 @@ export function QuoteBuilder({
         {values.fulfilment === "delivery" && (
           <TextField
             id="deliveryFee"
-            label={
-              vat.registered
-                ? `Delivery fee (${vat.entry === "inclusive" ? "including" : "excluding"} ${taxName})`
-                : "Delivery fee"
-            }
+            label={priceEntryLabel(vat, taxName, "Delivery fee")}
             inputMode="decimal"
             autoComplete="off"
             value={values.deliveryFee}

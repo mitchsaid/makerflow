@@ -106,6 +106,24 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByText("Draft saved.")).toBeVisible();
       await expectNoViolations(page, "saved quote");
 
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
+      await expect(page.getByRole("heading", { name: "Products", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "products, empty");
+      await page.getByRole("link", { name: "Add your first product" }).click();
+      await expect(page.getByRole("heading", { name: "Add a product", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "add product");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "add product with errors");
+      await page.getByLabel("Name", { exact: true }).fill("Axe product");
+      await page.getByLabel("Price", { exact: true }).fill("10");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("product-added")).toBeVisible();
+      await expectNoViolations(page, "products, with a product");
+      await page.getByRole("link", { name: /Axe product/ }).click();
+      await expect(page.getByRole("heading", { name: "Axe product", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "edit product");
+
       await openBusinessProfile(page);
       await expectNoViolations(page, "business profile");
 

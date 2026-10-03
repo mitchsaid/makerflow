@@ -12,6 +12,10 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
+  // The tests run against the dev server, which compiles each page the first time it is
+  // opened. Under a full parallel run that first compile can pass the default 5 s wait (seen
+  // once on a step right after a page change), so assertions wait up to 10 s.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",

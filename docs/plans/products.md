@@ -1,6 +1,6 @@
 # Plan: products, first layer (name, price, description, kind)
 
-Status: **approved by the founder 2026-10-03** (decisions below). Building in two pull requests. Brings slice 7 of `docs/plans/quotes.md` forward, ahead of issuing (founder, 2026-10-02: "customers first", then products with name, price, description and kind). Inputs: `docs/plans/onboarding.md` ("Products (shape agreed, build later)"), the prototype (`prototype/src/components/Quotes.tsx`, `App.tsx`), and the thin-slice rule in `docs/product-brief.md`, principle 9.
+Status: **approved by the founder 2026-10-03** (decisions below). Building in two pull requests. **Progress:** pull request 1 (products on their own) built and tested locally; pull request 2 (products in quotes) next. Brings slice 7 of `docs/plans/quotes.md` forward, ahead of issuing (founder, 2026-10-02: "customers first", then products with name, price, description and kind). Inputs: `docs/plans/onboarding.md` ("Products (shape agreed, build later)"), the prototype (`prototype/src/components/Quotes.tsx`, `App.tsx`), and the thin-slice rule in `docs/product-brief.md`, principle 9.
 
 ## The rule this plan follows
 A thin slice uses the **full feature's interaction**, with what is not built yet shown as **visible but inactive "coming soon" sections**, in production as on dev. Nothing here is a stand-in that a later layer replaces.
