@@ -22,7 +22,7 @@ Following the thin-slice rule, the sent quote's actions that belong to later sli
 - It is drawn **only from the stored snapshot**, so a sent quote's PDF never changes, even if the business, customer or products change later.
 
 ## Data
-- `quotes` gains: `number`, `version`, `sent_at`, `sent_via` (shared or marked), `snapshot` (everything the document shows, frozen: business and customer details, lines with their amounts, totals, VAT mode and rate, the locale wording used, country and currency).
+- `quotes` gains: `number`, `version`, `last_sent_at`. A new `quote_versions` table holds each send: version, sent time, `sent_via` (shared or marked) and the `snapshot` (everything the document shows, frozen: business and customer details, lines with their amounts, totals, VAT mode and rate, the locale wording used, country and currency).
 - Each version is kept: revising copies the sent version into a new draft version under the same number; the sent one stays frozen with its snapshot.
 - `quote_events` (new table): an activity log per quote (created, sent, marked sent, revised; later accepted, declined, withdrawn). Row-level security, `session_required`, tests.
 - Sending moves a quote from draft to sent in one transaction: check, number (`issue_document_number`, gapless, already built), snapshot, event. After that the existing policies already stop any change.

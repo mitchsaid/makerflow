@@ -18,7 +18,8 @@ import {
 } from "./issue-actions";
 import { sharePdf, useCanSharePdf } from "./share-pdf";
 
-const OFFLINE = "Couldn't reach the server. Check your connection and try again. Nothing has been sent.";
+const OFFLINE =
+  "Couldn't reach the server. Check your connection, then open the quote to see whether it went through before trying again.";
 
 /** Where each problem is fixed on the quote page. */
 const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label: string }> = {

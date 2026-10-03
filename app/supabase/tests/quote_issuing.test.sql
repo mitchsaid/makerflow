@@ -370,6 +370,23 @@ begin
   end;
   reset role;
 
+  -- A prefix change that would make a number collide skips to a free one, never wedges.
+  perform public.set_document_numbering(org_a, 'quote', 'Q/1', 101);
+  qempty := public.save_quote_draft(org_a, null, pg_temp.quote_json(null), '[]'::jsonb);
+  assert (select number from public.quotes where id = qempty) = 'Q/10101', 'collision setup';
+  perform public.set_document_numbering(org_a, 'quote', 'Q/', 10101);
+  qempty := public.save_quote_draft(org_a, null, pg_temp.quote_json(null), '[]'::jsonb);
+  assert (select number from public.quotes where id = qempty) = 'Q/10102', 'a colliding number was not skipped';
+  reset role;
+
+  -- Deleting the login of someone who sent a quote works (it forgets who), changes nothing else.
+  delete from auth.users where id = a;
+  assert (select count(*) from public.quote_versions where quote_id = qa) = 2, 'a version was lost';
+  assert (select count(*) from public.quote_versions where quote_id = qa and sent_by is null) = 2, 'sent_by kept';
+  assert (select snapshot ->> 'marker' from public.quote_versions where quote_id = qa and version = 1) = 'first',
+    'a snapshot changed when its sender was deleted';
+  insert into auth.users (id, email) values (a, 'ia2@example.test');
+
   -- A signed-out session cannot, even for the owner.
   perform pg_temp.as_user(a);
   delete from auth.sessions where user_id = a;

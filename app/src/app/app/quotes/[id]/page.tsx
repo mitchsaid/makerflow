@@ -60,12 +60,17 @@ export default async function QuotePage({
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
         {header}
-        <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <a href={`/app/quotes/${quote.id}/pdf`} target="_blank" rel="noopener" className="underline">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <a
+            href={`/app/quotes/${quote.id}/pdf`}
+            target="_blank"
+            rel="noopener"
+            className={buttonVariants({ variant: "outline" })}
+          >
             Preview PDF
           </a>
-          <span className="text-muted-foreground">Shows the last saved version.</span>
-        </p>
+          <span className="text-sm text-muted-foreground">Shows the last saved version.</span>
+        </div>
         {previous && (
           <Alert data-testid="revising-note">
             <AlertDescription>
@@ -93,6 +98,12 @@ export default async function QuotePage({
         />
         {/* A quote that has been sent can never be deleted, and neither can its revision. */}
         {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}
+        {previous && (
+          <ComingSoonSection
+            title="Discard this revision"
+            description={`Go back to version ${previous.version} as it was sent, and drop the changes you've made since.`}
+          />
+        )}
       </main>
     );
   }

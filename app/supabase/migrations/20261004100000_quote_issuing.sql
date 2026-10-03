@@ -56,13 +56,26 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  attempt integer;
 begin
   -- This runs before row-level security is checked, so check membership first: somebody who is
   -- not a member must not be able to spend (or even lock) another business's numbers.
   if (select auth.uid()) is not null and not public.is_org_member(new.organisation_id) then
     raise exception 'not a member of this business' using errcode = '42501';
   end if;
-  new.number := public.issue_document_number(new.organisation_id, 'quote');
+  -- If the prefix or counter was changed so that a number collides with one already used
+  -- (prefix "QT-1" and 1 give QT-10001, which "QT-" and 10001 give too), take the next one.
+  for attempt in 1..1000 loop
+    new.number := public.issue_document_number(new.organisation_id, 'quote');
+    exit when not exists (
+      select 1 from public.quotes q
+       where q.organisation_id = new.organisation_id and q.number = new.number
+    );
+    if attempt = 1000 then
+      raise exception 'could not find a free quote number' using errcode = '55000';
+    end if;
+  end loop;
   new.version := 1;
   new.last_sent_at := null;
   return new;
@@ -106,6 +119,12 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- The one change allowed: forgetting who sent it when that person's login is deleted
+  -- (the foreign key sets sent_by to null). Everything else about a version is frozen.
+  if new.sent_by is null and old.sent_by is not null
+     and (to_jsonb(new) - 'sent_by') = (to_jsonb(old) - 'sent_by') then
+    return new;
+  end if;
   raise exception 'a sent quote version cannot be changed' using errcode = '55000';
 end;
 $$;
@@ -153,6 +172,10 @@ end;
 $$;
 
 revoke execute on function public.quotes_log_created() from public, anon, authenticated;
+
+-- Drafts that existed before this migration get their "created" event too.
+insert into public.quote_events (organisation_id, quote_id, version, kind, created_at)
+select q.organisation_id, q.id, 1, 'created', q.created_at from public.quotes q;
 
 create trigger quotes_log_created
   after insert on public.quotes

@@ -13,4 +13,6 @@ Status: accepted (founder, 2026-10-03: only our server can send; revise is in th
 - Adding `@react-pdf/renderer` brought 48 packages (supply-chain note: pinned by the lockfile; Dependabot and secret scanning are still to be switched on, see `docs/security-notes.md`).
 - Hosting needs `SUPABASE_SECRET_KEY` on the server (Vercel). Without it, sending shows "Sending isn't switched on" and nothing is sent. Steps: `docs/runbooks/server-secret-key.md`.
 - `quote_versions` rows are never updated or deleted by the API, and a revision of a sent quote cannot be deleted. When account deletion is built (`docs/security-notes.md`, item 6) it has to respect this.
-- A sent quote's status stays `sent` after it is revised; the revision itself is a draft (`version > 1`) shown as "Revising". Discarding a revision to go back to the sent version is not built yet.
+- Revising sets the quote's status back to `draft` with `version > 1`, shown as "Revising"; the sent versions stay in `quote_versions`. Discarding a revision to go back to the sent version is not built yet (shown as "coming soon" on the revising draft).
+- Known and accepted: deleting a login only forgets who sent a version (`sent_by` is set to null; the one change the immutability trigger allows). Deleting an organisation that has sent quotes is refused by the database until an erasure process exists (security notes, item 6); demo-organisation teardown must not rely on cascade.
+- If the prefix or counter is changed so a number would repeat one already used, the next free number is taken.
