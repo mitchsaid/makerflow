@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,15 +10,21 @@ import {
   Field,
   FieldDescription,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { formatMoney, formatPercent, type NumberStyle, type VatSettings } from "@/lib/money";
+import {
+  formatMoney,
+  formatPercent,
+  parseMoney,
+  parseQuantity,
+  type NumberStyle,
+  type VatSettings,
+} from "@/lib/money";
+import type { ProductSummary } from "@/lib/products";
+import { priceEntryLabel } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import {
-  blankLine,
   previewTotals,
   type DiscountKind,
   type Fulfilment,
@@ -29,6 +35,7 @@ import {
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
+import { LineSheet, type LineSheetView } from "./line-sheet";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -42,6 +49,7 @@ export function QuoteBuilder({
   quoteId,
   initial,
   customers,
+  products: initialProducts,
   vat,
   currencyCode,
   countryCode,
@@ -52,6 +60,8 @@ export function QuoteBuilder({
   quoteId: string | null;
   initial: QuoteFormValues;
   customers: CustomerOption[];
+  /** The business's products and services, for the item sheet. */
+  products: ProductSummary[];
   vat: VatSettings;
   currencyCode: string;
   countryCode: string;
@@ -79,23 +89,49 @@ export function QuoteBuilder({
     setEditedSinceSave(true);
     setValues((v) => ({ ...v, ...change }));
   }
-  function updateLine(key: string, change: Partial<LineFormValues>) {
-    setEditedSinceSave(true);
-    setValues((v) => ({ ...v, lines: v.lines.map((l) => (l.key === key ? { ...l, ...change } : l)) }));
+  // The item sheet: choosing what to add, configuring a line, or a product form.
+  const [products, setProducts] = useState(initialProducts);
+  const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const newKey = () => `n-${nextKey.current++}`;
+  // Where focus goes when the sheet closes: the line just added or changed, else the default.
+  const focusAfterSheet = useRef<string | null>(null);
+
+  function openSheet(view: LineSheetView) {
+    focusAfterSheet.current = null;
+    setSheetView(view);
+    setSheetOpen(true);
   }
-  function addLine() {
-    setEditedSinceSave(true);
-    const key = `n-${nextKey.current++}`;
-    setValues((v) => ({ ...v, lines: [...v.lines, blankLine(key)] }));
-    // Put the cursor in the new item's name once it exists.
-    setTimeout(() => document.getElementById(`line-${key}-name`)?.focus(), 0);
+  function closeSheet() {
+    setSheetOpen(false);
   }
-  function removeLine(key: string) {
+  function saveLine(line: LineFormValues, isNew: boolean) {
     setEditedSinceSave(true);
-    setValues((v) => {
-      const rest = v.lines.filter((l) => l.key !== key);
-      return { ...v, lines: rest.length > 0 ? rest : [blankLine(`n-${nextKey.current++}`)] };
-    });
+    setValues((v) => ({
+      ...v,
+      lines: isNew ? [...v.lines, line] : v.lines.map((l) => (l.key === line.key ? line : l)),
+    }));
+    // Back on the quote, keyboard focus goes to the line that was just added or changed.
+    focusAfterSheet.current = `line-${line.key}-edit`;
+    setSheetOpen(false);
+  }
+  function removeLine(key: string, index: number) {
+    setEditedSinceSave(true);
+    setValues((v) => ({ ...v, lines: v.lines.filter((l) => l.key !== key) }));
+    // Focus moves to the next line's Edit, or to "Add item" when it was the last one.
+    setTimeout(() => {
+      const next = values.lines[index + 1] ?? values.lines[index - 1];
+      const target = next && next.key !== key ? `line-${next.key}-edit` : "add-item";
+      document.getElementById(target)?.focus();
+    }, 0);
+  }
+  function productSaved(product: ProductSummary) {
+    setProducts((list) =>
+      list.some((p) => p.id === product.id)
+        ? // An edit never changes whether a product is archived.
+          list.map((p) => (p.id === product.id ? { ...product, archived: p.archived } : p))
+        : [...list, product],
+    );
   }
 
   function onSave(event: React.FormEvent<HTMLFormElement>) {
@@ -129,23 +165,17 @@ export function QuoteBuilder({
   values.lines.forEach((line, index) => {
     const e = errors.lines[line.key];
     if (!e) return;
-    const label = (what: string) => `Item ${index + 1}: ${what}`;
-    if (e.name) problems.push({ fieldId: `line-${line.key}-name`, label: label("Item name"), message: e.name });
-    if (e.description) problems.push({ fieldId: `line-${line.key}-description`, label: label("Description"), message: e.description });
-    if (e.quantity) problems.push({ fieldId: `line-${line.key}-quantity`, label: label("Quantity"), message: e.quantity });
-    if (e.unitPrice) problems.push({ fieldId: `line-${line.key}-unitPrice`, label: label("Price"), message: e.unitPrice });
-    if (e.discountValue) problems.push({ fieldId: `line-${line.key}-discountValue`, label: label("Discount"), message: e.discountValue });
+    const message = e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description;
+    if (message) {
+      problems.push({ fieldId: `line-${line.key}-edit`, label: `Item ${index + 1}: ${line.name || "item"}`, message });
+    }
   });
   if (f.lines) problems.push({ fieldId: "add-item", label: "Items", message: f.lines });
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
 
-  const priceLabel = !vat.registered
-    ? "Price"
-    : vat.entry === "inclusive"
-      ? `Price (including ${taxName})`
-      : `Price (excluding ${taxName})`;
+  const priceLabel = priceEntryLabel(vat, taxName);
 
   const discountsCents = totals ? totals.lineDiscountsCents + totals.quoteDiscountCents : 0;
 
@@ -208,24 +238,50 @@ export function QuoteBuilder({
       </Section>
 
       <Section title="Items">
-        {values.lines.map((line, index) => (
-          <LineEditor
-            key={line.key}
-            line={line}
-            number={index + 1}
-            errors={errors.lines[line.key]}
-            priceLabel={priceLabel}
-            lineTotal={(() => {
-              const r = totals?.lines.find((l) => l.id === line.key);
-              return r ? money(r.amountBeforeDiscountCents - r.lineDiscountCents) : null;
-            })()}
-            onChange={(change) => updateLine(line.key, change)}
-            onRemove={() => removeLine(line.key)}
-          />
-        ))}
-        <Button id="add-item" type="button" variant="outline" onClick={addLine}>
-          Add another item
+        {values.lines.length === 0 && (
+          <p className="text-muted-foreground">
+            No items yet. Add one of your products or services, or a one-off item.
+          </p>
+        )}
+        {values.lines.length > 0 && (
+          <ul className="space-y-2" aria-label="Items on this quote">
+            {values.lines.map((line, index) => (
+              <LineRow
+                key={line.key}
+                line={line}
+                number={index + 1}
+                error={(() => {
+                  const e = errors.lines[line.key];
+                  return e ? (e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
+                })()}
+                money={money}
+                lineTotal={(() => {
+                  const r = totals?.lines.find((l) => l.id === line.key);
+                  return r ? r.amountBeforeDiscountCents - r.lineDiscountCents : null;
+                })()}
+                onEdit={() => openSheet({ kind: "configure", line, isNew: false })}
+                onRemove={() => removeLine(line.key, index)}
+              />
+            ))}
+          </ul>
+        )}
+        <Button id="add-item" type="button" variant="outline" onClick={() => openSheet({ kind: "pick" })}>
+          Add item
         </Button>
+        <LineSheet
+          open={sheetOpen}
+          view={sheetView}
+          products={products}
+          numberStyle={numberStyle}
+          currencyCode={currencyCode}
+          priceLabel={priceLabel}
+          newKey={newKey}
+          onView={openSheet}
+          onClose={closeSheet}
+          onSaveLine={saveLine}
+          onProductSaved={productSaved}
+          focusOnClose={() => focusAfterSheet.current}
+        />
       </Section>
 
       <Section title="Delivery or collection">
@@ -252,11 +308,7 @@ export function QuoteBuilder({
         {values.fulfilment === "delivery" && (
           <TextField
             id="deliveryFee"
-            label={
-              vat.registered
-                ? `Delivery fee (${vat.entry === "inclusive" ? "including" : "excluding"} ${taxName})`
-                : "Delivery fee"
-            }
+            label={priceEntryLabel(vat, taxName, "Delivery fee")}
             inputMode="decimal"
             autoComplete="off"
             value={values.deliveryFee}
@@ -383,120 +435,62 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-function LineEditor({
+/** One line on the quote: what it is, how many at what price, its total, and Edit / Remove. */
+function LineRow({
   line,
   number,
-  errors,
-  priceLabel,
+  error,
+  money,
   lineTotal,
-  onChange,
+  onEdit,
   onRemove,
 }: {
   line: LineFormValues;
   number: number;
-  errors: QuoteErrors["lines"][string] | undefined;
-  priceLabel: string;
-  lineTotal: string | null;
-  onChange: (change: Partial<LineFormValues>) => void;
+  error?: string;
+  money: (cents: number) => string;
+  lineTotal: number | null;
+  onEdit: () => void;
   onRemove: () => void;
 }) {
-  const e = errors ?? {};
-  const hasExtras = line.description !== "" || line.discountKind !== "none";
-  const [showExtras, setShowExtras] = useState(hasExtras || !!e.description || !!e.discountValue);
-  const id = (field: string) => `line-${line.key}-${field}`;
-
+  const quantity = parseQuantity(line.quantity);
+  const price = parseMoney(line.unitPrice);
+  const name = line.name.trim() || `Item ${number}`;
   return (
-    <Card className="bg-muted/30">
-      <CardContent>
-        <FieldSet>
-          <FieldLegend variant="label">Item {number}</FieldLegend>
-          <div className="space-y-4">
-            <TextField
-              id={id("name")}
-              label="Item name"
-              autoComplete="off"
-              maxLength={200}
-              value={line.name}
-              error={e.name}
-              onChange={(name) => onChange({ name })}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <TextField
-                id={id("quantity")}
-                label="Quantity"
-                inputMode="decimal"
-                autoComplete="off"
-                value={line.quantity}
-                error={e.quantity}
-                onChange={(quantity) => onChange({ quantity })}
-              />
-              <TextField
-                id={id("unitPrice")}
-                label={priceLabel}
-                inputMode="decimal"
-                autoComplete="off"
-                value={line.unitPrice}
-                error={e.unitPrice}
-                onChange={(unitPrice) => onChange({ unitPrice })}
-              />
-            </div>
-            {lineTotal !== null && line.unitPrice.trim() !== "" && (
-              <p className="text-sm text-muted-foreground">Item total {lineTotal}</p>
-            )}
-
-            {showExtras ? (
-              <>
-                <TextAreaField
-                  id={id("description")}
-                  label="Description (optional)"
-                  value={line.description}
-                  error={e.description}
-                  onChange={(description) => onChange({ description })}
-                  maxLength={1000}
-                />
-                <SelectField
-                  id={id("discountKind")}
-                  label="Discount on this item"
-                  value={line.discountKind === "none" ? "" : line.discountKind}
-                  onChange={(kind) =>
-                    onChange({
-                      discountKind: (kind === "" ? "none" : kind) as DiscountKind,
-                      discountValue: kind === "" ? "" : line.discountValue,
-                    })
-                  }
-                  placeholder="No discount"
-                  options={["percent", "fixed"]}
-                  optionLabels={{ percent: "A percentage", fixed: "An amount" }}
-                />
-                {line.discountKind !== "none" && (
-                  <TextField
-                    id={id("discountValue")}
-                    label={line.discountKind === "percent" ? "Item discount (%)" : "Item discount amount"}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    value={line.discountValue}
-                    error={e.discountValue}
-                    onChange={(discountValue) => onChange({ discountValue })}
-                  />
-                )}
-              </>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                aria-expanded={false}
-                onClick={() => setShowExtras(true)}
-              >
-                Add a description or discount
-              </Button>
-            )}
-
+    <li>
+      <Card className="bg-muted/30" data-testid="quote-line">
+        <CardContent className="space-y-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="min-w-0 truncate text-base font-medium">{name}</p>
+            <p className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {quantity.ok ? line.quantity : "?"} × {price.ok ? money(price.value) : "?"}
+            {line.discountKind !== "none" && " · discount"}
+            {!line.productId && " · one-off item"}
+          </p>
+          {line.description && <p className="line-clamp-2 text-sm text-muted-foreground">{line.description}</p>}
+          {error && (
+            <p className="text-sm text-destructive" id={`line-${line.key}-error`}>
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              id={`line-${line.key}-edit`}
+              type="button"
+              variant="outline"
+              aria-describedby={error ? `line-${line.key}-error` : undefined}
+              onClick={onEdit}
+            >
+              Edit<span className="sr-only"> {name}</span>
+            </Button>
             <Button type="button" variant="ghost" onClick={onRemove}>
-              Remove item {number}
+              Remove<span className="sr-only"> {name}</span>
             </Button>
           </div>
-        </FieldSet>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </li>
   );
 }

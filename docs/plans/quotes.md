@@ -108,7 +108,7 @@ Per decision 4. Components: field-level error text, a form summary with links to
 4. **Issuing:** number assignment, snapshot, server PDF, share, mark sent, status rules, derived expiry, activity log.
 5. **Deposit, inclusions and exclusions, notes and terms** on the document and in the builder.
 6. **Revisions, quote again, record accepted or declined,** and the later job and invoice prompts as those features exist.
-7. **Minimal products and the line picker with "Add new product"** (name, price, description, kind). Options, price breaks, recipes and costs then arrive as the products work layers on, and the quote's private margin strip appears when costs exist.
+7. **Minimal products and the line picker with "Add new product"** (name, price, description, kind). **Brought forward ahead of issuing (2026-10-03); planned in `docs/plans/products.md`.** Options, price breaks, recipes and costs then arrive as the products work layers on, and the quote's private margin strip appears when costs exist.
 
 Order note: slice 7 could move earlier if makers' first quotes should use products, but typed lines let the first quotes ship sooner.
 

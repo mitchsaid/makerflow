@@ -43,3 +43,12 @@ export function vatSettingsFor(
     standardRateBp: locale.tax.standardRateBp,
   };
 }
+
+/**
+ * What a price field is called for this business: "Price" when not registered for VAT,
+ * otherwise "Price (including VAT)" or "Price (excluding VAT)", following its entry mode.
+ */
+export function priceEntryLabel(vat: VatSettings, taxName: string, what = "Price"): string {
+  if (!vat.registered) return what;
+  return `${what} (${vat.entry === "inclusive" ? "including" : "excluding"} ${taxName})`;
+}

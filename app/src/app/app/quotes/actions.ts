@@ -58,6 +58,15 @@ export async function saveQuoteDraft(
         message: "This quote can't be changed any more. Go back to your quotes and open it again.",
       };
     }
+    if (error?.code === "23503" && error.message.includes("quote_lines_product_same_org")) {
+      return {
+        status: "error",
+        errors: {
+          fields: { lines: "One of the items comes from a product that isn't on your list. Remove it and add it again." },
+          lines: {},
+        },
+      };
+    }
     if (error?.code === "23503") {
       return {
         status: "error",

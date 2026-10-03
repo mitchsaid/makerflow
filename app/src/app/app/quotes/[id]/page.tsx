@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { forOrganisation } from "@/lib/customers";
 import { getCustomers } from "@/lib/customers/data";
+import { getProducts } from "@/lib/products/data";
+import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { getStoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
@@ -17,9 +18,10 @@ export default async function QuotePage({
 }: PageProps<"/app/quotes/[id]">) {
   const { id } = await params;
   // The quote and the customers load beside the workspace check, not after it.
-  const [quote, allCustomers, { organisation, profile }, query] = await Promise.all([
+  const [quote, allCustomers, allProducts, { organisation, profile }, query] = await Promise.all([
     getStoredQuote(id),
     getCustomers(),
+    getProducts(),
     requireOrganisation(),
     searchParams,
   ]);
@@ -56,6 +58,7 @@ export default async function QuotePage({
             quoteId={quote.id}
             initial={toFormValues(quote, locale.numberStyle)}
             customers={customerOptions(customers)}
+            products={forOrganisation(allProducts, organisation.id)}
             vat={vatSettingsFor(profile, locale)}
             currencyCode={profile.currencyCode}
             countryCode={profile.countryCode}

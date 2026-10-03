@@ -193,7 +193,12 @@ export function CustomerPicker({
 
   const sheetView = (
     <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && closeSheet()}>
-      <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto">
+      <SheetContent
+        side="right"
+        className="h-dvh gap-0 overflow-y-auto"
+        // After choosing someone, focus their card; otherwise back to the search box.
+        finalFocus={() => document.getElementById(`${id}-edit`) ?? document.getElementById(id) ?? true}
+      >
         <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
           <SheetTitle className="text-lg">
             {sheet?.kind === "edit" ? "Customer details" : "Add a customer"}

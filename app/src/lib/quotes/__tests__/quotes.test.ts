@@ -18,6 +18,8 @@ const EXCLUSIVE: VatSettings = { registered: true, entry: "exclusive", standardR
 
 const line = (over: Partial<LineFormValues> = {}): LineFormValues => ({
   key: "k1",
+  kind: "custom",
+  productId: "",
   name: "Wedding cake",
   description: "",
   quantity: "1",
@@ -259,9 +261,9 @@ describe("toFormValues", () => {
     discountValue: 750,
     notes: null,
     lines: [
-      { id: "l2", sortOrder: 1, kind: "custom", name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
-      { id: "l3", sortOrder: 2, kind: "delivery", name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
-      { id: "l1", sortOrder: 0, kind: "custom", name: "Cake", description: null, quantityMilli: 1125, unitPriceCents: 80_000, discountKind: "fixed" as const, discountValue: 5000 },
+      { id: "l2", sortOrder: 1, kind: "custom", productId: null, name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
+      { id: "l3", sortOrder: 2, kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
+      { id: "l1", sortOrder: 0, kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cake", description: null, quantityMilli: 1125, unitPriceCents: 80_000, discountKind: "fixed" as const, discountValue: 5000 },
     ],
   };
 
@@ -279,7 +281,7 @@ describe("toFormValues", () => {
     const q = parsed(v, EXCLUSIVE);
     const payload = toDatabasePayload(q, { countryCode: "ZA", currencyCode: "ZAR" });
     expect(payload.lines.map((l) => [l.name, l.quantity_milli, l.unit_price_cents, l.discount_kind, l.discount_value, l.kind])).toEqual([
-      ["Cake", 1125, 80000, "fixed", 5000, "custom"],
+      ["Cake", 1125, 80000, "fixed", 5000, "product"],
       ["Cupcakes", 12000, 1550, "none", 0, "custom"],
       ["Delivery", 1000, 3500, "none", 0, "delivery"],
     ]);
@@ -321,5 +323,39 @@ describe("isQuoteFormValues", () => {
       { ...good, lines: Array.from({ length: 501 }, () => good.lines[0]) },
     ];
     for (const value of bad) expect(isQuoteFormValues(value), JSON.stringify(value)?.slice(0, 60)).toBe(false);
+  });
+});
+
+describe("lines from products", () => {
+  const PRODUCT = "22222222-2222-4222-8222-222222222222";
+  it("keeps where a line came from, and saves it", () => {
+    const q = parsed(quote({ lines: [line({ kind: "service", productId: PRODUCT })] }));
+    expect(q.lines[0]).toMatchObject({ kind: "service", productId: PRODUCT });
+    const p = toDatabasePayload(q, { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(p.lines[0]).toMatchObject({ kind: "service", product_id: PRODUCT });
+  });
+  it("a one-off item has no product", () => {
+    const p = toDatabasePayload(parsed(quote()), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(p.lines[0]).toMatchObject({ kind: "custom", product_id: null });
+  });
+  it("refuses a line whose source does not add up", () => {
+    for (const bad of [
+      line({ kind: "custom", productId: PRODUCT }),
+      line({ kind: "product", productId: "" }),
+      line({ kind: "product", productId: "not-an-id" }),
+    ]) {
+      expect(errorsOf(quote({ lines: [bad] })).lines.k1?.name).toMatch(/could not be read/);
+    }
+  });
+  it("comes back from storage as the same kind of line", () => {
+    const v = toFormValues(
+      {
+        customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null,
+        discountKind: "none", discountValue: 0, notes: null,
+        lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
+      },
+      ZA_LOCALE.numberStyle,
+    );
+    expect(v.lines[0]).toMatchObject({ kind: "service", productId: PRODUCT, quantity: "2", unitPrice: "450" });
   });
 });
