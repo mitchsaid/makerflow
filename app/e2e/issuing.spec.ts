@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openBusinessProfile, signUpAndOnboard } from "./helpers";
-import { addCustomerInSheet, fillItem, nav, openQuotes, rand } from "./quote-helpers";
+import { addCustomerInSheet, fillItem, nav, openQuotes, rand, startSend } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
 
@@ -23,7 +23,7 @@ async function addBusinessPhone(page: Page) {
   await expect(page.getByText("Saved.")).toBeVisible();
 }
 
-test("a draft is numbered when first saved, and previews as a PDF", async ({ page }) => {
+test("a draft is numbered when first saved, and the next step is a preview of the real document", async ({ page }) => {
   await signUpAndOnboard(page, "iss-number", "Number Co");
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
@@ -32,20 +32,59 @@ test("a draft is numbered when first saved, and previews as a PDF", async ({ pag
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Draft$/, level: 1 })).toBeVisible();
+  const quoteUrl = page.url().split("?")[0];
 
-  const preview = await page.request.get((await page.getByRole("link", { name: "Preview PDF" }).getAttribute("href"))!);
-  expect(preview.status()).toBe(200);
-  expect(preview.headers()["content-type"]).toBe("application/pdf");
-  expect(preview.headers()["content-disposition"]).toContain("QT-0001-draft.pdf");
-  expect((await preview.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  // Preview is the next step. It shows the real PDF, drawn on the screen, and the way on.
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page).toHaveURL(`${quoteUrl}/preview`);
+  await expect(page.getByRole("heading", { name: /^Preview of quote QT-0001 Draft$/, level: 1 })).toBeVisible();
+  const pages = page.getByTestId("pdf-page");
+  await expect(pages.first()).toBeVisible();
+  await expect(pages).toHaveCount(1);
+  await expect(pages.first()).toHaveAccessibleName("Quote QT-0001, page 1 of 1");
+  // The page really has the document on it: it is not a blank white canvas.
+  const inked = await pages.first().evaluate((canvas: HTMLCanvasElement) => {
+    const data = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let dark = 0;
+    for (let i = 0; i < data.length; i += 4) if (data[i] < 100 && data[i + 1] < 100 && data[i + 2] < 100) dark++;
+    return dark;
+  });
+  expect(inked).toBeGreaterThan(500);
+  // The text version of the same document is there for screen readers.
+  await expect(page.getByRole("region", { name: "The quote as text" })).toContainText("Wedding cake");
+  // The design: one in use, the rest on their way.
+  await expect(page.getByTestId("current-design")).toHaveText("Classic");
+  await expect(page.getByTestId("coming-soon")).toHaveCount(2);
+  // Download is a plain link to the PDF.
+  expect(await page.getByRole("link", { name: "Download" }).getAttribute("href")).toBe(`${new URL(quoteUrl).pathname}/pdf?download=1`);
+  const download = await page.request.get(`${quoteUrl}/pdf?download=1`);
+  expect(download.status()).toBe(200);
+  expect(download.headers()["content-disposition"]).toContain("attachment");
+  expect(download.headers()["content-disposition"]).toContain("QT-0001-draft.pdf");
+  expect((await download.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
 
-  // The list shows the number and that it is a draft; the next quote is QT-0002.
+  // Edit goes back to the draft with everything as it was.
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await expect(page).toHaveURL(quoteUrl);
+  await expect(page.getByTestId("quote-line")).toContainText("Wedding cake");
+
+  // Preview saves what is on the screen first, so the preview is never out of date.
+  await page.getByTestId("quote-line").getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByLabel(/^Price/).fill("950");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page).toHaveURL(`${quoteUrl}/preview`);
+  await expect(page.getByRole("region", { name: "The quote as text" })).toContainText(/R\s?950,00/);
+
+  // A new quote's Preview saves it and opens its preview in one go.
   await openQuotes(page);
   await expect(page.getByRole("link", { name: /QT-0001/ })).toContainText("Draft");
   await page.getByRole("link", { name: "New quote" }).click();
   await fillItem(page, 1, "Cupcakes", "12", "15");
-  await page.getByRole("button", { name: "Save draft" }).click();
-  await expect(page.getByRole("heading", { name: /^Quote QT-0002/, level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
+  await expect(page.getByRole("heading", { name: /^Preview of quote QT-0002/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("pdf-page").first()).toBeVisible();
 });
 
 test("sending lists what is missing, carries on once contact details are added, and marking as sent locks the quote", async ({
@@ -55,7 +94,7 @@ test("sending lists what is missing, carries on once contact details are added, 
   await signUpAndOnboard(page, "iss-mark", "Send Co");
   await saveQuote(page);
 
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await startSend(page);
   await expect(sheet(page)).toHaveAccessibleName("Before you can send this quote");
   await expect(sheet(page).getByText(/Add a phone number or email/)).toBeVisible();
   // Nothing about the customer or items is wrong, so only the contact details are asked for.
@@ -87,8 +126,11 @@ test("sending lists what is missing, carries on once contact details are added, 
   await expect(document).toContainText("This quotation is not a tax invoice.");
   await expect(page.getByRole("button", { name: "Save draft" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Delete draft" })).toHaveCount(0);
-  // What comes later is shown, and does nothing.
-  await expect(page.getByTestId("coming-soon")).toHaveCount(5);
+  // What comes later is shown, and does nothing: five actions and two design options.
+  await expect(page.getByTestId("coming-soon")).toHaveCount(7);
+  await expect(page.getByTestId("current-design")).toHaveText("Classic");
+  // The sent quote is the real document, drawn on the screen.
+  await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByTestId("activity")).toContainText("Draft created");
   await expect(page.getByTestId("activity")).toContainText("Version 1 marked as sent");
 
@@ -122,23 +164,24 @@ test("a quote with no customer and no items says so, and each fix takes you to t
   await addBusinessPhone(page);
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
-  // Pressing Send on a new, empty quote saves it first, then lists what it needs.
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  // Preview on a new, empty quote saves it and opens its preview; Send there lists what it needs.
+  await startSend(page);
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   await expect(sheet(page)).toHaveAccessibleName("Before you can send this quote");
   const missing = sheet(page).getByRole("list", { name: "What is missing" });
   await expect(missing).toContainText("Choose who the quote is for.");
   await expect(missing).toContainText("Add at least one item to the quote.");
-  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}$/);
 
+  // The fix is on the edit screen: it takes you there and lands on the field.
   await sheet(page).getByRole("button", { name: "Choose a customer" }).click();
-  await expect(sheet(page)).toHaveCount(0);
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}$/);
   await expect(page.getByLabel("Customer", { exact: true })).toBeFocused();
 
   // Fix both, and sending is offered.
   await fillItem(page, 1, "Cake", "1", "100");
   await addCustomerInSheet(page, "Sipho");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  // Unsaved changes are saved first, so what is sent is what is on screen.
+  await startSend(page);
+  // Unsaved changes are saved first (by Preview), so what is sent is what was on screen.
   await expect(sheet(page)).toHaveAccessibleName("Send this quote");
   await expect(sheet(page)).toContainText("QT-0001 for Sipho");
 
@@ -146,7 +189,7 @@ test("a quote with no customer and no items says so, and each fix takes you to t
   await page.keyboard.press("Escape");
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Send", exact: true })).toBeFocused();
-  await expect(page.getByRole("heading", { name: /^Quote QT-0001 Draft$/, level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Preview of quote QT-0001 Draft$/, level: 1 })).toBeVisible();
 });
 
 test("sending by share hands the PDF to the phone's share sheet, and the quote is locked", async ({ page }) => {
@@ -165,7 +208,7 @@ test("sending by share hands the PDF to the phone's share sheet, and the quote i
   await addBusinessPhone(page);
   await saveQuote(page);
 
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await startSend(page);
   await sheet(page).getByRole("button", { name: "Send and share the PDF" }).click();
   await expect(page).toHaveURL(/\?sent=shared$/);
   await expect(page.getByTestId("sent-banner")).toContainText("QT-0001 is sent and locked");
@@ -188,7 +231,7 @@ test("where files can't be shared, the PDF is downloaded instead", async ({ page
   await addBusinessPhone(page);
   await saveQuote(page);
 
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await startSend(page);
   const download = page.waitForEvent("download");
   await sheet(page).getByRole("button", { name: "Send and download the PDF" }).click();
   expect((await download).suggestedFilename()).toBe("QT-0001.pdf");
@@ -200,7 +243,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
   await signUpAndOnboard(page, "iss-revise", "Revise Co");
   await addBusinessPhone(page);
   await saveQuote(page, "Thandi Nkosi", "800");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await startSend(page);
   await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
@@ -218,7 +261,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
   await sheet(page).getByLabel(/^Price/).fill("900");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("900"));
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await startSend(page);
   await expect(sheet(page)).toHaveAccessibleName("Send this quote");
   await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
@@ -278,7 +321,7 @@ test("the list filters by status and a quote with no customer still shows its nu
   await signUpAndOnboard(page, "iss-filter", "Filter Co");
   await addBusinessPhone(page);
   await saveQuote(page);
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await startSend(page);
   await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
 

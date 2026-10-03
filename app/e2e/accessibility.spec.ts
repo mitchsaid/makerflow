@@ -123,6 +123,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "saved quote");
 
       // Sending: what is missing (the business has no phone or email yet), then the choice.
+      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+      await expectNoViolations(page, "quote preview");
       await page.getByRole("button", { name: "Send", exact: true }).click();
       await expect(page.getByRole("dialog", { name: "Before you can send this quote" })).toBeVisible();
       await expectNoViolations(page, "send sheet, something missing");

@@ -52,3 +52,15 @@ export async function addCustomerInSheet(page: Page, name: string, details: { ph
   await expect(page.getByTestId("selected-customer")).toHaveText(name);
 }
 
+
+/**
+ * Presses Send. From the draft that means going through the preview first (Preview saves what
+ * is on screen); on the preview itself it is just the Send button.
+ */
+export async function startSend(page: Page) {
+  if (!/\/preview$/.test(new URL(page.url()).pathname)) {
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
+  }
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+}

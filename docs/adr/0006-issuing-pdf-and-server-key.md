@@ -16,3 +16,6 @@ Status: accepted (founder, 2026-10-03: only our server can send; revise is in th
 - Revising sets the quote's status back to `draft` with `version > 1`, shown as "Revising"; the sent versions stay in `quote_versions`. Discarding a revision to go back to the sent version is not built yet (shown as "coming soon" on the revising draft).
 - Known and accepted: deleting a login only forgets who sent a version (`sent_by` is set to null; the one change the immutability trigger allows). Deleting an organisation that has sent quotes is refused by the database until an erasure process exists (security notes, item 6); demo-organisation teardown must not rely on cascade.
 - If the prefix or counter is changed so a number would repeat one already used, the next free number is taken.
+
+## Addendum: the preview is the real PDF (2026-10-03)
+The preview and sent-quote screens draw the server's PDF with pdf.js (`pdfjs-dist`, legacy build for older phones, loaded only on those screens) instead of keeping a second on-screen layout. One document means the preview is exactly what is sent and every future design appears automatically. Cost: a second request and a render of the PDF per preview (about a second), and one more dependency. Each version's `snapshot.design` names the design it used; designs are only ever added, never edited.

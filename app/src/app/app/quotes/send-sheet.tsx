@@ -39,12 +39,15 @@ export function SendQuoteSheet({
   open,
   onOpenChange,
   returnFocusId,
+  onFix,
 }: {
   quoteId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Where focus goes when the sheet closes without sending. */
   returnFocusId: string;
+  /** Called with the field that needs fixing when it is not on this page (the sheet stays as is). */
+  onFix?: (fieldId: string) => void;
 }) {
   const focusTarget = useRef<string | null>(null);
   // While the quote is being sent the sheet stays open: closing it would hide what happened.
@@ -69,6 +72,10 @@ export function SendQuoteSheet({
           quoteId={quoteId}
           onBusyChange={setBusy}
           onGoTo={(fieldId) => {
+            if (onFix) {
+              onFix(fieldId);
+              return;
+            }
             focusTarget.current = fieldId;
             onOpenChange(false);
           }}

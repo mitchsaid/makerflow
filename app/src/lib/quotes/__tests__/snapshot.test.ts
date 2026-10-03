@@ -143,6 +143,10 @@ describe("the quote snapshot", () => {
     expect(JSON.stringify(s)).not.toContain("private note");
   });
 
+  it("records the design it was drawn with, so a later design never changes it", () => {
+    expect(snapshotFor(INCLUSIVE).design).toBe("classic");
+  });
+
   it("allows a draft preview without a customer", () => {
     expect(snapshotFor(INCLUSIVE, false).customer).toBeNull();
   });

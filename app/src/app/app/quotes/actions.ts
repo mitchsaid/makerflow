@@ -29,7 +29,7 @@ const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
 export async function saveQuoteDraft(
   quoteId: string | null,
   values: QuoteFormValues,
-  then?: "send",
+  then?: "preview",
 ): Promise<SaveQuoteState> {
   const { organisation, profile } = await requireOrganisation();
   if (quoteId !== null && !UUID.test(quoteId)) return { status: "error", message: GENERIC_ERROR };
@@ -79,8 +79,8 @@ export async function saveQuoteDraft(
   }
 
   revalidatePath("/app/quotes");
-  // Pressing Send on a new quote saves it first and then opens the send sheet on its own page.
-  if (quoteId === null) redirect(`/app/quotes/${id}?saved=1${then === "send" ? "&send=1" : ""}`);
+  // Pressing Preview on a new quote saves it first and then opens its preview.
+  if (quoteId === null) redirect(then === "preview" ? `/app/quotes/${id}/preview` : `/app/quotes/${id}?saved=1`);
   return { status: "saved", savedAt: Date.now() };
 }
 

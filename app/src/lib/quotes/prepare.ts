@@ -28,8 +28,10 @@ export type PreparedQuote = {
 export async function prepareQuote(
   quoteId: string,
   workspace: Workspace,
+  /** The quote, when the caller has just read it, so it is not read twice. */
+  alreadyRead?: StoredQuote,
 ): Promise<{ ok: true; value: PreparedQuote } | { ok: false; reason: "not-found" | "unreadable" }> {
-  const stored = await findStoredQuote(quoteId);
+  const stored = alreadyRead ?? (await findStoredQuote(quoteId));
   // Another business of the same person is not this workspace's quote.
   if (!stored || stored.organisationId !== workspace.organisation.id) return { ok: false, reason: "not-found" };
 
