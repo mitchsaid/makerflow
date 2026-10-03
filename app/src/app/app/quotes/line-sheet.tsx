@@ -20,11 +20,11 @@ import {
   parseMoney,
   type NumberStyle,
 } from "@/lib/money";
-import { productMatchesSearch, type ProductSummary } from "@/lib/products";
+import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
 import { parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
-import { EMPTY_PRODUCT, type ProductFormValues } from "../products/product-values";
+import { emptyOfKind, KIND_WORDS, type ProductFormValues } from "../products/product-values";
 
 /**
  * Where the item sheet is: choosing what to add, configuring one line, or the product form
@@ -37,6 +37,8 @@ export type LineSheetView =
   | {
       kind: "product";
       mode: "add" | "edit";
+      /** For "add": a product or a service ("Add new product" / "Add new service"). */
+      productKind?: ProductKind;
       product?: ProductSummary;
       /** The line being configured, to go back to after editing its product. */
       returnTo?: { line: LineFormValues; isNew: boolean };
@@ -103,8 +105,8 @@ export function LineSheet({
           : "Edit item"
         : view?.kind === "product"
           ? view.mode === "add"
-            ? "Add a product"
-            : "Edit product"
+            ? `Add a ${KIND_WORDS[view.productKind ?? "product"].one}`
+            : `Edit ${KIND_WORDS[view.product?.kind ?? "product"].one}`
           : "";
   const description =
     view?.kind === "pick"
@@ -112,7 +114,7 @@ export function LineSheet({
       : view?.kind === "configure"
         ? "Set the quantity and price for this quote. Your quote is kept as it is."
         : view?.kind === "product" && view.mode === "edit"
-          ? "Changes are saved to the product. Lines already on quotes keep their own price."
+          ? `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}. Lines already on quotes keep their own price.`
           : "A name and a price are enough to start. Your quote is kept as it is.";
 
   return (
@@ -135,7 +137,7 @@ export function LineSheet({
               products={products}
               money={money}
               onChoose={(p) => onView({ kind: "configure", line: lineFromProduct(p, newKey(), numberStyle), isNew: true })}
-              onAddProduct={() => onView({ kind: "product", mode: "add" })}
+              onAdd={(productKind) => onView({ kind: "product", mode: "add", productKind })}
               onOneOff={() =>
                 onView({
                   kind: "configure",
@@ -176,7 +178,7 @@ export function LineSheet({
               key={view.product?.id ?? "add"}
               mode={view.mode}
               action={view.mode === "add" ? createProductInQuote : updateProduct.bind(null, view.product!.id)}
-              initial={view.product ? productValues(view.product, numberStyle) : EMPTY_PRODUCT}
+              initial={view.product ? productValues(view.product, numberStyle) : emptyOfKind(view.productKind ?? "product")}
               priceLabel={priceLabel}
               idPrefix="product-sheet-"
               embedded={{
@@ -245,18 +247,21 @@ function PickView({
   products,
   money,
   onChoose,
-  onAddProduct,
+  onAdd,
   onOneOff,
 }: {
   products: ProductSummary[];
   money: (cents: number) => string;
   onChoose: (product: ProductSummary) => void;
-  onAddProduct: () => void;
+  onAdd: (kind: ProductKind) => void;
   onOneOff: () => void;
 }) {
   const [query, setQuery] = useState("");
   const active = products.filter((p) => !p.archived);
-  const shown = active.filter((p) => productMatchesSearch(p, query)).slice(0, SEARCH_LIMIT);
+  const matching = active.filter((p) => productMatchesSearch(p, query));
+  const groups = (["product", "service"] as const)
+    .map((kind) => ({ kind, items: matching.filter((p) => p.kind === kind).slice(0, SEARCH_LIMIT) }))
+    .filter((g) => active.some((p) => p.kind === g.kind));
 
   return (
     <div className="space-y-4 pb-8">
@@ -272,42 +277,49 @@ function PickView({
           />
         </Field>
       )}
-      {active.length > 0 && (
-        <ul className="space-y-2" aria-label="Your products and services">
-          {shown.map((p) => (
-            <li key={p.id}>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-auto min-h-14 w-full flex-col items-stretch gap-0.5 px-4 py-2 text-left whitespace-normal"
-                onClick={() => onChoose(p)}
-              >
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="font-medium">
-                    {p.name}
-                    {p.kind === "service" && <span className="ml-2 text-xs text-muted-foreground">Service</span>}
-                  </span>
-                  <span className="shrink-0">{money(p.unitPriceCents)}</span>
-                </span>
-                {p.description && (
-                  <span className="truncate text-sm font-normal text-muted-foreground">{p.description}</span>
-                )}
-              </Button>
-            </li>
-          ))}
-          {shown.length === 0 && (
-            <li className="text-muted-foreground">Nothing matches &ldquo;{query}&rdquo;.</li>
+      {groups.map((group) => (
+        <section key={group.kind} className="space-y-2" aria-labelledby={`item-group-${group.kind}`}>
+          <h3 id={`item-group-${group.kind}`} className="text-sm font-medium text-muted-foreground">
+            {group.kind === "service" ? "Services" : "Products"}
+          </h3>
+          {group.items.length === 0 ? (
+            <p className="text-muted-foreground">Nothing matches &ldquo;{query}&rdquo;.</p>
+          ) : (
+            <ul className="space-y-2">
+              {group.items.map((p) => (
+                <li key={p.id}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-auto min-h-14 w-full flex-col items-stretch gap-0.5 px-4 py-2 text-left whitespace-normal"
+                    onClick={() => onChoose(p)}
+                  >
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="font-medium">{p.name}</span>
+                      <span className="shrink-0">{money(p.unitPriceCents)}</span>
+                    </span>
+                    {p.description && (
+                      <span className="truncate text-sm font-normal text-muted-foreground">{p.description}</span>
+                    )}
+                  </Button>
+                </li>
+              ))}
+            </ul>
           )}
-        </ul>
-      )}
+        </section>
+      ))}
       {active.length === 0 && (
         <p className="text-muted-foreground">
-          You have no products yet. Add one to reuse it on every quote, or type a one-off item.
+          Nothing saved yet. Add a product or a service to reuse it on every quote, or type a
+          one-off item.
         </p>
       )}
       <div className="flex flex-col gap-3">
-        <Button type="button" onClick={onAddProduct}>
+        <Button type="button" onClick={() => onAdd("product")}>
           Add new product
+        </Button>
+        <Button type="button" variant="outline" onClick={() => onAdd("service")}>
+          Add new service
         </Button>
         <Button type="button" variant="outline" onClick={onOneOff}>
           One-off item (just for this quote)
@@ -391,7 +403,9 @@ function ConfigureView({
             </p>
             {product && product.name !== line.name && (
               <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-name-hint">
-                <span className="text-muted-foreground">The product is now called “{product.name}”.</span>
+                <span className="text-muted-foreground">
+                  The {KIND_WORDS[product.kind].one} is now called “{product.name}”.
+                </span>
                 <Button
                   type="button"
                   variant="link"
@@ -404,7 +418,7 @@ function ConfigureView({
             )}
             {product && (
               <Button type="button" variant="outline" onClick={() => onEditProduct(product, line)}>
-                Edit this product
+                Edit this {KIND_WORDS[product.kind].one}
               </Button>
             )}
           </div>
@@ -443,7 +457,7 @@ function ConfigureView({
         {product && priceDiffers && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">
-              The product&apos;s price is {money(product.unitPriceCents)}.
+              The {KIND_WORDS[product.kind].one}&apos;s price is {money(product.unitPriceCents)}.
             </span>
             <Button
               type="button"

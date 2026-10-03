@@ -11,6 +11,21 @@ export type ProductFormValues = {
 
 export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", description: "" };
 
+export function emptyOfKind(kind: ProductKind): ProductFormValues {
+  return { ...EMPTY_PRODUCT, kind };
+}
+
+/** Words that differ between a product and a service. */
+export const KIND_WORDS: Record<ProductKind, { one: string; many: string; Title: string }> = {
+  product: { one: "product", many: "products", Title: "Product" },
+  service: { one: "service", many: "services", Title: "Service" },
+};
+
+/** The list a kind lives in: /app/products shows products, /app/products?view=services services. */
+export function listHref(kind: ProductKind): string {
+  return kind === "service" ? "/app/products?view=services" : "/app/products";
+}
+
 export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormValues {
   return {
     kind: p.kind,
@@ -18,4 +33,9 @@ export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormVa
     unitPrice: moneyToInput(p.unitPriceCents, style),
     description: p.description ?? "",
   };
+}
+
+/** Where "Add product" / "Add service" goes. */
+export function newHref(kind: ProductKind): string {
+  return kind === "service" ? "/app/products/new?kind=service" : "/app/products/new";
 }

@@ -63,7 +63,8 @@ export async function createProduct(
 ): Promise<ProductSaveState> {
   const result = await insertProduct(formData);
   if (!result.ok) return result.state;
-  redirect(`/app/products?added=${result.product.id}`);
+  const view = result.product.kind === "service" ? "&view=services" : "";
+  redirect(`/app/products?added=${result.product.id}${view}`);
 }
 
 /** Adds a product from inside a quote and hands it back, so it can go straight onto a line. */
@@ -105,7 +106,11 @@ export async function updateProduct(
 export type ProductArchiveState = { status: "idle" } | { status: "error"; message: string };
 
 /** Archives or restores a product. Products are never deleted: quote lines refer to them. */
-export async function setProductArchived(id: string, archived: boolean): Promise<ProductArchiveState> {
+export async function setProductArchived(
+  id: string,
+  archived: boolean,
+  kind: "product" | "service" = "product",
+): Promise<ProductArchiveState> {
   const { organisation } = await requireOrganisation();
   if (!UUID.test(id)) redirect("/app/products");
 
@@ -122,6 +127,6 @@ export async function setProductArchived(id: string, archived: boolean): Promise
   }
 
   revalidatePath("/app/products");
-  if (archived) redirect("/app/products");
+  if (archived) redirect(kind === "service" ? "/app/products?view=services" : "/app/products");
   return { status: "idle" };
 }

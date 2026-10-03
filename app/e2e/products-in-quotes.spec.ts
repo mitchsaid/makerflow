@@ -88,26 +88,28 @@ test("a product's new price never moves a line, but is offered", async ({ page }
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
 });
 
-test("add a new product from inside a quote, then straight on to configuring it", async ({ page }) => {
+test("add a new service from inside a quote, then straight on to configuring it", async ({ page }) => {
   await signUpAndOnboard(page, "piq-new", "New Product Co");
   await page.goto("/app/quotes/new");
   await page.getByLabel("Notes for the customer (optional)").fill("Kept while adding a product");
 
   await page.getByRole("button", { name: "Add item" }).click();
-  await expect(sheet(page)).toContainText("You have no products yet");
-  await sheet(page).getByRole("button", { name: "Add new product" }).click();
-  await expect(sheet(page)).toHaveAccessibleName("Add a product");
-  // The full product form, with its coming-soon layers.
-  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(6);
+  await expect(sheet(page)).toContainText("Nothing saved yet");
+  // Three ways to add: a product, a service, a one-off item.
+  await expect(sheet(page).getByRole("button", { name: "Add new product" })).toBeVisible();
+  await expect(sheet(page).getByRole("button", { name: /One-off item/ })).toBeVisible();
+  await sheet(page).getByRole("button", { name: "Add new service" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add a service");
+  // The full service form, with a service's coming-soon layers.
+  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(4);
   // On a phone the sheet is the whole screen, with Save in reach.
   const box = (await sheet(page).boundingBox())!;
   expect(box.width).toBeGreaterThan(page.viewportSize()!.width - 2);
-  await expect(sheet(page).getByRole("button", { name: "Add product" })).toBeInViewport();
+  await expect(sheet(page).getByRole("button", { name: "Add service" })).toBeInViewport();
 
   await sheet(page).getByLabel("Name", { exact: true }).fill("Design time");
-  await sheet(page).getByRole("radio", { name: /A service/ }).check();
   await sheet(page).getByLabel("Price", { exact: true }).fill("450");
-  await sheet(page).getByRole("button", { name: "Add product" }).click();
+  await sheet(page).getByRole("button", { name: "Add service" }).click();
 
   // Straight on to configuring it.
   await expect(sheet(page)).toHaveAccessibleName("Add Design time");
@@ -118,14 +120,14 @@ test("add a new product from inside a quote, then straight on to configuring it"
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
   await expect(page.getByLabel("Notes for the customer (optional)")).toHaveValue("Kept while adding a product");
 
-  // It is a real product, and now offered in the sheet.
+  // It is a real service, and now offered in the sheet under Services.
   await page.getByRole("button", { name: "Add item" }).click();
-  await expect(sheet(page).getByRole("button", { name: /Design time/ })).toBeVisible();
+  await expect(sheet(page).getByRole("region", { name: "Services" }).getByRole("button", { name: /Design time/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}/);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
-  await expect(page.getByRole("link", { name: /Design time/ })).toContainText("Service");
+  await page.goto("/app/products?view=services");
+  await expect(page.getByRole("link", { name: /Design time/ })).toBeVisible();
 });
 
 test("fixing a product's name from a line: a new line follows it, a line already on the quote is offered it", async ({ page }) => {
