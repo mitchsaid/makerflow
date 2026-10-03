@@ -128,7 +128,8 @@ export function QuoteBuilder({
   function productSaved(product: ProductSummary) {
     setProducts((list) =>
       list.some((p) => p.id === product.id)
-        ? list.map((p) => (p.id === product.id ? product : p))
+        ? // An edit never changes whether a product is archived.
+          list.map((p) => (p.id === product.id ? { ...product, archived: p.archived } : p))
         : [...list, product],
     );
   }

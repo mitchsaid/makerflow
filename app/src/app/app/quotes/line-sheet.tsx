@@ -191,7 +191,15 @@ export function LineSheet({
                     // Straight on to configuring it for this quote.
                     onView({ kind: "configure", line: lineFromProduct(product, newKey(), numberStyle), isNew: true });
                   } else if (view.returnTo) {
-                    onView({ kind: "configure", ...view.returnTo });
+                    const { line, isNew } = view.returnTo;
+                    onView({
+                      kind: "configure",
+                      isNew,
+                      // A line not yet on the quote takes the product's changes for everything
+                      // still as the product had it; a line already on the quote keeps its own
+                      // copy and is offered the changes instead.
+                      line: isNew && view.product ? followProduct(line, view.product, product, numberStyle) : line,
+                    });
                   } else {
                     onView({ kind: "pick" });
                   }
@@ -203,6 +211,25 @@ export function LineSheet({
       </SheetContent>
     </Sheet>
   );
+}
+
+/** The fields of a new line that still match the product before it was edited take its new values. */
+function followProduct(
+  line: LineFormValues,
+  before: ProductSummary,
+  after: ProductSummary,
+  style: NumberStyle,
+): LineFormValues {
+  return {
+    ...line,
+    kind: after.kind,
+    name: line.name === before.name ? after.name : line.name,
+    description: line.description === (before.description ?? "") ? (after.description ?? "") : line.description,
+    unitPrice:
+      line.unitPrice === moneyToInput(before.unitPriceCents, style)
+        ? moneyToInput(after.unitPriceCents, style)
+        : line.unitPrice,
+  };
 }
 
 function productValues(p: ProductSummary, style: NumberStyle): ProductFormValues {
@@ -362,6 +389,19 @@ function ConfigureView({
             <p className="text-base font-medium" data-testid="configure-name">
               {line.name}
             </p>
+            {product && product.name !== line.name && (
+              <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-name-hint">
+                <span className="text-muted-foreground">The product is now called “{product.name}”.</span>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0"
+                  onClick={() => setLine((l) => ({ ...l, name: product.name, kind: product.kind }))}
+                >
+                  Use the new name
+                </Button>
+              </div>
+            )}
             {product && (
               <Button type="button" variant="outline" onClick={() => onEditProduct(product, line)}>
                 Edit this product

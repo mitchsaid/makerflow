@@ -128,6 +128,40 @@ test("add a new product from inside a quote, then straight on to configuring it"
   await expect(page.getByRole("link", { name: /Design time/ })).toContainText("Service");
 });
 
+test("fixing a product's name from a line: a new line follows it, a line already on the quote is offered it", async ({ page }) => {
+  await signUpAndOnboard(page, "piq-typo", "Typo Co");
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: "Add new product" }).click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Weding cake");
+  await sheet(page).getByLabel("Price", { exact: true }).fill("800");
+  await sheet(page).getByRole("button", { name: "Add product" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add Weding cake");
+  await sheet(page).getByLabel("Quantity").fill("2");
+
+  // Fix the typo before the line is added: the line follows, and keeps the quantity typed.
+  await sheet(page).getByRole("button", { name: "Edit this product" }).click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await sheet(page).getByLabel("Price", { exact: true }).fill("850");
+  await sheet(page).getByRole("button", { name: "Save changes" }).click();
+  await expect(sheet(page).getByTestId("configure-name")).toHaveText("Wedding cake");
+  await expect(sheet(page).getByLabel("Quantity")).toHaveValue("2");
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("850");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(line(page, 1)).toContainText("Wedding cake");
+
+  // Once on the quote, a change to the product is offered, not applied.
+  await line(page, 1).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("button", { name: "Edit this product" }).click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Wedding cake (3 tiers)");
+  await sheet(page).getByRole("button", { name: "Save changes" }).click();
+  await expect(sheet(page).getByTestId("configure-name")).toHaveText("Wedding cake");
+  await sheet(page).getByRole("button", { name: "Use the new name" }).click();
+  await expect(sheet(page).getByTestId("configure-name")).toHaveText("Wedding cake (3 tiers)");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(line(page, 1)).toContainText("Wedding cake (3 tiers)");
+});
+
 test("an archived product is not offered for new lines", async ({ page }) => {
   await signUpAndOnboard(page, "piq-arch", "Archive Co");
   await addProduct(page, "Old cake", "100");

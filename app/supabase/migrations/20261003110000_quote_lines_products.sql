@@ -25,6 +25,9 @@ alter table public.quote_lines
 
 grant insert (product_id) on public.quote_lines to authenticated;
 
+create index quote_lines_org_product_idx
+  on public.quote_lines (organisation_id, product_id) where product_id is not null;
+
 create or replace function public.save_quote_draft(
   p_org uuid,
   p_quote_id uuid,
