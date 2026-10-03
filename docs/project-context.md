@@ -5,6 +5,7 @@ Last updated: 2026-10-02. Keep it current; it is how a fresh session (local or c
 ## Working with the founder
 - Solo founder. Prefers plain language, short numbered steps, and an explicit "who does what" (founder vs Claude).
 - Decisions are asked as short multiple-choice forms with a recommended option first. Plan first for anything bigger than a small fix, then build in thin slices.
+- **Thin slices keep the real interaction** (founder, 2026-10-03): build the full feature's flow and show what isn't built yet as visible but inactive placeholder sections ("coming soon"), never a stand-in interaction. Placeholders show in production the same as on dev for now. See `docs/product-brief.md`, principle 9.
 - Cost-conscious: free tiers while testing, paid only when real users depend on it.
 - Verify claims and say what is unverified. Own mistakes plainly. Never guess at prices or product behaviour: check the docs.
 - Do not open a pull request unless asked; give the compare link instead. The founder reviews and merges. Auth, RLS, money, tax and migrations get human review: say so.

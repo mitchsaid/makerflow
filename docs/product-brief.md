@@ -22,6 +22,7 @@ Product
 7. **Jurisdiction is configuration.** South Africa is the first "locale pack": VAT rules, document titles, required invoice fields, numbering, currency. Nothing SA-specific is hard-coded outside it.
 8. **Multi-tenant from day one.** Every business record belongs to an organisation. Users join through a membership with a role, even while the UI only shows "owner".
 9. **Build in layers.** Ship a thin working slice, then add capability. Model the data for the full vision, and expose only what the current layer needs.
+   - **A thin slice uses the full feature's interaction, with placeholders for what isn't built yet, never a different interaction that is replaced later** (founder, 2026-10-03). Example: the first customers slice should have been "Add new customer" opening the customer form with only the name working, not a name typed straight into the quote. Unbuilt parts appear as **visible but inactive sections** (for example "Options: coming soon") so the maker sees where they will go. They show in production too, the same as on dev, until the founder decides otherwise.
 
 Engineering
 10. Tests and CI are the feedback loop. Every slice ships with tests. Auth, RLS, money and tax logic are reviewed by a human.
