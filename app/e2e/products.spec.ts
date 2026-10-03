@@ -3,7 +3,7 @@ import { signUpAndOnboard } from "./helpers";
 
 async function openProducts(page: Page) {
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
-  await expect(page.getByRole("heading", { name: "Products", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Products & services", level: 1 })).toBeVisible();
 }
 
 async function addProduct(page: Page, name: string, price: string) {
@@ -66,32 +66,55 @@ test("a failed save says what to fix and keeps what you typed", async ({ page })
   await expect(page.getByTestId("product-added")).toBeVisible();
 });
 
-test("a service with a description saves, edits and comes back", async ({ page }) => {
+test("services are their own list, with their own form, and save, edit and come back", async ({ page }) => {
   await signUpAndOnboard(page, "p-edit", "Service Co");
-  await page.goto("/app/products/new");
+  await openProducts(page);
+  const switcher = page.getByRole("navigation", { name: "Products or services" });
+  await expect(switcher.getByRole("link", { name: "Products" })).toHaveAttribute("aria-current", "page");
+  await switcher.getByRole("link", { name: "Services" }).click();
+  await expect(page).toHaveURL(/view=services/);
+  await expect(page.getByText("No services yet")).toBeVisible();
+  // The Shopify import is about products only.
+  await expect(page.getByTestId("coming-soon")).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Add your first service" }).click();
+  await expect(page.getByRole("heading", { name: "Add a service", level: 1 })).toBeVisible();
+  // A service's own coming-soon layers: no photo or stock.
+  const placeholders = page.getByTestId("coming-soon");
+  await expect(placeholders).toHaveCount(4);
+  for (const title of ["Variations and extras", "Costs and margin", "Quantity prices", "Steps"]) {
+    await expect(placeholders.filter({ hasText: title })).toHaveCount(1);
+  }
+  await expect(page.getByText("Stock")).toHaveCount(0);
+
   await page.getByLabel("Name", { exact: true }).fill("Design time");
-  await page.getByRole("radio", { name: /A service/ }).check();
   await page.getByLabel("Price", { exact: true }).fill("450,50");
   await page.getByLabel("Description (optional)").fill("Per hour\nMinimum one hour");
-  await page.getByRole("button", { name: "Add product" }).click();
+  await page.getByRole("button", { name: "Add service" }).click();
   await expect(page.getByTestId("product-added")).toBeVisible();
+  await expect(page).toHaveURL(/view=services/);
 
   const row = page.getByRole("link", { name: /Design time/ });
-  await expect(row).toContainText("Service");
   await expect(row).toContainText(/R\s?450,50/);
-  await row.click();
+  // Not in the products list.
+  await switcher.getByRole("link", { name: "Products" }).click();
+  await expect(page.getByText("No products yet")).toBeVisible();
+  await switcher.getByRole("link", { name: "Services" }).click();
+
+  await page.getByRole("link", { name: /Design time/ }).click();
   await expect(page.getByRole("heading", { name: "Design time", level: 1 })).toBeVisible();
-  await expect(page.getByRole("radio", { name: /A service/ })).toBeChecked();
+  await expect(page.getByTestId("coming-soon")).toHaveCount(4);
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("450,50");
   await expect(page.getByLabel("Description (optional)")).toHaveValue("Per hour\nMinimum one hour");
-
   await page.getByLabel("Price", { exact: true }).fill("500");
-  await page.getByRole("radio", { name: /A product/ }).check();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("500");
-  await expect(page.getByRole("radio", { name: /A product/ })).toBeChecked();
+
+  // Archiving a service returns to the services list.
+  await page.getByRole("button", { name: "Archive service" }).click();
+  await expect(page).toHaveURL(/\/app\/products\?view=services$/);
 });
 
 test("the price label follows the business's VAT setting", async ({ page }) => {

@@ -121,7 +121,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "saved quote");
 
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
-      await expect(page.getByRole("heading", { name: "Products", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Products & services", level: 1 })).toBeVisible();
       await expectNoViolations(page, "products, empty");
       await page.getByRole("link", { name: "Add your first product" }).click();
       await expect(page.getByRole("heading", { name: "Add a product", level: 1 })).toBeVisible();
@@ -134,6 +134,13 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("product-added")).toBeVisible();
       await expectNoViolations(page, "products, with a product");
+      await page.getByRole("navigation", { name: "Products or services" }).getByRole("link", { name: "Services" }).click();
+      await expect(page.getByText("No services yet")).toBeVisible();
+      await expectNoViolations(page, "services, empty");
+      await page.getByRole("link", { name: "Add your first service" }).click();
+      await expect(page.getByRole("heading", { name: "Add a service", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "add service");
+      await page.goto("/app/products");
       await page.getByRole("link", { name: /Axe product/ }).click();
       await expect(page.getByRole("heading", { name: "Axe product", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit product");

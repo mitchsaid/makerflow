@@ -41,7 +41,7 @@ page.on("request", (r) => {
 });
 
 // "Reacted" = a loading skeleton is showing, or the destination's real content is.
-const HEADINGS = { Quotes: "Quotes", Customers: "Customers", Products: "Products", More: "More" };
+const HEADINGS = { Quotes: "Quotes", Customers: "Customers", Products: "Products & services", More: "More" };
 // Runs in the browser, so it must not use anything from this file: the heading comes in as the argument.
 const REACTED = (heading) =>
   !!document.querySelector('[data-testid="page-loading"]') ||
