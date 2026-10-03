@@ -54,3 +54,6 @@ SQL: isolation between businesses, any member manages products, no delete, archi
 3. **Products gets its own tab on phones:** Home, Quotes, Customers, Products, More (Business profile and Settings stay under More).
 4. **Services are separate in the interface** (founder, 2026-10-03, restoring the 2026-10-01 decision in `docs/plans/onboarding.md` that the first build missed): the item sheet offers **Add new product**, **Add new service** and **One-off item**, and lists products and services as separate groups; the Products tab is **"Products & services"** with a Products / Services switch (the phone tab keeps the short label "Products"); the kind is set by where the form was opened, not by a choice on the form. A service's "coming soon" layers are Variations and extras, Costs and margin (your time and other costs), Quantity prices and Steps (no photo or stock). Underneath it is still one table with a `kind`, so nothing in the database changed.
 
+## Later: the product form's layout (founder, 2026-10-03)
+To be worked through together when the first layer beyond the basics is built. Starting point: **three tabs**, matching the concepts "what it is" (basics, variations and extras), "what goes in" (materials, time and other costs) and "how it's made" (production steps), not one tab per layer. Weigh against phone screens and the error standard when designing.
+
