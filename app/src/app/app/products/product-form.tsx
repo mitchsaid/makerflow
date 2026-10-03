@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { ProductFieldErrors, ProductKind } from "@/lib/products";
+import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { ProductFormValues } from "./product-values";
@@ -29,6 +29,32 @@ const COMING_SOON = [
 const initialState: ProductSaveState = { status: "idle" };
 type Action = (previous: ProductSaveState, formData: FormData) => Promise<ProductSaveState>;
 
+/**
+ * Set when the form is shown in a sheet over a quote: instead of navigating, it hands the
+ * saved product back and leaves the quote underneath untouched.
+ */
+export type EmbeddedProductForm = {
+  onDone: (product: ProductSummary) => void;
+  onCancel: () => void;
+  /** The sheet must not close while a save is on its way: the result would be lost. */
+  onPendingChange: (pending: boolean) => void;
+};
+
+/** In a sheet, a failed request (no signal) shows a message instead of an error page. */
+function guarded(action: Action): Action {
+  return async (previous, formData) => {
+    try {
+      return await action(previous, formData);
+    } catch (error) {
+      console.error("product form request failed:", error);
+      return {
+        status: "error",
+        message: "Couldn't reach the server. Check your connection and try again. Nothing you typed is lost.",
+      };
+    }
+  };
+}
+
 /** Add or edit a product. The basics work; the later layers are shown as "coming soon". */
 export function ProductForm({
   action,
@@ -36,6 +62,7 @@ export function ProductForm({
   mode,
   priceLabel,
   idPrefix = "",
+  embedded,
 }: {
   action: Action;
   initial: ProductFormValues;
@@ -44,8 +71,22 @@ export function ProductForm({
   priceLabel: string;
   /** In front of every field id, for when the form shares a page with other fields. */
   idPrefix?: string;
+  embedded?: EmbeddedProductForm;
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending] = useActionState(embedded ? guarded(action) : action, initialState);
+  // Hand the result to whoever opened the sheet, once per result.
+  const embeddedRef = useRef(embedded);
+  useEffect(() => {
+    embeddedRef.current = embedded;
+  });
+  useEffect(() => {
+    if (state.status === "created" || (state.status === "saved" && embeddedRef.current)) {
+      embeddedRef.current?.onDone(state.product);
+    }
+  }, [state]);
+  useEffect(() => {
+    embeddedRef.current?.onPendingChange(pending);
+  }, [pending]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -145,17 +186,34 @@ export function ProductForm({
         </Alert>
       )}
       <FormSummary problems={problems} trigger={state} />
-      {state.status === "saved" && !pending && !editedSinceSave && (
+      {state.status === "saved" && !embedded && !pending && !editedSinceSave && (
         <p role="status" className="text-sm font-medium">
           Saved.
         </p>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div
+        className={
+          embedded
+            ? "sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-border bg-popover px-4 py-3 sm:flex-row"
+            : "flex flex-col gap-3 sm:flex-row"
+        }
+      >
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? "Saving…" : mode === "edit" ? "Save changes" : "Add product"}
         </Button>
-        {mode === "add" && (
+        {embedded && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={pending}
+            onClick={embedded.onCancel}
+          >
+            Cancel
+          </Button>
+        )}
+        {mode === "add" && !embedded && (
           <Link
             href="/app/products"
             className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto" })}

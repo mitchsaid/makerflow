@@ -1,5 +1,5 @@
 import { moneyToInput, percentToInput, quantityToInput, type NumberStyle } from "../money";
-import type { DiscountKind, Fulfilment, LineFormValues, QuoteFormValues } from "./index";
+import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, QuoteFormValues } from "./index";
 
 /** The fields of a stored quote that the builder form needs (see StoredQuote in ./data). */
 export type StoredQuoteFields = {
@@ -14,6 +14,7 @@ export type StoredQuoteFields = {
     id: string;
     sortOrder: number;
     kind: string;
+    productId: string | null;
     name: string;
     description: string | null;
     quantityMilli: number;
@@ -39,6 +40,8 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     .filter((l) => l.kind !== "delivery" && l.kind !== "collection")
     .map((l) => ({
       key: l.id,
+      kind: (l.productId ? l.kind : "custom") as ItemKind,
+      productId: l.productId ?? "",
       name: l.name,
       description: l.description ?? "",
       quantity: quantityToInput(l.quantityMilli, style),

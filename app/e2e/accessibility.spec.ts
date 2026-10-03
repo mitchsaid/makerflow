@@ -90,17 +90,31 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, edit customer sheet");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await page.getByRole("button", { name: "Add a description or discount" }).click();
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /Delivery/ }).check();
       await expectNoViolations(page, "new quote, all sections open");
-      await page.getByLabel("Quantity").fill("0");
+
+      // The item sheet: pick, one-off configure (with errors), product form.
+      await page.getByRole("button", { name: "Add item" }).click();
+      await expect(page.getByRole("dialog", { name: "Add an item" })).toBeVisible();
+      await expectNoViolations(page, "item sheet, pick");
+      await page.getByRole("dialog").getByRole("button", { name: "Add new product" }).click();
+      await expect(page.getByRole("dialog", { name: "Add a product" })).toBeVisible();
+      await expectNoViolations(page, "item sheet, add product");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
+      await expect(page.getByRole("dialog", { name: "One-off item" })).toBeVisible();
+      await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "item sheet, configure with errors");
+      await page.getByRole("dialog").getByLabel("Name", { exact: true }).fill("Axe item");
+      await page.getByRole("dialog").getByLabel(/^Price/).fill("10");
+      await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "new quote with errors");
-      await page.getByLabel("Item name").fill("Axe item");
-      await page.getByLabel("Quantity").fill("1");
-      await page.getByLabel("Price").fill("10");
       await page.getByLabel("Discount (%)").first().fill("5");
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByText("Draft saved.")).toBeVisible();

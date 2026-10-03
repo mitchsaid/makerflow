@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { forOrganisation } from "@/lib/customers";
 import { getCustomers } from "@/lib/customers/data";
+import { getProducts } from "@/lib/products/data";
+import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
-import { blankLine } from "@/lib/quotes";
 import { addDays, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
@@ -12,8 +12,10 @@ import { QuoteBuilder } from "../quote-builder";
 const DEFAULT_VALID_DAYS = 14;
 
 export default async function NewQuotePage() {
-  const [allCustomers, { organisation, profile }] = await Promise.all([
+  // Customers and products load beside the workspace check, not after it.
+  const [allCustomers, allProducts, { organisation, profile }] = await Promise.all([
     getCustomers(),
+    getProducts(),
     requireOrganisation(),
   ]);
   const locale = getLocalePack(profile.countryCode);
@@ -35,7 +37,7 @@ export default async function NewQuotePage() {
           issueDate: today,
           validUntil: addDays(today, DEFAULT_VALID_DAYS),
           neededBy: "",
-          lines: [blankLine("n-0")],
+          lines: [],
           fulfilment: "none",
           deliveryFee: "",
           discountKind: "none",
@@ -43,6 +45,7 @@ export default async function NewQuotePage() {
           notes: "",
         }}
         customers={customerOptions(customers)}
+        products={forOrganisation(allProducts, organisation.id)}
         vat={vatSettingsFor(profile, locale)}
         currencyCode={profile.currencyCode}
         countryCode={profile.countryCode}

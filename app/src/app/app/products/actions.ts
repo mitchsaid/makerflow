@@ -3,12 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { parseProductForm, type ProductFieldErrors, type ProductFields } from "@/lib/products";
+import {
+  parseProductForm,
+  type ProductFieldErrors,
+  type ProductFields,
+  type ProductSummary,
+} from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProductSaveState =
   | { status: "idle" }
-  | { status: "saved" }
+  | { status: "saved"; product: ProductSummary }
+  /** Added from inside a quote: nothing is redirected, the quote keeps what was typed. */
+  | { status: "created"; product: ProductSummary }
   | { status: "error"; message?: string; errors?: ProductFieldErrors };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -23,14 +30,16 @@ function toRow(p: ProductFields) {
   };
 }
 
-/** Adds a product, then shows the list. Any member of the business can. */
-export async function createProduct(
-  _previous: ProductSaveState,
+function summaryFor(id: string, organisationId: string, p: ProductFields): ProductSummary {
+  return { id, organisationId, archived: false, ...p };
+}
+
+async function insertProduct(
   formData: FormData,
-): Promise<ProductSaveState> {
+): Promise<{ ok: true; product: ProductSummary } | { ok: false; state: ProductSaveState }> {
   const { organisation } = await requireOrganisation();
   const parsed = parseProductForm(formData);
-  if (!parsed.ok) return { status: "error", errors: parsed.errors };
+  if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 
   const supabase = await createClient();
   const { data: created, error } = await supabase
@@ -40,11 +49,30 @@ export async function createProduct(
     .single();
   if (error || !created) {
     console.error("could not add product:", error?.message);
-    return { status: "error", message: GENERIC_ERROR };
+    return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
   }
 
   revalidatePath("/app/products");
-  redirect(`/app/products?added=${created.id}`);
+  return { ok: true, product: summaryFor(created.id, organisation.id, parsed.value) };
+}
+
+/** Adds a product from the Products screen, then shows the list. Any member can. */
+export async function createProduct(
+  _previous: ProductSaveState,
+  formData: FormData,
+): Promise<ProductSaveState> {
+  const result = await insertProduct(formData);
+  if (!result.ok) return result.state;
+  redirect(`/app/products?added=${result.product.id}`);
+}
+
+/** Adds a product from inside a quote and hands it back, so it can go straight onto a line. */
+export async function createProductInQuote(
+  _previous: ProductSaveState,
+  formData: FormData,
+): Promise<ProductSaveState> {
+  const result = await insertProduct(formData);
+  return result.ok ? { status: "created", product: result.product } : result.state;
 }
 
 /** Saves changes to a product. Quote lines keep their own copy, so they do not change. */
@@ -71,7 +99,7 @@ export async function updateProduct(
   }
 
   revalidatePath("/app/products");
-  return { status: "saved" };
+  return { status: "saved", product: summaryFor(id, organisation.id, parsed.value) };
 }
 
 export type ProductArchiveState = { status: "idle" } | { status: "error"; message: string };

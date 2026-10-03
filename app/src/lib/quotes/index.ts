@@ -30,9 +30,15 @@ export const QUOTE_LINE_DESCRIPTION_MAX = 1000;
 export const QUOTE_NOTES_MAX = 2000;
 export const QUOTE_MAX_LINES = 100;
 
+/** A line from a saved product or service, or a one-off item typed for this quote. */
+export type ItemKind = "product" | "service" | "custom";
+
 export type LineFormValues = {
   /** Identifies the line on the screen (and in errors) while it is being edited. */
   key: string;
+  kind: ItemKind;
+  /** The product it came from, or "" for a one-off item. The line keeps its own copy anyway. */
+  productId: string;
   name: string;
   description: string;
   quantity: string;
@@ -74,6 +80,7 @@ export type QuoteErrors = {
 export type ParsedLine = {
   key: string;
   kind: LineKind;
+  productId: string | null;
   name: string;
   description: string | null;
   quantityMilli: QuantityMilli;
@@ -98,6 +105,7 @@ export type ParseQuoteResult = { ok: true; quote: ParsedQuote } | { ok: false; e
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const DISCOUNT_KINDS: readonly unknown[] = ["none", "percent", "fixed"];
+const ITEM_KINDS: readonly unknown[] = ["product", "service", "custom"];
 const FULFILMENTS: readonly unknown[] = ["none", "collection", "delivery"];
 /** Far more rows than a quote can hold, so a hand-built request can't make us parse thousands. */
 const MAX_RAW_LINES = 500;
@@ -118,9 +126,11 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
     if (typeof line !== "object" || line === null) return false;
     const l = line as Record<string, unknown>;
     return (
-      ["key", "name", "description", "quantity", "unitPrice", "discountValue"].every(
+      ["key", "productId", "name", "description", "quantity", "unitPrice", "discountValue"].every(
         (key) => typeof l[key] === "string",
-      ) && DISCOUNT_KINDS.includes(l.discountKind)
+      ) &&
+      DISCOUNT_KINDS.includes(l.discountKind) &&
+      ITEM_KINDS.includes(l.kind)
     );
   });
 }
@@ -129,6 +139,8 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
 export function blankLine(key: string): LineFormValues {
   return {
     key,
+    kind: "custom",
+    productId: "",
     name: "",
     description: "",
     quantity: "1",
@@ -166,8 +178,19 @@ function discountFrom(
   return { ok: true, value: { kind: "fixed", cents: r.value } };
 }
 
-function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } | { ok: false; errors: LineErrors } {
+/**
+ * Checks one line on its own: the configure sheet uses it before adding a line to the quote,
+ * and parseQuote uses it for every line.
+ */
+export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } | { ok: false; errors: LineErrors } {
   const errors: LineErrors = {};
+
+  // Where the line came from. Only a hand-built request could get these wrong.
+  const fromProduct = line.productId !== "";
+  const validSource = fromProduct
+    ? UUID.test(line.productId) && (line.kind === "product" || line.kind === "service")
+    : line.kind === "custom";
+  if (!validSource) errors.name = "This item could not be read. Remove it and add it again.";
 
   const name = optionalText(line.name, QUOTE_LINE_NAME_MAX, "The item name");
   if (!name.ok) errors.name = name.error;
@@ -195,7 +218,8 @@ function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } | { ok:
     ok: true,
     line: {
       key: line.key,
-      kind: "custom",
+      kind: line.kind,
+      productId: fromProduct ? line.productId : null,
       name: name.value!,
       description: description.value,
       quantityMilli: quantity.value,
@@ -223,14 +247,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", name: "Collection", description: null, quantityMilli: 1000, unitPriceCents: 0 },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unitPriceCents: 0 },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: fee.value },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: fee.value },
   };
 }
 
@@ -351,6 +375,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
     lines.push({
       key: line.key,
       kind: "custom",
+      productId: null,
       name: line.name,
       description: null,
       quantityMilli: quantity.value,
@@ -397,6 +422,7 @@ export function toDatabasePayload(
     lines: quote.lines.map((l, i) => ({
       sort_order: i,
       kind: l.kind,
+      product_id: l.productId,
       name: l.name,
       description: l.description,
       quantity_milli: l.quantityMilli,

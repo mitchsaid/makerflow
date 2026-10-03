@@ -66,6 +66,7 @@ type LineRow = {
   id: string;
   sort_order: number;
   kind: string;
+  product_id: string | null;
   name: string;
   description: string | null;
   quantity_milli: number;
@@ -104,6 +105,7 @@ export type StoredQuote = {
     id: string;
     sortOrder: number;
     kind: string;
+    productId: string | null;
     name: string;
     description: string | null;
     quantityMilli: number;
@@ -123,7 +125,7 @@ export async function getStoredQuote(id: string): Promise<StoredQuote> {
       `id, organisation_id, customer_id, status, issue_date, valid_until, needed_by,
        quote_discount_kind, quote_discount_value, notes,
        quote_lines (
-         id, sort_order, kind, name, description, quantity_milli, unit_price_cents,
+         id, sort_order, kind, product_id, name, description, quantity_milli, unit_price_cents,
          discount_kind, discount_value
        )`,
     )
@@ -147,6 +149,7 @@ export async function getStoredQuote(id: string): Promise<StoredQuote> {
       id: l.id,
       sortOrder: l.sort_order,
       kind: l.kind,
+      productId: l.product_id,
       name: l.name,
       description: l.description,
       quantityMilli: Number(l.quantity_milli),
