@@ -1,56 +1,6 @@
-import { devices, expect, test, type Page } from "@playwright/test";
+import { devices, expect, test } from "@playwright/test";
 import { openBusinessProfile, signUpAndOnboard } from "./helpers";
-
-const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
-
-async function openQuotes(page: Page) {
-  await nav(page).getByRole("link", { name: "Quotes" }).click();
-  await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
-}
-
-/** The nth line on the quote (1-based). */
-const item = (page: Page, n: number) => page.getByTestId("quote-line").nth(n - 1);
-const sheet = (page: Page) => page.getByRole("dialog");
-
-/** Adds a one-off item through the item sheet, as the nth line. */
-async function fillItem(
-  page: Page,
-  n: number,
-  name: string,
-  quantity: string,
-  price: string,
-  discountPercent?: string,
-) {
-  await page.getByRole("button", { name: "Add item" }).click();
-  await sheet(page).getByRole("button", { name: /One-off item/ }).click();
-  await expect(sheet(page)).toHaveAccessibleName("One-off item");
-  await sheet(page).getByLabel("Name", { exact: true }).fill(name);
-  await sheet(page).getByLabel("Quantity").fill(quantity);
-  await sheet(page).getByLabel(/^Price/).fill(price);
-  if (discountPercent) {
-    await sheet(page).getByLabel("Discount on this item").selectOption("percent");
-    await sheet(page).getByLabel("Item discount (%)").fill(discountPercent);
-  }
-  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
-  await expect(sheet(page)).toHaveCount(0);
-  await expect(item(page, n)).toContainText(name);
-}
-
-/** "R 1 036,00" in any of the spacing characters the browser might use. */
-const rand = (whole: string, cents = "00") =>
-  new RegExp(`^R\\s?${whole.replace(/ /g, "\\s")},${cents}$`);
-
-/** Types a new name in the picker and adds them through the full customer form in the sheet. */
-async function addCustomerInSheet(page: Page, name: string, details: { phone?: string } = {}) {
-  await page.getByLabel("Customer", { exact: true }).fill(name);
-  await page.getByRole("option", { name: new RegExp(`Add “${name}”`) }).click();
-  const sheet = page.getByRole("dialog", { name: "Add a customer" });
-  await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue(name);
-  if (details.phone) await sheet.getByLabel("Phone", { exact: true }).fill(details.phone);
-  await sheet.getByRole("button", { name: "Add customer" }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByTestId("selected-customer")).toHaveText(name);
-}
+import { addCustomerInSheet, fillItem, item, openQuotes, rand, sheet } from "./quote-helpers";
 
 test("build a quote: a new customer on the spot, two items, delivery; it saves and comes back", async ({ page }) => {
   await signUpAndOnboard(page, "q-build", "Quote Co");
@@ -85,7 +35,7 @@ test("build a quote: a new customer on the spot, two items, delivery; it saves a
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   await expect(page.getByText("Draft saved.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /^Quote/, level: 1 })).toContainText("draft");
+  await expect(page.getByRole("heading", { name: /^Quote/, level: 1 })).toContainText("Draft");
 
   // Everything is still there after a reload.
   await page.reload();
@@ -115,7 +65,7 @@ test("build a quote: a new customer on the spot, two items, delivery; it saves a
   // The list shows it.
   await openQuotes(page);
   const row = page.getByRole("link", { name: /Thandi Nkosi/ });
-  await expect(row).toContainText("draft");
+  await expect(row).toContainText("Draft");
   await expect(row).toContainText(/R\s?850,00/);
 });
 

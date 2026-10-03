@@ -1,10 +1,15 @@
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
+import { formatDocumentNumber } from "@/lib/quotes/numbering";
+import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { BusinessProfileForm, type FormValues } from "./business-profile-form";
+import { QuoteNumberingForm } from "./quote-numbering-form";
 
 export default async function BusinessProfilePage() {
-  const { organisation, profile, role } = await requireOrganisation();
+  // The numbering query runs beside the workspace check, not after it.
+  const [{ organisation, profile, role }, sequences] = await Promise.all([requireOrganisation(), getQuoteSequences()]);
+  const sequence = sequenceFor(sequences, organisation.id);
 
   const initial: FormValues = {
     name: organisation.name,
@@ -33,6 +38,25 @@ export default async function BusinessProfilePage() {
             <CardDescription className="text-base">
               Only owners and admins can change these details. You can see them on your
               quotes and invoices.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {canEditBusinessProfile(role) ? (
+        <QuoteNumberingForm
+          initialPrefix={sequence.prefix}
+          initialNext={sequence.nextNumber}
+          minDigits={sequence.minDigits}
+          lastIssued={sequence.lastIssued}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Quote numbers</CardTitle>
+            <CardDescription className="text-base">
+              Your next quote will be {formatDocumentNumber(sequence.prefix, sequence.nextNumber, sequence.minDigits)}.
+              Only owners and admins can change how quotes are numbered.
             </CardDescription>
           </CardHeader>
         </Card>

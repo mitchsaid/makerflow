@@ -54,7 +54,9 @@ begin
      and p.proname not in (
        'ensure_organisation', 'has_org_role', 'is_org_member', 'session_is_active',
        -- security invoker: every statement runs under the caller's row-level security
-       'save_quote_draft'
+       'save_quote_draft',
+       -- security definer, checks the session and the owner/admin role itself
+       'set_document_numbering'
      );
   assert missing is null,
     format('unexpected functions callable by signed-in users (do they check the session?): %s', missing);

@@ -8,6 +8,8 @@ async function expectNoViolations(page: Page, where: string) {
   // The page title streams in just after the page itself; checking before it arrives reports a
   // missing title that is not really missing.
   await expect(page).toHaveTitle(/.+/);
+  // Sheets fade in; colours measured halfway through a fade are not the colours people see.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
@@ -120,6 +122,31 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByText("Draft saved.")).toBeVisible();
       await expectNoViolations(page, "saved quote");
 
+      // Sending: what is missing (the business has no phone or email yet), then the choice.
+      await page.getByRole("button", { name: "Send", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Before you can send this quote" })).toBeVisible();
+      await expectNoViolations(page, "send sheet, something missing");
+      await page.getByRole("dialog").getByLabel(/^Phone/).fill("bad");
+      await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "send sheet, contact error");
+      await page.getByRole("dialog").getByLabel(/^Phone/).fill("011 555 0101");
+      await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
+      await expect(page.getByRole("dialog", { name: "Send this quote" })).toContainText("QT-0001");
+      await expectNoViolations(page, "send sheet, ready");
+      await page.getByRole("dialog").getByRole("button", { name: "Mark as sent" }).click();
+      await expect(page.getByTestId("sent-banner")).toBeVisible();
+      await expectNoViolations(page, "sent quote");
+      await page.getByRole("button", { name: "Revise this quote" }).click();
+      await expect(page.getByTestId("revising-note")).toBeVisible();
+      await expectNoViolations(page, "quote being revised");
+      await page.getByRole("link", { name: "View version 1" }).click();
+      await expect(page.getByTestId("editing-note")).toBeVisible();
+      await expectNoViolations(page, "the sent version of a quote being revised");
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Quotes" }).click();
+      await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "quotes, with a quote");
+
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
       await expect(page.getByRole("heading", { name: "Products & services", level: 1 })).toBeVisible();
       await expectNoViolations(page, "products, empty");
@@ -154,6 +181,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save details" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "business profile with errors");
+
+      // Quote numbers, with a number that has already been used.
+      await page.getByLabel("Next number", { exact: true }).fill("1");
+      await page.getByRole("button", { name: "Save quote numbers" }).click();
+      await expect(page.getByTestId("form-summary").first()).toBeVisible();
+      await expectNoViolations(page, "business profile, quote numbers with an error");
     });
   });
 }

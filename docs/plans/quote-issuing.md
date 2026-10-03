@@ -1,10 +1,10 @@
 # Plan: issuing a quote (slice 4 of `docs/plans/quotes.md`)
 
-Status: **proposed 2026-10-03; decisions 1–3 confirmed by the founder, numbering (decision 4) awaiting an answer.** The decisions already made live in `docs/plans/quotes.md` ("Numbering", "Lifecycle, revisions and records", "Sending and documents", "Minimum to send a quote", "What every quote must say"); this plan only adds what slice 4 needs on top.
+Status: **approved and built 2026-10-03** (founder confirmed all four decisions below). Written up in `docs/adr/0006-issuing-pdf-and-server-key.md`; migration `20261004100000_quote_issuing.sql`. The decisions already made live in `docs/plans/quotes.md` ("Numbering", "Lifecycle, revisions and records", "Sending and documents", "Minimum to send a quote", "What every quote must say"); this plan only adds what slice 4 needs on top.
 
 ## What the maker can do
 1. **Preview** a draft as the real PDF, at any time.
-2. **Send** a draft, two ways, both of which assign the number and freeze the quote:
+2. **Send** a draft, two ways, both of which freeze the quote (it already has its number):
    - **Share PDF:** the phone's share sheet (WhatsApp, email, messages) with the PDF attached; on a computer, download.
    - **Mark as sent:** for a quote sent some other way.
 3. If something the quote needs is missing, pressing Send opens a sheet listing exactly what (error standard): no customer, no items, or no way to contact the business (phone or email). The business contact fields are right there; saving them updates the Business profile and **carries on with the send**.
@@ -32,7 +32,13 @@ Following the thin-slice rule, the sent quote's actions that belong to later sli
 1. **Only our server can send.** Sending runs on our server with a server key the browser never sees; the database refuses send requests from anyone else, so nobody can freeze a quote with totals that don't match its lines, even by calling the database directly. Invoices will use the same path. **Founder step before this ships:** add the Supabase secret key to Vercel's environment settings (exact steps given at the time; it never goes in chat, code or GitHub).
 2. **Revise is in this slice** (see "What the maker can do", item 5), not a placeholder.
 3. **Sending options:** Share PDF (download on a computer) and Mark as sent work; Email to the customer and the online link are visible "coming soon".
-4. **Numbering on drafts: open.** The founder asked whether a draft can show its reserved number, and what competitors do. Options and a recommendation are with the founder; this section is updated with the answer.
+4. **Numbering: a number is given when the draft is first saved and shown on it** (founder, 2026-10-03, after comparing Xero, Zoho, QuickBooks and Invoice Ninja). Deleting a never-sent draft leaves a gap, allowed for quotes. A revision keeps the number. Invoices stay gapless and are numbered when issued.
+
+## What was built beyond this plan
+- Quotes list: status filter chips with counts, number and version on each row.
+- A sent quote shows its versions, and `?version=` opens an earlier one; PDFs per version.
+- The PDF embeds Noto Sans; emoji and symbols are dropped from the PDF only.
+- **Not built (shown as "coming soon"):** accepted/declined, quote again, withdraw, email, online link. **Not built, not shown:** discarding a revision to go back to the sent version (opening Revise by mistake means sending version 2 unchanged for now).
 
 ## Tests
 SQL: only drafts can be sent; numbers are gapless and per business; a sent quote and its lines cannot change; events per business; the send path cannot be reached by a signed-in user directly; revising keeps the number, adds a version and leaves the earlier one unchanged; numbering settings. Unit: snapshot building, the PDF content. Browser (phone): preview, send by share and by mark-as-sent, the missing-details sheet carrying on with the send, a sent quote is read-only with its placeholders, expiry, numbering settings. Accessibility for every new screen and sheet.
