@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
@@ -21,7 +21,7 @@ import { sharePdf, useCanSharePdf } from "./share-pdf";
 const OFFLINE =
   "Couldn't reach the server. Check your connection, then open the quote to see whether it went through before trying again.";
 
-/** Where each problem is fixed on the quote page. */
+/** Where each problem is fixed: the id of the field on the edit screen. */
 const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label: string }> = {
   customer: { id: "customer", label: "Choose a customer" },
   items: { id: "add-item", label: "Add an item" },
@@ -29,7 +29,7 @@ const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label
 };
 
 /**
- * Pressing Send on a draft opens this. It looks at the saved quote and either lists exactly
+ * Pressing Send on the preview opens this. It looks at the saved quote and either lists exactly
  * what is missing (the business's phone or email can be added right here, and the send
  * carries on) or asks how it is being sent: share the PDF, or mark it as sent because it
  * went another way. Sending freezes the quote and keeps its number.
@@ -46,10 +46,9 @@ export function SendQuoteSheet({
   onOpenChange: (open: boolean) => void;
   /** Where focus goes when the sheet closes without sending. */
   returnFocusId: string;
-  /** Called with the field that needs fixing when it is not on this page (the sheet stays as is). */
-  onFix?: (fieldId: string) => void;
+  /** Called with the id of the field that needs fixing; it is on the edit screen, not here. */
+  onFix: (fieldId: string) => void;
 }) {
-  const focusTarget = useRef<string | null>(null);
   // While the quote is being sent the sheet stays open: closing it would hide what happened.
   const [busy, setBusy] = useState(false);
 
@@ -59,11 +58,7 @@ export function SendQuoteSheet({
         side="right"
         className="h-dvh gap-0 overflow-y-auto"
         finalFocus={() => {
-          // Used once: the next time the sheet closes without a fix, focus goes back to Send.
-          const id = focusTarget.current ?? returnFocusId;
-          focusTarget.current = null;
-          const el = document.getElementById(id);
-          el?.scrollIntoView({ block: "center" });
+          const el = document.getElementById(returnFocusId);
           return el ?? true;
         }}
       >
@@ -71,14 +66,7 @@ export function SendQuoteSheet({
         <SendFlow
           quoteId={quoteId}
           onBusyChange={setBusy}
-          onGoTo={(fieldId) => {
-            if (onFix) {
-              onFix(fieldId);
-              return;
-            }
-            focusTarget.current = fieldId;
-            onOpenChange(false);
-          }}
+          onGoTo={onFix}
         />
       </SheetContent>
     </Sheet>

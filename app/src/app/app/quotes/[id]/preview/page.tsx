@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,6 +28,9 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
   if (!prepared.ok) redirect(`/app/quotes/${id}`);
   const { snapshot } = prepared.value;
   const locale = getLocalePack(workspace.profile.countryCode);
+  // The picture is fetched again whenever anything the document says changes (for example the
+  // business adds a phone number in the send sheet), so it is never out of date.
+  const stamp = createHash("sha1").update(JSON.stringify(snapshot)).digest("hex").slice(0, 10);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -51,7 +55,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
         </AlertDescription>
       </Alert>
 
-      <PdfPreview url={`/app/quotes/${id}/pdf`} label={`Quote ${quote.number}`} />
+      <PdfPreview url={`/app/quotes/${id}/pdf?v=${stamp}`} label={`Quote ${quote.number}`} />
       {/* The same document as text, for people who can't read the pictures of the pages. */}
       <section className="sr-only" aria-label="The quote as text">
         <QuoteDocumentView snapshot={snapshot} />

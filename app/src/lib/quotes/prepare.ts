@@ -1,6 +1,5 @@
 import "server-only";
 import type { Workspace } from "../auth/dal";
-import { findCustomer } from "../customers/data";
 import { getLocalePack, vatSettingsFor } from "../locale";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
@@ -41,7 +40,7 @@ export async function prepareQuote(
   const parsed = parseQuote(toFormValues(stored, locale.numberStyle), vat);
   if (!parsed.ok) return { ok: false, reason: "unreadable" };
 
-  const customer = stored.customerId ? await findCustomer(stored.customerId) : null;
+  const customer = stored.customer;
   // The customer must belong to this business (the database already guarantees it; belt and braces).
   const ownCustomer = customer && customer.organisationId === organisation.id ? customer : null;
 

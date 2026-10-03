@@ -26,6 +26,7 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
       try {
         // The legacy build runs on older phones too.
         const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        if (cancelled) return;
         pdfjs.GlobalWorkerOptions.workerSrc = new URL(
           "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
           import.meta.url,
@@ -33,14 +34,18 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
         const task = pdfjs.getDocument({ url });
         destroy = () => void task.destroy();
         const pdf = await task.promise;
-        if (cancelled) return;
+        if (cancelled) {
+          void task.destroy();
+          return;
+        }
         const host = container.current;
         if (!host) return;
         host.replaceChildren();
         setPages(pdf.numPages);
 
         const width = host.clientWidth || 360;
-        const ratio = Math.min(window.devicePixelRatio || 1, 2.5);
+        // Sharp on dense screens, but never more pixels per page than a phone can hold.
+        const ratio = Math.min(window.devicePixelRatio || 1, 2.5, 1800 / width);
         for (let n = 1; n <= pdf.numPages; n++) {
           const page = await pdf.getPage(n);
           if (cancelled) return;
@@ -60,8 +65,9 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
           const context = canvas.getContext("2d");
           if (!context) throw new Error("no canvas");
           await page.render({ canvasContext: context, canvas, viewport }).promise;
+          // The first page is enough to replace the placeholder; the rest follow below it.
+          if (n === 1 && !cancelled) setStatus("ready");
         }
-        if (!cancelled) setStatus("ready");
       } catch (error) {
         if (cancelled) return;
         console.error("could not draw the quote preview:", error);
@@ -91,7 +97,7 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
           </AlertDescription>
         </Alert>
       )}
-      <div ref={container} data-pages={pages} data-testid="pdf-pages" className={status === "error" ? "hidden" : ""} />
+      <div ref={container} data-pages={pages} data-url={url} data-testid="pdf-pages" className={status === "error" ? "hidden" : ""} />
     </div>
   );
 }

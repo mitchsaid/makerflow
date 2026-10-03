@@ -94,7 +94,10 @@ test("sending lists what is missing, carries on once contact details are added, 
   await signUpAndOnboard(page, "iss-mark", "Send Co");
   await saveQuote(page);
 
-  await startSend(page);
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+  const urlBefore = await page.getByTestId("pdf-pages").getAttribute("data-url");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(sheet(page)).toHaveAccessibleName("Before you can send this quote");
   await expect(sheet(page).getByText(/Add a phone number or email/)).toBeVisible();
   // Nothing about the customer or items is wrong, so only the contact details are asked for.
@@ -109,6 +112,9 @@ test("sending lists what is missing, carries on once contact details are added, 
   await sheet(page).getByRole("button", { name: "Save and continue" }).click();
   // The send carries on: the sheet now asks how it is being sent.
   await expect(sheet(page)).toHaveAccessibleName("Send this quote");
+  // The document now has a phone number on it, so the preview behind the sheet is fetched and
+  // drawn again (its address carries a stamp of what the document says).
+  await expect.poll(() => page.getByTestId("pdf-pages").getAttribute("data-url")).not.toBe(urlBefore);
   await expect(sheet(page)).toContainText("QT-0001 for Thandi Nkosi");
   await expect(sheet(page)).toContainText(/R\s?800,00/);
   await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(2);

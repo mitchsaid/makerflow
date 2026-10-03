@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
+import type { Customer, CustomerKind } from "../customers";
 import type { QuoteSnapshot } from "./snapshot";
 
 /**
@@ -97,6 +98,26 @@ type EventRow = {
   created_at: string;
 };
 
+type CustomerRow = {
+  id: string;
+  organisation_id: string;
+  name: string;
+  kind: CustomerKind;
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  archived_at: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  region: string | null;
+  postal_code: string | null;
+  delivery_address: string | null;
+  vat_number: string | null;
+  company_registration_number: string | null;
+  notes: string | null;
+};
+
 type QuoteRow = {
   id: string;
   organisation_id: string;
@@ -111,6 +132,7 @@ type QuoteRow = {
   quote_discount_kind: DiscountKind;
   quote_discount_value: number;
   notes: string | null;
+  customers: CustomerRow | CustomerRow[] | null;
   quote_lines: LineRow[];
   quote_versions: VersionRow[];
   quote_events: EventRow[];
@@ -146,6 +168,8 @@ export type StoredQuote = {
     discountKind: DiscountKind;
     discountValue: number;
   }[];
+  /** The customer as they are now (a draft shows live details; a sent version has its own copy). */
+  customer: Customer | null;
   /** Every time it was sent, newest first, with the frozen document. */
   versions: { version: number; sentAt: string; sentVia: "shared" | "marked"; snapshot: QuoteSnapshot }[];
   /** The activity log, oldest first. */
@@ -164,6 +188,11 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit_price_cents,
          discount_kind, discount_value
+       ),
+       customers (
+         id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
+         address_line1, address_line2, region, postal_code, delivery_address,
+         vat_number, company_registration_number, notes
        ),
        quote_versions ( version, sent_at, sent_via, snapshot ),
        quote_events ( id, kind, version, via, created_at )`,
@@ -199,6 +228,30 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       discountKind: l.discount_kind,
       discountValue: Number(l.discount_value),
     })),
+    customer: (() => {
+      const c = Array.isArray(row.customers) ? row.customers[0] : row.customers;
+      return c
+        ? {
+            id: c.id,
+            organisationId: c.organisation_id,
+            name: c.name,
+            kind: c.kind,
+            contactPerson: c.contact_person,
+            phone: c.phone,
+            email: c.email,
+            addressLine1: c.address_line1,
+            addressLine2: c.address_line2,
+            city: c.city,
+            region: c.region,
+            postalCode: c.postal_code,
+            deliveryAddress: c.delivery_address,
+            vatNumber: c.vat_number,
+            companyRegistrationNumber: c.company_registration_number,
+            notes: c.notes,
+            archived: c.archived_at !== null,
+          }
+        : null;
+    })(),
     versions: [...row.quote_versions]
       .sort((a, b) => b.version - a.version)
       .map((v) => ({ version: v.version, sentAt: v.sent_at, sentVia: v.sent_via, snapshot: v.snapshot })),
