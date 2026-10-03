@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
+import type { QuoteSnapshot } from "./snapshot";
 
 /**
  * Quote reads. Row-level security limits every query to businesses the signed-in person
@@ -14,6 +15,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type QuoteSummary = {
   id: string;
   organisationId: string;
+  number: string;
+  version: number;
   status: string;
   customerName: string | null;
   issueDate: string;
@@ -26,6 +29,8 @@ export type QuoteSummary = {
 type SummaryRow = {
   id: string;
   organisation_id: string;
+  number: string;
+  version: number;
   status: string;
   issue_date: string;
   valid_until: string;
@@ -41,7 +46,7 @@ export async function getQuotes(): Promise<QuoteSummary[]> {
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      "id, organisation_id, status, issue_date, valid_until, gross_cents, currency_code, updated_at, customers(name)",
+      "id, organisation_id, number, version, status, issue_date, valid_until, gross_cents, currency_code, updated_at, customers(name)",
     )
     .order("updated_at", { ascending: false })
     .limit(500);
@@ -51,6 +56,8 @@ export async function getQuotes(): Promise<QuoteSummary[]> {
     return {
       id: row.id,
       organisationId: row.organisation_id,
+      number: row.number,
+      version: row.version,
       status: row.status,
       customerName: customer?.name ?? null,
       issueDate: row.issue_date,
@@ -75,9 +82,27 @@ type LineRow = {
   discount_value: number;
 };
 
+type VersionRow = {
+  version: number;
+  sent_at: string;
+  sent_via: "shared" | "marked";
+  snapshot: QuoteSnapshot;
+};
+
+type EventRow = {
+  id: string;
+  kind: "created" | "sent" | "revised";
+  version: number;
+  via: "shared" | "marked" | null;
+  created_at: string;
+};
+
 type QuoteRow = {
   id: string;
   organisation_id: string;
+  number: string;
+  version: number;
+  updated_at: string;
   customer_id: string | null;
   status: string;
   issue_date: string;
@@ -87,12 +112,20 @@ type QuoteRow = {
   quote_discount_value: number;
   notes: string | null;
   quote_lines: LineRow[];
+  quote_versions: VersionRow[];
+  quote_events: EventRow[];
 };
 
 /** A stored quote with its lines, as numbers. Turn it into form text with toFormValues(). */
 export type StoredQuote = {
   id: string;
   organisationId: string;
+  /** "QT-0042": given when the draft was first saved; a revision keeps it. */
+  number: string;
+  /** The version being edited (a draft) or the latest sent. 1 until the quote is revised. */
+  version: number;
+  /** When the draft was last saved; sending refuses a draft that changed after this. */
+  updatedAt: string;
   status: string;
   customerId: string | null;
   issueDate: string;
@@ -113,30 +146,39 @@ export type StoredQuote = {
     discountKind: DiscountKind;
     discountValue: number;
   }[];
+  /** Every time it was sent, newest first, with the frozen document. */
+  versions: { version: number; sentAt: string; sentVia: "shared" | "marked"; snapshot: QuoteSnapshot }[];
+  /** The activity log, oldest first. */
+  events: { id: string; kind: "created" | "sent" | "revised"; version: number; via: "shared" | "marked" | null; at: string }[];
 };
 
-/** One quote with its lines. Not found for a bad or foreign id. */
-export async function getStoredQuote(id: string): Promise<StoredQuote> {
-  if (!UUID.test(id)) notFound();
+/** One quote with its lines, or null for a bad id or one this person can't see. */
+export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
+  if (!UUID.test(id)) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      `id, organisation_id, customer_id, status, issue_date, valid_until, needed_by,
-       quote_discount_kind, quote_discount_value, notes,
+      `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
+       valid_until, needed_by, quote_discount_kind, quote_discount_value, notes,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit_price_cents,
          discount_kind, discount_value
-       )`,
+       ),
+       quote_versions ( version, sent_at, sent_via, snapshot ),
+       quote_events ( id, kind, version, via, created_at )`,
     )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Could not load the quote: ${error.message}`);
-  if (!data) notFound();
+  if (!data) return null;
   const row = data as unknown as QuoteRow;
   return {
     id: row.id,
     organisationId: row.organisation_id,
+    number: row.number,
+    version: row.version,
+    updatedAt: row.updated_at,
     status: row.status,
     customerId: row.customer_id,
     issueDate: row.issue_date,
@@ -157,5 +199,18 @@ export async function getStoredQuote(id: string): Promise<StoredQuote> {
       discountKind: l.discount_kind,
       discountValue: Number(l.discount_value),
     })),
+    versions: [...row.quote_versions]
+      .sort((a, b) => b.version - a.version)
+      .map((v) => ({ version: v.version, sentAt: v.sent_at, sentVia: v.sent_via, snapshot: v.snapshot })),
+    events: [...row.quote_events]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.version - b.version)
+      .map((e) => ({ id: e.id, kind: e.kind, version: e.version, via: e.via, at: e.created_at })),
   };
+}
+
+/** One quote with its lines. Shows the "not found" page for a bad or foreign id. */
+export async function getStoredQuote(id: string): Promise<StoredQuote> {
+  const quote = await findStoredQuote(id);
+  if (!quote) notFound();
+  return quote;
 }

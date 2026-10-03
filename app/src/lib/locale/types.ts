@@ -18,6 +18,15 @@ export type ContactFacts = {
   city: string | null;
 };
 
+/** The parts of an address as stored. Empty ones are null. */
+export type AddressParts = {
+  line1: string | null;
+  line2: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+};
+
 export type ProfileField = "phone" | "email" | "addressLine1" | "city";
 
 export type LocalePack = {
@@ -37,6 +46,8 @@ export type LocalePack = {
     regionLabel: string;
     regions: readonly string[];
     validatePostalCode(input: unknown): ValidationResult<string>;
+    /** The lines of a postal address as this country writes them on a document. */
+    formatLines(parts: AddressParts): string[];
   };
   tax: {
     /** "VAT", "GST", "Sales tax" ... */

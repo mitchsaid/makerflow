@@ -59,3 +59,18 @@ export function daysBetween(from: string, to: string): number {
       86_400_000,
   );
 }
+
+/** "3 Oct 2026, 14:05" for a moment in time, in the business's own time zone. */
+export function formatMoment(iso: string, locale: string, timeZone: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(locale, {
+    timeZone,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}

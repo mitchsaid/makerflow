@@ -1,7 +1,7 @@
 import { formatPercent, type NumberStyle } from "../money/format";
 import type { BasisPoints } from "../money/primitives";
 import type { ValidationResult } from "../validation";
-import type { ContactFacts, LocalePack, ProfileField } from "./types";
+import type { AddressParts, ContactFacts, LocalePack, ProfileField } from "./types";
 
 /**
  * The South African locale pack (country code ZA). Applies ONLY to businesses whose
@@ -50,6 +50,12 @@ export function validatePostalCode(input: unknown): ValidationResult<string> {
   return { ok: true, value };
 }
 
+/** Street, suburb or building, town, then province and postal code: "Gauteng 2196". */
+function formatAddressLines(parts: AddressParts): string[] {
+  const last = [parts.region, parts.postalCode].filter(Boolean).join(" ");
+  return [parts.line1, parts.line2, parts.city, last].filter((line): line is string => !!line);
+}
+
 const STANDARD_RATE_BP: BasisPoints = 1500;
 
 /** A way to contact the maker is all a quote needs (docs/locales/za/vat-and-documents.md, answer 5). */
@@ -80,6 +86,7 @@ export const ZA_LOCALE: LocalePack = {
     regionLabel: "Province",
     regions: ZA_PROVINCES,
     validatePostalCode,
+    formatLines: formatAddressLines,
   },
   tax: {
     name: "VAT",

@@ -15,7 +15,7 @@ fi
 
 status="$(pnpm --silent exec supabase status -o env)"
 get() { printf '%s\n' "$status" | grep -E "^$1=" | head -1 | cut -d= -f2- | tr -d '"'; }
-api="$(get API_URL)"; key="$(get PUBLISHABLE_KEY)"; mail="$(get MAILPIT_URL)"
+api="$(get API_URL)"; key="$(get PUBLISHABLE_KEY)"; secret="$(get SECRET_KEY)"; mail="$(get MAILPIT_URL)"
 
 if [[ -z "$api" || -z "$key" ]]; then
   echo "Could not read the local stack's settings. Is it running? Try: pnpm stack:start" >&2
@@ -25,6 +25,8 @@ fi
 cat > .env.local <<ENV
 NEXT_PUBLIC_SUPABASE_URL=$api
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$key
+# Server only (sending quotes). The local stack's fixed demo key.
+SUPABASE_SECRET_KEY=$secret
 # Local mailbox: magic-link emails land here (open it in a browser). Also used by the browser tests.
 LOCAL_MAILPIT_URL=${mail:-http://127.0.0.1:54324}
 ENV

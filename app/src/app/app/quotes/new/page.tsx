@@ -29,6 +29,7 @@ export default async function NewQuotePage() {
           Quotes
         </Link>
         <h1 className="text-xl font-semibold">New quote</h1>
+        <p className="text-sm text-muted-foreground">It gets its number the first time you save it.</p>
       </div>
       <QuoteBuilder
         quoteId={null}

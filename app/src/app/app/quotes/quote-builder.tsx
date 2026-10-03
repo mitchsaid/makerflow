@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,6 +36,7 @@ import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
 import { LineSheet, type LineSheetView } from "./line-sheet";
+import { SendQuoteSheet } from "./send-sheet";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -56,6 +57,7 @@ export function QuoteBuilder({
   numberStyle,
   taxName,
   justSaved,
+  sendOnLoad = false,
 }: {
   quoteId: string | null;
   initial: QuoteFormValues;
@@ -71,6 +73,8 @@ export function QuoteBuilder({
   taxName: string;
   /** A new draft has just been saved and this page opened on it. */
   justSaved: boolean;
+  /** The person pressed Send on a new quote: it was saved first, and the send sheet opens now. */
+  sendOnLoad?: boolean;
 }) {
   const [values, setValues] = useState<QuoteFormValues>(initial);
   const [state, setState] = useState<SaveQuoteState>(
@@ -134,18 +138,32 @@ export function QuoteBuilder({
     );
   }
 
-  function onSave(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // Pressing Send on a new quote lands here with the sheet already open.
+  const [sendOpen, setSendOpen] = useState(sendOnLoad && quoteId !== null);
+  useEffect(() => {
+    if (!sendOnLoad || quoteId === null) return;
+    // The address no longer says "send", so refreshing the page doesn't open the sheet again.
+    window.history.replaceState(null, "", `/app/quotes/${quoteId}`);
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Saves the draft; with `then: "send"` the send sheet opens once it is saved. */
+  function save(then?: "send") {
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        setState(await saveQuoteDraft(quoteId, values));
+        const result = await saveQuoteDraft(quoteId, values, then);
+        setState(result);
+        if (result.status === "saved" && then === "send") setSendOpen(true);
+        if (result.status === "error") setEditedSinceSave(true);
       } catch (error) {
         // A new quote is saved by a redirect to its own page: that is not a failure.
         const digest = (error as { digest?: unknown } | null)?.digest;
         if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
         // No signal, say: keep the form exactly as it is and say so, never an error page.
         console.error("could not save the quote:", error);
+        setEditedSinceSave(true);
         setState({
           status: "error",
           message:
@@ -153,6 +171,17 @@ export function QuoteBuilder({
         });
       }
     });
+  }
+
+  function onSave(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    save();
+  }
+
+  /** What is sent is what is saved, so unsaved changes are saved first. */
+  function onSend() {
+    if (quoteId === null || editedSinceSave) save("send");
+    else setSendOpen(true);
   }
 
   // The summary lists problems in the order the fields appear on screen.
@@ -409,11 +438,19 @@ export function QuoteBuilder({
               {totals ? money(totals.grossCents) : "–"}
             </p>
           </div>
-          <Button type="submit" disabled={pending} size="lg">
-            {pending ? "Saving…" : "Save draft"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="submit" variant="outline" disabled={pending} size="lg">
+              {pending ? "Saving…" : "Save draft"}
+            </Button>
+            <Button id="send-quote" type="button" disabled={pending} size="lg" onClick={onSend}>
+              Send
+            </Button>
+          </div>
         </div>
       </div>
+      {quoteId !== null && (
+        <SendQuoteSheet quoteId={quoteId} open={sendOpen} onOpenChange={setSendOpen} returnFocusId="send-quote" />
+      )}
     </form>
   );
 }
