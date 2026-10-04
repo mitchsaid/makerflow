@@ -11,7 +11,7 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
   const router = useRouter();
   const [sendOpen, setSendOpen] = useState(false);
   return (
-    <div className="sticky bottom-14 z-10 -mx-4 border-t border-border bg-card px-4 py-3 md:bottom-0">
+    <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
       <div className="mx-auto flex max-w-2xl items-center gap-2">
         <Link href={`/app/quotes/${quoteId}`} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Edit

@@ -59,6 +59,7 @@ export function QuoteBuilder({
   taxName,
   justSaved,
   focusOnLoad,
+  children,
 }: {
   quoteId: string | null;
   initial: QuoteFormValues;
@@ -76,6 +77,8 @@ export function QuoteBuilder({
   justSaved: boolean;
   /** The field to land on (the preview sends people back to fix something). */
   focusOnLoad?: string;
+  /** What goes between the form and the bar, such as Delete draft. */
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const [values, setValues] = useState<QuoteFormValues>(initial);
@@ -215,7 +218,8 @@ export function QuoteBuilder({
   const discountsCents = totals ? totals.lineDiscountsCents + totals.quoteDiscountCents : 0;
 
   return (
-    <form onSubmit={onSave} className="space-y-6" noValidate>
+  <div className="space-y-6">
+    <form id="quote-form" onSubmit={onSave} className="space-y-6" noValidate>
       <Section title="Customer">
         <CustomerPicker
           id="customer"
@@ -436,9 +440,14 @@ export function QuoteBuilder({
           Draft saved.
         </p>
       )}
+    </form>
 
-      {/* Stays in view above the tab bar while scrolling; the page has room below for it. */}
-      <div className="sticky bottom-14 z-10 -mx-4 border-t border-border bg-card px-4 py-3 md:bottom-0">
+    {children}
+
+      {/* Always in view above the tab bar. It comes last, after anything under the form (such as
+          Delete draft), so nothing is hidden beneath it, and it sits flush with the end of the
+          page (-mb-8 takes back the page's bottom padding) so it never moves when you reach the bottom. */}
+      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Total</p>
@@ -447,7 +456,7 @@ export function QuoteBuilder({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button type="submit" variant="outline" disabled={pending} size="lg">
+            <Button type="submit" form="quote-form" variant="outline" disabled={pending} size="lg">
               {pending ? "Saving…" : "Save draft"}
             </Button>
             <Button id="preview-quote" type="button" disabled={pending} size="lg" onClick={onPreview}>
@@ -456,7 +465,7 @@ export function QuoteBuilder({
           </div>
         </div>
       </div>
-    </form>
+  </div>
   );
 }
 
