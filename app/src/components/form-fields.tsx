@@ -10,6 +10,7 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupText } from "@/components/ui/input-group";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -44,6 +45,7 @@ export function TextField({
   error,
   value,
   onChange,
+  startText,
   ...props
 }: ExtraInputProps & {
   id: string;
@@ -53,20 +55,33 @@ export function TextField({
   error?: string;
   value: string;
   onChange: (value: string) => void;
+  /** Fixed text before the value, such as the currency symbol on a price. */
+  startText?: string;
 }) {
+  const input = (
+    <Input
+      id={id}
+      name={name ?? id}
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-invalid={!!error}
+      aria-describedby={error ? `${id}-error` : undefined}
+      className={startText ? "h-full rounded-lg border-0 bg-transparent pl-2 shadow-none focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent" : undefined}
+      {...props}
+    />
+  );
   return (
     <Field data-invalid={!!error}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input
-        id={id}
-        name={name ?? id}
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
+      {startText ? (
+        <InputGroup>
+          <InputGroupText>{startText}</InputGroupText>
+          {input}
+        </InputGroup>
+      ) : (
+        input
+      )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
   );

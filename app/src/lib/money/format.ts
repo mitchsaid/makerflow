@@ -46,6 +46,11 @@ function scaledText(
 }
 
 /** 125050, "ZAR" -> "R 1 250,50" (South Africa). Always two decimals. */
+/** "R" for ZAR in the South African style; the currency code itself when the pack has no symbol. */
+export function currencySymbol(currencyCode: string, style: NumberStyle): string {
+  return style.currencySymbols[currencyCode] ?? currencyCode;
+}
+
 export function formatMoney(cents: Cents, currencyCode: string, style: NumberStyle): string {
   const symbol = style.currencySymbols[currencyCode];
   const number = scaledText(Math.abs(cents), 2, style, 2, true);

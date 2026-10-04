@@ -69,6 +69,7 @@ export function ProductForm({
   initial,
   mode,
   priceLabel,
+  currencySymbol,
   idPrefix = "",
   embedded,
 }: {
@@ -77,6 +78,8 @@ export function ProductForm({
   mode: "add" | "edit";
   /** "Price (including VAT)" and so on, from the business's VAT setting. */
   priceLabel: string;
+  /** "R": shown before the price. */
+  currencySymbol: string;
   /** In front of every field id, for when the form shares a page with other fields. */
   idPrefix?: string;
   embedded?: EmbeddedProductForm;
@@ -147,6 +150,7 @@ export function ProductForm({
           id={fid("unitPrice")}
           name="unitPrice"
           label={priceLabel}
+          startText={currencySymbol}
           inputMode="decimal"
           autoComplete="off"
           value={values.unitPrice}

@@ -16,6 +16,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   formatMoney,
+  currencySymbol,
   formatPercent,
   parseMoney,
   parseQuantity,
@@ -86,6 +87,7 @@ export function QuoteBuilder({
   const nextKey = useRef(1);
 
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
+  const symbol = currencySymbol(currencyCode, numberStyle);
   const totals = useMemo(() => previewTotals(values, vat), [values, vat]);
   const errors: QuoteErrors =
     state.status === "error" && state.errors ? state.errors : { fields: {}, lines: {} };
@@ -342,6 +344,7 @@ export function QuoteBuilder({
           <TextField
             id="deliveryFee"
             label={priceEntryLabel(vat, taxName, "Delivery fee")}
+            startText={symbol}
             inputMode="decimal"
             autoComplete="off"
             value={values.deliveryFee}
@@ -376,6 +379,7 @@ export function QuoteBuilder({
           <TextField
             id="discountValue"
             label={values.discountKind === "percent" ? "Discount (%)" : "Discount amount"}
+            startText={values.discountKind === "fixed" ? symbol : undefined}
             inputMode="decimal"
             autoComplete="off"
             value={values.discountValue}

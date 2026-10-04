@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { currencySymbol } from "@/lib/money";
 import { getLocalePack, priceEntryLabel, vatSettingsFor } from "@/lib/locale";
 import { createProduct } from "../actions";
 import { ProductForm } from "../product-form";
@@ -25,6 +26,7 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
         action={createProduct}
         initial={emptyOfKind(kind)}
         priceLabel={priceEntryLabel(vatSettingsFor(profile, locale), locale.tax.name)}
+        currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
       />
     </main>
   );
