@@ -86,15 +86,16 @@ export default async function QuotePage({
           taxName={locale.tax.name}
           justSaved={query.saved === "1"}
           focusOnLoad={typeof query.focus === "string" ? query.focus : undefined}
-        />
-        {/* A quote that has been sent can never be deleted, and neither can its revision. */}
-        {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}
-        {previous && (
-          <ComingSoonSection
-            title="Discard this revision"
-            description={`Go back to version ${previous.version} as it was sent, and drop the changes you've made since.`}
-          />
-        )}
+        >
+          {/* A quote that has been sent can never be deleted, and neither can its revision. */}
+          {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}
+          {previous && (
+            <ComingSoonSection
+              title="Discard this revision"
+              description={`Go back to version ${previous.version} as it was sent, and drop the changes you've made since.`}
+            />
+          )}
+        </QuoteBuilder>
       </main>
     );
   }

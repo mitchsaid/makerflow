@@ -7,8 +7,8 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
   return (
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
       <WorkspaceNav businessName={organisation.name} />
-      {/* Bottom padding keeps content clear of the fixed tab bar on phones. */}
-      <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">{children}</div>
+      {/* Bottom padding (the tab bar's height) keeps content clear of the fixed tab bar on phones. */}
+      <div className="flex min-w-0 flex-1 flex-col pb-14 md:pb-0">{children}</div>
     </div>
   );
 }
