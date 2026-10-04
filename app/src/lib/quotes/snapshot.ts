@@ -1,6 +1,7 @@
 import type { Customer } from "../customers";
 import type { LocalePack } from "../locale";
 import type { NumberStyle, VatGroup, VatSettings } from "../money";
+import { DEFAULT_DESIGN, type DesignKey } from "./designs";
 import type { ParsedQuote } from "./index";
 
 /**
@@ -46,6 +47,8 @@ export type QuoteSnapshot = {
   schema: typeof SNAPSHOT_SCHEMA;
   number: string;
   version: number;
+  /** The look the document is drawn in (see designs.ts). Absent on versions sent before designs existed: classic. */
+  design?: DesignKey;
   issueDate: string;
   validUntil: string;
   neededBy: string | null;
@@ -137,6 +140,7 @@ export function buildQuoteSnapshot(input: {
     schema: SNAPSHOT_SCHEMA,
     number: input.number,
     version: input.version,
+    design: DEFAULT_DESIGN,
     issueDate: quote.issueDate,
     validUntil: quote.validUntil,
     neededBy: quote.neededBy,

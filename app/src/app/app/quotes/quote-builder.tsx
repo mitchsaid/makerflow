@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +37,6 @@ import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
 import { LineSheet, type LineSheetView } from "./line-sheet";
-import { SendQuoteSheet } from "./send-sheet";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -57,7 +57,7 @@ export function QuoteBuilder({
   numberStyle,
   taxName,
   justSaved,
-  sendOnLoad = false,
+  focusOnLoad,
 }: {
   quoteId: string | null;
   initial: QuoteFormValues;
@@ -73,9 +73,10 @@ export function QuoteBuilder({
   taxName: string;
   /** A new draft has just been saved and this page opened on it. */
   justSaved: boolean;
-  /** The person pressed Send on a new quote: it was saved first, and the send sheet opens now. */
-  sendOnLoad?: boolean;
+  /** The field to land on (the preview sends people back to fix something). */
+  focusOnLoad?: string;
 }) {
+  const router = useRouter();
   const [values, setValues] = useState<QuoteFormValues>(initial);
   const [state, setState] = useState<SaveQuoteState>(
     justSaved ? { status: "saved", savedAt: 0 } : { status: "idle" },
@@ -138,24 +139,27 @@ export function QuoteBuilder({
     );
   }
 
-  // Pressing Send on a new quote lands here with the sheet already open.
-  const [sendOpen, setSendOpen] = useState(sendOnLoad && quoteId !== null);
   useEffect(() => {
-    if (!sendOnLoad || quoteId === null) return;
-    // The address no longer says "send", so refreshing the page doesn't open the sheet again.
+    if (!focusOnLoad || quoteId === null) return;
+    const el = document.getElementById(focusOnLoad);
+    el?.scrollIntoView({ block: "center" });
+    el?.focus({ preventScroll: true });
+    // The address no longer says where to land, so refreshing doesn't jump again.
     window.history.replaceState(null, "", `/app/quotes/${quoteId}`);
     // Only on arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Saves the draft; with `then: "send"` the send sheet opens once it is saved. */
-  function save(then?: "send") {
+  /** Saves the draft; with `then: "preview"` the preview opens once it is saved. */
+  function save(then?: "preview") {
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
         const result = await saveQuoteDraft(quoteId, values, then);
         setState(result);
-        if (result.status === "saved" && then === "send") setSendOpen(true);
+        if (result.status === "saved" && then === "preview" && quoteId !== null) {
+          router.push(`/app/quotes/${quoteId}/preview`);
+        }
         if (result.status === "error") setEditedSinceSave(true);
       } catch (error) {
         // A new quote is saved by a redirect to its own page: that is not a failure.
@@ -178,10 +182,10 @@ export function QuoteBuilder({
     save();
   }
 
-  /** What is sent is what is saved, so unsaved changes are saved first. */
-  function onSend() {
-    if (quoteId === null || editedSinceSave) save("send");
-    else setSendOpen(true);
+  /** The preview shows what is saved, so unsaved changes are saved first. */
+  function onPreview() {
+    if (quoteId === null || editedSinceSave) save("preview");
+    else router.push(`/app/quotes/${quoteId}/preview`);
   }
 
   // The summary lists problems in the order the fields appear on screen.
@@ -442,15 +446,12 @@ export function QuoteBuilder({
             <Button type="submit" variant="outline" disabled={pending} size="lg">
               {pending ? "Saving…" : "Save draft"}
             </Button>
-            <Button id="send-quote" type="button" disabled={pending} size="lg" onClick={onSend}>
-              Send
+            <Button id="preview-quote" type="button" disabled={pending} size="lg" onClick={onPreview}>
+              Preview
             </Button>
           </div>
         </div>
       </div>
-      {quoteId !== null && (
-        <SendQuoteSheet quoteId={quoteId} open={sendOpen} onOpenChange={setSendOpen} returnFocusId="send-quote" />
-      )}
     </form>
   );
 }

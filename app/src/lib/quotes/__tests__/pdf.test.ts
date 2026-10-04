@@ -119,3 +119,17 @@ describe("text for the PDF font", () => {
     expect(s.lines[0].name).toBe("🎂 Cake");
   });
 });
+
+describe("designs", () => {
+  it("draws a version sent before designs existed, and one naming an unknown design, in the classic design", async () => {
+    const old = { ...snapshot(vats.inclusive) } as Record<string, unknown>;
+    delete old.design;
+    const withoutDesign = await renderQuotePdf(old as unknown as ReturnType<typeof snapshot>);
+    const unknown = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "future" as never });
+    const classic = await renderQuotePdf(snapshot(vats.inclusive));
+    for (const pdf of [withoutDesign, unknown, classic]) {
+      expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    }
+    expect(Math.abs(withoutDesign.length - classic.length)).toBeLessThan(200);
+  });
+});

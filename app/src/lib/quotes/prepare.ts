@@ -1,6 +1,5 @@
 import "server-only";
 import type { Workspace } from "../auth/dal";
-import { findCustomer } from "../customers/data";
 import { getLocalePack, vatSettingsFor } from "../locale";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
@@ -28,8 +27,10 @@ export type PreparedQuote = {
 export async function prepareQuote(
   quoteId: string,
   workspace: Workspace,
+  /** The quote, when the caller has just read it, so it is not read twice. */
+  alreadyRead?: StoredQuote,
 ): Promise<{ ok: true; value: PreparedQuote } | { ok: false; reason: "not-found" | "unreadable" }> {
-  const stored = await findStoredQuote(quoteId);
+  const stored = alreadyRead ?? (await findStoredQuote(quoteId));
   // Another business of the same person is not this workspace's quote.
   if (!stored || stored.organisationId !== workspace.organisation.id) return { ok: false, reason: "not-found" };
 
@@ -39,7 +40,7 @@ export async function prepareQuote(
   const parsed = parseQuote(toFormValues(stored, locale.numberStyle), vat);
   if (!parsed.ok) return { ok: false, reason: "unreadable" };
 
-  const customer = stored.customerId ? await findCustomer(stored.customerId) : null;
+  const customer = stored.customer;
   // The customer must belong to this business (the database already guarantees it; belt and braces).
   const ownCustomer = customer && customer.organisationId === organisation.id ? customer : null;
 

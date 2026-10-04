@@ -14,6 +14,8 @@ import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
+import { DesignSection } from "../design-section";
+import { PdfPreview } from "../pdf-preview";
 import { QuoteDocumentView } from "../quote-document-view";
 import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
@@ -60,17 +62,6 @@ export default async function QuotePage({
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
         {header}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <a
-            href={`/app/quotes/${quote.id}/pdf`}
-            target="_blank"
-            rel="noopener"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Preview PDF
-          </a>
-          <span className="text-sm text-muted-foreground">Shows the last saved version.</span>
-        </div>
         {previous && (
           <Alert data-testid="revising-note">
             <AlertDescription>
@@ -94,7 +85,7 @@ export default async function QuotePage({
           numberStyle={locale.numberStyle}
           taxName={locale.tax.name}
           justSaved={query.saved === "1"}
-          sendOnLoad={query.send === "1"}
+          focusOnLoad={typeof query.focus === "string" ? query.focus : undefined}
         />
         {/* A quote that has been sent can never be deleted, and neither can its revision. */}
         {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}
@@ -163,7 +154,15 @@ export default async function QuotePage({
         latest={canRevise}
       />
 
-      <QuoteDocumentView snapshot={shown.snapshot} />
+      <PdfPreview
+        url={`/app/quotes/${quote.id}/pdf?version=${shown.version}`}
+        label={`Quote ${quote.number}${shown.version > 1 ? `, version ${shown.version}` : ""}`}
+      />
+      {/* The same document as text, for people who can't read the pictures of the pages. */}
+      <section className="sr-only" aria-label="The quote as text">
+        <QuoteDocumentView snapshot={shown.snapshot} />
+      </section>
+      <DesignSection design={shown.snapshot.design} sent />
 
       <section className="space-y-3" aria-labelledby="more-heading">
         <h2 id="more-heading" className="text-base font-semibold">
