@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { currencySymbol } from "@/lib/money";
 import { getLocalePack, priceEntryLabel, vatSettingsFor } from "@/lib/locale";
 import { getProduct } from "@/lib/products/data";
 import { updateProduct } from "../actions";
@@ -38,6 +39,7 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
         action={updateProduct.bind(null, product.id)}
         initial={valuesFromProduct(product, locale.numberStyle)}
         priceLabel={priceEntryLabel(vatSettingsFor(profile, locale), locale.tax.name)}
+        currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
       />
       <ProductArchiveButton id={product.id} archived={product.archived} kind={product.kind} />
     </main>

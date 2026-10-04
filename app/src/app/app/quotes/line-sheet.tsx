@@ -15,6 +15,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  currencySymbol,
   formatMoney,
   moneyToInput,
   parseMoney,
@@ -93,6 +94,7 @@ export function LineSheet({
   // A product save is on its way: closing now would lose it.
   const [saving, setSaving] = useState(false);
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
+  const symbol = currencySymbol(currencyCode, numberStyle);
 
   const title =
     view?.kind === "pick"
@@ -164,6 +166,7 @@ export function LineSheet({
               isNew={view.isNew}
               product={products.find((p) => p.id === view.line.productId)}
               priceLabel={priceLabel}
+              currencySymbol={symbol}
               numberStyle={numberStyle}
               money={money}
               onSave={(line) => onSaveLine(line, view.isNew)}
@@ -180,6 +183,7 @@ export function LineSheet({
               action={view.mode === "add" ? createProductInQuote : updateProduct.bind(null, view.product!.id)}
               initial={view.product ? productValues(view.product, numberStyle) : emptyOfKind(view.productKind ?? "product")}
               priceLabel={priceLabel}
+              currencySymbol={symbol}
               idPrefix="product-sheet-"
               embedded={{
                 onPendingChange: setSaving,
@@ -338,6 +342,7 @@ function ConfigureView({
   isNew,
   product,
   priceLabel,
+  currencySymbol: symbol,
   numberStyle,
   money,
   onSave,
@@ -348,6 +353,7 @@ function ConfigureView({
   isNew: boolean;
   product: ProductSummary | undefined;
   priceLabel: string;
+  currencySymbol: string;
   numberStyle: NumberStyle;
   money: (cents: number) => string;
   onSave: (line: LineFormValues) => void;
@@ -447,6 +453,7 @@ function ConfigureView({
           <TextField
             id={id("unitPrice")}
             label={priceLabel}
+            startText={symbol}
             inputMode="decimal"
             autoComplete="off"
             value={line.unitPrice}
@@ -497,6 +504,7 @@ function ConfigureView({
           <TextField
             id={id("discountValue")}
             label={line.discountKind === "percent" ? "Item discount (%)" : "Item discount amount"}
+            startText={line.discountKind === "fixed" ? symbol : undefined}
             inputMode="decimal"
             autoComplete="off"
             value={line.discountValue}
