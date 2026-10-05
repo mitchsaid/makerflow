@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
+import { UnitField } from "@/components/unit-field";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -108,6 +109,7 @@ export function ProductForm({
     [
       ["name", "Name"],
       ["unitPrice", priceLabel],
+      ["unit", "Unit"],
       ["description", "Description"],
     ] as const
   ).flatMap(([field, label]) => {
@@ -157,6 +159,16 @@ export function ProductForm({
           error={errors.unitPrice}
           onChange={set("unitPrice")}
         />
+        <UnitField
+          id={fid("unit")}
+          name="unit"
+          value={values.unit}
+          error={errors.unit}
+          onChange={set("unit")}
+        />
+        <p className="-mt-2 text-sm text-muted-foreground">
+          What one is, like kg, dozen or hour. The price above is per unit. Leave it empty for a plain count.
+        </p>
         <TextAreaField
           id={fid("description")}
           name="description"

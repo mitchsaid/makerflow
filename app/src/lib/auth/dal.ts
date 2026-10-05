@@ -74,6 +74,9 @@ type ProfileRow = {
   vat_registered: boolean;
   vat_number: string | null;
   prices_include_vat: boolean;
+  default_sign_off: string | null;
+  default_terms: string | null;
+  payment_instructions: string | null;
 };
 type OrganisationRow = {
   id: string;
@@ -104,7 +107,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
          business_profiles (
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
-           vat_registered, vat_number, prices_include_vat
+           vat_registered, vat_number, prices_include_vat,
+           default_sign_off, default_terms, payment_instructions
          )
        )`,
     )
@@ -143,6 +147,9 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       vatRegistered: p?.vat_registered ?? false,
       vatNumber: p?.vat_number ?? null,
       pricesIncludeVat: p?.prices_include_vat ?? true,
+      defaultSignOff: p?.default_sign_off ?? null,
+      defaultTerms: p?.default_terms ?? null,
+      paymentInstructions: p?.payment_instructions ?? null,
     },
   };
 });

@@ -44,6 +44,12 @@ export default async function NewQuotePage() {
           discountKind: "none",
           discountValue: "",
           notes: "",
+          title: "",
+          description: "",
+          // A new quote starts with the wording the business has set for all its quotes.
+          signOff: profile.defaultSignOff ?? "",
+          terms: profile.defaultTerms ?? "",
+          paymentInstructions: profile.paymentInstructions ?? "",
         }}
         customers={customerOptions(customers)}
         products={forOrganisation(allProducts, organisation.id)}

@@ -29,6 +29,12 @@ export const QUOTE_LINE_NAME_MAX = 200;
 export const QUOTE_LINE_DESCRIPTION_MAX = 1000;
 export const QUOTE_NOTES_MAX = 2000;
 export const QUOTE_MAX_LINES = 100;
+export const QUOTE_UNIT_MAX = 20;
+export const QUOTE_TITLE_MAX = 120;
+export const QUOTE_DESCRIPTION_MAX = 2000;
+export const QUOTE_SIGN_OFF_MAX = 200;
+export const QUOTE_TERMS_MAX = 4000;
+export const QUOTE_PAYMENT_MAX = 1000;
 
 /** A line from a saved product or service, or a one-off item typed for this quote. */
 export type ItemKind = "product" | "service" | "custom";
@@ -42,6 +48,8 @@ export type LineFormValues = {
   name: string;
   description: string;
   quantity: string;
+  /** "kg", "dozen", "hours": optional, "" for a plain count. */
+  unit: string;
   unitPrice: string;
   discountKind: DiscountKind;
   discountValue: string;
@@ -60,16 +68,38 @@ export type QuoteFormValues = {
   discountKind: DiscountKind;
   discountValue: string;
   notes: string;
+  /** Shown as a heading above the items. Optional. */
+  title: string;
+  /** An introduction under the title. Optional. */
+  description: string;
+  /** "Yours in sweetness": closes the document. Optional. */
+  signOff: string;
+  /** Printed small at the end. Optional. */
+  terms: string;
+  /** "How to pay". Optional. */
+  paymentInstructions: string;
 };
 
 export type LineErrors = Partial<
-  Record<"name" | "description" | "quantity" | "unitPrice" | "discountValue", string>
+  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue", string>
 >;
 
 export type QuoteErrors = {
   fields: Partial<
     Record<
-      "customerId" | "issueDate" | "validUntil" | "neededBy" | "deliveryFee" | "discountValue" | "notes" | "lines",
+      | "customerId"
+      | "issueDate"
+      | "validUntil"
+      | "neededBy"
+      | "deliveryFee"
+      | "discountValue"
+      | "notes"
+      | "lines"
+      | "title"
+      | "description"
+      | "signOff"
+      | "terms"
+      | "paymentInstructions",
       string
     >
   >;
@@ -84,6 +114,7 @@ export type ParsedLine = {
   name: string;
   description: string | null;
   quantityMilli: QuantityMilli;
+  unit: string | null;
   unitPriceCents: Cents;
   discount?: Discount;
 };
@@ -97,6 +128,11 @@ export type ParsedQuote = {
   lines: ParsedLine[];
   quoteDiscount?: Discount;
   notes: string | null;
+  title: string | null;
+  description: string | null;
+  signOff: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
   totals: DocumentTotals;
 };
 
@@ -118,7 +154,20 @@ const MAX_RAW_LINES = 500;
 export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  const strings = ["customerId", "issueDate", "validUntil", "neededBy", "deliveryFee", "discountValue", "notes"];
+  const strings = [
+    "customerId",
+    "issueDate",
+    "validUntil",
+    "neededBy",
+    "deliveryFee",
+    "discountValue",
+    "notes",
+    "title",
+    "description",
+    "signOff",
+    "terms",
+    "paymentInstructions",
+  ];
   if (!strings.every((key) => typeof v[key] === "string")) return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
@@ -126,7 +175,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
     if (typeof line !== "object" || line === null) return false;
     const l = line as Record<string, unknown>;
     return (
-      ["key", "productId", "name", "description", "quantity", "unitPrice", "discountValue"].every(
+      ["key", "productId", "name", "description", "quantity", "unit", "unitPrice", "discountValue"].every(
         (key) => typeof l[key] === "string",
       ) &&
       DISCOUNT_KINDS.includes(l.discountKind) &&
@@ -144,6 +193,7 @@ export function blankLine(key: string): LineFormValues {
     name: "",
     description: "",
     quantity: "1",
+    unit: "",
     unitPrice: "",
     discountKind: "none",
     discountValue: "",
@@ -202,6 +252,9 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   const quantity = parseQuantity(line.quantity);
   if (!quantity.ok) errors.quantity = quantity.error;
 
+  const unit = optionalText(line.unit, QUOTE_UNIT_MAX, "The unit");
+  if (!unit.ok) errors.unit = unit.error;
+
   const price = parseMoney(line.unitPrice);
   if (!price.ok) {
     errors.unitPrice =
@@ -211,7 +264,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   const discount = discountFrom(line.discountKind, line.discountValue);
   if (!discount.ok) errors.discountValue = discount.error;
 
-  if (Object.keys(errors).length > 0 || !name.ok || !description.ok || !quantity.ok || !price.ok || !discount.ok) {
+  if (Object.keys(errors).length > 0 || !name.ok || !description.ok || !quantity.ok || !unit.ok || !price.ok || !discount.ok) {
     return { ok: false, errors };
   }
   return {
@@ -223,6 +276,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       name: name.value!,
       description: description.value,
       quantityMilli: quantity.value,
+      unit: unit.value,
       unitPriceCents: price.value,
       discount: discount.value,
     },
@@ -247,14 +301,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unitPriceCents: 0 },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0 },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: fee.value },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value },
   };
 }
 
@@ -287,6 +341,17 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   const notes = optionalMultiline(values.notes, QUOTE_NOTES_MAX, "Notes");
   if (!notes.ok) errors.fields.notes = notes.error;
 
+  const title = optionalText(values.title, QUOTE_TITLE_MAX, "The title");
+  if (!title.ok) errors.fields.title = title.error;
+  const description = optionalMultiline(values.description, QUOTE_DESCRIPTION_MAX, "The description");
+  if (!description.ok) errors.fields.description = description.error;
+  const signOff = optionalText(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off");
+  if (!signOff.ok) errors.fields.signOff = signOff.error;
+  const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms");
+  if (!terms.ok) errors.fields.terms = terms.error;
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay");
+  if (!payment.ok) errors.fields.paymentInstructions = payment.error;
+
   const kept = values.lines.filter((l) => !isBlankLine(l));
   // Delivery or collection is stored as a line too, so it counts towards the limit.
   const maxItems = QUOTE_MAX_LINES - (values.fulfilment === "none" ? 0 : 1);
@@ -311,7 +376,9 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
 
   const hasErrors =
     Object.keys(errors.fields).length > 0 || Object.keys(errors.lines).length > 0;
-  if (hasErrors || !notes.ok || !fulfilment.ok || !quoteDiscount.ok) return { ok: false, errors };
+  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !terms.ok || !payment.ok || !fulfilment.ok || !quoteDiscount.ok) {
+    return { ok: false, errors };
+  }
 
   const all = fulfilment.line ? [...lines, fulfilment.line] : lines;
   let totals: DocumentTotals;
@@ -354,6 +421,11 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       lines: all,
       quoteDiscount: quoteDiscount.value,
       notes: notes.value,
+      title: title.value,
+      description: description.value,
+      signOff: signOff.value,
+      terms: terms.value,
+      paymentInstructions: payment.value,
       totals,
     },
   };
@@ -379,6 +451,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       name: line.name,
       description: null,
       quantityMilli: quantity.value,
+      unit: null,
       unitPriceCents: price.value,
       discount: discount.ok ? discount.value : undefined,
     });
@@ -413,6 +486,11 @@ export function toDatabasePayload(
       quote_discount_kind: d ? d.kind : "none",
       quote_discount_value: d ? (d.kind === "percent" ? d.basisPoints : d.cents) : 0,
       notes: quote.notes,
+      title: quote.title,
+      description: quote.description,
+      sign_off: quote.signOff,
+      terms: quote.terms,
+      payment_instructions: quote.paymentInstructions,
       country_code: context.countryCode,
       currency_code: context.currencyCode,
       net_cents: quote.totals.netCents,
@@ -426,6 +504,7 @@ export function toDatabasePayload(
       name: l.name,
       description: l.description,
       quantity_milli: l.quantityMilli,
+      unit: l.unit,
       unit_price_cents: l.unitPriceCents,
       discount_kind: l.discount ? l.discount.kind : "none",
       discount_value: l.discount

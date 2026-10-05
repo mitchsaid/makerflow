@@ -11,6 +11,7 @@ import type { ValidationResult } from "../validation";
 
 export const PRODUCT_NAME_MAX = 200;
 export const PRODUCT_DESCRIPTION_MAX = 1000;
+export const PRODUCT_UNIT_MAX = 20;
 
 export type ProductKind = "product" | "service";
 
@@ -20,11 +21,13 @@ export type ProductFields = {
   description: string | null;
   /** In the business's VAT entry mode, like a quote line's price. */
   unitPriceCents: Cents;
+  /** What one is: "dozen", "kg", "hour". Fills a quote line's unit. Null for a plain count. */
+  unit: string | null;
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
 
-export type ProductFieldName = "kind" | "name" | "description" | "unitPrice";
+export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "unit";
 export type ProductFieldErrors = Partial<Record<ProductFieldName, string>>;
 
 export type ParsedProductForm =
@@ -53,6 +56,9 @@ export function parseProductForm(form: FormData): ParsedProductForm {
   const description = optionalMultiline(form.get("description"), PRODUCT_DESCRIPTION_MAX, "The description");
   if (!description.ok) errors.description = description.error;
 
+  const unit = optionalText(form.get("unit"), PRODUCT_UNIT_MAX, "The unit");
+  if (!unit.ok) errors.unit = unit.error;
+
   const priceRaw = form.get("unitPrice");
   const priceText = typeof priceRaw === "string" ? priceRaw : "";
   const price = parseMoney(priceText);
@@ -60,12 +66,12 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     errors.unitPrice = priceText.trim() === "" ? "Enter a price. Use 0 if it is free." : price.error;
   }
 
-  if (Object.keys(errors).length > 0 || kind === null || !name.ok || !description.ok || !price.ok) {
+  if (Object.keys(errors).length > 0 || kind === null || !name.ok || !description.ok || !unit.ok || !price.ok) {
     return { ok: false, errors };
   }
   return {
     ok: true,
-    value: { kind, name: name.value, description: description.value, unitPriceCents: price.value },
+    value: { kind, name: name.value, description: description.value, unitPriceCents: price.value, unit: unit.value },
   };
 }
 
@@ -77,6 +83,7 @@ export type ProductSummary = {
   name: string;
   description: string | null;
   unitPriceCents: Cents;
+  unit: string | null;
   archived: boolean;
 };
 

@@ -78,6 +78,7 @@ type LineRow = {
   name: string;
   description: string | null;
   quantity_milli: number;
+  unit: string | null;
   unit_price_cents: number;
   discount_kind: DiscountKind;
   discount_value: number;
@@ -132,6 +133,11 @@ type QuoteRow = {
   quote_discount_kind: DiscountKind;
   quote_discount_value: number;
   notes: string | null;
+  title: string | null;
+  description: string | null;
+  sign_off: string | null;
+  terms: string | null;
+  payment_instructions: string | null;
   customers: CustomerRow | CustomerRow[] | null;
   quote_lines: LineRow[];
   quote_versions: VersionRow[];
@@ -156,6 +162,11 @@ export type StoredQuote = {
   discountKind: DiscountKind;
   discountValue: number;
   notes: string | null;
+  title: string | null;
+  description: string | null;
+  signOff: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
   lines: {
     id: string;
     sortOrder: number;
@@ -164,6 +175,7 @@ export type StoredQuote = {
     name: string;
     description: string | null;
     quantityMilli: number;
+    unit: string | null;
     unitPriceCents: number;
     discountKind: DiscountKind;
     discountValue: number;
@@ -185,8 +197,9 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, quote_discount_kind, quote_discount_value, notes,
+       title, description, sign_off, terms, payment_instructions,
        quote_lines (
-         id, sort_order, kind, product_id, name, description, quantity_milli, unit_price_cents,
+         id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
          discount_kind, discount_value
        ),
        customers (
@@ -216,6 +229,11 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     discountKind: row.quote_discount_kind,
     discountValue: Number(row.quote_discount_value),
     notes: row.notes,
+    title: row.title,
+    description: row.description,
+    signOff: row.sign_off,
+    terms: row.terms,
+    paymentInstructions: row.payment_instructions,
     lines: row.quote_lines.map((l) => ({
       id: l.id,
       sortOrder: l.sort_order,
@@ -224,6 +242,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       name: l.name,
       description: l.description,
       quantityMilli: Number(l.quantity_milli),
+      unit: l.unit,
       unitPriceCents: Number(l.unit_price_cents),
       discountKind: l.discount_kind,
       discountValue: Number(l.discount_value),

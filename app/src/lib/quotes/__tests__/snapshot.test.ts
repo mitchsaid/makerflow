@@ -23,6 +23,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
       name: "Wedding cake",
       description: "Three tiers",
       quantity: "1",
+      unit: "",
       unitPrice: "800",
       discountKind: "percent",
       discountValue: "10",
@@ -34,6 +35,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
       name: "Cupcakes",
       description: "",
       quantity: "12",
+      unit: "",
       unitPrice: "15",
       discountKind: "none",
       discountValue: "",
@@ -44,6 +46,11 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   discountKind: "fixed",
   discountValue: "20",
   notes: "Thank you!",
+    title: "",
+    description: "",
+    signOff: "",
+    terms: "",
+    paymentInstructions: "",
   ...over,
 });
 
@@ -145,6 +152,39 @@ describe("the quote snapshot", () => {
 
   it("records the design it was drawn with, so a later design never changes it", () => {
     expect(snapshotFor(INCLUSIVE).design).toBe("classic");
+  });
+
+  it("carries the units and the quote's own wording, so a sent version keeps them", () => {
+    const values = form({
+      title: "Wedding cake for Sarah",
+      description: "Thank you for asking.",
+      signOff: "Yours in sweetness",
+      terms: "Deposit first.",
+      paymentInstructions: "EFT to 123",
+      lines: [{ ...form().lines[0], unit: "tier" }],
+    });
+    const parsed = parseQuote(values, INCLUSIVE);
+    if (!parsed.ok) throw new Error("should parse");
+    const s = buildQuoteSnapshot({
+      quote: parsed.quote,
+      number: "QT-0001",
+      version: 1,
+      business,
+      customer,
+      countryCode: "ZA",
+      currencyCode: "ZAR",
+      vat: INCLUSIVE,
+      locale: ZA_LOCALE,
+    });
+    expect(s).toMatchObject({
+      title: "Wedding cake for Sarah",
+      description: "Thank you for asking.",
+      signOff: "Yours in sweetness",
+      terms: "Deposit first.",
+      paymentInstructions: "EFT to 123",
+    });
+    expect(s.lines[0].unit).toBe("tier");
+    expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
 
   it("allows a draft preview without a customer", () => {

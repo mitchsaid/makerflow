@@ -23,6 +23,7 @@ const line = (over: Partial<LineFormValues> = {}): LineFormValues => ({
   name: "Wedding cake",
   description: "",
   quantity: "1",
+  unit: "",
   unitPrice: "800",
   discountKind: "none",
   discountValue: "",
@@ -40,6 +41,11 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   discountKind: "none",
   discountValue: "",
   notes: "",
+  title: "",
+  description: "",
+  signOff: "",
+  terms: "",
+  paymentInstructions: "",
   ...over,
 });
 
@@ -260,10 +266,11 @@ describe("toFormValues", () => {
     discountKind: "percent" as const,
     discountValue: 750,
     notes: null,
+    title: null, description: null, signOff: null, terms: null, paymentInstructions: null,
     lines: [
-      { id: "l2", sortOrder: 1, kind: "custom", productId: null, name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
-      { id: "l3", sortOrder: 2, kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
-      { id: "l1", sortOrder: 0, kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cake", description: null, quantityMilli: 1125, unitPriceCents: 80_000, discountKind: "fixed" as const, discountValue: 5000 },
+      { id: "l2", sortOrder: 1, kind: "custom", productId: null, name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unit: null, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
+      { id: "l3", sortOrder: 2, kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
+      { id: "l1", sortOrder: 0, kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cake", description: null, quantityMilli: 1125, unit: null, unitPriceCents: 80_000, discountKind: "fixed" as const, discountValue: 5000 },
     ],
   };
 
@@ -352,7 +359,8 @@ describe("lines from products", () => {
       {
         customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null,
         discountKind: "none", discountValue: 0, notes: null,
-        lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
+        title: null, description: null, signOff: null, terms: null, paymentInstructions: null,
+        lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unit: null, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
       },
       ZA_LOCALE.numberStyle,
     );

@@ -17,10 +17,11 @@ type Row = {
   name: string;
   description: string | null;
   unit_price_cents: number;
+  unit: string | null;
   archived_at: string | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, archived_at";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -30,6 +31,7 @@ function fromRow(row: Row): ProductSummary {
     name: row.name,
     description: row.description,
     unitPriceCents: Number(row.unit_price_cents),
+    unit: row.unit,
     archived: row.archived_at !== null,
   };
 }
