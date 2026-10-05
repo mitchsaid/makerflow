@@ -1,4 +1,6 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { formatDocumentNumber } from "@/lib/quotes/numbering";
@@ -43,6 +45,21 @@ export default async function BusinessProfilePage() {
           </CardHeader>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quote policies</CardTitle>
+          <CardDescription className="text-base">
+            Changes, cancellation, expected variations, client responsibilities, and liability and aftercare:
+            write each once and tick them onto your quotes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/app/business/policies" className={buttonVariants({ variant: "outline" })}>
+            Manage quote policies
+          </Link>
+        </CardContent>
+      </Card>
 
       {canEditBusinessProfile(role) && (
         <QuoteWordingForm

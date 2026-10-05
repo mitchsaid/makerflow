@@ -87,6 +87,8 @@ export type QuoteSnapshot = {
   signOff?: string | null;
   terms?: string | null;
   paymentInstructions?: string | null;
+  /** The policies the quote included, each under its own heading. Absent on versions sent before policies existed. */
+  policies?: { kind: string; title: string; body: string }[];
   wording: {
     title: string;
     notATaxInvoice: string;
@@ -213,6 +215,7 @@ export function buildQuoteSnapshot(input: {
     signOff: quote.signOff,
     terms: quote.terms,
     paymentInstructions: quote.paymentInstructions,
+    policies: quote.policies.map((p) => ({ kind: p.kind, title: p.title, body: p.body })),
     wording: {
       title: locale.documents.quoteTitle,
       notATaxInvoice: locale.documents.quoteNotATaxInvoice,

@@ -1,3 +1,4 @@
+import type { PolicyKind } from "../policies";
 import { moneyToInput, percentToInput, quantityToInput, type NumberStyle } from "../money";
 import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, QuoteFormValues } from "./index";
 
@@ -15,6 +16,7 @@ export type StoredQuoteFields = {
   signOff: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
   lines: {
     id: string;
     sortOrder: number;
@@ -76,5 +78,12 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     signOff: quote.signOff ?? "",
     terms: quote.terms ?? "",
     paymentInstructions: quote.paymentInstructions ?? "",
+    policies: quote.policies.map((p, i) => ({
+      key: `p-${i}`,
+      policyId: p.policyId ?? "",
+      kind: p.kind,
+      title: p.title,
+      body: p.body,
+    })),
   };
 }

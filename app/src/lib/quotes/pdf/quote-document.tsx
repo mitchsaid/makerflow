@@ -201,9 +201,22 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           </View>
         ) : null}
 
+        {s.policies && s.policies.length > 0 ? (
+          <View style={styles.policies}>
+            <Text style={styles.policiesHeading}>Terms and policies</Text>
+            {s.policies.map((p, i) => (
+              // One piece of text with its title, so the title is never alone at the foot of a page.
+              <Text key={i} style={styles.policy}>
+                <Text style={styles.policyTitle}>{`${p.title}\n`}</Text>
+                {p.body}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
         {s.terms ? (
           <Text style={styles.terms}>
-            <Text style={styles.label}>{"Terms\n"}</Text>
+            <Text style={styles.label}>{s.policies && s.policies.length > 0 ? "Other terms\n" : "Terms\n"}</Text>
             {s.terms}
           </Text>
         ) : null}

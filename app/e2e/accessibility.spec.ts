@@ -37,7 +37,7 @@ for (const scheme of ["light", "dark"] as const) {
 
     test("signed-in pages", async ({ page }) => {
       // One long walk through every screen (and their error states); it grows with the app.
-      test.setTimeout(120_000);
+      test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-${scheme}`, "Axe Co");
       await expectNoViolations(page, "home");
 
@@ -95,6 +95,11 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /Delivery/ }).check();
       await expectNoViolations(page, "new quote, all sections open");
+      await page.getByRole("button", { name: "Add a policy" }).click();
+      await expect(page.getByRole("dialog", { name: "Add a policy" })).toBeVisible();
+      await expectNoViolations(page, "new quote, add policy sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
 
       // The item sheet: pick, one-off configure (with errors), product form.
       await page.getByRole("button", { name: "Add item" }).click();
@@ -188,8 +193,28 @@ for (const scheme of ["light", "dark"] as const) {
       // Quote numbers, with a number that has already been used.
       await page.getByLabel("Next number", { exact: true }).fill("1");
       await page.getByRole("button", { name: "Save quote numbers" }).click();
-      await expect(page.getByTestId("form-summary").first()).toBeVisible();
+      // Wait for THIS form's answer (the profile form's own summary is still on the page above it).
+      await expect(page.getByText(/has already been used/).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "Save quote numbers" })).toBeEnabled();
       await expectNoViolations(page, "business profile, quote numbers with an error");
+
+      // Quote policies: the library, the form (with errors and a starter), and the saved list.
+      await page.getByRole("link", { name: "Manage quote policies" }).click();
+      await expect(page.getByRole("heading", { name: "Quote policies", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "quote policies, empty");
+      await page.getByRole("link", { name: "Add a cancellation policy" }).click();
+      await expect(page.getByRole("heading", { name: "Add a policy", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "add policy");
+      await page.getByRole("button", { name: "Save policy" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "add policy with errors");
+      await page.getByRole("button", { name: "Made-to-order items" }).click();
+      await page.getByRole("button", { name: "Save policy" }).click();
+      await expect(page.getByTestId("policy-saved")).toBeVisible();
+      await expectNoViolations(page, "quote policies, with a policy");
+      await page.getByRole("link", { name: /Cancellation/ }).first().click();
+      await expect(page.getByRole("heading", { name: "Cancellation", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "edit policy");
     });
   });
 }

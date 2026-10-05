@@ -1,5 +1,6 @@
 import type { BasisPoints, Cents } from "../money/primitives";
 import type { NumberStyle } from "../money/format";
+import type { PolicyPackContent } from "../policies/kinds";
 import type { ValidationResult } from "../validation";
 
 /**
@@ -61,6 +62,8 @@ export type LocalePack = {
     /** What a document must say when prices include the tax. */
     inclusiveStatement(rateBp: BasisPoints): string;
   };
+  /** Starter wording and plain "good to know" notes for each policy heading, from the country's consumer rules. */
+  policies: PolicyPackContent;
   documents: {
     quoteTitle: string;
     quoteNotATaxInvoice: string;
