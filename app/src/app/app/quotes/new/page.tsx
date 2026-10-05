@@ -2,6 +2,9 @@ import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomers } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
+import { canEditBusinessProfile } from "@/lib/business-profile";
+import { defaultQuotePolicies } from "@/lib/policies";
+import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { addDays, todayIn } from "@/lib/quotes/dates";
@@ -13,11 +16,13 @@ const DEFAULT_VALID_DAYS = 14;
 
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, { organisation, profile }] = await Promise.all([
+  const [allCustomers, allProducts, allPolicies, { organisation, profile, role }] = await Promise.all([
     getCustomers(),
     getProducts(),
+    getPolicies(),
     requireOrganisation(),
   ]);
+  const policyLibrary = forOrganisation(allPolicies, organisation.id);
   const locale = getLocalePack(profile.countryCode);
   const customers = forOrganisation(allCustomers, organisation.id);
   const today = todayIn(locale.timeZone);
@@ -50,7 +55,12 @@ export default async function NewQuotePage() {
           signOff: profile.defaultSignOff ?? "",
           terms: profile.defaultTerms ?? "",
           paymentInstructions: profile.paymentInstructions ?? "",
+          // And the policies the business has marked to include on every new quote.
+          policies: defaultQuotePolicies(policyLibrary),
         }}
+        policyLibrary={policyLibrary}
+        policyContent={locale.policies}
+        canManagePolicies={canEditBusinessProfile(role)}
         customers={customerOptions(customers)}
         products={forOrganisation(allProducts, organisation.id)}
         vat={vatSettingsFor(profile, locale)}

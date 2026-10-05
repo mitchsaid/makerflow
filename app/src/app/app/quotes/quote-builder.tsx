@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { TermsStarters } from "@/components/terms-starters";
+import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
+import { PoliciesSection } from "./policies-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +62,9 @@ export function QuoteBuilder({
   taxName,
   justSaved,
   focusOnLoad,
+  policyLibrary: initialPolicyLibrary,
+  policyContent,
+  canManagePolicies,
   children,
 }: {
   quoteId: string | null;
@@ -78,6 +83,12 @@ export function QuoteBuilder({
   justSaved: boolean;
   /** The field to land on (the preview sends people back to fix something). */
   focusOnLoad?: string;
+  /** The business's saved policies, to tick onto the quote. */
+  policyLibrary: PolicySummary[];
+  /** Starter wording for the policy form (from the locale pack). */
+  policyContent: PolicyPackContent;
+  /** Owners and admins can add to the library; other members can only use it. */
+  canManagePolicies: boolean;
   /** What goes between the form and the bar, such as Delete draft. */
   children?: React.ReactNode;
 }) {
@@ -102,6 +113,7 @@ export function QuoteBuilder({
   }
   // The item sheet: choosing what to add, configuring a line, or a product form.
   const [products, setProducts] = useState(initialProducts);
+  const [policyLibrary, setPolicyLibrary] = useState(initialPolicyLibrary);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const newKey = () => `n-${nextKey.current++}`;
@@ -218,7 +230,15 @@ export function QuoteBuilder({
   if (f.paymentInstructions) {
     problems.push({ fieldId: "paymentInstructions", label: "How to pay", message: f.paymentInstructions });
   }
-  if (f.terms) problems.push({ fieldId: "terms", label: "Terms", message: f.terms });
+  if (f.policies) {
+    const first = values.policies.find((c) => errors.policies?.[c.key]);
+    problems.push({
+      fieldId: first ? `policy-${first.key}-body` : "policies-error",
+      label: "Policies",
+      message: first ? `${first.title}: ${errors.policies?.[first.key]?.body ?? errors.policies?.[first.key]?.title}` : f.policies,
+    });
+  }
+  if (f.terms) problems.push({ fieldId: "terms", label: "Other terms", message: f.terms });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Sign-off", message: f.signOff });
 
   const priceLabel = priceEntryLabel(vat, taxName);
@@ -434,6 +454,18 @@ export function QuoteBuilder({
         />
       </Section>
 
+      <PoliciesSection
+        value={values.policies}
+        onChange={(policies) => update({ policies })}
+        library={policyLibrary}
+        onLibraryAdd={(policy) => setPolicyLibrary((list) => [...list.filter((p) => p.id !== policy.id), policy])}
+        content={policyContent}
+        canManage={canManagePolicies}
+        error={f.policies}
+        errorsByKey={errors.policies}
+        newKey={newKey}
+      />
+
       <Section title="Payment and terms">
         <TextAreaField
           id="paymentInstructions"
@@ -446,8 +478,8 @@ export function QuoteBuilder({
         />
         <TextAreaField
           id="terms"
-          label="Terms (optional)"
-          hint="Shown in small print at the end of the quote."
+          label="Other terms (optional)"
+          hint="Anything else, shown in small print at the end of the quote."
           value={values.terms}
           error={f.terms}
           onChange={(terms) => update({ terms })}

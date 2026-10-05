@@ -51,6 +51,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
     signOff: "",
     terms: "",
     paymentInstructions: "",
+    policies: [],
   ...over,
 });
 
@@ -184,6 +185,35 @@ describe("the quote snapshot", () => {
       paymentInstructions: "EFT to 123",
     });
     expect(s.lines[0].unit).toBe("tier");
+    expect(JSON.parse(JSON.stringify(s))).toEqual(s);
+  });
+
+  it("carries the policies the quote included, each with its heading's title and wording", () => {
+    const parsed = parseQuote(
+      form({
+        policies: [
+          { key: "p-0", policyId: "", kind: "cancellation", title: "If you cancel", body: "You pay the deposit." },
+          { key: "p-1", policyId: "", kind: "variations", title: "Handmade", body: "Items vary a little." },
+        ],
+      }),
+      INCLUSIVE,
+    );
+    if (!parsed.ok) throw new Error("should parse");
+    const s = buildQuoteSnapshot({
+      quote: parsed.quote,
+      number: "QT-0001",
+      version: 1,
+      business,
+      customer,
+      countryCode: "ZA",
+      currencyCode: "ZAR",
+      vat: INCLUSIVE,
+      locale: ZA_LOCALE,
+    });
+    expect(s.policies).toEqual([
+      { kind: "cancellation", title: "If you cancel", body: "You pay the deposit." },
+      { kind: "variations", title: "Handmade", body: "Items vary a little." },
+    ]);
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
 

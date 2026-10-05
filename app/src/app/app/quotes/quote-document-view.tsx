@@ -142,9 +142,21 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
+        {s.policies && s.policies.length > 0 && (
+          <section className="space-y-3 border-t border-border pt-4" aria-label="Terms and policies">
+            <h3 className="text-base font-semibold">Terms and policies</h3>
+            {s.policies.map((p, i) => (
+              <div key={i} className="space-y-0.5">
+                <h4 className="text-base font-medium">{p.title}</h4>
+                <p className="whitespace-pre-line text-base">{p.body}</p>
+              </div>
+            ))}
+          </section>
+        )}
+
         {s.terms && (
           <div className="space-y-0.5 text-sm text-muted-foreground">
-            <p className="text-xs font-medium uppercase">Terms</p>
+            <p className="text-xs font-medium uppercase">{s.policies && s.policies.length > 0 ? "Other terms" : "Terms"}</p>
             <p className="whitespace-pre-line">{s.terms}</p>
           </div>
         )}

@@ -12,6 +12,7 @@ import {
   type VatSettings,
 } from "../money";
 import { optionalMultiline, optionalText } from "../form-values";
+import { isPolicyKind, parseQuotePolicies, type PolicyKind, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
 
 /**
@@ -83,6 +84,8 @@ export type QuoteFormValues = {
   terms: string;
   /** "How to pay". Optional. */
   paymentInstructions: string;
+  /** This quote's own copy of each policy it includes (see lib/policies). */
+  policies: QuotePolicyValues[];
 };
 
 export type LineErrors = Partial<
@@ -104,12 +107,15 @@ export type QuoteErrors = {
       | "description"
       | "signOff"
       | "terms"
-      | "paymentInstructions",
+      | "paymentInstructions"
+      | "policies",
       string
     >
   >;
   /** By line key. */
   lines: Record<string, LineErrors>;
+  /** By the key of the policy on the quote. */
+  policies?: Record<string, QuotePolicyError>;
 };
 
 export type ParsedLine = {
@@ -138,6 +144,7 @@ export type ParsedQuote = {
   signOff: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
   totals: DocumentTotals;
 };
 
@@ -176,6 +183,23 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (!strings.every((key) => typeof v[key] === "string")) return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
+  if (
+    !Array.isArray(v.policies) ||
+    v.policies.length > 100 ||
+    !v.policies.every((p) => {
+      const x = p as Record<string, unknown> | null;
+      return (
+        !!x &&
+        typeof x.key === "string" &&
+        typeof x.policyId === "string" &&
+        typeof x.title === "string" &&
+        typeof x.body === "string" &&
+        isPolicyKind(x.kind)
+      );
+    })
+  ) {
+    return false;
+  }
   return v.lines.every((line) => {
     if (typeof line !== "object" || line === null) return false;
     const l = line as Record<string, unknown>;
@@ -357,6 +381,12 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
+  const policies = parseQuotePolicies(values.policies);
+  if (!policies.ok) {
+    errors.fields.policies = policies.error;
+    errors.policies = policies.byKey;
+  }
+
   const kept = values.lines.filter((l) => !isBlankLine(l));
   // Delivery or collection is stored as a line too, so it counts towards the limit.
   const maxItems = QUOTE_MAX_LINES - (values.fulfilment === "none" ? 0 : 1);
@@ -381,7 +411,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
 
   const hasErrors =
     Object.keys(errors.fields).length > 0 || Object.keys(errors.lines).length > 0;
-  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !terms.ok || !payment.ok || !fulfilment.ok || !quoteDiscount.ok) {
+  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !terms.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok) {
     return { ok: false, errors };
   }
 
@@ -431,6 +461,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       signOff: signOff.value,
       terms: terms.value,
       paymentInstructions: payment.value,
+      policies: policies.policies,
       totals,
     },
   };
@@ -496,6 +527,7 @@ export function toDatabasePayload(
       sign_off: quote.signOff,
       terms: quote.terms,
       payment_instructions: quote.paymentInstructions,
+      policies: quote.policies.map((p) => ({ policy_id: p.policyId, kind: p.kind, title: p.title, body: p.body })),
       country_code: context.countryCode,
       currency_code: context.currencyCode,
       net_cents: quote.totals.netCents,

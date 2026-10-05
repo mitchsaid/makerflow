@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { ZA_LOCALE } from "../../locale/za";
+import { POLICY_KINDS as POLICY_KINDS_FOR_TEST } from "../../policies";
 import type { VatSettings } from "../../money";
 import { parseQuote, type QuoteFormValues } from "../index";
 import { renderQuotePdf } from "../pdf/render";
@@ -45,6 +46,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     signOff: "",
     terms: "",
     paymentInstructions: "",
+    policies: [],
     ...over,
   };
   const parsed = parseQuote(values, vat);
@@ -156,6 +158,21 @@ describe("long and awkward text on the document", () => {
       lines: base.lines.map((l) => ({ ...l, quantityMilli: 12_500_500, unit: "portions per tray" })),
     });
     expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  });
+});
+
+describe("policies on the document", () => {
+  it("renders each policy under its title, with other terms after them, and an old version without any", async () => {
+    const base = snapshot(vats.inclusive);
+    const policies = POLICY_KINDS_FOR_TEST.map((kind, i) => ({
+      kind,
+      title: `Policy ${i + 1}`,
+      body: "Some wording that explains the policy in plain words. ".repeat(12),
+    }));
+    const withPolicies = await renderQuotePdf({ ...base, policies, terms: "Other terms here." });
+    const without = await renderQuotePdf({ ...base, policies: undefined });
+    expect(withPolicies.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(withPolicies.length).toBeGreaterThan(without.length);
   });
 });
 

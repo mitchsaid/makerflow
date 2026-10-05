@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
 import type { Customer, CustomerKind } from "../customers";
+import { isPolicyKind, type PolicyKind } from "../policies";
 import type { QuoteSnapshot } from "./snapshot";
 
 /**
@@ -138,6 +139,7 @@ type QuoteRow = {
   sign_off: string | null;
   terms: string | null;
   payment_instructions: string | null;
+  policies: unknown;
   customers: CustomerRow | CustomerRow[] | null;
   quote_lines: LineRow[];
   quote_versions: VersionRow[];
@@ -167,6 +169,8 @@ export type StoredQuote = {
   signOff: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  /** This quote's own copy of the policies it includes. */
+  policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
   lines: {
     id: string;
     sortOrder: number;
@@ -188,6 +192,23 @@ export type StoredQuote = {
   events: { id: string; kind: "created" | "sent" | "revised"; version: number; via: "shared" | "marked" | null; at: string }[];
 };
 
+/** The quote's own policies as stored (a list), ignoring anything that isn't one. */
+function storedPolicies(value: unknown): StoredQuote["policies"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const x = item as Record<string, unknown> | null;
+    if (!x || !isPolicyKind(x.kind) || typeof x.title !== "string" || typeof x.body !== "string") return [];
+    return [
+      {
+        policyId: typeof x.policy_id === "string" ? x.policy_id : null,
+        kind: x.kind,
+        title: x.title,
+        body: x.body,
+      },
+    ];
+  });
+}
+
 /** One quote with its lines, or null for a bad id or one this person can't see. */
 export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
   if (!UUID.test(id)) return null;
@@ -197,7 +218,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, terms, payment_instructions,
+       title, description, sign_off, terms, payment_instructions, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
          discount_kind, discount_value
@@ -234,6 +255,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     signOff: row.sign_off,
     terms: row.terms,
     paymentInstructions: row.payment_instructions,
+    policies: storedPolicies(row.policies),
     lines: row.quote_lines.map((l) => ({
       id: l.id,
       sortOrder: l.sort_order,

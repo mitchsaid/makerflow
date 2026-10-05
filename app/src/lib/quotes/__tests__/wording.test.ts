@@ -37,6 +37,7 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   signOff: "",
   terms: "",
   paymentInstructions: "",
+  policies: [],
   ...over,
 });
 

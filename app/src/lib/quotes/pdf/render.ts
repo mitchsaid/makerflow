@@ -41,6 +41,7 @@ export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
     signOff: clean(snapshot.signOff ?? null),
     terms: clean(snapshot.terms ?? null),
     paymentInstructions: clean(snapshot.paymentInstructions ?? null),
+    policies: snapshot.policies?.map((p) => ({ ...p, title: drawable(p.title), body: drawable(p.body) })),
   };
 }
 
