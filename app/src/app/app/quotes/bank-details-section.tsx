@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { bankSummary, type BankDetails } from "@/lib/bank";
+import { bankPreview, type BankPreview } from "@/lib/bank";
 import { getLocalePack } from "@/lib/locale";
 import { emptyBankValues } from "@/lib/bank/form";
 import { BankDetailsForm } from "../business/bank-details-form";
@@ -26,13 +26,13 @@ export function BankDetailsSection({
   onBankSaved,
   children,
 }: {
-  bank: BankDetails | null;
+  bank: BankPreview | null;
   countryCode: string;
   /** Only the owner can add or change bank details. */
   canEdit: boolean;
   show: boolean;
   onShowChange: (show: boolean) => void;
-  onBankSaved: (bank: BankDetails) => void;
+  onBankSaved: (bank: BankPreview) => void;
   children: React.ReactNode;
 }) {
   const locale = getLocalePack(countryCode);
@@ -54,7 +54,7 @@ export function BankDetailsSection({
             <FieldLabel htmlFor="showBankDetails" className="flex flex-col items-start text-base">
               <span>Show my bank details on this quote</span>
               <span className="text-sm font-normal text-muted-foreground" data-testid="bank-summary">
-                {bankSummary(bank, locale)}
+                {bank.summary}
               </span>
             </FieldLabel>
           </Field>
@@ -101,7 +101,7 @@ export function BankDetailsSection({
                 onPendingChange: setSaving,
                 onCancel: () => setSheetOpen(false),
                 onDone: (saved) => {
-                  onBankSaved(saved);
+                  onBankSaved(bankPreview(saved, locale)!);
                   onShowChange(true);
                   setSheetOpen(false);
                 },

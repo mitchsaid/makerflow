@@ -6,7 +6,7 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { TermsStarters } from "@/components/terms-starters";
 import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
-import type { BankDetails } from "@/lib/bank";
+import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
 import { PoliciesSection } from "./policies-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,7 +29,7 @@ import {
   type VatSettings,
 } from "@/lib/money";
 import type { ProductSummary } from "@/lib/products";
-import { priceEntryLabel } from "@/lib/locale";
+import { getLocalePack, priceEntryLabel } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import {
   previewTotals,
@@ -93,8 +93,8 @@ export function QuoteBuilder({
   policyContent: PolicyPackContent;
   /** Owners and admins can add to the library; other members can only use it. */
   canManagePolicies: boolean;
-  /** The business's saved bank details, or null when none are saved. */
-  bankDetails: BankDetails | null;
+  /** Which bank account is saved (never the whole number), or null when none is. */
+  bankDetails: BankPreview | null;
   /** Only the owner can add bank details (from the quote or the Business profile). */
   canEditBankDetails: boolean;
   /** What goes between the form and the bar, such as Delete draft. */
@@ -486,7 +486,7 @@ export function QuoteBuilder({
         <TextAreaField
           id="paymentInstructions"
           label="Other ways to pay (optional)"
-          hint="SnapScan, PayShap, or “pay on collection”. Printed under your bank details."
+          hint={`${getLocalePack(countryCode).payment.otherWaysHint} Printed under your bank details.`}
           value={values.paymentInstructions}
           error={f.paymentInstructions}
           onChange={(paymentInstructions) => update({ paymentInstructions })}

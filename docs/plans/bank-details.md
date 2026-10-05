@@ -11,7 +11,7 @@ Status: **decisions confirmed by the founder 2026-10-05; built, in review.** Tou
 ## What the maker can do
 - **Business profile > Bank details** (owner edits; everyone else sees them read-only): one field per item the country needs, each checked with a message that says how to fix it (account and branch numbers: digits only, branch code 6 digits for South Africa), the "use the document number as the payment reference" tick, and "last changed" under it. A short note says that changing them affects new documents only.
 - **On a quote:** a "Bank details" part shows what will print (bank, holder, account ending 6789) with a switch to include them (on by default). With none saved, an owner can add them in a sheet over the quote (nothing typed is lost); others are told to ask the owner.
-- **On the document:** under "How to pay", one line per field ("Bank: FNB", "Account number: 62 123 456 789"…) and "Reference: QT-0042" when that is ticked, then the other ways to pay. Frozen in the snapshot, so sent versions never change when the details do.
+- **On the document:** under "How to pay", one line per field ("Bank: FNB", "Account number: 62123456789" (digits as saved)…) and "Reference: QT-0042" when that is ticked, then the other ways to pay. Frozen in the snapshot, so sent versions never change when the details do.
 - **Invoices (later)** use the same record and the same lines.
 
 ## Data
@@ -20,4 +20,4 @@ Status: **decisions confirmed by the founder 2026-10-05; built, in review.** Tou
 - Loaded with the workspace in the same query, so no page gets slower.
 
 ## Not built
-More than one account, structured details for other countries (their packs), suggestions of branch codes (not verified against a source, and a wrong code sends money to the wrong place), a re-authentication step before changing the details (listed in `docs/security-notes.md`), and a change history.
+More than one account, structured details for other countries (their packs), suggestions of branch codes (not verified against a source, and a wrong code sends money to the wrong place), a re-authentication step before changing the details (to be added to the step-up item in `docs/security-notes.md`), and a change history.

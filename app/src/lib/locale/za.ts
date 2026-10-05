@@ -271,7 +271,12 @@ export const ZA_LOCALE: LocalePack = {
     // VAT Act section 65: a quoted price must say it includes VAT (or show both prices).
     inclusiveStatement: (rateBp) => `All prices include VAT at ${formatPercent(rateBp, ZA_NUMBER_STYLE)}.`,
   },
-  payment: { bankFields: ZA_BANK_FIELDS, referenceLabel: "Reference", bankSummary },
+  payment: {
+    bankFields: ZA_BANK_FIELDS,
+    otherWaysHint: "SnapScan, PayShap, or “pay on collection”.",
+    referenceLabel: "Reference",
+    bankSummary,
+  },
   policies: ZA_POLICIES,
   documents: {
     quoteTitle: "Quotation",

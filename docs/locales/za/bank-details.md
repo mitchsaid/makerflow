@@ -18,4 +18,4 @@ Account holder, bank, account type, account number and branch code. A customer p
 - **No grouping of digits** on the document: the number prints as saved.
 
 ## Why only the owner changes them
-Changing where customers send money is how invoice fraud happens. Members can read the details (documents show them); admins and staff cannot change them. A sent document keeps what it showed. A step-up re-authentication before a change is listed in `docs/security-notes.md` and not built yet.
+Changing where customers send money is how invoice fraud happens. Members can read the details (documents show them); admins and staff cannot change them. A sent document keeps what it showed. A step-up re-authentication before a change is on the step-up list in `docs/security-notes.md` (added with this change) and not built yet.

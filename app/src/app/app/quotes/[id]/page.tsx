@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomers } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
-import { canEditBankDetails } from "@/lib/bank";
+import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
@@ -93,7 +93,7 @@ export default async function QuotePage({
           policyLibrary={forOrganisation(allPolicies, organisation.id)}
           policyContent={locale.policies}
           canManagePolicies={canEditBusinessProfile(role)}
-          bankDetails={bankDetails}
+          bankDetails={bankPreview(bankDetails, locale)}
           canEditBankDetails={canEditBankDetails(role)}
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}

@@ -100,6 +100,13 @@ export function bankSummary(bank: BankDetails, locale: LocalePack): string {
   return locale.payment.bankSummary(bank.details);
 }
 
+/** All a quote screen needs: which account (never the whole number) and whether the reference is asked for. */
+export type BankPreview = { summary: string; useReference: boolean };
+
+export function bankPreview(bank: BankDetails | null, locale: LocalePack): BankPreview | null {
+  return bank ? { summary: bankSummary(bank, locale), useReference: bank.useReference } : null;
+}
+
 /** Owners only: changing where customers send money is how invoice fraud happens. */
 export function canEditBankDetails(role: string | null): boolean {
   return role === "owner";

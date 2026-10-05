@@ -82,7 +82,7 @@ export type QuoteFormValues = {
   signOff: string;
   /** Printed small at the end. Optional. */
   terms: string;
-  /** "Other ways to pay" (SnapScan, pay on collection). Optional. Prints under the bank details. */
+  /** "Other ways to pay" (the country's other methods, or pay on collection). Optional. Prints under the bank details. */
   paymentInstructions: string;
   /** Show the business's bank details on this quote (when it has saved them). */
   showBankDetails: boolean;
@@ -184,7 +184,8 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
     "paymentInstructions",
   ];
   if (!strings.every((key) => typeof v[key] === "string")) return false;
-  if (typeof v.showBankDetails !== "boolean") return false;
+  // A phone still running an older version of the app does not send it: that means on.
+  if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
   if (
@@ -465,7 +466,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       signOff: signOff.value,
       terms: terms.value,
       paymentInstructions: payment.value,
-      showBankDetails: values.showBankDetails,
+      showBankDetails: values.showBankDetails !== false,
       policies: policies.policies,
       totals,
     },

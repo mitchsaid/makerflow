@@ -84,6 +84,8 @@ export type LocalePack = {
   payment: {
     /** The items of the bank details, in the order a document shows them. */
     bankFields: readonly BankField[];
+    /** Help under the free text for other ways to pay, naming this country's methods. */
+    otherWaysHint: string;
     /** What the payment reference line is called on a document: "Reference". */
     referenceLabel: string;
     /** A short line saying which account this is, for a screen (never the whole account number). */

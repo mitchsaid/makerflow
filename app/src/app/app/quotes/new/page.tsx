@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomers } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
-import { canEditBankDetails } from "@/lib/bank";
+import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { defaultQuotePolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
@@ -64,7 +64,7 @@ export default async function NewQuotePage() {
         policyLibrary={policyLibrary}
         policyContent={locale.policies}
         canManagePolicies={canEditBusinessProfile(role)}
-        bankDetails={bankDetails}
+        bankDetails={bankPreview(bankDetails, locale)}
         canEditBankDetails={canEditBankDetails(role)}
         customers={customerOptions(customers)}
         products={forOrganisation(allProducts, organisation.id)}

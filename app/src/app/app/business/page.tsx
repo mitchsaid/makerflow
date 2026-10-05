@@ -101,6 +101,7 @@ export default async function BusinessProfilePage() {
 
       {canEditBusinessProfile(role) && (
         <QuoteWordingForm
+          otherWaysHint={locale.payment.otherWaysHint}
           initial={{
             signOff: profile.defaultSignOff ?? "",
             terms: profile.defaultTerms ?? "",

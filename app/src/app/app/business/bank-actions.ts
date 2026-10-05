@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { bankFromRow, canEditBankDetails, parseBankForm, type BankDetails, type BankRow, type BankFieldErrors, type BankFormValues } from "@/lib/bank";
+import { bankFromRow, canEditBankDetails, parseBankForm, type BankDetails, type BankFieldErrors, type BankRow, type BankFormValues } from "@/lib/bank";
 import { getLocalePack } from "@/lib/locale";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,45 +34,33 @@ export async function saveBankDetails(values: BankFormValues): Promise<BankSaveS
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
 
   const supabase = await createClient();
-  const { data: existing, error: readError } = await supabase
-    .from("business_bank_details")
-    .select("id")
-    .eq("organisation_id", organisation.id)
-    .maybeSingle();
-  if (readError) {
-    console.error("could not read bank details:", readError.message);
-    return { status: "error", message: GENERIC_ERROR };
-  }
-
-  let row: BankRow | null;
-  if (existing) {
-    const { data, error } = await supabase
+  const changes = { country_code: locale.countryCode, details: parsed.details, use_reference: parsed.useReference };
+  // One row per business. An upsert would also try to set organisation_id, which nobody may change,
+  // so: change the row if there is one, else add it. If another tab added it first (the unique
+  // rule says so), change that one instead.
+  const change = () =>
+    supabase.from("business_bank_details").update(changes).eq("organisation_id", organisation.id).select(ROW);
+  const first = await change();
+  let row: BankRow | null = first.data?.[0] ?? null;
+  let failure = first.error;
+  if (!failure && !row) {
+    const added = await supabase
       .from("business_bank_details")
-      .update({ country_code: locale.countryCode, details: parsed.details, use_reference: parsed.useReference })
-      .eq("id", existing.id)
-      .eq("organisation_id", organisation.id)
-      .select(ROW);
-    row = data?.length === 1 ? data[0] : null;
-    if (error || !row) {
-      console.error("could not save bank details:", error?.message);
-      return { status: "error", message: GENERIC_ERROR };
-    }
-  } else {
-    const { data, error } = await supabase
-      .from("business_bank_details")
-      .insert({
-        organisation_id: organisation.id,
-        country_code: locale.countryCode,
-        details: parsed.details,
-        use_reference: parsed.useReference,
-      })
+      .insert({ organisation_id: organisation.id, ...changes })
       .select(ROW)
       .single();
-    row = data;
-    if (error || !row) {
-      console.error("could not add bank details:", error?.message);
-      return { status: "error", message: GENERIC_ERROR };
+    if (added.error?.code === "23505") {
+      const again = await change();
+      row = again.data?.[0] ?? null;
+      failure = again.error;
+    } else {
+      row = added.data;
+      failure = added.error;
     }
+  }
+  if (failure || !row) {
+    console.error("could not save bank details:", failure?.message);
+    return { status: "error", message: GENERIC_ERROR };
   }
   const bank = bankFromRow(row, locale);
   if (!bank) return { status: "error", message: GENERIC_ERROR };
