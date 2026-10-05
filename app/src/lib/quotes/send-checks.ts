@@ -1,5 +1,5 @@
-import { missingForQuote, type BusinessProfile } from "../business-profile";
-import type { LocalePack } from "../locale";
+import { missingForQuote } from "../business-profile";
+import type { ContactFacts, LocalePack } from "../locale";
 
 /**
  * What stops a draft being sent, in plain words. The send sheet lists these (the error
@@ -21,7 +21,8 @@ export function sendProblems(input: {
   validUntil: string;
   /** Today in the business's time zone, as YYYY-MM-DD. */
   today: string;
-  profile: BusinessProfile;
+  /** The business's contact details (phone, email and address). */
+  profile: ContactFacts;
   locale: LocalePack;
 }): SendProblem[] {
   const problems: SendProblem[] = [];

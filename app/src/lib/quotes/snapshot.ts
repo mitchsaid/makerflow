@@ -37,6 +37,8 @@ export type SnapshotLine = {
   name: string;
   description: string | null;
   quantityMilli: number;
+  /** "kg", "dozen": absent or null for a plain count (and on versions sent before units existed). */
+  unit?: string | null;
   unitPriceCents: number;
   discount: SnapshotDiscount | null;
   /** Quantity x price less the line's own discount (before any discount on the whole quote). */
@@ -79,6 +81,12 @@ export type QuoteSnapshot = {
     groups: VatGroup[];
   };
   notes: string | null;
+  /** The quote's own wording. Absent on versions sent before it existed. */
+  title?: string | null;
+  description?: string | null;
+  signOff?: string | null;
+  terms?: string | null;
+  paymentInstructions?: string | null;
   wording: {
     title: string;
     notATaxInvoice: string;
@@ -176,6 +184,7 @@ export function buildQuoteSnapshot(input: {
       name: l.name,
       description: l.description,
       quantityMilli: l.quantityMilli,
+      unit: l.unit,
       unitPriceCents: l.unitPriceCents,
       discount: l.discount
         ? l.discount.kind === "percent"
@@ -199,6 +208,11 @@ export function buildQuoteSnapshot(input: {
       groups: totals.groups,
     },
     notes: quote.notes,
+    title: quote.title,
+    description: quote.description,
+    signOff: quote.signOff,
+    terms: quote.terms,
+    paymentInstructions: quote.paymentInstructions,
     wording: {
       title: locale.documents.quoteTitle,
       notATaxInvoice: locale.documents.quoteNotATaxInvoice,

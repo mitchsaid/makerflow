@@ -46,6 +46,7 @@ export function TextField({
   value,
   onChange,
   startText,
+  hint,
   ...props
 }: ExtraInputProps & {
   id: string;
@@ -57,7 +58,10 @@ export function TextField({
   onChange: (value: string) => void;
   /** Fixed text before the value, such as the currency symbol on a price. */
   startText?: string;
+  /** Help under the field, tied to it for screen readers. */
+  hint?: string;
 }) {
+  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
   const input = (
     <Input
       id={id}
@@ -66,7 +70,7 @@ export function TextField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-invalid={!!error}
-      aria-describedby={error ? `${id}-error` : undefined}
+      aria-describedby={describedBy || undefined}
       className={startText ? "h-full rounded-lg border-0 bg-transparent pl-2 shadow-none focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent" : undefined}
       {...props}
     />
@@ -81,6 +85,11 @@ export function TextField({
         </InputGroup>
       ) : (
         input
+      )}
+      {hint && (
+        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+          {hint}
+        </p>
       )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>

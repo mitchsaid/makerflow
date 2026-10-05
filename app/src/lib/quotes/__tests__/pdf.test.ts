@@ -29,6 +29,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
         name,
         description: "Three tiers, vanilla",
         quantity: "1",
+        unit: "",
         unitPrice: "800",
         discountKind: "percent",
         discountValue: "10",
@@ -39,6 +40,11 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     discountKind: "fixed",
     discountValue: "20",
     notes: "Thank you!",
+    title: "",
+    description: "",
+    signOff: "",
+    terms: "",
+    paymentInstructions: "",
     ...over,
   };
   const parsed = parseQuote(values, vat);
@@ -82,6 +88,7 @@ describe("the quote PDF", () => {
       name: `Item ${i + 1}`,
       description: "A description that is long enough to need some room on the page.",
       quantity: "2",
+      unit: "",
       unitPrice: "19,99",
       discountKind: "none",
       discountValue: "",
@@ -117,6 +124,38 @@ describe("text for the PDF font", () => {
     expect(cleaned.numberStyle).toEqual(s.numberStyle);
     expect(cleaned.numberStyle.groupSeparator).toBe(" ");
     expect(s.lines[0].name).toBe("🎂 Cake");
+  });
+});
+
+describe("the quote's own wording on the document", () => {
+  it("renders the title, description, units, how to pay, sign-off and terms, even when long", async () => {
+    const long = "A long line of terms that goes on and on about how the order works. ".repeat(60);
+    const withWording = await renderQuotePdf({
+      ...snapshot(vats.inclusive),
+      title: "Wedding cake for Sarah",
+      description: "Thank you for asking about your wedding cake.",
+      signOff: "Yours in sweetness",
+      terms: long,
+      paymentInstructions: "EFT to Sweet Co\nFNB 123456",
+      lines: snapshot(vats.inclusive).lines.map((l) => ({ ...l, unit: "kg" })),
+    });
+    const plain = await renderQuotePdf(snapshot(vats.inclusive));
+    expect(withWording.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(withWording.length).toBeGreaterThan(plain.length);
+  });
+});
+
+describe("long and awkward text on the document", () => {
+  it("copes with a wide quantity and a long unit, and with many short lines", async () => {
+    const base = snapshot(vats.inclusive);
+    const lines = Array.from({ length: 80 }, (_, i) => `Term ${i + 1}`).join("\n");
+    const pdf = await renderQuotePdf({
+      ...base,
+      terms: lines,
+      paymentInstructions: Array.from({ length: 20 }, (_, i) => `Pay ${i + 1}`).join("\n"),
+      lines: base.lines.map((l) => ({ ...l, quantityMilli: 12_500_500, unit: "portions per tray" })),
+    });
+    expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
 });
 

@@ -10,6 +10,11 @@ export type StoredQuoteFields = {
   discountKind: DiscountKind;
   discountValue: number;
   notes: string | null;
+  title: string | null;
+  description: string | null;
+  signOff: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
   lines: {
     id: string;
     sortOrder: number;
@@ -18,6 +23,7 @@ export type StoredQuoteFields = {
     name: string;
     description: string | null;
     quantityMilli: number;
+    unit: string | null;
     unitPriceCents: number;
     discountKind: DiscountKind;
     discountValue: number;
@@ -45,6 +51,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
       name: l.name,
       description: l.description ?? "",
       quantity: quantityToInput(l.quantityMilli, style),
+      unit: l.unit ?? "",
       unitPrice: moneyToInput(l.unitPriceCents, style),
       discountKind: l.discountKind,
       discountValue: discountText(l.discountKind, l.discountValue, style),
@@ -64,5 +71,10 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     discountKind: quote.discountKind,
     discountValue: discountText(quote.discountKind, quote.discountValue, style),
     notes: quote.notes ?? "",
+    title: quote.title ?? "",
+    description: quote.description ?? "",
+    signOff: quote.signOff ?? "",
+    terms: quote.terms ?? "",
+    paymentInstructions: quote.paymentInstructions ?? "",
   };
 }

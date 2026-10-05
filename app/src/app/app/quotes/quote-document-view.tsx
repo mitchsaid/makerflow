@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { formatMoney, formatPercent, formatQuantity } from "@/lib/money";
+import { formatMoney, formatPercent } from "@/lib/money";
+import { quantityText } from "@/lib/quotes/units";
 import { formatDay } from "@/lib/quotes/dates";
 import type { QuoteSnapshot, SnapshotParty } from "@/lib/quotes/snapshot";
 
@@ -55,6 +56,13 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
+        {(s.title || s.description) && (
+          <div className="space-y-1">
+            {s.title && <h3 className="text-base font-semibold">{s.title}</h3>}
+            {s.description && <p className="whitespace-pre-line text-base">{s.description}</p>}
+          </div>
+        )}
+
         <ul className="divide-y divide-border border-y border-border" aria-label="Items">
           {s.lines.map((l, i) => (
             <li key={i} className="space-y-0.5 py-3">
@@ -63,7 +71,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
                 <p className="shrink-0 text-base font-medium">{money(l.lineTotalCents)}</p>
               </div>
               <p className="text-sm text-muted-foreground">
-                {formatQuantity(l.quantityMilli, s.numberStyle)} × {money(l.unitPriceCents)}
+                {quantityText(l.quantityMilli, l.unit, s.numberStyle)} × {money(l.unitPriceCents)}
                 {l.discount &&
                   ` · discount ${
                     l.discount.kind === "percent"
@@ -117,6 +125,27 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           <div className="space-y-0.5">
             <p className="text-xs font-medium uppercase text-muted-foreground">Notes</p>
             <p className="whitespace-pre-line text-base">{s.notes}</p>
+          </div>
+        )}
+
+        {s.paymentInstructions && (
+          <div className="space-y-0.5">
+            <p className="text-xs font-medium uppercase text-muted-foreground">How to pay</p>
+            <p className="whitespace-pre-line text-base">{s.paymentInstructions}</p>
+          </div>
+        )}
+
+        {s.signOff && (
+          <div>
+            <p className="text-base">{s.signOff}</p>
+            <p className="text-base font-semibold">{s.business.name}</p>
+          </div>
+        )}
+
+        {s.terms && (
+          <div className="space-y-0.5 text-sm text-muted-foreground">
+            <p className="text-xs font-medium uppercase">Terms</p>
+            <p className="whitespace-pre-line">{s.terms}</p>
           </div>
         )}
 

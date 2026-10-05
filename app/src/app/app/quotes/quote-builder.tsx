@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { TermsStarters } from "@/components/terms-starters";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -197,6 +198,8 @@ export function QuoteBuilder({
   const problems: FormProblem[] = [];
   const f = errors.fields;
   if (f.customerId) problems.push({ fieldId: "customer", label: "Customer", message: f.customerId });
+  if (f.title) problems.push({ fieldId: "title", label: "Quote title", message: f.title });
+  if (f.description) problems.push({ fieldId: "description", label: "Description", message: f.description });
   if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
   if (f.validUntil) problems.push({ fieldId: "validUntil", label: "Valid until", message: f.validUntil });
   if (f.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: f.neededBy });
@@ -212,6 +215,11 @@ export function QuoteBuilder({
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
+  if (f.paymentInstructions) {
+    problems.push({ fieldId: "paymentInstructions", label: "How to pay", message: f.paymentInstructions });
+  }
+  if (f.terms) problems.push({ fieldId: "terms", label: "Terms", message: f.terms });
+  if (f.signOff) problems.push({ fieldId: "signOff", label: "Sign-off", message: f.signOff });
 
   const priceLabel = priceEntryLabel(vat, taxName);
 
@@ -228,6 +236,27 @@ export function QuoteBuilder({
           value={values.customerId}
           onChange={(customerId) => update({ customerId })}
           error={f.customerId}
+        />
+      </Section>
+
+      <Section title="About this quote">
+        <TextField
+          id="title"
+          label="Quote title (optional)"
+          autoComplete="off"
+          maxLength={120}
+          value={values.title}
+          error={f.title}
+          onChange={(title) => update({ title })}
+        />
+        <TextAreaField
+          id="description"
+          label="Description (optional)"
+          hint="An introduction under the title, like “Thank you for asking about your wedding cake.”"
+          value={values.description}
+          error={f.description}
+          onChange={(description) => update({ description })}
+          maxLength={2000}
         />
       </Section>
 
@@ -405,6 +434,41 @@ export function QuoteBuilder({
         />
       </Section>
 
+      <Section title="Payment and terms">
+        <TextAreaField
+          id="paymentInstructions"
+          label="How to pay (optional)"
+          hint="Bank details, SnapScan, or “pay on collection”. Shown on the quote."
+          value={values.paymentInstructions}
+          error={f.paymentInstructions}
+          onChange={(paymentInstructions) => update({ paymentInstructions })}
+          maxLength={1000}
+        />
+        <TextAreaField
+          id="terms"
+          label="Terms (optional)"
+          hint="Shown in small print at the end of the quote."
+          value={values.terms}
+          error={f.terms}
+          onChange={(terms) => update({ terms })}
+          maxLength={4000}
+        />
+        <TermsStarters terms={values.terms} onChange={(terms) => update({ terms })} />
+      </Section>
+
+      <Section title="Sign-off">
+        <TextField
+          id="signOff"
+          label="Sign-off (optional)"
+          autoComplete="off"
+          maxLength={200}
+          value={values.signOff}
+          error={f.signOff}
+          onChange={(signOff) => update({ signOff })}
+          hint="Like “Yours in sweetness”. Shown at the end of the quote, with your business name."
+        />
+      </Section>
+
       <Section title="Totals">
         <dl className="space-y-1 text-base" data-testid="totals">
           {discountsCents > 0 && totals && (
@@ -516,7 +580,7 @@ function LineRow({
             <p className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            {quantity.ok ? line.quantity : "?"} × {price.ok ? money(price.value) : "?"}
+            {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}
             {line.discountKind !== "none" && " · discount"}
             {!line.productId && " · one-off item"}
           </p>

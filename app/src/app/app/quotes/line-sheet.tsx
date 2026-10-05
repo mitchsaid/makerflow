@@ -21,6 +21,7 @@ import {
   parseMoney,
   type NumberStyle,
 } from "@/lib/money";
+import { UnitField } from "@/components/unit-field";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
 import { parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
@@ -55,6 +56,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     name: product.name,
     description: product.description ?? "",
     quantity: "1",
+    unit: product.unit ?? "",
     unitPrice: moneyToInput(product.unitPriceCents, style),
     discountKind: "none",
     discountValue: "",
@@ -151,6 +153,7 @@ export function LineSheet({
                     name: "",
                     description: "",
                     quantity: "1",
+                    unit: "",
                     unitPrice: "",
                     discountKind: "none",
                     discountValue: "",
@@ -231,6 +234,7 @@ function followProduct(
     kind: after.kind,
     name: line.name === before.name ? after.name : line.name,
     description: line.description === (before.description ?? "") ? (after.description ?? "") : line.description,
+    unit: line.unit === (before.unit ?? "") ? (after.unit ?? "") : line.unit,
     unitPrice:
       line.unitPrice === moneyToInput(before.unitPriceCents, style)
         ? moneyToInput(after.unitPriceCents, style)
@@ -243,6 +247,7 @@ function productValues(p: ProductSummary, style: NumberStyle): ProductFormValues
     kind: p.kind,
     name: p.name,
     unitPrice: moneyToInput(p.unitPriceCents, style),
+    unit: p.unit ?? "",
     description: p.description ?? "",
   };
 }
@@ -300,7 +305,10 @@ function PickView({
                   >
                     <span className="flex items-baseline justify-between gap-3">
                       <span className="font-medium">{p.name}</span>
-                      <span className="shrink-0">{money(p.unitPriceCents)}</span>
+                      <span className="shrink-0">
+                        {money(p.unitPriceCents)}
+                        {p.unit ? ` / ${p.unit}` : ""}
+                      </span>
                     </span>
                     {p.description && (
                       <span className="truncate text-sm font-normal text-muted-foreground">{p.description}</span>
@@ -390,6 +398,7 @@ function ConfigureView({
     [
       ["name", "Name"],
       ["quantity", "Quantity"],
+      ["unit", "Unit"],
       ["unitPrice", priceLabel],
       ["description", "Description"],
       ["discountValue", "Discount"],
@@ -450,17 +459,18 @@ function ConfigureView({
             error={errors.quantity}
             onChange={set("quantity")}
           />
-          <TextField
-            id={id("unitPrice")}
-            label={priceLabel}
-            startText={symbol}
-            inputMode="decimal"
-            autoComplete="off"
-            value={line.unitPrice}
-            error={errors.unitPrice}
-            onChange={set("unitPrice")}
-          />
+          <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />
         </div>
+        <TextField
+          id={id("unitPrice")}
+          label={line.unit.trim() ? `${priceLabel} per ${line.unit.trim()}` : priceLabel}
+          startText={symbol}
+          inputMode="decimal"
+          autoComplete="off"
+          value={line.unitPrice}
+          error={errors.unitPrice}
+          onChange={set("unitPrice")}
+        />
         {product && priceDiffers && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">

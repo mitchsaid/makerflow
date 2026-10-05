@@ -36,7 +36,14 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
   }
   if (!snapshot) return notFound();
 
-  const pdf = await renderQuotePdf(snapshot, { draft });
+  let pdf: Buffer;
+  try {
+    pdf = await renderQuotePdf(snapshot, { draft });
+  } catch (error) {
+    // The preview shows its own message; nothing about the quote is lost.
+    console.error("could not draw the quote PDF:", error);
+    return new Response("The PDF could not be made. Check the text on the quote and try again.", { status: 500 });
+  }
   const safeName = `${snapshot.number}${snapshot.version > 1 ? `-v${snapshot.version}` : ""}`.replace(
     /[^A-Za-z0-9._-]/g,
     "_",

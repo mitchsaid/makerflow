@@ -6,10 +6,12 @@ export type ProductFormValues = {
   kind: ProductKind;
   name: string;
   unitPrice: string;
+  /** "dozen", "kg": optional. */
+  unit: string;
   description: string;
 };
 
-export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", description: "" };
+export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", unit: "", description: "" };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
   return { ...EMPTY_PRODUCT, kind };
@@ -31,6 +33,7 @@ export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormVa
     kind: p.kind,
     name: p.name,
     unitPrice: moneyToInput(p.unitPriceCents, style),
+    unit: p.unit ?? "",
     description: p.description ?? "",
   };
 }

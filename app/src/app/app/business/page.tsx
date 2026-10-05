@@ -5,6 +5,7 @@ import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { BusinessProfileForm, type FormValues } from "./business-profile-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
+import { QuoteWordingForm } from "./quote-wording-form";
 
 export default async function BusinessProfilePage() {
   // The numbering query runs beside the workspace check, not after it.
@@ -41,6 +42,16 @@ export default async function BusinessProfilePage() {
             </CardDescription>
           </CardHeader>
         </Card>
+      )}
+
+      {canEditBusinessProfile(role) && (
+        <QuoteWordingForm
+          initial={{
+            signOff: profile.defaultSignOff ?? "",
+            terms: profile.defaultTerms ?? "",
+            paymentInstructions: profile.paymentInstructions ?? "",
+          }}
+        />
       )}
 
       {canEditBusinessProfile(role) ? (

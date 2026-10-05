@@ -1,5 +1,5 @@
 import { optionalChoice, optionalText, optionalValidated } from "./form-values";
-import type { LocalePack } from "./locale";
+import type { ContactFacts, LocalePack } from "./locale";
 import {
   validateBusinessName,
   validateEmail,
@@ -22,7 +22,14 @@ export type BusinessProfile = {
   vatNumber: string | null;
   /** Does the business type its prices including VAT? Only matters when VAT registered. */
   pricesIncludeVat: boolean;
+  /** What a new quote starts with for its sign-off, terms and "how to pay". Edited under Quote wording. */
+  defaultSignOff: string | null;
+  defaultTerms: string | null;
+  paymentInstructions: string | null;
 };
+
+/** What the Business details form edits (the quote wording has its own form). */
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions">;
 
 export type FieldName =
   | "name"
@@ -38,7 +45,7 @@ export type FieldName =
 export type FieldErrors = Partial<Record<FieldName, string>>;
 
 export type ParsedBusinessProfileForm =
-  | { ok: true; name: string; profile: BusinessProfile }
+  | { ok: true; name: string; profile: BusinessDetails }
   | { ok: false; errors: FieldErrors };
 
 const MAX = { addressLine1: 120, addressLine2: 120, city: 80 } as const;
@@ -122,11 +129,11 @@ export function parseBusinessProfileForm(
  * differ by country, so they come from the business's locale pack (for South Africa: a quote
  * needs only a way to be contacted; an invoice also needs the address of the premises).
  */
-export function missingForQuote(profile: BusinessProfile, locale: LocalePack): FieldName[] {
+export function missingForQuote(profile: ContactFacts, locale: LocalePack): FieldName[] {
   return locale.documents.missingForQuote(profile);
 }
 
-export function missingForInvoice(profile: BusinessProfile, locale: LocalePack): FieldName[] {
+export function missingForInvoice(profile: ContactFacts, locale: LocalePack): FieldName[] {
   return locale.documents.missingForInvoice(profile);
 }
 

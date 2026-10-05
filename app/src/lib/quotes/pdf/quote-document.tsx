@@ -1,6 +1,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
-import { formatMoney, formatPercent, formatQuantity } from "../../money";
+import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
+import { quantityText } from "../units";
 import { designStyles } from "./designs";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 
@@ -101,6 +102,13 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           )}
         </View>
 
+        {s.title || s.description ? (
+          <View style={styles.intro}>
+            {s.title ? <Text style={styles.quoteTitle}>{s.title}</Text> : null}
+            {s.description ? <Text>{s.description}</Text> : null}
+          </View>
+        ) : null}
+
         <View style={styles.tableHead}>
           <Text style={styles.colName}>Item</Text>
           <Text style={styles.colQty}>Qty</Text>
@@ -115,7 +123,7 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
                 {l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                 {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
               </View>
-              <Text style={styles.colQty}>{formatQuantity(l.quantityMilli, s.numberStyle)}</Text>
+              <Text style={styles.colQty}>{quantityText(l.quantityMilli, l.unit, s.numberStyle, " ")}</Text>
               <Text style={styles.colPrice}>{money(l.unitPriceCents)}</Text>
               <Text style={styles.colAmount}>{money(l.lineTotalCents)}</Text>
             </View>
@@ -171,10 +179,33 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
         </View>
 
         {s.notes ? (
-          <View style={styles.notes} wrap={false}>
-            <Text style={styles.sectionLabel}>Notes</Text>
-            <Text>{s.notes}</Text>
+          // One piece of text with its label, so it can run over a page break without leaving the
+          // label alone at the foot of the page.
+          <Text style={styles.notes}>
+            <Text style={styles.label}>{"Notes\n"}</Text>
+            {s.notes}
+          </Text>
+        ) : null}
+
+        {s.paymentInstructions ? (
+          <Text style={styles.notes}>
+            <Text style={styles.label}>{"How to pay\n"}</Text>
+            {s.paymentInstructions}
+          </Text>
+        ) : null}
+
+        {s.signOff ? (
+          <View style={styles.signOff} wrap={false}>
+            <Text>{s.signOff}</Text>
+            <Text style={styles.signOffName}>{s.business.name}</Text>
           </View>
+        ) : null}
+
+        {s.terms ? (
+          <Text style={styles.terms}>
+            <Text style={styles.label}>{"Terms\n"}</Text>
+            {s.terms}
+          </Text>
         ) : null}
 
         <View style={styles.statement}>

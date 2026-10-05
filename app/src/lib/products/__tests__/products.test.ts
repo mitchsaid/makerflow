@@ -21,7 +21,7 @@ describe("parseProductForm", () => {
   it("accepts a name and a price, as a product by default", () => {
     expect(parseProductForm(form({ name: "Wedding cake", unitPrice: "800" }))).toEqual({
       ok: true,
-      value: { kind: "product", name: "Wedding cake", description: null, unitPriceCents: 80000 },
+      value: { kind: "product", name: "Wedding cake", description: null, unitPriceCents: 80000, unit: null },
     });
   });
 
@@ -29,7 +29,7 @@ describe("parseProductForm", () => {
     const r = parseProductForm(form({ kind: "service", name: "Design time", unitPrice: "450,50", description: "Per hour\nMinimum one hour" }));
     expect(r).toEqual({
       ok: true,
-      value: { kind: "service", name: "Design time", description: "Per hour\nMinimum one hour", unitPriceCents: 45050 },
+      value: { kind: "service", name: "Design time", description: "Per hour\nMinimum one hour", unitPriceCents: 45050, unit: null },
     });
   });
 
@@ -48,6 +48,18 @@ describe("parseProductForm", () => {
   });
 });
 
+describe("a product's unit", () => {
+  it("is optional, tidied, and limited to 20 characters", () => {
+    const withUnit = parseProductForm(form({ name: "Sourdough", unitPrice: "80", unit: "  loaf " }));
+    expect(withUnit.ok && withUnit.value.unit).toBe("loaf");
+    const blank = parseProductForm(form({ name: "Sourdough", unitPrice: "80", unit: "  " }));
+    expect(blank.ok && blank.value.unit).toBeNull();
+    const long = parseProductForm(form({ name: "Sourdough", unitPrice: "80", unit: "u".repeat(21) }));
+    expect(long.ok).toBe(false);
+    if (!long.ok) expect(long.errors.unit).toMatch(/up to 20 characters/);
+  });
+});
+
 describe("productMatchesSearch", () => {
   const p: ProductSummary = {
     id: "1",
@@ -55,6 +67,7 @@ describe("productMatchesSearch", () => {
     kind: "product",
     name: "Wedding cake",
     description: "Three tiers, buttercream",
+    unit: null,
     unitPriceCents: 80000,
     archived: false,
   };

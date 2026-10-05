@@ -29,8 +29,18 @@ export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
     ...snapshot,
     business: cleanParty(snapshot.business),
     customer: snapshot.customer ? cleanParty(snapshot.customer) : null,
-    lines: snapshot.lines.map((l) => ({ ...l, name: drawable(l.name), description: clean(l.description) })),
+    lines: snapshot.lines.map((l) => ({
+      ...l,
+      name: drawable(l.name),
+      description: clean(l.description),
+      unit: clean(l.unit ?? null),
+    })),
     notes: clean(snapshot.notes),
+    title: clean(snapshot.title ?? null),
+    description: clean(snapshot.description ?? null),
+    signOff: clean(snapshot.signOff ?? null),
+    terms: clean(snapshot.terms ?? null),
+    paymentInstructions: clean(snapshot.paymentInstructions ?? null),
   };
 }
 

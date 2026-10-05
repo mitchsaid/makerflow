@@ -27,6 +27,7 @@ function toRow(p: ProductFields) {
     name: p.name,
     description: p.description,
     unit_price_cents: p.unitPriceCents,
+    unit: p.unit,
   };
 }
 
