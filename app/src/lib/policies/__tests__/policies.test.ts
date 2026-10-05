@@ -4,6 +4,7 @@ import { parseQuote, toDatabasePayload, type QuoteFormValues } from "../../quote
 import {
   copyForQuote,
   defaultQuotePolicies,
+  inLibraryOrder,
   parsePolicy,
   parseQuotePolicies,
   POLICY_HEADINGS,
@@ -123,6 +124,13 @@ describe("a quote's own copy of policies", () => {
     if (!bad.ok) expect(bad.errors.fields.policies).toBeTruthy();
   });
 
+  it("keeps a quote's policies in the library's order, whatever order they were ticked in", () => {
+    const cancel = policy({ id: "a", kind: "cancellation", title: "Cancel" });
+    const changes = policy({ id: "b", kind: "changes", title: "Changes" });
+    const ticked = [copyForQuote(cancel, "1"), copyForQuote(changes, "2"), { key: "3", policyId: "gone", kind: "variations" as const, title: "Old", body: "x" }];
+    expect(inLibraryOrder(ticked, [cancel, changes]).map((c) => c.title)).toEqual(["Changes", "Cancel", "Old"]);
+  });
+
   it("lists the library by heading, then the maker's order", () => {
     const sorted = sortPolicies([
       policy({ kind: "variations", title: "B", sortOrder: 1 }),
@@ -159,11 +167,19 @@ describe("the South African starters", () => {
     const text = (k: (typeof POLICY_KINDS)[number]) => za.kinds[k].starters.map((s) => s.text).join(" ");
     // A new date is agreed with the customer, never set by the maker alone.
     expect(text("changes")).toMatch(/agree the new price and the new date with you/);
+    expect(za.kinds.changes.goodToKnow).toMatch(/shouldn't move unless the customer agrees/);
     // Cancellation has a made-to-order starter and a bookings one with the hospital or death exception.
     expect(za.kinds.cancellation.starters.map((s) => s.key)).toEqual(["made-to-order", "bookings"]);
-    expect(text("cancellation")).toMatch(/hospital or has died/);
+    expect(text("cancellation")).toMatch(/in hospital, or the person it is for has died/);
+    // The deposit counts towards the charge: never the deposit on top of the costs.
+    expect(text("cancellation")).toMatch(/deposit of \[amount or %\] counts towards that/);
     // Aftercare adds to legal rights and never takes them away, and offers no liability cap.
-    expect(text("liability_aftercare")).toMatch(/does not take away any of your legal rights/);
+    expect(text("liability_aftercare")).toMatch(/does not affect your legal rights/);
+    // The six months is fixed (the law's minimum), the consumer chooses the remedy, and a failed repair is replaced or refunded.
+    expect(text("liability_aftercare")).toMatch(/within 6 months/);
+    expect(text("liability_aftercare")).not.toMatch(/\[6 months\]/);
+    expect(text("liability_aftercare")).toMatch(/at your choice/);
+    expect(text("liability_aftercare")).toMatch(/does not hold within 3 months/);
     expect(text("liability_aftercare")).not.toMatch(/not (be )?(liable|responsible)|limited to/i);
     // Variations are said before the customer agrees.
     expect(text("variations")).toMatch(/Tell us before you say yes/);

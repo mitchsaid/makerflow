@@ -6,7 +6,7 @@
 export const TERMS_STARTERS = [
   { key: "lead-time", label: "Lead time", text: "Please allow [2 weeks] to make your order." },
   { key: "deposit", label: "Deposit", text: "A deposit is needed to start work." },
-  { key: "changes", label: "Changes", text: "Changes after you accept this quote may change the price and the date." },
+  { key: "changes", label: "Changes", text: "Changes after you accept this quote are quoted again, and the new price and date are agreed with you." },
 ] as const;
 
 /** Adds a starter's line to the end of the terms, on its own line, unless it is already there. */

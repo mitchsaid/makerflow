@@ -101,6 +101,23 @@ export function sortPolicies<T extends { kind: PolicyKind; sortOrder?: number; t
   );
 }
 
+/**
+ * Puts a quote's policies in the library's order (by heading, then the maker's order), so the
+ * document reads the same as the list on screen whatever order they were ticked in. Copies whose
+ * saved policy is gone go last, in the order they have.
+ */
+export function inLibraryOrder(copies: readonly QuotePolicyValues[], library: readonly PolicySummary[]): QuotePolicyValues[] {
+  const order = sortPolicies(library.filter((p) => !p.archived)).map((p) => p.id);
+  const rank = (c: QuotePolicyValues) => {
+    const i = order.indexOf(c.policyId);
+    return i === -1 ? order.length : i;
+  };
+  return copies
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => rank(a.c) - rank(b.c) || a.i - b.i)
+    .map(({ c }) => c);
+}
+
 export type QuotePolicyError = { title?: string; body?: string };
 
 /** Checks each policy on a quote; errors are by the policy's key. */

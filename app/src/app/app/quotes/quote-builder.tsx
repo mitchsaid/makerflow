@@ -227,9 +227,6 @@ export function QuoteBuilder({
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
-  if (f.paymentInstructions) {
-    problems.push({ fieldId: "paymentInstructions", label: "How to pay", message: f.paymentInstructions });
-  }
   if (f.policies) {
     const first = values.policies.find((c) => errors.policies?.[c.key]);
     problems.push({
@@ -237,6 +234,9 @@ export function QuoteBuilder({
       label: "Policies",
       message: first ? `${first.title}: ${errors.policies?.[first.key]?.body ?? errors.policies?.[first.key]?.title}` : f.policies,
     });
+  }
+  if (f.paymentInstructions) {
+    problems.push({ fieldId: "paymentInstructions", label: "How to pay", message: f.paymentInstructions });
   }
   if (f.terms) problems.push({ fieldId: "terms", label: "Other terms", message: f.terms });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Sign-off", message: f.signOff });

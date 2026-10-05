@@ -9,6 +9,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   copyForQuote,
+  inLibraryOrder,
   POLICY_BODY_MAX,
   POLICY_HEADINGS,
   QUOTE_MAX_POLICIES,
@@ -57,7 +58,7 @@ export function PoliciesSection({
   const full = value.length >= QUOTE_MAX_POLICIES;
 
   function toggle(policy: PolicySummary, on: boolean) {
-    if (on) onChange([...value, copyForQuote(policy, newKey())]);
+    if (on) onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], library));
     else onChange(value.filter((c) => c.policyId !== policy.id));
   }
   function edit(key: string, body: string) {
@@ -167,7 +168,9 @@ export function PoliciesSection({
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
             <SheetTitle className="text-lg">Add a policy</SheetTitle>
             <SheetDescription className="text-base">
-              It is saved to your policies and added to this quote. Your quote is kept as it is.
+              {full
+                ? `It is saved to your policies. This quote already has ${QUOTE_MAX_POLICIES} policies, so it is not added to it. Your quote is kept as it is.`
+                : "It is saved to your policies and added to this quote. Your quote is kept as it is."}
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 pt-4">
@@ -182,7 +185,7 @@ export function PoliciesSection({
                 onCancel: () => setSheetOpen(false),
                 onDone: (policy) => {
                   onLibraryAdd(policy);
-                  if (!full) onChange([...value, copyForQuote(policy, newKey())]);
+                  if (!full) onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], [...library, policy]));
                   setSheetOpen(false);
                 },
               }}

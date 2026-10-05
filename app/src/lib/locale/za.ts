@@ -87,7 +87,7 @@ const ZA_POLICIES: PolicyPackContent = {
   kinds: {
     changes: {
       goodToKnow:
-        "You can't charge more than your quote unless you tell the customer the extra cost and they agree to carry on. A delivery date can only move if they agree to the new date too.",
+        "If you gave an estimate or quote for a service, you can't charge more than it unless you tell the customer the extra cost and they agree to carry on. A delivery date shouldn't move unless the customer agrees to the new date; if it does, they may be able to cancel without penalty.",
       starters: [
         {
           key: "re-quote",
@@ -98,23 +98,23 @@ const ZA_POLICIES: PolicyPackContent = {
     },
     cancellation: {
       goodToKnow:
-        "Made-to-order items and bookings are treated differently. For bookings and services, a cancellation charge has to be fair (it depends on how much notice was given and how easily you can fill the date), and you can't charge one if the person the booking is for is in hospital or has died. For made-to-order items, keep any charge to your real costs and show how you worked it out.",
+        "Made-to-order items are usually treated differently from bookings and services. For bookings and services, a cancellation charge has to be fair (it depends on how much notice was given and how easily you can fill the date), and you can't charge one if the person the booking is for is in hospital or has died. For made-to-order items, keep any charge to your real costs and show how you worked it out.",
       starters: [
         {
           key: "made-to-order",
           label: "Made-to-order items",
-          text: "This is made to order for you. If you cancel after saying yes, you pay the deposit of [amount or %], plus what we have already spent on materials for your order and the work we have already done. We will show you how we worked that out.",
+          text: "This is made to order for you. If you cancel after saying yes, you pay what we have already spent on materials for your order and the work we have already done. Your deposit of [amount or %] counts towards that; if it is more than what we have spent, we refund the difference. We will show you how we worked it out.",
         },
         {
           key: "bookings",
           label: "Bookings and services",
-          text: "If you cancel [7] or more days before [the date], we refund your deposit. If you cancel later, we keep [amount or %], because it is hard to fill the date again. If you cannot come because you, or the person the booking is for, is in hospital or has died, there is no cancellation fee.",
+          text: "If you cancel [7] or more days before [the date], we refund your deposit. If you cancel later, we keep [amount or %], because it is hard to fill the date again. We do not charge a cancellation fee if you cannot keep the booking because you or the person it is for are in hospital, or the person it is for has died.",
         },
       ],
     },
     variations: {
       goodToKnow:
-        "Say this before the customer agrees. A customer who was told how an item will vary, and agreed, can't later complain about that variation. It does not excuse faults you didn't mention.",
+        "Say this before the customer agrees, and be specific about what will vary. Telling customers up front, and having them accept the quote, is how you can show they knew what to expect. It does not excuse faults.",
       starters: [
         {
           key: "handmade",
@@ -146,7 +146,7 @@ const ZA_POLICIES: PolicyPackContent = {
         {
           key: "aftercare",
           label: "Repairs, resizing and cleaning",
-          text: "If something is wrong with your order, tell us within [6 months] of getting it and we will repair it, replace it or refund you, as the law says. We also offer [free resizing within 30 days / cleaning once a year / repairs at cost]. This does not take away any of your legal rights.",
+          text: "If something is wrong with your order, tell us within 6 months of getting it and, at your choice, we will repair it, replace it or refund you. If a repair does not hold within 3 months, we will replace it or refund you. On top of that, we also offer [free resizing within 30 days / cleaning once a year]. This does not affect your legal rights.",
         },
       ],
     },

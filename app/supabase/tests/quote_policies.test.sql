@@ -138,6 +138,41 @@ begin
   end;
   reset role;
 
+  ----------------------------------------------------------------------
+  -- Once a quote is sent, its policies are frozen with it
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  declare
+    cust uuid;
+    sent uuid;
+    stamp timestamptz;
+    num text;
+  begin
+    insert into public.customers (organisation_id, name) values (org_a, 'A customer') returning id into cust;
+    sent := public.save_quote_draft(org_a, null,
+      pg_temp.quote_json(jsonb_build_object('customer_id', cust, 'policies',
+        jsonb_build_array(jsonb_build_object('kind', 'changes', 'title', 'Changes', 'body', 'As sent')))),
+      jsonb_build_array(jsonb_build_object('sort_order', 0, 'kind', 'custom', 'name', 'Cake',
+        'quantity_milli', 1000, 'unit_price_cents', 1000)));
+    reset role;
+    select number, updated_at into num, stamp from public.quotes where id = sent;
+    set local role service_role;
+    perform public.send_quote(org_a, sent, a, 'marked', stamp, jsonb_build_object('number', num, 'version', 1), 1000, 0, 1000);
+    reset role;
+    perform pg_temp.as_user(a);
+    set local role authenticated;
+    update public.quotes set policies = '[]'::jsonb where id = sent;
+    assert (select policies -> 0 ->> 'body' from public.quotes where id = sent) = 'As sent',
+      'the policies of a sent quote were changed';
+    begin
+      perform public.save_quote_draft(org_a, sent, pg_temp.quote_json('{}'), '[]'::jsonb);
+      raise exception 'FAIL: a sent quote was saved over';
+    exception when no_data_found then null;
+    end;
+  end;
+  reset role;
+
   raise notice 'quote policies tests passed';
 end
 $$;
