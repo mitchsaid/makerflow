@@ -13,7 +13,7 @@ import { saveQuoteWording, type WordingErrors, type WordingState, type WordingVa
  * Business profile > Quote wording: what every new quote starts with. Each quote can change its
  * own copy; changing these never changes a quote that already exists.
  */
-export function QuoteWordingForm({ initial }: { initial: WordingValues }) {
+export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingValues; otherWaysHint: string }) {
   const [values, setValues] = useState(initial);
   const [state, setState] = useState<WordingState>({ status: "idle" });
   const [tries, setTries] = useState(0);
@@ -24,7 +24,7 @@ export function QuoteWordingForm({ initial }: { initial: WordingValues }) {
   const problems: FormProblem[] = (
     [
       ["wordingSignOff", "Sign-off", errors.signOff],
-      ["wordingPayment", "How to pay", errors.paymentInstructions],
+      ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
       ["wordingTerms", "Terms", errors.terms],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
@@ -79,8 +79,8 @@ export function QuoteWordingForm({ initial }: { initial: WordingValues }) {
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"
-          label="How to pay (optional)"
-          hint="Bank details, SnapScan, or “pay on collection”."
+          label="Other ways to pay (optional)"
+          hint={`${otherWaysHint} Your bank details are kept above, and print first.`}
           value={values.paymentInstructions}
           error={errors.paymentInstructions}
           onChange={set("paymentInstructions")}

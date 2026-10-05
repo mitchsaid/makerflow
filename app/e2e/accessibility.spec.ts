@@ -101,6 +101,16 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
+      // Bank details on a quote: the sheet to add them, with and without errors.
+      await page.getByRole("button", { name: "Add bank details" }).click();
+      await expect(page.getByRole("dialog", { name: "Add bank details" })).toBeVisible();
+      await expectNoViolations(page, "new quote, add bank details sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Save bank details" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "new quote, add bank details sheet with errors");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+
       // The item sheet: pick, one-off configure (with errors), product form.
       await page.getByRole("button", { name: "Add item" }).click();
       await expect(page.getByRole("dialog", { name: "Add an item" })).toBeVisible();
@@ -197,6 +207,20 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByText(/has already been used/).first()).toBeVisible();
       await expect(page.getByRole("button", { name: "Save quote numbers" })).toBeEnabled();
       await expectNoViolations(page, "business profile, quote numbers with an error");
+
+      // Bank details: with errors, then saved.
+      await page.getByRole("button", { name: "Save bank details" }).click();
+      await expect(page.getByText("Enter the account holder").first()).toBeVisible();
+      await expectNoViolations(page, "business profile, bank details with errors");
+      const bank = page.getByRole("group", { name: "Bank details" });
+      await bank.getByLabel("Account holder").fill("Axe Co");
+      await bank.getByLabel("Bank", { exact: true }).fill("FNB");
+      await bank.getByLabel("Account type").selectOption("Savings");
+      await bank.getByLabel("Account number").fill("62123456789");
+      await bank.getByLabel("Branch code").fill("250655");
+      await page.getByRole("button", { name: "Save bank details" }).click();
+      await expect(page.getByText(/Last changed /)).toBeVisible();
+      await expectNoViolations(page, "business profile, bank details saved");
 
       // Quote policies: the library, the form (with errors and a starter), and the saved list.
       await page.getByRole("link", { name: "Manage quote policies" }).click();

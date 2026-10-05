@@ -82,8 +82,10 @@ export type QuoteFormValues = {
   signOff: string;
   /** Printed small at the end. Optional. */
   terms: string;
-  /** "How to pay". Optional. */
+  /** "Other ways to pay" (the country's other methods, or pay on collection). Optional. Prints under the bank details. */
   paymentInstructions: string;
+  /** Show the business's bank details on this quote (when it has saved them). */
+  showBankDetails: boolean;
   /** This quote's own copy of each policy it includes (see lib/policies). */
   policies: QuotePolicyValues[];
 };
@@ -144,6 +146,7 @@ export type ParsedQuote = {
   signOff: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  showBankDetails: boolean;
   policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
   totals: DocumentTotals;
 };
@@ -181,6 +184,8 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
     "paymentInstructions",
   ];
   if (!strings.every((key) => typeof v[key] === "string")) return false;
+  // A phone still running an older version of the app does not send it: that means on.
+  if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
   if (
@@ -378,7 +383,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   if (!signOff.ok) errors.fields.signOff = signOff.error;
   const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms", QUOTE_TERMS_MAX_LINES);
   if (!terms.ok) errors.fields.terms = terms.error;
-  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay", QUOTE_PAYMENT_MAX_LINES);
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
   const policies = parseQuotePolicies(values.policies);
@@ -461,6 +466,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       signOff: signOff.value,
       terms: terms.value,
       paymentInstructions: payment.value,
+      showBankDetails: values.showBankDetails !== false,
       policies: policies.policies,
       totals,
     },
@@ -527,6 +533,7 @@ export function toDatabasePayload(
       sign_off: quote.signOff,
       terms: quote.terms,
       payment_instructions: quote.paymentInstructions,
+      show_bank_details: quote.showBankDetails,
       policies: quote.policies.map((p) => ({ policy_id: p.policyId, kind: p.kind, title: p.title, body: p.body })),
       country_code: context.countryCode,
       currency_code: context.currencyCode,

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomers } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
+import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
@@ -29,7 +30,7 @@ export default async function QuotePage({
 }: PageProps<"/app/quotes/[id]">) {
   const { id } = await params;
   // The quote and the customers load beside the workspace check, not after it.
-  const [quote, allCustomers, allProducts, allPolicies, { organisation, profile, role }, query] = await Promise.all([
+  const [quote, allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails }, query] = await Promise.all([
     getStoredQuote(id),
     getCustomers(),
     getProducts(),
@@ -92,6 +93,8 @@ export default async function QuotePage({
           policyLibrary={forOrganisation(allPolicies, organisation.id)}
           policyContent={locale.policies}
           canManagePolicies={canEditBusinessProfile(role)}
+          bankDetails={bankPreview(bankDetails, locale)}
+          canEditBankDetails={canEditBankDetails(role)}
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}
           {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}

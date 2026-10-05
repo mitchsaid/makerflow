@@ -128,10 +128,20 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
-        {s.paymentInstructions && (
-          <div className="space-y-0.5">
+        {((s.bankDetails && s.bankDetails.length > 0) || s.paymentInstructions) && (
+          <div className="space-y-1">
             <p className="text-xs font-medium uppercase text-muted-foreground">How to pay</p>
-            <p className="whitespace-pre-line text-base">{s.paymentInstructions}</p>
+            {s.bankDetails && s.bankDetails.length > 0 && (
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-base">
+                {s.bankDetails.map((line, i) => (
+                  <div key={i} className="contents">
+                    <dt className="text-muted-foreground">{line.label}</dt>
+                    <dd className="font-medium">{line.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {s.paymentInstructions && <p className="whitespace-pre-line text-base">{s.paymentInstructions}</p>}
           </div>
         )}
 

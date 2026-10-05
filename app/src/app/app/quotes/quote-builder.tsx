@@ -6,6 +6,8 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { TermsStarters } from "@/components/terms-starters";
 import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
+import type { BankPreview } from "@/lib/bank";
+import { BankDetailsSection } from "./bank-details-section";
 import { PoliciesSection } from "./policies-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,7 +29,7 @@ import {
   type VatSettings,
 } from "@/lib/money";
 import type { ProductSummary } from "@/lib/products";
-import { priceEntryLabel } from "@/lib/locale";
+import { getLocalePack, priceEntryLabel } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import {
   previewTotals,
@@ -65,6 +67,8 @@ export function QuoteBuilder({
   policyLibrary: initialPolicyLibrary,
   policyContent,
   canManagePolicies,
+  bankDetails: initialBankDetails,
+  canEditBankDetails,
   children,
 }: {
   quoteId: string | null;
@@ -89,6 +93,10 @@ export function QuoteBuilder({
   policyContent: PolicyPackContent;
   /** Owners and admins can add to the library; other members can only use it. */
   canManagePolicies: boolean;
+  /** Which bank account is saved (never the whole number), or null when none is. */
+  bankDetails: BankPreview | null;
+  /** Only the owner can add bank details (from the quote or the Business profile). */
+  canEditBankDetails: boolean;
   /** What goes between the form and the bar, such as Delete draft. */
   children?: React.ReactNode;
 }) {
@@ -114,6 +122,7 @@ export function QuoteBuilder({
   // The item sheet: choosing what to add, configuring a line, or a product form.
   const [products, setProducts] = useState(initialProducts);
   const [policyLibrary, setPolicyLibrary] = useState(initialPolicyLibrary);
+  const [bankDetails, setBankDetails] = useState(initialBankDetails);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const newKey = () => `n-${nextKey.current++}`;
@@ -236,7 +245,7 @@ export function QuoteBuilder({
     });
   }
   if (f.paymentInstructions) {
-    problems.push({ fieldId: "paymentInstructions", label: "How to pay", message: f.paymentInstructions });
+    problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
   }
   if (f.terms) problems.push({ fieldId: "terms", label: "Other terms", message: f.terms });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Sign-off", message: f.signOff });
@@ -466,16 +475,26 @@ export function QuoteBuilder({
         newKey={newKey}
       />
 
-      <Section title="Payment and terms">
+      <BankDetailsSection
+        bank={bankDetails}
+        countryCode={countryCode}
+        canEdit={canEditBankDetails}
+        show={values.showBankDetails}
+        onShowChange={(showBankDetails) => update({ showBankDetails })}
+        onBankSaved={setBankDetails}
+      >
         <TextAreaField
           id="paymentInstructions"
-          label="How to pay (optional)"
-          hint="Bank details, SnapScan, or “pay on collection”. Shown on the quote."
+          label="Other ways to pay (optional)"
+          hint={`${getLocalePack(countryCode).payment.otherWaysHint} Printed under your bank details.`}
           value={values.paymentInstructions}
           error={f.paymentInstructions}
           onChange={(paymentInstructions) => update({ paymentInstructions })}
           maxLength={1000}
         />
+      </BankDetailsSection>
+
+      <Section title="Terms">
         <TextAreaField
           id="terms"
           label="Other terms (optional)"

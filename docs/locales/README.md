@@ -16,6 +16,7 @@ The product starts in South Africa and is meant to support other countries later
 - Document wording and titles ("Quotation", "This quotation is not a tax invoice").
 - What the business must provide before it can send a quote or issue an invoice.
 - Address shape: region label (province, state ...), the list of regions, the postal code rule.
+- Bank details: the fields a business needs for payment by transfer, their checks and labels, and the reference line (South Africa: account holder, bank, account type, account number, branch code; see `docs/locales/za/bank-details.md`).
 - Default currency and the locale tag used to format money, numbers and dates.
 
 ## What does NOT belong in a pack

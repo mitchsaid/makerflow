@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
-import { parseLine, parseQuote, toDatabasePayload, type LineFormValues, type QuoteFormValues } from "../index";
+import { isQuoteFormValues, parseLine, parseQuote, toDatabasePayload, type LineFormValues, type QuoteFormValues } from "../index";
 import { addStarter, TERMS_STARTERS } from "../terms-starters";
 import { quantityText } from "../units";
 
@@ -37,6 +37,7 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   signOff: "",
   terms: "",
   paymentInstructions: "",
+  showBankDetails: true,
   policies: [],
   ...over,
 });
@@ -159,5 +160,24 @@ describe("terms starters", () => {
     expect(addStarter("", text)).toBe(text);
     expect(addStarter("Existing terms.\n", text)).toBe(`Existing terms.\n${text}`);
     expect(addStarter(text, text)).toBe(text);
+  });
+});
+
+describe("the bank details switch on a quote", () => {
+  it("is on when an older version of the app does not send it, and must be a true or false when it does", () => {
+    const older: Partial<QuoteFormValues> = quote();
+    delete older.showBankDetails;
+    expect(isQuoteFormValues(older)).toBe(true);
+    const parsed = parseQuote(older as QuoteFormValues, NOT_REGISTERED);
+    if (!parsed.ok) throw new Error("should parse");
+    expect(parsed.quote.showBankDetails).toBe(true);
+    expect(isQuoteFormValues({ ...quote(), showBankDetails: "no" })).toBe(false);
+  });
+
+  it("can be switched off, and is saved that way", () => {
+    const parsed = parseQuote(quote({ showBankDetails: false }), NOT_REGISTERED);
+    if (!parsed.ok) throw new Error("should parse");
+    expect(parsed.quote.showBankDetails).toBe(false);
+    expect(toDatabasePayload(parsed.quote, { countryCode: "ZA", currencyCode: "ZAR" }).quote.show_bank_details).toBe(false);
   });
 });

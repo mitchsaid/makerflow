@@ -187,7 +187,21 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           </Text>
         ) : null}
 
-        {s.paymentInstructions ? (
+        {s.bankDetails && s.bankDetails.length > 0 ? (
+          <View style={styles.bankBlock}>
+            {/* The label and its rows stay together: a short block that never splits across pages. */}
+            <View wrap={false}>
+              <Text style={styles.label}>How to pay</Text>
+              {s.bankDetails.map((line, i) => (
+                <View key={i} style={styles.bankRow}>
+                  <Text style={styles.bankLabel}>{line.label}</Text>
+                  <Text style={styles.bankValue}>{line.value}</Text>
+                </View>
+              ))}
+            </View>
+            {s.paymentInstructions ? <Text style={styles.payOther}>{s.paymentInstructions}</Text> : null}
+          </View>
+        ) : s.paymentInstructions ? (
           <Text style={styles.notes}>
             <Text style={styles.label}>{"How to pay\n"}</Text>
             {s.paymentInstructions}

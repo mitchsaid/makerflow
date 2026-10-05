@@ -15,7 +15,7 @@ test("the business sets its quote wording once, and each new quote starts with i
   await signUpAndOnboard(page, "w-defaults", "Sweet Co");
   await openBusinessProfile(page);
   await page.getByLabel("Sign-off (optional)").fill("Yours in sweetness");
-  await page.getByLabel("How to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
+  await page.getByLabel("Other ways to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
   // Starting lines are one tap, can be edited, and are not added twice.
   await page.getByRole("button", { name: "Deposit" }).click();
   await expect(page.getByLabel("Terms (optional)")).toHaveValue("A deposit is needed to start work.");
@@ -31,7 +31,7 @@ test("the business sets its quote wording once, and each new quote starts with i
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Yours in sweetness");
-  await expect(page.getByLabel("How to pay (optional)")).toHaveValue("EFT to Sweet Co, FNB 123456");
+  await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Sweet Co, FNB 123456");
   await expect(page.getByLabel("Terms (optional)")).toHaveValue(/A deposit is needed to start work\./);
   await page.getByLabel("Sign-off (optional)").fill("With love");
   await page.getByRole("button", { name: "Save draft" }).click();
@@ -82,7 +82,7 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await addCustomerInSheet(page, "Sarah");
   await page.getByLabel("Quote title (optional)").fill("Cupcakes for Sarah's party");
   await page.getByLabel("Description (optional)").fill("Thank you for asking about cupcakes for the party.");
-  await page.getByLabel("How to pay (optional)").fill("Pay on collection");
+  await page.getByLabel("Other ways to pay (optional)").fill("Pay on collection");
   await page.getByLabel("Terms (optional)").fill("Orders need two days' notice.");
   await page.getByLabel("Sign-off (optional)").fill("Yours in sweetness");
 

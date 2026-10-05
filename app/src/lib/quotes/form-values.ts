@@ -16,6 +16,7 @@ export type StoredQuoteFields = {
   signOff: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  showBankDetails: boolean;
   policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
   lines: {
     id: string;
@@ -78,6 +79,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     signOff: quote.signOff ?? "",
     terms: quote.terms ?? "",
     paymentInstructions: quote.paymentInstructions ?? "",
+    showBankDetails: quote.showBankDetails,
     policies: quote.policies.map((p, i) => ({
       key: `p-${i}`,
       policyId: p.policyId ?? "",

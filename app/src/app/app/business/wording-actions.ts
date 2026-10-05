@@ -39,7 +39,7 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
   if (!signOff.ok) errors.signOff = signOff.error;
   const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms", QUOTE_TERMS_MAX_LINES);
   if (!terms.ok) errors.terms = terms.error;
-  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay", QUOTE_PAYMENT_MAX_LINES);
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.paymentInstructions = payment.error;
   if (Object.keys(errors).length > 0 || !signOff.ok || !terms.ok || !payment.ok) {
     return { status: "error", errors };

@@ -1,3 +1,4 @@
+import { bankLines, type BankDetails, type BankLine } from "../bank";
 import type { Customer } from "../customers";
 import type { LocalePack } from "../locale";
 import type { NumberStyle, VatGroup, VatSettings } from "../money";
@@ -87,6 +88,12 @@ export type QuoteSnapshot = {
   signOff?: string | null;
   terms?: string | null;
   paymentInstructions?: string | null;
+  /**
+   * The bank details printed under "How to pay", frozen with the document: one line per item, then the
+   * payment reference when the business asked for it. Absent or empty on versions sent before bank details
+   * existed, or when the quote left them off.
+   */
+  bankDetails?: BankLine[];
   /** The policies the quote included, each under its own heading. Absent on versions sent before policies existed. */
   policies?: { kind: string; title: string; body: string }[];
   wording: {
@@ -138,6 +145,8 @@ export function buildQuoteSnapshot(input: {
   currencyCode: string;
   vat: VatSettings;
   locale: LocalePack;
+  /** The business's saved bank details, if any. Printed only when the quote has them switched on. */
+  bank: BankDetails | null;
 }): QuoteSnapshot {
   const { quote, business, locale, vat } = input;
   const totals = quote.totals;
@@ -215,6 +224,7 @@ export function buildQuoteSnapshot(input: {
     signOff: quote.signOff,
     terms: quote.terms,
     paymentInstructions: quote.paymentInstructions,
+    bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
     policies: quote.policies.map((p) => ({ kind: p.kind, title: p.title, body: p.body })),
     wording: {
       title: locale.documents.quoteTitle,

@@ -2,7 +2,7 @@ import type { VatSettings } from "../money/document";
 import { ZA_LOCALE } from "./za";
 import type { LocalePack } from "./types";
 
-export type { AddressParts, ContactFacts, LocalePack, ProfileField } from "./types";
+export type { AddressParts, BankField, ContactFacts, LocalePack, ProfileField } from "./types";
 
 /**
  * The countries we support. To add one: write src/lib/locale/<cc>.ts with the same shape,
