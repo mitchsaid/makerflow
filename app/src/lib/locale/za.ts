@@ -2,7 +2,7 @@ import type { PolicyPackContent } from "../policies/kinds";
 import { formatPercent, type NumberStyle } from "../money/format";
 import type { BasisPoints } from "../money/primitives";
 import type { ValidationResult } from "../validation";
-import type { AddressParts, ContactFacts, LocalePack, ProfileField } from "./types";
+import type { AddressParts, BankField, ContactFacts, LocalePack, ProfileField } from "./types";
 
 /**
  * The South African locale pack (country code ZA). Applies ONLY to businesses whose
@@ -55,6 +55,101 @@ export function validatePostalCode(input: unknown): ValidationResult<string> {
 function formatAddressLines(parts: AddressParts): string[] {
   const last = [parts.region, parts.postalCode].filter(Boolean).join(" ");
   return [parts.line1, parts.line2, parts.city, last].filter((line): line is string => !!line);
+}
+
+export const ZA_ACCOUNT_TYPES = ["Cheque or current", "Savings", "Transmission"] as const;
+
+function requiredText(label: string, max: number): BankField["validate"] {
+  return (input) => {
+    const value = typeof input === "string" ? input.trim().replace(/\s+/g, " ") : "";
+    if (value.length > max) return { ok: false, error: `${label} can be up to ${max} characters.` };
+    return { ok: true, value };
+  };
+}
+
+/** South African bank account numbers are digits only, usually 9 to 11 of them; 7 to 16 allows every bank. */
+export function validateAccountNumber(input: unknown): ValidationResult<string> {
+  const value = typeof input === "string" ? input.replace(/[\s-]/g, "") : "";
+  if (!/^\d{7,16}$/.test(value)) {
+    return { ok: false, error: "Account numbers are digits only, 7 to 16 of them. Copy it from your bank app or a statement." };
+  }
+  return { ok: true, value };
+}
+
+/** South African branch codes are 6 digits (universal branch codes included). */
+export function validateBranchCode(input: unknown): ValidationResult<string> {
+  const value = typeof input === "string" ? input.replace(/[\s-]/g, "") : "";
+  if (!/^\d{6}$/.test(value)) {
+    return { ok: false, error: "Branch codes have 6 digits. Your bank app or statement shows yours." };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * Bank details for an EFT in South Africa: who holds the account, at which bank, what kind of
+ * account, the account number and the branch code. Branch codes are NOT suggested from the bank's
+ * name: a wrong code sends money to the wrong place, and the codes are not checked against a source.
+ */
+const ZA_BANK_FIELDS: readonly BankField[] = [
+  {
+    key: "holder",
+    label: "Account holder",
+    hint: "The name on the account, as your bank has it.",
+    required: true,
+    options: null,
+    inputMode: "text",
+    maxLength: 80,
+    validate: requiredText("The account holder", 80),
+  },
+  {
+    key: "bank",
+    label: "Bank",
+    hint: "Like FNB, Capitec or Standard Bank.",
+    required: true,
+    options: null,
+    inputMode: "text",
+    maxLength: 60,
+    validate: requiredText("The bank", 60),
+  },
+  {
+    key: "accountType",
+    label: "Account type",
+    hint: null,
+    required: true,
+    options: ZA_ACCOUNT_TYPES,
+    inputMode: "text",
+    maxLength: 30,
+    validate: (input) =>
+      typeof input === "string" && (ZA_ACCOUNT_TYPES as readonly string[]).includes(input)
+        ? { ok: true, value: input }
+        : { ok: false, error: "Choose the type of account from the list." },
+  },
+  {
+    key: "accountNumber",
+    label: "Account number",
+    hint: null,
+    required: true,
+    options: null,
+    inputMode: "numeric",
+    maxLength: 24,
+    validate: validateAccountNumber,
+  },
+  {
+    key: "branchCode",
+    label: "Branch code",
+    hint: null,
+    required: true,
+    options: null,
+    inputMode: "numeric",
+    maxLength: 12,
+    validate: validateBranchCode,
+  },
+];
+
+function bankSummary(details: Record<string, string>): string {
+  const number = details.accountNumber ?? "";
+  const ending = number.length >= 4 ? `ending ${number.slice(-4)}` : "";
+  return [details.bank, ending].filter(Boolean).join(", ");
 }
 
 const STANDARD_RATE_BP: BasisPoints = 1500;
@@ -176,6 +271,7 @@ export const ZA_LOCALE: LocalePack = {
     // VAT Act section 65: a quoted price must say it includes VAT (or show both prices).
     inclusiveStatement: (rateBp) => `All prices include VAT at ${formatPercent(rateBp, ZA_NUMBER_STYLE)}.`,
   },
+  payment: { bankFields: ZA_BANK_FIELDS, referenceLabel: "Reference", bankSummary },
   policies: ZA_POLICIES,
   documents: {
     quoteTitle: "Quotation",

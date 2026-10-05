@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessProfile } from "@/lib/business-profile";
+import { bankFromRow, type BankDetails, type BankRow } from "@/lib/bank";
 import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
 
 /**
@@ -22,6 +23,8 @@ export type Workspace = {
   /** "owner", "admin" or "staff" */
   role: string;
   profile: BusinessProfile;
+  /** The business's bank details (one account), or null when none are saved. Everyone in the business can read them. */
+  bankDetails: BankDetails | null;
 };
 
 /**
@@ -82,6 +85,7 @@ type OrganisationRow = {
   id: string;
   name: string;
   business_profiles: ProfileRow | ProfileRow[] | null;
+  business_bank_details: BankRow | BankRow[] | null;
 };
 type MembershipRow = { role: string; organisations: OrganisationRow | OrganisationRow[] | null };
 
@@ -109,6 +113,9 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
            default_sign_off, default_terms, payment_instructions
+         ),
+         business_bank_details (
+           country_code, details, use_reference, updated_at
          )
        )`,
     )
@@ -130,12 +137,13 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
   if (!membership || !org) return null;
 
   const p = one(org.business_profiles);
+  const countryCode = p?.country_code ?? DEFAULT_COUNTRY_CODE;
   return {
     user,
     organisation: { id: org.id, name: org.name },
     role: membership.role,
     profile: {
-      countryCode: p?.country_code ?? DEFAULT_COUNTRY_CODE,
+      countryCode,
       currencyCode: p?.currency_code ?? getLocalePack(DEFAULT_COUNTRY_CODE).currencyCode,
       phone: p?.phone ?? null,
       email: p?.email ?? null,
@@ -151,6 +159,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
     },
+    bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
   };
 });
 

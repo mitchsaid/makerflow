@@ -54,6 +54,7 @@ export async function prepareQuote(
     currencyCode: profile.currencyCode,
     vat,
     locale,
+    bank: workspace.bankDetails,
   });
   const problems = sendProblems({
     hasCustomer: ownCustomer !== null,

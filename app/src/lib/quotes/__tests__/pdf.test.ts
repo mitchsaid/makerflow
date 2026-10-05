@@ -46,6 +46,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     signOff: "",
     terms: "",
     paymentInstructions: "",
+    showBankDetails: true,
     policies: [],
     ...over,
   };
@@ -72,6 +73,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     currencyCode: "ZAR",
     vat,
     locale: ZA_LOCALE,
+    bank: null,
   });
 }
 
@@ -187,5 +189,23 @@ describe("designs", () => {
       expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     }
     expect(Math.abs(withoutDesign.length - classic.length)).toBeLessThan(200);
+  });
+});
+
+describe("bank details on the document", () => {
+  it("renders a How to pay block with the bank lines and other ways to pay, and an old version without", async () => {
+    const base = snapshot(vats.inclusive);
+    const bankDetails = [
+      { label: "Account holder", value: "Sweet Co" },
+      { label: "Bank", value: "FNB 🎂" },
+      { label: "Account number", value: "62123456789" },
+      { label: "Reference", value: "QT-0001" },
+    ];
+    const both = await renderQuotePdf({ ...base, bankDetails, paymentInstructions: "SnapScan also works." });
+    const onlyBank = await renderQuotePdf({ ...base, bankDetails });
+    const without = await renderQuotePdf({ ...base, bankDetails: undefined });
+    for (const pdf of [both, onlyBank, without]) expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(onlyBank.length).toBeGreaterThan(without.length);
+    expect(both.length).toBeGreaterThan(onlyBank.length);
   });
 });

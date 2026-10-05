@@ -139,6 +139,7 @@ type QuoteRow = {
   sign_off: string | null;
   terms: string | null;
   payment_instructions: string | null;
+  show_bank_details: boolean;
   policies: unknown;
   customers: CustomerRow | CustomerRow[] | null;
   quote_lines: LineRow[];
@@ -169,6 +170,8 @@ export type StoredQuote = {
   signOff: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  /** Show the business's bank details on this quote. */
+  showBankDetails: boolean;
   /** This quote's own copy of the policies it includes. */
   policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
   lines: {
@@ -218,7 +221,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, terms, payment_instructions, policies,
+       title, description, sign_off, terms, payment_instructions, show_bank_details, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
          discount_kind, discount_value
@@ -255,6 +258,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     signOff: row.sign_off,
     terms: row.terms,
     paymentInstructions: row.payment_instructions,
+    showBankDetails: row.show_bank_details,
     policies: storedPolicies(row.policies),
     lines: row.quote_lines.map((l) => ({
       id: l.id,

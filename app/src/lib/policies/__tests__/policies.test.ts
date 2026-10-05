@@ -111,6 +111,7 @@ describe("a quote's own copy of policies", () => {
       signOff: "",
       terms: "",
       paymentInstructions: "",
+      showBankDetails: true,
       policies: [{ key: "k", policyId: "11111111-1111-4111-8111-111111111111", kind: "cancellation", title: "If you cancel", body: "Edited for this quote" }],
     };
     const parsed = parseQuote(values, { registered: false });

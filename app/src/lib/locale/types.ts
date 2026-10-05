@@ -30,6 +30,24 @@ export type AddressParts = {
 
 export type ProfileField = "phone" | "email" | "addressLine1" | "city";
 
+/** One item of a business's bank details as its country writes them (see LocalePack.payment). */
+export type BankField = {
+  /** Stored as this key in business_bank_details.details. Never changes once data exists. */
+  key: string;
+  /** "Account number" */
+  label: string;
+  /** Plain help under the field, or null. */
+  hint: string | null;
+  required: boolean;
+  /** A fixed list to choose from, or null for typed text. */
+  options: readonly string[] | null;
+  /** The phone keyboard to offer: digits only for account numbers. */
+  inputMode: "text" | "numeric";
+  maxLength: number;
+  /** Checks what was typed (an empty required field has already been caught). Returns the value to store. */
+  validate(input: unknown): ValidationResult<string>;
+};
+
 export type LocalePack = {
   /** ISO 3166-1 alpha-2, as stored in business_profiles.country_code */
   countryCode: string;
@@ -61,6 +79,15 @@ export type LocalePack = {
     fullInvoiceThresholdCents: Cents;
     /** What a document must say when prices include the tax. */
     inclusiveStatement(rateBp: BasisPoints): string;
+  };
+  /** How this country's businesses are paid by bank transfer. */
+  payment: {
+    /** The items of the bank details, in the order a document shows them. */
+    bankFields: readonly BankField[];
+    /** What the payment reference line is called on a document: "Reference". */
+    referenceLabel: string;
+    /** A short line saying which account this is, for a screen (never the whole account number). */
+    bankSummary(details: Record<string, string>): string;
   };
   /** Starter wording and plain "good to know" notes for each policy heading, from the country's consumer rules. */
   policies: PolicyPackContent;

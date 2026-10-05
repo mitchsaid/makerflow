@@ -51,6 +51,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
     signOff: "",
     terms: "",
     paymentInstructions: "",
+    showBankDetails: true,
     policies: [],
   ...over,
 });
@@ -101,6 +102,7 @@ function snapshotFor(vat: VatSettings, withCustomer = true) {
     currencyCode: "ZAR",
     vat,
     locale: ZA_LOCALE,
+    bank: null,
   });
 }
 
@@ -176,6 +178,7 @@ describe("the quote snapshot", () => {
       currencyCode: "ZAR",
       vat: INCLUSIVE,
       locale: ZA_LOCALE,
+      bank: null,
     });
     expect(s).toMatchObject({
       title: "Wedding cake for Sarah",
@@ -209,6 +212,7 @@ describe("the quote snapshot", () => {
       currencyCode: "ZAR",
       vat: INCLUSIVE,
       locale: ZA_LOCALE,
+      bank: null,
     });
     expect(s.policies).toEqual([
       { kind: "cancellation", title: "If you cancel", body: "You pay the deposit." },
@@ -249,6 +253,7 @@ describe("what stops a quote being sent", () => {
     today: "2026-10-03",
     profile,
     locale: ZA_LOCALE,
+    bank: null,
   };
 
   it("lets a complete quote through", () => {
@@ -270,5 +275,53 @@ describe("what stops a quote being sent", () => {
   it("accepts an email instead of a phone number, and a quote valid until today", () => {
     expect(sendProblems({ ...ok, profile: { ...profile, phone: null, email: "a@b.test" } })).toEqual([]);
     expect(sendProblems({ ...ok, validUntil: "2026-10-03" })).toEqual([]);
+  });
+});
+
+describe("bank details on the document", () => {
+  const bank = {
+    countryCode: "ZA",
+    details: { holder: "Sweet Co", bank: "FNB", accountType: "Cheque or current", accountNumber: "62123456789", branchCode: "250655" },
+    useReference: true,
+    updatedAt: "2026-10-05T08:00:00Z",
+  };
+  const snapshotWith = (over: Partial<QuoteFormValues>, saved: typeof bank | null) => {
+    const parsed = parseQuote(form(over), INCLUSIVE);
+    if (!parsed.ok) throw new Error("should parse");
+    return buildQuoteSnapshot({
+      quote: parsed.quote,
+      number: "QT-0042",
+      version: 1,
+      business,
+      customer,
+      countryCode: "ZA",
+      currencyCode: "ZAR",
+      vat: INCLUSIVE,
+      locale: ZA_LOCALE,
+      bank: saved,
+    });
+  };
+
+  it("freezes the saved details as lines, with the quote number as the reference", () => {
+    const s = snapshotWith({}, bank);
+    expect(s.bankDetails).toEqual([
+      { label: "Account holder", value: "Sweet Co" },
+      { label: "Bank", value: "FNB" },
+      { label: "Account type", value: "Cheque or current" },
+      { label: "Account number", value: "62123456789" },
+      { label: "Branch code", value: "250655" },
+      { label: "Reference", value: "QT-0042" },
+    ]);
+    expect(JSON.parse(JSON.stringify(s))).toEqual(s);
+  });
+
+  it("leaves the reference off when the business did not ask for it", () => {
+    const s = snapshotWith({}, { ...bank, useReference: false });
+    expect(s.bankDetails?.some((l) => l.label === "Reference")).toBe(false);
+  });
+
+  it("prints nothing when the quote switches them off, or none are saved", () => {
+    expect(snapshotWith({ showBankDetails: false }, bank).bankDetails).toEqual([]);
+    expect(snapshotWith({}, null).bankDetails).toEqual([]);
   });
 });

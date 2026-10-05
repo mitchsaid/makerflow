@@ -1,6 +1,6 @@
 # Plan: structured bank details (Business profile; reused on quotes and invoices)
 
-Status: **decisions confirmed by the founder 2026-10-05; building.** Touches the database (a new table, a new quote column, a replaced function), so it needs human review. Replaces the free-text "How to pay" as the place for bank details; the free text stays for other ways to pay.
+Status: **decisions confirmed by the founder 2026-10-05; built, in review.** Touches the database (a new table, a new quote column, a replaced function), so it needs human review. Replaces the free-text "How to pay" as the place for bank details; the free text stays for other ways to pay.
 
 ## Decisions (founder, 2026-10-05, all the recommended options)
 1. **Fields that follow the country.** The field list, its checks and its labels come from the country's locale pack (South Africa: account holder, bank, account type, account number, branch code), plus an option to ask customers to use the document number as their payment reference. Another country gets its own fields.
