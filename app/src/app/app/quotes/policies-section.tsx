@@ -87,8 +87,7 @@ export function PoliciesSection({
   return (
     <Section title="Policies">
       <p className="text-base text-muted-foreground">
-        Tick the policies this quote should include. Each shows under its own heading on the quote. You can
-        change the wording for this quote without changing your saved policy.
+        Tick the policies this quote should include.
       </p>
       {error && (
         <p id="policies-error" role="alert" className="text-sm text-destructive">
