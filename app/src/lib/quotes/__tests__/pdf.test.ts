@@ -145,6 +145,20 @@ describe("the quote's own wording on the document", () => {
   });
 });
 
+describe("long and awkward text on the document", () => {
+  it("copes with a wide quantity and a long unit, and with many short lines", async () => {
+    const base = snapshot(vats.inclusive);
+    const lines = Array.from({ length: 80 }, (_, i) => `Term ${i + 1}`).join("\n");
+    const pdf = await renderQuotePdf({
+      ...base,
+      terms: lines,
+      paymentInstructions: Array.from({ length: 20 }, (_, i) => `Pay ${i + 1}`).join("\n"),
+      lines: base.lines.map((l) => ({ ...l, quantityMilli: 12_500_500, unit: "portions per tray" })),
+    });
+    expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  });
+});
+
 describe("designs", () => {
   it("draws a version sent before designs existed, and one naming an unknown design, in the classic design", async () => {
     const old = { ...snapshot(vats.inclusive) } as Record<string, unknown>;

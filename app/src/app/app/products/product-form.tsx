@@ -165,10 +165,8 @@ export function ProductForm({
           value={values.unit}
           error={errors.unit}
           onChange={set("unit")}
+          hint="What one is, like kg, dozen or hour. The price above is per unit. Leave it empty for a plain count."
         />
-        <p className="-mt-2 text-sm text-muted-foreground">
-          What one is, like kg, dozen or hour. The price above is per unit. Leave it empty for a plain count.
-        </p>
         <TextAreaField
           id={fid("description")}
           name="description"

@@ -74,10 +74,8 @@ export function QuoteWordingForm({ initial }: { initial: WordingValues }) {
           value={values.signOff}
           error={errors.signOff}
           onChange={set("signOff")}
+          hint="Like “Yours in sweetness”. Shown at the end of the quote, with your business name."
         />
-        <p className="-mt-2 text-sm text-muted-foreground">
-          Like “Yours in sweetness”. Shown at the end of the quote, with your business name.
-        </p>
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"

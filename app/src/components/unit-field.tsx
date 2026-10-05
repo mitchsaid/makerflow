@@ -14,11 +14,13 @@ export function UnitField({
   error,
   value,
   onChange,
+  hint,
   ...props
 }: ExtraInputProps & {
   id: string;
   name?: string;
   label?: string;
+  hint?: string;
   error?: string;
   value: string;
   onChange: (value: string) => void;
@@ -31,6 +33,7 @@ export function UnitField({
         name={name}
         label={label}
         error={error}
+        hint={hint}
         value={value}
         onChange={onChange}
         list={listId}

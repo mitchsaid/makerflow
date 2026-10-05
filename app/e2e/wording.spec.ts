@@ -22,7 +22,7 @@ test("the business sets its quote wording once, and each new quote starts with i
   await expect(page.getByRole("button", { name: "Deposit" })).toBeDisabled();
   await page.getByRole("button", { name: "Lead time" }).click();
   await expect(page.getByLabel("Terms (optional)")).toHaveValue(
-    "A deposit is needed to start work.\nPlease allow 2 weeks to make your order.",
+    "A deposit is needed to start work.\nPlease allow [2 weeks] to make your order.",
   );
   await page.getByRole("button", { name: "Save quote wording" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();

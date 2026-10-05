@@ -123,7 +123,7 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
                 {l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                 {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
               </View>
-              <Text style={styles.colQty}>{quantityText(l.quantityMilli, l.unit, s.numberStyle)}</Text>
+              <Text style={styles.colQty}>{quantityText(l.quantityMilli, l.unit, s.numberStyle, " ")}</Text>
               <Text style={styles.colPrice}>{money(l.unitPriceCents)}</Text>
               <Text style={styles.colAmount}>{money(l.lineTotalCents)}</Text>
             </View>
@@ -179,17 +179,19 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
         </View>
 
         {s.notes ? (
-          <View style={styles.notes} wrap={false}>
-            <Text style={styles.sectionLabel}>Notes</Text>
-            <Text>{s.notes}</Text>
-          </View>
+          // One piece of text with its label, so it can run over a page break without leaving the
+          // label alone at the foot of the page.
+          <Text style={styles.notes}>
+            <Text style={styles.label}>{"Notes\n"}</Text>
+            {s.notes}
+          </Text>
         ) : null}
 
         {s.paymentInstructions ? (
-          <View style={styles.notes} wrap={false}>
-            <Text style={styles.sectionLabel}>How to pay</Text>
-            <Text>{s.paymentInstructions}</Text>
-          </View>
+          <Text style={styles.notes}>
+            <Text style={styles.label}>{"How to pay\n"}</Text>
+            {s.paymentInstructions}
+          </Text>
         ) : null}
 
         {s.signOff ? (
@@ -200,12 +202,10 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
         ) : null}
 
         {s.terms ? (
-          // Kept together (so the label never sits alone at the foot of a page) unless it is so
-          // long that it has to run over.
-          <View style={styles.terms} wrap={s.terms.length > 1200}>
-            <Text style={styles.sectionLabel}>Terms</Text>
-            <Text>{s.terms}</Text>
-          </View>
+          <Text style={styles.terms}>
+            <Text style={styles.label}>{"Terms\n"}</Text>
+            {s.terms}
+          </Text>
         ) : null}
 
         <View style={styles.statement}>

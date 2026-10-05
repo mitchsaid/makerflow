@@ -35,6 +35,11 @@ export const QUOTE_DESCRIPTION_MAX = 2000;
 export const QUOTE_SIGN_OFF_MAX = 200;
 export const QUOTE_TERMS_MAX = 4000;
 export const QUOTE_PAYMENT_MAX = 1000;
+/** A page can only hold so many lines, however few characters they have. */
+export const QUOTE_DESCRIPTION_MAX_LINES = 30;
+export const QUOTE_NOTES_MAX_LINES = 60;
+export const QUOTE_TERMS_MAX_LINES = 80;
+export const QUOTE_PAYMENT_MAX_LINES = 20;
 
 /** A line from a saved product or service, or a one-off item typed for this quote. */
 export type ItemKind = "product" | "service" | "custom";
@@ -338,18 +343,18 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
     else errors.fields.neededBy = "Choose a date, or leave it empty.";
   }
 
-  const notes = optionalMultiline(values.notes, QUOTE_NOTES_MAX, "Notes");
+  const notes = optionalMultiline(values.notes, QUOTE_NOTES_MAX, "Notes", QUOTE_NOTES_MAX_LINES);
   if (!notes.ok) errors.fields.notes = notes.error;
 
   const title = optionalText(values.title, QUOTE_TITLE_MAX, "The title");
   if (!title.ok) errors.fields.title = title.error;
-  const description = optionalMultiline(values.description, QUOTE_DESCRIPTION_MAX, "The description");
+  const description = optionalMultiline(values.description, QUOTE_DESCRIPTION_MAX, "The description", QUOTE_DESCRIPTION_MAX_LINES);
   if (!description.ok) errors.fields.description = description.error;
   const signOff = optionalText(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off");
   if (!signOff.ok) errors.fields.signOff = signOff.error;
-  const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms");
+  const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms", QUOTE_TERMS_MAX_LINES);
   if (!terms.ok) errors.fields.terms = terms.error;
-  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay");
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
   const kept = values.lines.filter((l) => !isBlankLine(l));

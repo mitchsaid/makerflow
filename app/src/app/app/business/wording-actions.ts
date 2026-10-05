@@ -6,8 +6,10 @@ import { canEditBusinessProfile } from "@/lib/business-profile";
 import { optionalMultiline, optionalText } from "@/lib/form-values";
 import {
   QUOTE_PAYMENT_MAX,
+  QUOTE_PAYMENT_MAX_LINES,
   QUOTE_SIGN_OFF_MAX,
   QUOTE_TERMS_MAX,
+  QUOTE_TERMS_MAX_LINES,
 } from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,9 +37,9 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
   const errors: WordingErrors = {};
   const signOff = optionalText(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off");
   if (!signOff.ok) errors.signOff = signOff.error;
-  const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms");
+  const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms", QUOTE_TERMS_MAX_LINES);
   if (!terms.ok) errors.terms = terms.error;
-  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay");
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "How to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.paymentInstructions = payment.error;
   if (Object.keys(errors).length > 0 || !signOff.ok || !terms.ok || !payment.ok) {
     return { status: "error", errors };

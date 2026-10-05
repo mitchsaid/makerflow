@@ -24,6 +24,8 @@ export function optionalMultiline(
   raw: FormDataEntryValue | null,
   max: number,
   label: string,
+  /** Also limit the number of lines (a document page can only hold so many). */
+  maxLines?: number,
 ): ValidationResult<string | null> {
   const value =
     typeof raw === "string"
@@ -38,6 +40,9 @@ export function optionalMultiline(
   if (value === "") return { ok: true, value: null };
   if (value.length > max) {
     return { ok: false, error: `${label} can be up to ${max} characters.` };
+  }
+  if (maxLines !== undefined && value.split("\n").length > maxLines) {
+    return { ok: false, error: `${label} can be up to ${maxLines} lines. Shorten it or join some lines.` };
   }
   return { ok: true, value };
 }

@@ -19,8 +19,16 @@ export const UNIT_SUGGESTIONS = [
   "portion",
 ] as const;
 
-/** "2 kg", or just "12" when there is no unit. A no-break space keeps the number with its unit. */
-export function quantityText(milli: QuantityMilli, unit: string | null | undefined, style: NumberStyle): string {
+/**
+ * "2 kg", or just "12" when there is no unit. By default a no-break space keeps the number with its
+ * unit on a screen; the PDF's narrow column passes a plain space so a long one can wrap.
+ */
+export function quantityText(
+  milli: QuantityMilli,
+  unit: string | null | undefined,
+  style: NumberStyle,
+  space = "\u00a0",
+): string {
   const number = formatQuantity(milli, style);
-  return unit ? `${number} ${unit}` : number;
+  return unit ? `${number}${space}${unit}` : number;
 }

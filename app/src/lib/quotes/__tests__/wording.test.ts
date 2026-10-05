@@ -56,6 +56,10 @@ describe("units", () => {
     if (!long.ok) expect(long.errors.unit).toMatch(/up to 20 characters/);
   });
 
+  it("can write the quantity and unit with a plain space, so a narrow column can wrap it", () => {
+    expect(quantityText(2000, "kg", ZA_LOCALE.numberStyle, " ")).toBe("2 kg");
+  });
+
   it("writes the quantity with its unit, keeping them together", () => {
     expect(quantityText(2000, "kg", ZA_LOCALE.numberStyle)).toBe("2 kg");
     expect(quantityText(500, "kg", ZA_LOCALE.numberStyle)).toBe("0,5 kg");
@@ -106,6 +110,26 @@ describe("quote wording", () => {
     expect([r.quote.title, r.quote.description, r.quote.signOff, r.quote.terms, r.quote.paymentInstructions]).toEqual([
       null, null, null, null, null,
     ]);
+  });
+
+  it("limits the lines too, because a page only holds so many", () => {
+    const many = (n: number) => Array.from({ length: n }, (_, i) => `line ${i}`).join("\n");
+    const r = parseQuote(
+      quote({ description: many(31), terms: many(81), paymentInstructions: many(21), notes: many(61) }),
+      NOT_REGISTERED,
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors.fields.description).toMatch(/up to 30 lines/);
+      expect(r.errors.fields.terms).toMatch(/up to 80 lines/);
+      expect(r.errors.fields.paymentInstructions).toMatch(/up to 20 lines/);
+      expect(r.errors.fields.notes).toMatch(/up to 60 lines/);
+    }
+    const fine = parseQuote(
+      quote({ description: many(30), terms: many(80), paymentInstructions: many(20), notes: many(60) }),
+      NOT_REGISTERED,
+    );
+    expect(fine.ok).toBe(true);
   });
 
   it("says how to fix each over-long piece, by field", () => {

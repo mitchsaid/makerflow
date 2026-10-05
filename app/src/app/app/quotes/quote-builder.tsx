@@ -198,10 +198,10 @@ export function QuoteBuilder({
   const problems: FormProblem[] = [];
   const f = errors.fields;
   if (f.customerId) problems.push({ fieldId: "customer", label: "Customer", message: f.customerId });
-  if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
-  if (f.validUntil) problems.push({ fieldId: "validUntil", label: "Valid until", message: f.validUntil });
   if (f.title) problems.push({ fieldId: "title", label: "Quote title", message: f.title });
   if (f.description) problems.push({ fieldId: "description", label: "Description", message: f.description });
+  if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
+  if (f.validUntil) problems.push({ fieldId: "validUntil", label: "Valid until", message: f.validUntil });
   if (f.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: f.neededBy });
   values.lines.forEach((line, index) => {
     const e = errors.lines[line.key];
@@ -465,10 +465,8 @@ export function QuoteBuilder({
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
+          hint="Like “Yours in sweetness”. Shown at the end of the quote, with your business name."
         />
-        <p className="-mt-2 text-sm text-muted-foreground">
-          Like “Yours in sweetness”. Shown at the end of the quote, with your business name.
-        </p>
       </Section>
 
       <Section title="Totals">
