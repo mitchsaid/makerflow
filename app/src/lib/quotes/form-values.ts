@@ -1,4 +1,5 @@
 import { moneyToInput, percentToInput, quantityToInput, type NumberStyle } from "../money";
+import type { BalanceDue, DepositKind } from "./deposit";
 import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, QuoteFormValues } from "./index";
 
 /** The fields of a stored quote that the builder form needs (see StoredQuote in ./data). */
@@ -16,6 +17,10 @@ export type StoredQuoteFields = {
   terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
+  depositKind: DepositKind;
+  depositValue: number;
+  balanceDue: BalanceDue;
+  balanceDueDate: string | null;
   policies: { policyId: string | null; title: string; body: string }[];
   lines: {
     id: string;
@@ -79,6 +84,15 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     terms: quote.terms ?? "",
     paymentInstructions: quote.paymentInstructions ?? "",
     showBankDetails: quote.showBankDetails,
+    depositKind: quote.depositKind,
+    depositValue:
+      quote.depositKind === "percent"
+        ? percentToInput(quote.depositValue, style)
+        : quote.depositKind === "fixed"
+          ? moneyToInput(quote.depositValue, style)
+          : "",
+    balanceDue: quote.balanceDue,
+    balanceDueDate: quote.balanceDueDate ?? "",
     policies: quote.policies.map((p, i) => ({
       key: `p-${i}`,
       policyId: p.policyId ?? "",

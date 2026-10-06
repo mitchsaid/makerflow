@@ -4,6 +4,7 @@ import { getLocalePack, vatSettingsFor } from "../locale";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
 import { findStoredQuote, type StoredQuote } from "./data";
+import { depositAmounts } from "./deposit";
 import { toFormValues } from "./form-values";
 import { sendProblems, type SendProblem } from "./send-checks";
 import { buildQuoteSnapshot, type QuoteSnapshot } from "./snapshot";
@@ -56,6 +57,7 @@ export async function prepareQuote(
     locale,
     bank: workspace.bankDetails,
   });
+  const depositNow = parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit) : null;
   const problems = sendProblems({
     hasCustomer: ownCustomer !== null,
     // Delivery or collection alone is not something to quote for.
@@ -64,6 +66,9 @@ export async function prepareQuote(
     today: todayIn(locale.timeZone),
     profile,
     locale,
+    depositTooBig: depositNow?.tooBig ?? false,
+    depositIsNothing: !!depositNow && parsed.quote.totals.grossCents > 0 && depositNow.depositCents === 0,
+    balanceDueDate: parsed.quote.deposit?.balance.kind === "date" ? parsed.quote.deposit.balance.date : null,
   });
   return {
     ok: true,

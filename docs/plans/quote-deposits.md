@@ -1,6 +1,6 @@
 # Plan: quote deposits (and where quote and invoice defaults live)
 
-Status: **plan approved by the founder 2026-10-06 (the three-place split and plainer wording). The split is built first, in its own change; deposits follow.** Money logic and the database are touched, so it needs human review. Builds the "Deposits" part of `docs/plans/quotes.md` (slice 5); inclusions and exclusions are dropped as a separate feature (founder, 2026-10-06: exclusions become a policy example, inclusions are the item lines).
+Status: **plan approved by the founder 2026-10-06; the split is merged; deposits built, in review** (migration `20261010100000`; money and database: needs human review). Money logic and the database are touched, so it needs human review. Builds the "Deposits" part of `docs/plans/quotes.md` (slice 5); inclusions and exclusions are dropped as a separate feature (founder, 2026-10-06: exclusions become a policy example, inclusions are the item lines).
 
 ## Decisions so far (founder, 2026-10-06)
 1. **Balance due: on collection or delivery, or by a date the maker picks.** No "N days" terms.
@@ -8,7 +8,7 @@ Status: **plan approved by the founder 2026-10-06 (the three-place split and pla
 
 ## What the maker sees
 - **On the quote: a Deposit section** (after Discount). A tick, "Ask for a deposit to start work". When ticked: how it is worked out (a percentage of the total, or a fixed amount), the value, and when the balance is due ("On collection" / "On delivery" / "On collection or delivery", following the quote's own delivery or collection choice; or "By a date" with a date). A live line shows the result: "Deposit R1 250,00 · Balance R1 250,00".
-- **On the document (preview, PDF, text version):** under the totals, in the maker's country's words: "Deposit to start work: R1 250,00 (50%)" and "Balance R1 250,00, due on collection" or "due by 14 Nov 2026". VAT-registered quotes say the amounts include VAT. Frozen in the snapshot like everything else.
+- **On the document (preview, PDF, text version):** under the totals, in the maker's country's words: "Deposit to start work: R1 250,00 (50%)" and "Balance R1 250,00, due on collection" or "due by 14 Nov 2026". Frozen in the snapshot like everything else.
 - **Defaults:** a business can set a default deposit (for example 50%); new quotes start with it ticked, and each quote can change or switch it off. The balance term always starts as "on collection or delivery" (a date cannot be a default).
 - **Not asked of anyone who does not want it:** off until a maker ticks it or sets a default.
 

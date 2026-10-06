@@ -81,6 +81,8 @@ type ProfileRow = {
   vat_number: string | null;
   prices_include_vat: boolean;
   business_types: string[] | null;
+  default_deposit_kind: "none" | "percent" | "fixed";
+  default_deposit_value: number | string;
   default_sign_off: string | null;
   default_terms: string | null;
   payment_instructions: string | null;
@@ -117,7 +119,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
-           default_sign_off, default_terms, payment_instructions, business_types
+           default_sign_off, default_terms, payment_instructions, business_types,
+           default_deposit_kind, default_deposit_value
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
@@ -162,6 +165,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       vatNumber: p?.vat_number ?? null,
       pricesIncludeVat: p?.prices_include_vat ?? true,
       businessTypes: businessTypesFromRow(p?.business_types),
+      defaultDepositKind: p?.default_deposit_kind ?? "none",
+      defaultDepositValue: Number(p?.default_deposit_value ?? 0),
       defaultSignOff: p?.default_sign_off ?? null,
       defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,

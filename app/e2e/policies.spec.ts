@@ -16,7 +16,7 @@ async function addPolicyFromExample(page: Page, example: string, includeByDefaul
   await expect(page.getByTestId("policy-saved")).toBeVisible();
 }
 
-test("the policy library: your own title and wording, examples to start from, good to know, saving", async ({ page }) => {
+test("the policy library: your own title and wording, examples to start from, saving", async ({ page }) => {
   await signUpAndOnboard(page, "pol-library", "Policy Co");
   await openPolicies(page);
   // No fixed headings: an empty list, a way to add your own, and examples to start from.
@@ -28,7 +28,6 @@ test("the policy library: your own title and wording, examples to start from, go
   await expect(page.getByRole("heading", { name: "Add a policy", level: 1 })).toBeVisible();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("");
   await expect(page.getByText(/not legal advice/)).toBeVisible();
-  await expect(page.getByTestId("good-to-know")).toHaveCount(0);
 
   // Saving with nothing says how to fix it, at the field and in a summary.
   await page.getByRole("button", { name: "Save policy" }).click();
@@ -40,11 +39,10 @@ test("the policy library: your own title and wording, examples to start from, go
   await page.getByRole("button", { name: "If you cancel: made to order" }).click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("If you cancel: made to order");
   await expect(page.getByLabel("Wording")).toHaveValue(/This is made to order for you\.[\s\S]*\[amount or %\]/);
-  await expect(page.getByTestId("good-to-know")).toContainText("real costs");
   await expect(page.getByTestId("coming-soon").filter({ hasText: "Cancellation stages" })).toBeVisible();
   // Another example can replace it while it is still untouched.
   await page.getByRole("button", { name: "If you cancel: bookings and services" }).click();
-  await expect(page.getByTestId("good-to-know")).toContainText("hospital or has died");
+  await expect(page.getByLabel("Wording")).toHaveValue(/in hospital, or the person it is for has died/);
 
   // Once it is edited, examples no longer overwrite it.
   await page.getByLabel("Wording").fill("You pay the deposit of 50%, plus materials already bought and work done.");

@@ -8,6 +8,7 @@ import { TermsStarters } from "@/components/terms-starters";
 import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
+import { DepositSection } from "./deposit-section";
 import { PoliciesSection } from "./policies-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -235,6 +236,8 @@ export function QuoteBuilder({
   if (f.lines) problems.push({ fieldId: "add-item", label: "Items", message: f.lines });
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
+  if (f.depositValue) problems.push({ fieldId: "depositValue", label: "Deposit", message: f.depositValue });
+  if (f.balanceDueDate) problems.push({ fieldId: "balanceDueDate", label: "Balance due by", message: f.balanceDueDate });
   if (f.notes) problems.push({ fieldId: "notes", label: "Extra details", message: f.notes });
   if (f.policies) {
     const first = values.policies.find((c) => errors.policies?.[c.key]);
@@ -450,6 +453,17 @@ export function QuoteBuilder({
           />
         )}
       </Section>
+
+      <DepositSection
+        values={values}
+        onChange={(change) => update(change)}
+        fulfilment={values.fulfilment}
+        issueDate={values.issueDate}
+        grossCents={totals ? totals.grossCents : null}
+        money={money}
+        symbol={symbol}
+        errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate }}
+      />
 
       <Section title="Notes">
         <TextAreaField

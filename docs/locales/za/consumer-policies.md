@@ -30,7 +30,7 @@ Read 2026-10-05 from the **Consumer Protection Act 68 of 2008** (Government Gaze
 - Policies are shown as **titled sections** on the quote, in plain language, before the customer agrees (decision, founder 2026-10-05).
 - **Cancellation** has two examples (made-to-order goods; services and bookings).
 - The **changes** example says the new price and date are agreed with the customer.
-- The **repairs and aftercare** example adds to, and never removes, the customer's legal rights, and offers no liability cap; the form's "good to know" line explains why.
+- The **repairs and aftercare** example adds to, and never removes, the customer's legal rights, and offers no liability cap.
 - Every example marks what to fill in with [square brackets] and is labelled as a prompt, not legal advice.
 - Not built or not verified: the thresholds and regulations listed at the top, the National Consumer Commission's notes on reasonable charges, food and allergen labelling law, and signing or initialling for unusual risks (a customer acceptance step arrives with online quotes).
 
@@ -39,4 +39,4 @@ These six examples come with the "What do you make?" step (`docs/plans/business-
 - **Storage and serving (food), Safe use and sensitive skin (candles, soap, beauty):** rest on the points above about instructions and warnings (a maker can be responsible when harm comes from faulty goods or missing instructions or warnings; section 61 as noted under the allergies example). They add instructions, they do not limit liability.
 - **Engraving and personalising, Measurements and alterations:** rest on the special-order-goods reading (point 2) and the six-month faulty-goods right (point 4). Engraving says "if we make a mistake, we will put it right" and "this does not affect your legal rights"; measurements offers a free alteration "on top of your legal rights" with no time limit. They add to the customer's rights and never remove them. A proof-approval line reads a little like the customer acknowledging a fact (section 49 asks that such terms be conspicuous and in plain language), so the adviser should look at it. **The special-order reading is still unconfirmed.**
 - **Seasonal substitutions (flowers):** the "say it before the customer agrees, and be specific" point (variations, point 4), plus the point that a change is agreed with the customer (point 3): the text offers to agree a change on request. It does not excuse flowers in poor condition.
-- **Collection and delivery (food):** the agreed date and time point (points 3 and 19(2)). **Not researched:** who carries the risk once a courier has the order, and food transport law. The good-to-know note says so.
+- **Collection and delivery (food):** the agreed date and time point (points 3 and 19(2)). **Not researched:** who carries the risk once a courier has the order, and food transport law. It is on the adviser checklist.

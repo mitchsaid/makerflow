@@ -4,8 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
+import { currencySymbol, moneyToInput, percentToInput } from "@/lib/money";
 import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
+import { DepositDefaultForm } from "./deposit-default-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
 
@@ -48,6 +50,21 @@ export default async function DocumentSettingsPage() {
             signOff: profile.defaultSignOff ?? "",
             terms: profile.defaultTerms ?? "",
             paymentInstructions: profile.paymentInstructions ?? "",
+          }}
+        />
+      )}
+
+      {canEdit && (
+        <DepositDefaultForm
+          symbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
+          initial={{
+            kind: profile.defaultDepositKind,
+            value:
+              profile.defaultDepositKind === "percent"
+                ? percentToInput(profile.defaultDepositValue, locale.numberStyle)
+                : profile.defaultDepositKind === "fixed"
+                  ? moneyToInput(profile.defaultDepositValue, locale.numberStyle)
+                  : "",
           }}
         />
       )}

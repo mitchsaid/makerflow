@@ -95,13 +95,12 @@ describe("what the types tailor", () => {
     }
   });
 
-  it("the new South African examples are valid policies, marked for their types, with a note and bracketed blanks or a plain instruction", () => {
+  it("the new South African examples are valid policies, marked for their types", () => {
     const keys = ["food-storage", "food-collection", "engraving", "measurements", "flowers-substitutions", "safe-use"];
     for (const key of keys) {
       const e = ZA_LOCALE.policies.examples.find((x) => x.key === key)!;
       expect(e, key).toBeDefined();
       expect(e.types?.length, key).toBeGreaterThan(0);
-      expect(e.goodToKnow.length, key).toBeGreaterThan(40);
       expect(parsePolicy({ title: e.title, body: e.text, includeByDefault: false }).ok, key).toBe(true);
     }
   });

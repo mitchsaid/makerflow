@@ -47,6 +47,10 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   terms: "",
   paymentInstructions: "",
   showBankDetails: true,
+  depositKind: "none",
+  depositValue: "",
+  balanceDue: "handover",
+  balanceDueDate: "",
   policies: [],
   ...over,
 });
@@ -268,7 +272,7 @@ describe("toFormValues", () => {
     discountKind: "percent" as const,
     discountValue: 750,
     notes: null,
-    title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, policies: [],
+    title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
     lines: [
       { id: "l2", sortOrder: 1, kind: "custom", productId: null, name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unit: null, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
       { id: "l3", sortOrder: 2, kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
@@ -361,7 +365,7 @@ describe("lines from products", () => {
       {
         customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null,
         discountKind: "none", discountValue: 0, notes: null,
-        title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, policies: [],
+        title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
         lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unit: null, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
       },
       ZA_LOCALE.numberStyle,

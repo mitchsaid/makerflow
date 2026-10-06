@@ -106,6 +106,10 @@ describe("a quote's own copy of policies", () => {
       terms: "",
       paymentInstructions: "",
       showBankDetails: true,
+      depositKind: "none",
+      depositValue: "",
+      balanceDue: "handover",
+      balanceDueDate: "",
       policies: [{ key: "k", policyId: "11111111-1111-4111-8111-111111111111", title: "If you cancel", body: "Edited for this quote" }],
     };
     const parsed = parseQuote(values, { registered: false });
@@ -140,11 +144,11 @@ describe("the South African examples", () => {
   const za = ZA_LOCALE.policies;
   const example = (key: string) => za.examples.find((e) => e.key === key)!;
 
-  it("each have a title, wording and a good-to-know note, and the pack carries the not-legal-advice line", () => {
+  it("each have a title and wording, and the pack carries the not-legal-advice line", () => {
     expect(za.examples.length).toBeGreaterThan(4);
     for (const e of za.examples) {
       expect(e.title.length, e.key).toBeGreaterThan(3);
-      expect(e.goodToKnow.length, e.key).toBeGreaterThan(40);
+      expect(e.text.length, e.key).toBeGreaterThan(40);
     }
     expect(za.adviceNote).toMatch(/not legal advice/);
   });
@@ -162,7 +166,6 @@ describe("the South African examples", () => {
   it("follow the consumer-law points in docs/locales/za/consumer-policies.md", () => {
     // A new date is agreed with the customer, never set by the maker alone.
     expect(example("re-quote").text).toMatch(/agree the new price and the new date with you/);
-    expect(example("re-quote").goodToKnow).toMatch(/shouldn't move unless the customer agrees/);
     // Cancellation has a made-to-order example and a bookings one with the hospital or death exception.
     expect(za.examples.filter((e) => /cancel/i.test(e.title)).map((e) => e.key)).toEqual(["made-to-order", "bookings"]);
     expect(example("bookings").text).toMatch(/in hospital, or the person it is for has died/);

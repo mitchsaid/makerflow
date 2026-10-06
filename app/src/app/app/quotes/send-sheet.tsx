@@ -26,6 +26,8 @@ const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label
   customer: { id: "customer", label: "Choose a customer" },
   items: { id: "add-item", label: "Add an item" },
   validity: { id: "validUntil", label: "Change the date" },
+  deposit: { id: "depositValue", label: "Change the deposit" },
+  "balance-date": { id: "balanceDueDate", label: "Change the date" },
 };
 
 /**

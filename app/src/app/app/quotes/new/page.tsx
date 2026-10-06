@@ -8,6 +8,7 @@ import { defaultQuotePolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
+import { moneyToInput, percentToInput } from "@/lib/money";
 import { addDays, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
@@ -58,6 +59,16 @@ export default async function NewQuotePage() {
           paymentInstructions: profile.paymentInstructions ?? "",
           // Bank details print by default; the switch on the quote turns them off for this one.
           showBankDetails: true,
+          // The deposit the business has set as its default, if any (the balance starts on collection or delivery).
+          depositKind: profile.defaultDepositKind,
+          depositValue:
+            profile.defaultDepositKind === "percent"
+              ? percentToInput(profile.defaultDepositValue, locale.numberStyle)
+              : profile.defaultDepositKind === "fixed"
+                ? moneyToInput(profile.defaultDepositValue, locale.numberStyle)
+                : "",
+          balanceDue: "handover",
+          balanceDueDate: "",
           // And the policies the business has marked to include on every new quote.
           policies: defaultQuotePolicies(policyLibrary),
         }}
