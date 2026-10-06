@@ -138,6 +138,7 @@ const emptyProfile: BusinessProfile = {
   city: null, region: null, postalCode: null, vatRegistered: false, vatNumber: null,
   pricesIncludeVat: true,
   defaultSignOff: null, defaultTerms: null, paymentInstructions: null,
+      businessTypes: null,
 };
 
 describe("what is missing before documents (South African rules, via the locale pack)", () => {

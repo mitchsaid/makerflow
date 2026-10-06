@@ -10,6 +10,7 @@ import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { bankFormValues } from "@/lib/bank/form";
 import { BankDetailsForm } from "./bank-details-form";
+import { BusinessTypesForm } from "./business-types-form";
 import { BusinessProfileForm, type FormValues } from "./business-profile-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
@@ -51,6 +52,8 @@ export default async function BusinessProfilePage() {
           </CardHeader>
         </Card>
       )}
+
+      {canEditBusinessProfile(role) && <BusinessTypesForm initial={[...(profile.businessTypes ?? [])]} />}
 
       {canEditBankDetails(role) ? (
         <BankDetailsForm

@@ -26,5 +26,6 @@ export async function createBusiness(
     return { error: "Something went wrong saving that. Please try again." };
   }
 
-  redirect("/app");
+  // One more optional question (what they make), then Home.
+  redirect("/onboarding/type");
 }

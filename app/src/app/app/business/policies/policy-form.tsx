@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
+import { useBusinessTypes } from "@/components/business-types-context";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   type PolicyPackContent,
   type PolicySummary,
 } from "@/lib/policies";
+import { splitForTypes } from "@/lib/business-types";
 import { savePolicy } from "./actions";
 
 /** Set when the form is shown in a sheet over a quote: it hands the saved policy back instead of navigating. */
@@ -60,6 +62,9 @@ export function PolicyForm({
   const [tries, setTries] = useState(0);
   const [pending, startTransition] = useTransition();
   const fid = (key: string) => `${idPrefix}${key}`;
+  const examples = splitForTypes(content.examples, useBusinessTypes());
+  // An example picked from "More examples" (a link from the library) keeps its row open, so its pressed button shows.
+  const [moreOpen, setMoreOpen] = useState(!!start && examples.others.some((e) => e.key === start.key));
 
   useEffect(() => embedded?.onPendingChange(pending), [pending, embedded]);
 
@@ -79,6 +84,19 @@ export function PolicyForm({
     setExample(e);
     setValues((v) => ({ ...v, title: e.title, body: e.text }));
   }
+
+  const exampleButton = (e: PolicyExample) => (
+    <Button
+      key={e.key}
+      type="button"
+      variant="outline"
+      aria-pressed={example?.key === e.key && untouched}
+      disabled={!untouched}
+      onClick={() => chooseExample(e)}
+    >
+      {e.title}
+    </Button>
+  );
 
   const problems: FormProblem[] = (
     [
@@ -126,19 +144,14 @@ export function PolicyForm({
               Write your own, or start from an example and change it to suit you:
             </p>
             <div className="flex flex-wrap gap-2">
-              {content.examples.map((e) => (
-                <Button
-                  key={e.key}
-                  type="button"
-                  variant="outline"
-                  aria-pressed={example?.key === e.key && untouched}
-                  disabled={!untouched}
-                  onClick={() => chooseExample(e)}
-                >
-                  {e.title}
-                </Button>
-              ))}
+              {examples.forYou.map(exampleButton)}
             </div>
+            {examples.others.length > 0 && (
+              <details className="space-y-2" open={moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)}>
+                <summary className="min-h-11 cursor-pointer py-2.5 text-base font-medium">More examples</summary>
+                <div className="flex flex-wrap gap-2">{examples.others.map(exampleButton)}</div>
+              </details>
+            )}
             {!untouched && (
               <p className="text-sm text-muted-foreground">
                 Examples fill in an empty policy. Clear the title and wording to pick a different one.

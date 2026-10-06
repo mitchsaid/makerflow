@@ -5,9 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
+import { BUSINESS_TYPE_PROMPT, describeTypes, hasSpecificTypes, splitForTypes } from "@/lib/business-types";
 import { sortPolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
+import { BusinessTypePrompt } from "./business-type-prompt";
 
 /**
  * Business profile > Quote policies: the library of policies a business reuses on its quotes,
@@ -15,7 +17,7 @@ import { forOrganisation } from "@/lib/scope";
  */
 export default async function PoliciesPage({ searchParams }: PageProps<"/app/business/policies">) {
   // The policies query runs beside the workspace check, not after it.
-  const [all, { organisation, profile, role }, params] = await Promise.all([
+  const [all, { organisation, profile, role, dismissedPrompts }, params] = await Promise.all([
     getPolicies(),
     requireOrganisation(),
     searchParams,
@@ -24,6 +26,10 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
   const list = sortPolicies(policies);
   const locale = getLocalePack(profile.countryCode);
   const canEdit = canEditBusinessProfile(role);
+  const types = profile.businessTypes;
+  const examples = splitForTypes(locale.policies.examples, types);
+  // Skipped (or never answered) and not dismissed: offer the question again, once, kindly.
+  const askTypes = canEdit && (types === null || types.length === 0) && !dismissedPrompts.includes(BUSINESS_TYPE_PROMPT);
   const saved = typeof params.saved === "string" ? policies.find((p) => p.id === params.saved) : undefined;
 
   return (
@@ -97,17 +103,29 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
         </ul>
       )}
 
+      {canEdit && askTypes && <BusinessTypePrompt />}
+
       {canEdit && (
         <>
           <Link href="/app/business/policies/new" className={buttonVariants({ variant: "outline" })}>
             Add a policy
           </Link>
           <section className="space-y-2" aria-labelledby="examples-heading" data-testid="example-links">
-            <h2 id="examples-heading" className="text-base font-semibold">
-              Start from an example
-            </h2>
+            <div>
+              <h2 id="examples-heading" className="text-base font-semibold">
+                {hasSpecificTypes(types) ? "Examples for you" : "Start from an example"}
+              </h2>
+              {hasSpecificTypes(types) && (
+                <p className="text-sm text-muted-foreground" data-testid="showing-types">
+                  Showing examples for {describeTypes(types)}.{" "}
+                  <Link href="/app/business#what-you-make" className="underline">
+                    Change
+                  </Link>
+                </p>
+              )}
+            </div>
             <ul className="flex flex-wrap gap-2">
-              {locale.policies.examples.map((e) => (
+              {examples.forYou.map((e) => (
                 <li key={e.key}>
                   <Link href={`/app/business/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
                     {e.title}
@@ -115,6 +133,20 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
                 </li>
               ))}
             </ul>
+            {examples.others.length > 0 && (
+              <details className="space-y-2" data-testid="more-examples">
+                <summary className="min-h-11 cursor-pointer py-2.5 text-base font-medium">More examples</summary>
+                <ul className="flex flex-wrap gap-2">
+                  {examples.others.map((e) => (
+                    <li key={e.key}>
+                      <Link href={`/app/business/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
+                        {e.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </section>
         </>
       )}

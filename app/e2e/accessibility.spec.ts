@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openMore, openSettings, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -33,6 +33,29 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/sign-in?error=link");
       await expect(page.getByText("expired or was already used")).toBeVisible();
       await expectNoViolations(page, "sign-in with an error");
+    });
+
+    test("sign-up steps and the examples tailored to what they make", async ({ page }) => {
+      const email = uniqueEmail(`a11y-onboard-${scheme}`);
+      await page.goto("/sign-in");
+      await page.getByLabel("Email address").fill(email);
+      await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+      await expect(page.getByRole("status")).toContainText("Check your email");
+      await page.goto(await waitForSignInLink(email));
+      await expect(page.getByLabel("Business name")).toBeVisible();
+      await expectNoViolations(page, "onboarding, business name");
+      await page.getByLabel("Business name").fill("Onboard Axe Co");
+      await page.getByRole("button", { name: "Continue" }).click();
+      await expect(page.getByRole("heading", { name: "What do you make or sell?", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "onboarding, what do you make");
+      await page.getByRole("checkbox", { name: "Food and baking" }).check();
+      await page.getByRole("button", { name: "Continue" }).click();
+      await expect(page.getByTestId("business-name")).toBeVisible();
+
+      await page.goto("/app/business/policies");
+      await expect(page.getByTestId("showing-types")).toBeVisible();
+      await page.getByTestId("more-examples").locator("summary").click();
+      await expectNoViolations(page, "quote policies, examples for you with more examples open");
     });
 
     test("signed-in pages", async ({ page }) => {

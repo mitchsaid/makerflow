@@ -1,3 +1,4 @@
+import type { BusinessType } from "./business-types";
 import { optionalChoice, optionalText, optionalValidated } from "./form-values";
 import type { ContactFacts, LocalePack } from "./locale";
 import {
@@ -7,6 +8,8 @@ import {
 } from "./validation";
 
 export type BusinessProfile = {
+  /** What the business makes or sells (see lib/business-types): null = never asked, empty = skipped. */
+  businessTypes: BusinessType[] | null;
   /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
   countryCode: string;
   /** ISO currency code. Not editable yet. */
@@ -29,7 +32,7 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes">;
 
 export type FieldName =
   | "name"

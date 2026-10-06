@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessProfile } from "@/lib/business-profile";
+import { businessTypesFromRow } from "@/lib/business-types";
 import { bankFromRow, type BankDetails, type BankRow } from "@/lib/bank";
 import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
 
@@ -25,6 +26,8 @@ export type Workspace = {
   profile: BusinessProfile;
   /** The business's bank details (one account), or null when none are saved. Everyone in the business can read them. */
   bankDetails: BankDetails | null;
+  /** Friendly prompts this person has dismissed in this business (their own only). */
+  dismissedPrompts: string[];
 };
 
 /**
@@ -77,6 +80,7 @@ type ProfileRow = {
   vat_registered: boolean;
   vat_number: string | null;
   prices_include_vat: boolean;
+  business_types: string[] | null;
   default_sign_off: string | null;
   default_terms: string | null;
   payment_instructions: string | null;
@@ -86,6 +90,7 @@ type OrganisationRow = {
   name: string;
   business_profiles: ProfileRow | ProfileRow[] | null;
   business_bank_details: BankRow | BankRow[] | null;
+  prompt_dismissals: { prompt_key: string }[] | null;
 };
 type MembershipRow = { role: string; organisations: OrganisationRow | OrganisationRow[] | null };
 
@@ -112,11 +117,12 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
-           default_sign_off, default_terms, payment_instructions
+           default_sign_off, default_terms, payment_instructions, business_types
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
-         )
+         ),
+         prompt_dismissals ( prompt_key )
        )`,
     )
     .eq("user_id", tokenUser.id)
@@ -155,11 +161,13 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       vatRegistered: p?.vat_registered ?? false,
       vatNumber: p?.vat_number ?? null,
       pricesIncludeVat: p?.prices_include_vat ?? true,
+      businessTypes: businessTypesFromRow(p?.business_types),
       defaultSignOff: p?.default_sign_off ?? null,
       defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
     },
     bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
+    dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),
   };
 });
 

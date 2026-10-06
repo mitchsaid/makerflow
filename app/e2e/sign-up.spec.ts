@@ -30,6 +30,9 @@ test("visitor can sign up by email link, name their business, and land in their 
   await expect(phone).toHaveURL(/\/onboarding$/);
   await phone.getByLabel("Business name").fill("  Sweet   Nothings  ");
   await phone.getByRole("button", { name: "Continue" }).click();
+  // The next step asks what they make; it can be skipped.
+  await expect(phone).toHaveURL(/\/onboarding\/type$/);
+  await phone.getByRole("button", { name: "Skip for now" }).click();
 
   await expect(phone).toHaveURL(/\/app$/);
   await expect(phone.getByTestId("business-name")).toHaveText("Sweet Nothings");
@@ -65,6 +68,7 @@ test("returning user signs in again by email link and skips onboarding", async (
   await p1.goto(await waitForSignInLink(email));
   await p1.getByLabel("Business name").fill("Returning Co");
   await p1.getByRole("button", { name: "Continue" }).click();
+  await p1.getByRole("button", { name: "Skip for now" }).click();
   await expect(p1.getByTestId("business-name")).toHaveText("Returning Co");
   await signOut(p1);
   await first.close();
@@ -133,6 +137,7 @@ test("signing out on one device locks every other device straight away", async (
   await l.goto(await waitForSignInLink(email));
   await l.getByLabel("Business name").fill("Elsewhere Co");
   await l.getByRole("button", { name: "Continue" }).click();
+  await l.getByRole("button", { name: "Skip for now" }).click();
   await expect(l.getByTestId("business-name")).toHaveText("Elsewhere Co");
 
   // Also signed in on a "phone".

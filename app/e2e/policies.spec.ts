@@ -22,7 +22,7 @@ test("the policy library: your own title and wording, examples to start from, go
   // No fixed headings: an empty list, a way to add your own, and examples to start from.
   await expect(page.getByTestId("no-policies")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Expected variations", level: 2 })).toHaveCount(0);
-  await expect(page.getByTestId("example-links").getByRole("link")).toHaveCount(7);
+  await expect(page.getByTestId("example-links").getByRole("link")).toHaveCount(13);
 
   await page.getByRole("link", { name: "Add a policy" }).click();
   await expect(page.getByRole("heading", { name: "Add a policy", level: 1 })).toBeVisible();
