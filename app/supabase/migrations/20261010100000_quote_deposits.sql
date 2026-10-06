@@ -121,10 +121,11 @@ begin
       payment_instructions = nullif(p_quote ->> 'payment_instructions', ''),
       policies = coalesce(p_quote -> 'policies', '[]'::jsonb),
       show_bank_details = coalesce((p_quote ->> 'show_bank_details')::boolean, true),
-      deposit_kind = coalesce(p_quote ->> 'deposit_kind', 'none'),
-      deposit_value = coalesce((p_quote ->> 'deposit_value')::bigint, 0),
-      balance_due = coalesce(p_quote ->> 'balance_due', 'handover'),
-      balance_due_date = nullif(p_quote ->> 'balance_due_date', '')::date
+      -- A payload without the deposit keys (an older app still open on a phone) keeps what the draft has.
+      deposit_kind = coalesce(p_quote ->> 'deposit_kind', deposit_kind),
+      deposit_value = coalesce((p_quote ->> 'deposit_value')::bigint, deposit_value),
+      balance_due = coalesce(p_quote ->> 'balance_due', balance_due),
+      balance_due_date = case when p_quote ? 'balance_due' then nullif(p_quote ->> 'balance_due_date', '')::date else balance_due_date end
      where id = p_quote_id and organisation_id = p_org and status = 'draft'
     returning id into qid;
 

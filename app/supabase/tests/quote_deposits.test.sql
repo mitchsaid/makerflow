@@ -56,6 +56,18 @@ begin
   assert (select deposit_kind = 'fixed' and deposit_value = 125000 and balance_due_date is null
             from public.quotes where id = q), 'a fixed deposit with the balance on handover was not saved';
 
+  -- An older app (no deposit keys) saving a draft that has a deposit leaves the deposit alone.
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{}'), '[]'::jsonb);
+  assert (select deposit_kind = 'fixed' and deposit_value = 125000 and balance_due = 'handover'
+            from public.quotes where id = q), 'an older payload dropped the deposit';
+  perform public.save_quote_draft(org_a, q,
+    pg_temp.quote_json('{"deposit_kind":"percent","deposit_value":5000,"balance_due":"date","balance_due_date":"2026-11-14"}'), '[]'::jsonb);
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{}'), '[]'::jsonb);
+  assert (select balance_due = 'date' and balance_due_date = '2026-11-14' from public.quotes where id = q),
+    'an older payload dropped the balance date';
+  perform public.save_quote_draft(org_a, q,
+    pg_temp.quote_json('{"deposit_kind":"fixed","deposit_value":125000,"balance_due":"handover","balance_due_date":null}'), '[]'::jsonb);
+
   ----------------------------------------------------------------------
   -- The database limits the values
   ----------------------------------------------------------------------

@@ -7,7 +7,7 @@ import type { ContactFacts, LocalePack } from "../locale";
  * sends, so a hand-built request cannot skip them.
  */
 
-export type SendProblemCode = "customer" | "items" | "contact" | "validity" | "deposit";
+export type SendProblemCode = "customer" | "items" | "contact" | "validity" | "deposit" | "balance-date";
 
 export type SendProblem = {
   code: SendProblemCode;
@@ -26,6 +26,10 @@ export function sendProblems(input: {
   locale: LocalePack;
   /** A fixed deposit that is more than the quote total. */
   depositTooBig?: boolean;
+  /** A deposit that works out to nothing (a tiny percentage of a small total). */
+  depositIsNothing?: boolean;
+  /** The date the balance is due, when it is by a date. */
+  balanceDueDate?: string | null;
 }): SendProblem[] {
   const problems: SendProblem[] = [];
   if (!input.hasCustomer) {
@@ -45,6 +49,12 @@ export function sendProblems(input: {
       code: "deposit",
       message: "The deposit is more than the quote total. Lower the deposit, or add what it is for to the quote.",
     });
+  }
+  if (input.depositIsNothing && !input.depositTooBig) {
+    problems.push({ code: "deposit", message: "The deposit works out to nothing. Raise it, or untick it." });
+  }
+  if (input.balanceDueDate && input.balanceDueDate < input.today) {
+    problems.push({ code: "balance-date", message: "The date the balance is due has passed. Choose a new date." });
   }
   if (missingForQuote(input.profile, input.locale).length > 0) {
     problems.push({

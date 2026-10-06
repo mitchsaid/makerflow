@@ -127,7 +127,9 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
               label={`${s.deposit.label}${s.deposit.percentText ? ` (${s.deposit.percentText})` : ""}`}
               value={money(s.deposit.depositCents)}
             />
-            <Row label={`${s.deposit.balanceLabel}, ${s.deposit.dueText}`} value={money(s.deposit.balanceCents)} />
+            {s.deposit.balanceCents > 0 && (
+              <Row label={`${s.deposit.balanceLabel}, ${s.deposit.dueText}`} value={money(s.deposit.balanceCents)} />
+            )}
           </dl>
         )}
 

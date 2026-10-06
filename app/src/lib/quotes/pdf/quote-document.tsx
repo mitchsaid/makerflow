@@ -187,12 +187,14 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
               </Text>
               <Text style={styles.bold}>{money(s.deposit.depositCents)}</Text>
             </View>
-            <View style={styles.totalRow}>
-              <Text>
-                {s.deposit.balanceLabel}, {s.deposit.dueText}
-              </Text>
-              <Text>{money(s.deposit.balanceCents)}</Text>
-            </View>
+            {s.deposit.balanceCents > 0 ? (
+              <View style={styles.totalRow}>
+                <Text>
+                  {s.deposit.balanceLabel}, {s.deposit.dueText}
+                </Text>
+                <Text>{money(s.deposit.balanceCents)}</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
 

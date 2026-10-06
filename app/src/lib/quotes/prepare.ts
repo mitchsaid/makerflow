@@ -57,6 +57,7 @@ export async function prepareQuote(
     locale,
     bank: workspace.bankDetails,
   });
+  const depositNow = parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit) : null;
   const problems = sendProblems({
     hasCustomer: ownCustomer !== null,
     // Delivery or collection alone is not something to quote for.
@@ -65,7 +66,9 @@ export async function prepareQuote(
     today: todayIn(locale.timeZone),
     profile,
     locale,
-    depositTooBig: parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit).tooBig : false,
+    depositTooBig: depositNow?.tooBig ?? false,
+    depositIsNothing: !!depositNow && parsed.quote.totals.grossCents > 0 && depositNow.depositCents === 0,
+    balanceDueDate: parsed.quote.deposit?.balance.kind === "date" ? parsed.quote.deposit.balance.date : null,
   });
   return {
     ok: true,

@@ -184,4 +184,21 @@ describe("a deposit on a quote", () => {
     expect(problems.map((p) => p.code)).toEqual(["deposit"]);
     expect(problems[0].message).toMatch(/more than the quote total/);
   });
+
+  it("also stops a deposit that works out to nothing, and a balance date that has already passed", () => {
+    const base = {
+      hasCustomer: true,
+      itemCount: 1,
+      validUntil: "2026-12-31",
+      today: "2026-10-20",
+      profile: { phone: "011", email: null, addressLine1: null, city: null },
+      locale: ZA_LOCALE,
+    };
+    expect(sendProblems({ ...base, depositIsNothing: true }).map((p) => p.code)).toEqual(["deposit"]);
+    const late = sendProblems({ ...base, balanceDueDate: "2026-10-10" });
+    expect(late.map((p) => p.code)).toEqual(["balance-date"]);
+    expect(late[0].message).toMatch(/has passed/);
+    expect(sendProblems({ ...base, balanceDueDate: "2026-10-20" })).toEqual([]);
+    expect(sendProblems({ ...base })).toEqual([]);
+  });
 });
