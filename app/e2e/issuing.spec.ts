@@ -181,7 +181,7 @@ test("a quote with no customer and no items says so, and each fix takes you to t
   // The fix is on the edit screen: it takes you there and lands on the field.
   await sheet(page).getByRole("button", { name: "Choose a customer" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}$/);
-  await expect(page.getByLabel("Customer", { exact: true })).toBeFocused();
+  await expect(page.getByLabel("Customer name", { exact: true })).toBeFocused();
 
   // Fix both, and sending is offered.
   await fillItem(page, 1, "Cake", "1", "100");

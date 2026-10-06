@@ -74,8 +74,8 @@ test("a business customer keeps its details, and they persist after editing", as
   await page.getByLabel("City or town").fill("Cape Town");
   await page.getByLabel("Province").selectOption("Western Cape");
   await page.getByLabel("Postal code").fill("8001");
-  await page.getByLabel("Delivery address (optional)").fill("Dock 4\nBack gate");
-  await page.getByLabel("Notes (optional)").fill("Pays on 30 days");
+  await page.getByLabel("Deliver to (optional)").fill("Dock 4\nBack gate");
+  await page.getByLabel("Anything to remember (optional)").fill("Pays on 30 days");
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByTestId("customer-added")).toBeVisible();
 
@@ -86,14 +86,14 @@ test("a business customer keeps its details, and they persist after editing", as
   await expect(page.getByLabel("Contact person")).toHaveValue("Sam Jacobs");
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
   await expect(page.getByLabel("Province")).toHaveValue("Western Cape");
-  await expect(page.getByLabel("Delivery address (optional)")).toHaveValue("Dock 4\nBack gate");
+  await expect(page.getByLabel("Deliver to (optional)")).toHaveValue("Dock 4\nBack gate");
 
   await page.getByLabel("Phone", { exact: true }).fill("021 555 9999");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("021 555 9999");
-  await expect(page.getByLabel("Notes (optional)")).toHaveValue("Pays on 30 days");
+  await expect(page.getByLabel("Anything to remember (optional)")).toHaveValue("Pays on 30 days");
 
   // Turning "business" off drops the business-only details.
   await page.getByRole("checkbox", { name: "This is a business" }).uncheck();

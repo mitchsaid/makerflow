@@ -94,8 +94,8 @@ export type QuoteSnapshot = {
    * existed, or when the quote left them off.
    */
   bankDetails?: BankLine[];
-  /** The policies the quote included, each under its own heading. Absent on versions sent before policies existed. */
-  policies?: { kind: string; title: string; body: string }[];
+  /** The policies the quote included, each under its own title. Absent on versions sent before policies existed. */
+  policies?: { title: string; body: string; /** Sent before policies lost their headings. */ kind?: string }[];
   wording: {
     title: string;
     notATaxInvoice: string;
@@ -225,7 +225,7 @@ export function buildQuoteSnapshot(input: {
     terms: quote.terms,
     paymentInstructions: quote.paymentInstructions,
     bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
-    policies: quote.policies.map((p) => ({ kind: p.kind, title: p.title, body: p.body })),
+    policies: quote.policies.map((p) => ({ title: p.title, body: p.body })),
     wording: {
       title: locale.documents.quoteTitle,
       notATaxInvoice: locale.documents.quoteNotATaxInvoice,

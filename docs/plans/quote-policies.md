@@ -1,5 +1,7 @@
 # Plan: quote policies (a saved library of reusable policies)
 
+> **Changed 2026-10-06 (founder):** the five fixed headings are gone. A policy is a title and wording the maker writes; the locale pack offers examples to start from (an example fills in both). Order in the library is the maker's order. Migration `20261008100000` makes `policies.kind` optional and renumbers `sort_order` in the old reading order. The text below describes the first version.
+
 Status: **decisions confirmed by the founder 2026-10-05**; building. Research behind the wording: `docs/locales/za/consumer-policies.md` (South African consumer law, read from the Act itself). Touches the database (new table, a new quote column, a replaced function), so it needs human review.
 
 ## The idea (founder, 2026-10-05)

@@ -124,7 +124,7 @@ export function BankDetailsForm({
             />
           ),
         )}
-        <Field orientation="horizontal" className="min-h-11 items-center">
+        <Field orientation="horizontal" className="items-start py-2.5">
           <Checkbox
             id={fid("useReference")}
             name="useReference"

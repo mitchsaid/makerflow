@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { ZA_LOCALE } from "../../locale/za";
-import { POLICY_KINDS as POLICY_KINDS_FOR_TEST } from "../../policies";
 import type { VatSettings } from "../../money";
 import { parseQuote, type QuoteFormValues } from "../index";
 import { renderQuotePdf } from "../pdf/render";
@@ -166,8 +165,7 @@ describe("long and awkward text on the document", () => {
 describe("policies on the document", () => {
   it("renders each policy under its title, with other terms after them, and an old version without any", async () => {
     const base = snapshot(vats.inclusive);
-    const policies = POLICY_KINDS_FOR_TEST.map((kind, i) => ({
-      kind,
+    const policies = Array.from({ length: 5 }, (_, i) => ({
       title: `Policy ${i + 1}`,
       body: "Some wording that explains the policy in plain words. ".repeat(12),
     }));

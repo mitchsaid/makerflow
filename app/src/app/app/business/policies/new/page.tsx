@@ -3,12 +3,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
-import { isPolicyKind, POLICY_HEADINGS } from "@/lib/policies";
 import { PolicyForm } from "../policy-form";
 
 export default async function NewPolicyPage({ searchParams }: PageProps<"/app/business/policies/new">) {
   const [{ profile, role }, params] = await Promise.all([requireOrganisation(), searchParams]);
-  const kind = isPolicyKind(params.kind) ? params.kind : "changes";
+  const startFrom = typeof params.example === "string" ? params.example : undefined;
   const locale = getLocalePack(profile.countryCode);
 
   return (
@@ -21,8 +20,9 @@ export default async function NewPolicyPage({ searchParams }: PageProps<"/app/bu
       </div>
       {canEditBusinessProfile(role) ? (
         <PolicyForm
-          initial={{ kind, title: POLICY_HEADINGS[kind], body: "", includeByDefault: false }}
+          initial={{ title: "", body: "", includeByDefault: false }}
           policyId={null}
+          startFrom={startFrom}
           content={locale.policies}
         />
       ) : (

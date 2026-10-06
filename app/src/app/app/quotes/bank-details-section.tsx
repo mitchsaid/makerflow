@@ -44,7 +44,7 @@ export function BankDetailsSection({
     <Section title="How to pay">
       {bank ? (
         <>
-          <Field orientation="horizontal" className="min-h-11 items-center">
+          <Field orientation="horizontal" className="items-start py-2.5">
             <Checkbox
               id="showBankDetails"
               name="showBankDetails"

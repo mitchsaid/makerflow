@@ -1,10 +1,8 @@
 import { optionalMultiline, optionalText } from "../form-values";
-import { isPolicyKind, type PolicyKind } from "./kinds";
-
-export * from "./kinds";
+export * from "./examples";
 
 /**
- * Policies: reusable wording a maker keeps once under the five headings and ticks onto quotes.
+ * Policies: reusable wording a maker keeps once, with their own title, and ticks onto quotes.
  * See docs/plans/quote-policies.md. The library is `policies`; a quote keeps its own copy of each
  * policy it includes, so changing the library never changes a quote that exists.
  */
@@ -20,7 +18,6 @@ export type PolicySummary = {
   id: string;
   /** The business it belongs to; screens keep only the current business's (see lib/scope.ts). */
   organisationId: string;
-  kind: PolicyKind;
   title: string;
   body: string;
   /** Ticked on every new quote. */
@@ -31,23 +28,20 @@ export type PolicySummary = {
 
 /** What the policy form holds while it is filled in. */
 export type PolicyFormValues = {
-  kind: PolicyKind;
   title: string;
   body: string;
   includeByDefault: boolean;
 };
 
-export type PolicyFieldErrors = Partial<Record<"kind" | "title" | "body", string>>;
+export type PolicyFieldErrors = Partial<Record<"title" | "body", string>>;
 
 export type ParsedPolicy =
   | { ok: true; value: PolicyFormValues }
   | { ok: false; errors: PolicyFieldErrors };
 
-/** Checks a policy's heading, title and wording, saying how to fix what is wrong. */
+/** Checks a policy's title and wording, saying how to fix what is wrong. */
 export function parsePolicy(values: PolicyFormValues): ParsedPolicy {
   const errors: PolicyFieldErrors = {};
-  if (!isPolicyKind(values.kind)) errors.kind = "Choose which heading this policy goes under.";
-
   const title = optionalText(values.title, POLICY_TITLE_MAX, "The title");
   if (!title.ok) errors.title = title.error;
   else if (title.value === null) errors.title = "Give the policy a title, like “If you cancel”.";
@@ -62,7 +56,6 @@ export function parsePolicy(values: PolicyFormValues): ParsedPolicy {
   return {
     ok: true,
     value: {
-      kind: values.kind,
       title: title.value,
       body: body.value,
       includeByDefault: values.includeByDefault === true,
@@ -76,14 +69,13 @@ export type QuotePolicyValues = {
   key: string;
   /** The library policy it was copied from, or "" if that is gone or unknown. */
   policyId: string;
-  kind: PolicyKind;
   title: string;
   body: string;
 };
 
 /** A copy of a library policy for a quote. */
 export function copyForQuote(policy: PolicySummary, key: string): QuotePolicyValues {
-  return { key, policyId: policy.id, kind: policy.kind, title: policy.title, body: policy.body };
+  return { key, policyId: policy.id, title: policy.title, body: policy.body };
 }
 
 /** The policies a new quote starts with: those marked "include on new quotes", in order. */
@@ -93,16 +85,13 @@ export function defaultQuotePolicies(library: readonly PolicySummary[]): QuotePo
     .map((p, i) => copyForQuote(p, `d-${i}`));
 }
 
-/** Library order: by heading, then the maker's order, then name. */
-export function sortPolicies<T extends { kind: PolicyKind; sortOrder?: number; title: string }>(list: readonly T[]): T[] {
-  const rank = (k: PolicyKind) => ["changes", "cancellation", "variations", "client_responsibilities", "liability_aftercare"].indexOf(k);
-  return [...list].sort(
-    (a, b) => rank(a.kind) - rank(b.kind) || (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.title.localeCompare(b.title),
-  );
+/** Library order: the maker's order, then name. */
+export function sortPolicies<T extends { sortOrder?: number; title: string }>(list: readonly T[]): T[] {
+  return [...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.title.localeCompare(b.title));
 }
 
 /**
- * Puts a quote's policies in the library's order (by heading, then the maker's order), so the
+ * Puts a quote's policies in the library's order (the maker's order), so the
  * document reads the same as the list on screen whatever order they were ticked in. Copies whose
  * saved policy is gone go last, in the order they have.
  */
@@ -124,22 +113,21 @@ export type QuotePolicyError = { title?: string; body?: string };
 export function parseQuotePolicies(
   values: readonly QuotePolicyValues[],
 ):
-  | { ok: true; policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[] }
+  | { ok: true; policies: { policyId: string | null; title: string; body: string }[] }
   | { ok: false; error: string; byKey: Record<string, QuotePolicyError> } {
   const byKey: Record<string, QuotePolicyError> = {};
-  const policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[] = [];
+  const policies: { policyId: string | null; title: string; body: string }[] = [];
   if (values.length > QUOTE_MAX_POLICIES) {
     return { ok: false, error: `A quote can have up to ${QUOTE_MAX_POLICIES} policies.`, byKey };
   }
   for (const v of values) {
-    const r = parsePolicy({ kind: v.kind, title: v.title, body: v.body, includeByDefault: false });
+    const r = parsePolicy({ title: v.title, body: v.body, includeByDefault: false });
     if (!r.ok) {
       byKey[v.key] = { title: r.errors.title, body: r.errors.body };
       continue;
     }
     policies.push({
       policyId: /^[0-9a-f-]{36}$/i.test(v.policyId) ? v.policyId : null,
-      kind: r.value.kind,
       title: r.value.title,
       body: r.value.body,
     });

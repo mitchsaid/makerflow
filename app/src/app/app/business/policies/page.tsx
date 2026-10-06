@@ -4,22 +4,25 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
-import { POLICY_HEADINGS, POLICY_KINDS, POLICY_PURPOSES, sortPolicies } from "@/lib/policies";
+import { getLocalePack } from "@/lib/locale";
+import { sortPolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 
 /**
  * Business profile > Quote policies: the library of policies a business reuses on its quotes,
- * under five headings. Owners and admins manage it; every member can use it on a quote.
+ * Owners and admins manage it; every member can use it on a quote.
  */
 export default async function PoliciesPage({ searchParams }: PageProps<"/app/business/policies">) {
   // The policies query runs beside the workspace check, not after it.
-  const [all, { organisation, role }, params] = await Promise.all([
+  const [all, { organisation, profile, role }, params] = await Promise.all([
     getPolicies(),
     requireOrganisation(),
     searchParams,
   ]);
   const policies = forOrganisation(all, organisation.id);
+  const list = sortPolicies(policies);
+  const locale = getLocalePack(profile.countryCode);
   const canEdit = canEditBusinessProfile(role);
   const saved = typeof params.saved === "string" ? policies.find((p) => p.id === params.saved) : undefined;
 
@@ -47,71 +50,74 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
         </Alert>
       )}
 
-      {POLICY_KINDS.map((kind) => {
-        const list = sortPolicies(policies.filter((p) => p.kind === kind));
-        return (
-          <section key={kind} className="space-y-2" aria-labelledby={`h-${kind}`}>
-            <div>
-              <h2 id={`h-${kind}`} className="text-base font-semibold">
-                {POLICY_HEADINGS[kind]}
-              </h2>
-              <p className="text-sm text-muted-foreground">{POLICY_PURPOSES[kind]}</p>
-            </div>
-            {list.length === 0 ? (
-              <p className="text-base text-muted-foreground">No policy here yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {list.map((p) => {
-                  const card = (
-                    <Card className={p.archived ? "opacity-70" : undefined}>
-                      <CardContent className="space-y-1">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p className="min-w-0 truncate text-base font-medium">{p.title}</p>
-                          <span className="flex shrink-0 gap-1.5">
-                            {p.includeByDefault && !p.archived && (
-                              <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                On new quotes
-                              </span>
-                            )}
-                            {p.archived && (
-                              <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                Archived
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <p className="line-clamp-2 whitespace-pre-line text-sm text-muted-foreground">{p.body}</p>
-                      </CardContent>
-                    </Card>
-                  );
-                  return (
-                    <li key={p.id}>
-                      {canEdit ? (
-                        <Link
-                          href={`/app/business/policies/${p.id}`}
-                          className="block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        >
-                          {card}
-                        </Link>
-                      ) : (
-                        card
+      {policies.length === 0 ? (
+        <p className="text-base text-muted-foreground" data-testid="no-policies">
+          No policies yet.{canEdit ? " Write your own, or start from an example." : ""}
+        </p>
+      ) : (
+        <ul className="space-y-2" aria-label="Your policies">
+          {list.map((p) => {
+            const card = (
+              <Card className={p.archived ? "opacity-70" : undefined}>
+                <CardContent className="space-y-1">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 truncate text-base font-medium">{p.title}</p>
+                    <span className="flex shrink-0 gap-1.5">
+                      {p.includeByDefault && !p.archived && (
+                        <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                          On new quotes
+                        </span>
                       )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {canEdit && (
-              <Link
-                href={`/app/business/policies/new?kind=${kind}`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                Add a {POLICY_HEADINGS[kind].toLowerCase()} policy
-              </Link>
-            )}
+                      {p.archived && (
+                        <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                          Archived
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 whitespace-pre-line text-sm text-muted-foreground">{p.body}</p>
+                </CardContent>
+              </Card>
+            );
+            return (
+              <li key={p.id}>
+                {canEdit ? (
+                  <Link
+                    href={`/app/business/policies/${p.id}`}
+                    className="block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    {card}
+                  </Link>
+                ) : (
+                  card
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {canEdit && (
+        <>
+          <Link href="/app/business/policies/new" className={buttonVariants({ variant: "outline" })}>
+            Add a policy
+          </Link>
+          <section className="space-y-2" aria-labelledby="examples-heading" data-testid="example-links">
+            <h2 id="examples-heading" className="text-base font-semibold">
+              Start from an example
+            </h2>
+            <ul className="flex flex-wrap gap-2">
+              {locale.policies.examples.map((e) => (
+                <li key={e.key}>
+                  <Link href={`/app/business/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
+                    {e.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </section>
-        );
-      })}
+        </>
+      )}
     </main>
   );
 }

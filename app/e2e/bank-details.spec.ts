@@ -4,7 +4,7 @@ import { addCustomerInSheet, fillItem, openQuotes, sheet } from "./quote-helpers
 
 const BANK = {
   "Account holder": "Sweet Co",
-  Bank: "FNB",
+  "Bank name": "FNB",
   "Account number": "62 123 456 789",
   "Branch code": "250655",
 };
@@ -116,7 +116,7 @@ test("a sent quote keeps the bank details it showed when they change later", asy
 
   // The owner changes the account afterwards.
   await openBusinessProfile(page);
-  await fillBank(page, page.getByRole("group", { name: "Bank details" }), { Bank: "Capitec", "Account number": "1234567890" });
+  await fillBank(page, page.getByRole("group", { name: "Bank details" }), { "Bank name": "Capitec", "Account number": "1234567890" });
   await page.getByRole("button", { name: "Save bank details" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
 

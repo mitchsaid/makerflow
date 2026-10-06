@@ -34,7 +34,6 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/busines
           <PolicyForm
             key={policy.id}
             initial={{
-              kind: policy.kind,
               title: policy.title,
               body: policy.body,
               includeByDefault: policy.includeByDefault,

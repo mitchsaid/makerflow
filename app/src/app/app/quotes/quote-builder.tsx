@@ -218,7 +218,7 @@ export function QuoteBuilder({
   // The summary lists problems in the order the fields appear on screen.
   const problems: FormProblem[] = [];
   const f = errors.fields;
-  if (f.customerId) problems.push({ fieldId: "customer", label: "Customer", message: f.customerId });
+  if (f.customerId) problems.push({ fieldId: "customer", label: "Customer name", message: f.customerId });
   if (f.title) problems.push({ fieldId: "title", label: "Quote title", message: f.title });
   if (f.description) problems.push({ fieldId: "description", label: "Description", message: f.description });
   if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
@@ -235,7 +235,7 @@ export function QuoteBuilder({
   if (f.lines) problems.push({ fieldId: "add-item", label: "Items", message: f.lines });
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
-  if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
+  if (f.notes) problems.push({ fieldId: "notes", label: "Extra details", message: f.notes });
   if (f.policies) {
     const first = values.policies.find((c) => errors.policies?.[c.key]);
     problems.push({
@@ -247,8 +247,8 @@ export function QuoteBuilder({
   if (f.paymentInstructions) {
     problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
   }
-  if (f.terms) problems.push({ fieldId: "terms", label: "Other terms", message: f.terms });
-  if (f.signOff) problems.push({ fieldId: "signOff", label: "Sign-off", message: f.signOff });
+  if (f.terms) problems.push({ fieldId: "terms", label: "Small print", message: f.terms });
+  if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
 
   const priceLabel = priceEntryLabel(vat, taxName);
 
@@ -394,7 +394,7 @@ export function QuoteBuilder({
               ["delivery", "Delivery (you deliver, with a fee)"],
             ] as const
           ).map(([option, label]) => (
-            <Field key={option} orientation="horizontal" className="min-h-11 items-center">
+            <Field key={option} orientation="horizontal" className="items-start py-2.5">
               <RadioGroupItem id={`fulfilment-${option}`} value={option} />
               <FieldLabel htmlFor={`fulfilment-${option}`} className="text-base">
                 {label}
@@ -454,7 +454,7 @@ export function QuoteBuilder({
       <Section title="Notes">
         <TextAreaField
           id="notes"
-          label="Notes for the customer (optional)"
+          label="Extra details (optional)"
           hint="Shown on the quote, for example how long the work takes."
           value={values.notes}
           error={f.notes}
@@ -497,7 +497,7 @@ export function QuoteBuilder({
       <Section title="Terms">
         <TextAreaField
           id="terms"
-          label="Other terms (optional)"
+          label="Small print (optional)"
           hint="Anything else, shown in small print at the end of the quote."
           value={values.terms}
           error={f.terms}
@@ -510,7 +510,7 @@ export function QuoteBuilder({
       <Section title="Sign-off">
         <TextField
           id="signOff"
-          label="Sign-off (optional)"
+          label="Message (optional)"
           autoComplete="off"
           maxLength={200}
           value={values.signOff}

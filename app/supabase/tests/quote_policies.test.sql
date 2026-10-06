@@ -54,18 +54,17 @@ begin
   update public.policies set archived_at = now() where id = pol;
   assert (select archived_at is not null from public.policies where id = pol), 'owner could not archive';
 
+  -- A policy is a title and wording: no heading is needed (and older rows may still carry one).
+  insert into public.policies (organisation_id, title, body, sort_order) values (org_a, 'My own policy', 'In my own words.', 2);
+  assert (select kind is null from public.policies where title = 'My own policy'), 'a new policy should have no heading';
+
   begin
-    insert into public.policies (organisation_id, kind, title, body) values (org_a, 'nonsense', 'x', 'y');
-    raise exception 'FAIL: an unknown kind was accepted';
-  exception when check_violation then null;
-  end;
-  begin
-    insert into public.policies (organisation_id, kind, title, body) values (org_a, 'changes', '', 'y');
+    insert into public.policies (organisation_id, title, body) values (org_a, '', 'y');
     raise exception 'FAIL: an empty title was accepted';
   exception when check_violation then null;
   end;
   begin
-    insert into public.policies (organisation_id, kind, title, body) values (org_a, 'changes', 'x', repeat('y', 2001));
+    insert into public.policies (organisation_id, title, body) values (org_a, 'x', repeat('y', 2001));
     raise exception 'FAIL: an over-long body was accepted';
   exception when check_violation then null;
   end;
@@ -84,7 +83,7 @@ begin
   -- Staff can read it but not write it.
   perform pg_temp.as_user(c);
   set local role authenticated;
-  assert (select count(*) from public.policies where organisation_id = org_a) = 1, 'staff cannot read the library';
+  assert (select count(*) from public.policies where organisation_id = org_a) = 2, 'staff cannot read the library';
   begin
     insert into public.policies (organisation_id, kind, title, body) values (org_a, 'changes', 'Mine', 'text');
     raise exception 'FAIL: staff added a policy';
