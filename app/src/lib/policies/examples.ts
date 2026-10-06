@@ -16,8 +16,6 @@ export type PolicyExample = {
   types?: readonly BusinessType[];
   /** A cancellation policy: the form shows the (not yet built) stages table beside it. */
   suggestsStages?: boolean;
-  /** A plain note on what the country's consumer rules mean for this kind of policy. */
-  goodToKnow: string;
 };
 
 export type PolicyPackContent = {

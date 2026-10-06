@@ -182,12 +182,6 @@ export function PolicyForm({
           maxLength={POLICY_BODY_MAX}
           rows={7}
         />
-        {shownExample && (
-          <div className="rounded-lg bg-muted/50 p-3" data-testid="good-to-know">
-            <p className="text-sm font-medium">Good to know</p>
-            <p className="text-sm text-muted-foreground">{shownExample.goodToKnow}</p>
-          </div>
-        )}
         <Field orientation="horizontal" className="items-start py-2.5">
           <Checkbox
             id={fid("includeByDefault")}

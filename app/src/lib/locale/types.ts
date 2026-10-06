@@ -91,7 +91,7 @@ export type LocalePack = {
     /** A short line saying which account this is, for a screen (never the whole account number). */
     bankSummary(details: Record<string, string>): string;
   };
-  /** Examples a maker can start a policy from, with plain "good to know" notes, from the country's consumer rules. */
+  /** Examples a maker can start a policy from, from the country's consumer rules. */
   policies: PolicyPackContent;
   documents: {
     quoteTitle: string;
