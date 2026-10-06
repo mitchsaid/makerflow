@@ -15,7 +15,7 @@ Status: **plan approved by the founder 2026-10-06 (the three-place split and pla
 ## Where the defaults live (proposal; needs your yes)
 Today everything sits on the Business profile page: business details, what you make, bank details, quote wording, quote numbers, and a link to policies. It is long and will get longer when invoices arrive. Proposal, a third place:
 - **Business profile** stays for **facts about the business**: name, contact, address, VAT, what you make, bank details.
-- **Quotes and invoices** (new page, `/app/business/documents`, a second row under More) holds **how documents are numbered, worded and what they start with**: quote numbers, quote wording, the policies library, the default deposit. Invoices get their own sections on the same page later.
+- **Quotes and invoices** (new page, `/app/documents`, a second row under More) holds **how documents are numbered, worded and what they start with**: quote numbers, quote wording, the policies library, the default deposit. Invoices get their own sections on the same page later.
 - **Settings** stays for the person and the app.
 - This moves existing sections (no data changes) and amends the "Business profile vs Settings" rule in `CLAUDE.md` to name the third place. If you would rather not move anything yet, the default deposit goes on the Business profile for now and moves with the rest later.
 

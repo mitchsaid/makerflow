@@ -10,7 +10,7 @@ import { QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX, QUOTE_TERMS_MAX } from "@/lib/qu
 import { saveQuoteWording, type WordingErrors, type WordingState, type WordingValues } from "./wording-actions";
 
 /**
- * Business profile > Quote wording: what every new quote starts with. Each quote can change its
+ * Quotes and invoices > Quote wording: what every new quote starts with. Each quote can change its
  * own copy; changing these never changes a quote that already exists.
  */
 export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingValues; otherWaysHint: string }) {
