@@ -137,7 +137,7 @@ export default async function QuotePage({
           <AlertDescription>{quote.number} is marked as sent and locked.</AlertDescription>
         </Alert>
       )}
-      {outcome && (
+      {outcome && isLatest && (
         <Alert data-testid="outcome-banner">
           <AlertDescription className="space-y-1">
             <span className="block font-medium">{outcomeSentence(outcome, locale.formatLocale)}</span>
@@ -198,7 +198,7 @@ export default async function QuotePage({
             description="Turn the accepted quote into a job, with the items, the deposit and the dates carried over."
           />
         )}
-        {quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
+        {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
         {canRevise && (
           <>
             <ComingSoonSection

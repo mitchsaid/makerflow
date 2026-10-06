@@ -9,7 +9,7 @@ After a quote is sent, the maker can write down what happened to it, in a few ta
 - **They accepted / They declined** (on a sent quote): pick the day (today by default), how they told you (WhatsApp, Email, In person, Phone call, Other), and an optional note. The quote's label becomes Accepted or Declined and a line appears in the activity log.
 - **Change the answer** (on an accepted or declined quote): puts the quote back to Sent so a different answer can be recorded. The earlier answer stays in the activity log.
 - **Withdraw this quote** (on a sent quote): an optional note, then it is marked Withdrawn. It stays on record. Withdrawing is final; **Quote again** covers a mistake.
-- **Quote again** (on any quote that has been sent): a new draft for the same customer with the same items, wording, policies and deposit. It gets a new number and today's dates. The old quote is untouched.
+- **Quote again** (on the latest sent version of a quote, in any status but draft): a new draft for the same customer with the same items, wording, policies and deposit. It gets a new number and fresh dates (dates that have already passed, such as a needed-by date or a balance due by a date, are dropped). The old quote is untouched.
 - **Revise** stays what it was: only on a Sent quote. An accepted quote is changed by first choosing "Change the answer".
 
 Not built, still shown as "coming soon": **Create a job** (on an accepted quote), emailing the quote, the online accept link. Not built, not shown: discarding a revision (it needs a draft rebuilt from a frozen version; the founder can ask for it).
@@ -32,7 +32,7 @@ Not built, still shown as "coming soon": **Create a job** (on an accepted quote)
 ## App
 - `lib/quotes/outcome.ts`: the ways of telling (labels), validation of the form, wording for the log and the banner.
 - `app/quotes/outcome-actions.ts`: `recordOutcome`, `reopenQuote` (admin-client pattern), and `quoteAgain` in `actions.ts` (reuses the draft save).
-- `app/quotes/outcome-sheet.tsx` (the accepted, declined and withdrawn sheet) and buttons on the sent quote page; an outcome banner; log wording; Quotes list filters for Accepted, Declined and Withdrawn.
+- `app/quotes/quote-outcome.tsx` (the accepted, declined and withdrawn sheet, Change the answer, Quote again) on the sent quote page, shown only on the latest sent version; an outcome banner; log wording; Quotes list filters for Accepted, Declined and Withdrawn.
 
 ## Tests
 Unit (outcome validation and wording), SQL (above), browser (accept, decline with a note, change the answer, withdraw, quote again, the log), accessibility cases for the sheets and the banner.

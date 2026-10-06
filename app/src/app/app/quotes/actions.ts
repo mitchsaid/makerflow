@@ -11,7 +11,7 @@ import {
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
-import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
+import { datesForCopy, todayIn } from "@/lib/quotes/dates";
 import { findStoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { createClient } from "@/lib/supabase/server";
@@ -122,23 +122,13 @@ export async function quoteAgain(quoteId: string): Promise<{ status: "error"; me
   if (!quote || quote.organisationId !== organisation.id) {
     return { status: "error", message: "That quote could not be found." };
   }
-  if (quote.status === "draft" && quote.versions.length === 0) {
-    return { status: "error", message: "This quote hasn't been sent yet, so there's nothing to copy. Keep editing it." };
+  // A draft (even a revision of a sent quote) holds edits the customer hasn't seen: copy what was sent.
+  if (quote.status === "draft") {
+    return { status: "error", message: "This quote is still a draft. Finish it and send it, or keep editing it." };
   }
 
   const locale = getLocalePack(profile.countryCode);
-  const today = todayIn(locale.timeZone);
-  const values = toFormValues(quote, locale.numberStyle);
-  const copy: QuoteFormValues = {
-    ...values,
-    issueDate: today,
-    validUntil: addDays(today, DEFAULT_VALID_DAYS),
-    // Dates from the old quote that have passed no longer make sense.
-    neededBy: values.neededBy && values.neededBy >= today ? values.neededBy : "",
-    ...(values.balanceDue === "date" && values.balanceDueDate < today
-      ? { balanceDue: "handover" as const, balanceDueDate: "" }
-      : {}),
-  };
+  const copy = datesForCopy(toFormValues(quote, locale.numberStyle), todayIn(locale.timeZone));
 
   const saved = await saveQuoteDraft(null, copy);
   // A good save ends by opening the new draft (a redirect), so we only get here when it failed.
