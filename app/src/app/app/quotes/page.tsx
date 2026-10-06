@@ -34,13 +34,19 @@ export default async function QuotesPage({ searchParams }: PageProps<"/app/quote
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Quotes</h1>
-        {quotes.length > 0 && (
-          <Link href="/app/quotes/new" className={buttonVariants()}>
-            New quote
+        <div className="flex items-center gap-2">
+          {/* Numbering, wording, policies and defaults: the same page that will hold invoice settings. */}
+          <Link href="/app/documents" className={buttonVariants({ variant: "outline" })}>
+            Quote settings
           </Link>
-        )}
+          {quotes.length > 0 && (
+            <Link href="/app/quotes/new" className={buttonVariants()}>
+              New quote
+            </Link>
+          )}
+        </div>
       </div>
 
       {quotes.length === 0 ? (
