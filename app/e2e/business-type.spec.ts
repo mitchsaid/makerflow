@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, uniqueEmail, waitForSignInLink } from "./helpers";
+import { openBusinessProfile, openDocuments, uniqueEmail, waitForSignInLink } from "./helpers";
 
 /** Signs up and stops on the "what do you make?" step. */
 async function signUpToTypeStep(page: Page, businessName: string) {
@@ -28,7 +28,7 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   await page.goto("/onboarding/type");
   await expect(page).toHaveURL(/\/app$/);
 
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await page.getByRole("link", { name: "Manage quote policies" }).click();
   await expect(page.getByTestId("showing-types")).toContainText("Showing examples for food and baking and workshops and classes");
   // No prompt: they answered.
@@ -56,7 +56,7 @@ test("skipping asks again once on the policies page, and Not now is remembered; 
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page).toHaveURL(/\/app$/);
 
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await page.getByRole("link", { name: "Manage quote policies" }).click();
   // No answer: today's list, in its usual order, and a friendly card.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
@@ -72,6 +72,7 @@ test("skipping asks again once on the policies page, and Not now is remembered; 
   await page.getByRole("checkbox", { name: "Flowers and plants" }).check();
   await page.getByRole("button", { name: "Save what you make" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
+  await openDocuments(page);
   await page.getByRole("link", { name: "Manage quote policies" }).click();
   await expect(page.getByTestId("showing-types")).toContainText("Showing examples for flowers and plants");
   await expect(exampleLinks(page).locator("ul").first().getByRole("link").first()).toContainText(/Seasonal substitutions|Handmade|made to order|Changes after/);
@@ -80,7 +81,7 @@ test("skipping asks again once on the policies page, and Not now is remembered; 
 test("the prompt on the policies page saves what they tick, and 'Something else' is not asked again", async ({ page }) => {
   await signUpToTypeStep(page, "Prompt Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await page.getByRole("link", { name: "Manage quote policies" }).click();
   // Pressing the button with nothing ticked says what to do, and saves nothing.
   await page.getByRole("button", { name: "Show examples for me" }).click();

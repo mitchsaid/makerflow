@@ -11,7 +11,7 @@ Status: **approved and built 2026-10-03** (founder confirmed all four decisions 
 4. A **sent quote** opens as the document with its number, status and activity (created, sent or marked sent), and can be shared or downloaded again at any time. It can no longer be edited.
 5. **Revise** a sent quote (brought into this slice, founder 2026-10-03): it opens as a new draft version with the same number ("QT-0042 · v2"); sending it freezes v2, and earlier versions stay readable from the quote's activity.
 6. The **Quotes list** shows the number, and status chips with counts, including a derived **Expired** (valid-until date passed while still sent).
-7. **Business profile > Quote numbers:** prefix and next number (to continue from another system), with a preview ("Your next quote will be QT-0042"). The number can never go backwards past one already used.
+7. **Quotes and invoices > Quote numbers:** prefix and next number (to continue from another system), with a preview ("Your next quote will be QT-0042"). The number can never go backwards past one already used.
 
 ## Placeholders (visible, inactive, "coming soon")
 Following the thin-slice rule, the sent quote's actions that belong to later slices are shown where they will live: **Record accepted or declined** (slice 6), **Quote again** (slice 6), **Withdraw** (slice 6), **Email to the customer** (needs our own email sender), **Send a link the customer can accept online** (hosted quotes). Deposit, inclusions and exclusions arrive in slice 5.
@@ -26,7 +26,7 @@ Following the thin-slice rule, the sent quote's actions that belong to later sli
 - Each version is kept: revising copies the sent version into a new draft version under the same number; the sent one stays frozen with its snapshot.
 - `quote_events` (new table): an activity log per quote (created, sent, marked sent, revised; later accepted, declined, withdrawn). Row-level security, `session_required`, tests.
 - Sending moves a quote from draft to sent in one transaction: check, number (`issue_document_number`, gapless, already built), snapshot, event. After that the existing policies already stop any change.
-- Business profile numbering edits go through a checked function (owners and admins; the next number cannot go below the last issued).
+- Quotes and invoices numbering edits go through a checked function (owners and admins; the next number cannot go below the last issued).
 
 ## Decisions (founder, 2026-10-03)
 1. **Only our server can send.** Sending runs on our server with a server key the browser never sees; the database refuses send requests from anyone else, so nobody can freeze a quote with totals that don't match its lines, even by calling the database directly. Invoices will use the same path. **Founder step before this ships:** add the Supabase secret key to Vercel's environment settings (exact steps given at the time; it never goes in chat, code or GitHub).

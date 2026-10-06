@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { BusinessType } from "@/lib/business-types";
-import { dismissBusinessTypePrompt, saveBusinessTypes } from "../type-actions";
+import { dismissBusinessTypePrompt, saveBusinessTypes } from "@/app/app/business/type-actions";
 
 /**
  * A friendly, dismissable card for businesses that skipped "what do you make?": tick what fits and

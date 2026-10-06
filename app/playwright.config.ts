@@ -16,6 +16,9 @@ export default defineConfig({
   // opened. Under a full parallel run that first compile can pass the default 5 s wait (seen
   // once on a step right after a page change), so assertions wait up to 10 s.
   expect: { timeout: 10_000 },
+  // A whole test gets 60 s (the default is 30 s). The long quote walks (send, revise, policies) take
+  // 20 to 30 s on their own, and the first compile of a page in the dev server adds more under load.
+  timeout: 60_000,
   use: {
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",

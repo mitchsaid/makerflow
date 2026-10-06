@@ -63,7 +63,7 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
       console.error("could not add policy:", error?.message);
       return { status: "error", message: GENERIC_ERROR };
     }
-    revalidatePath("/app/business/policies");
+    revalidatePath("/app/documents/policies");
     return {
       status: "saved",
       policy: { id: data.id, organisationId: organisation.id, ...v, sortOrder, archived: false },
@@ -80,7 +80,7 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
     console.error("could not save policy:", error?.message);
     return { status: "error", message: GENERIC_ERROR };
   }
-  revalidatePath("/app/business/policies");
+  revalidatePath("/app/documents/policies");
   return {
     status: "saved",
     policy: {
@@ -112,6 +112,6 @@ export async function setPolicyArchived(id: string, archived: boolean): Promise<
     console.error("could not archive policy:", error?.message);
     return { status: "error", message: GENERIC_ERROR };
   }
-  revalidatePath("/app/business/policies");
+  revalidatePath("/app/documents/policies");
   return { status: "ok" };
 }

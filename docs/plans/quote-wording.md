@@ -8,7 +8,7 @@ Status: **built 2026-10-05 on the founder's "Build 1 to 4"** (the first four ite
 3. **Terms:** free text (up to 4000) printed small at the end under "Terms". Optional starter lines ("Please allow [2 weeks] to make your order", a deposit line, a changes line) can be added with one tap and edited; they are prompts, not legal advice, and the wording needs the founder's eye.
 4. **How to pay:** free text (up to 1000) printed under "How to pay" (bank details, SnapScan, "pay on collection"). Structured bank fields come with invoices.
 
-**Defaults live in the Business profile** ("Quote wording": sign-off, terms, how to pay; owners and admins). A new draft starts with them filled in and the maker can change them for that quote. Changing a default later never changes an existing draft or a sent quote. Everything is optional: nothing here is needed to send a quote.
+**Defaults live under Quotes and invoices (moved from the Business profile, 2026-10-06)** ("Quote wording": sign-off, terms, how to pay; owners and admins). A new draft starts with them filled in and the maker can change them for that quote. Changing a default later never changes an existing draft or a sent quote. Everything is optional: nothing here is needed to send a quote.
 
 ## Data
 - `quotes`: `title`, `description`, `sign_off`, `terms`, `payment_instructions` (all optional, empty stored as NULL, length checks).

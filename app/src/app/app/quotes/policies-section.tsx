@@ -18,7 +18,7 @@ import {
   type QuotePolicyValues,
 } from "@/lib/policies";
 import type { QuotePolicyError } from "@/lib/policies";
-import { PolicyForm } from "../business/policies/policy-form";
+import { PolicyForm } from "../documents/policies/policy-form";
 
 /**
  * The quote's policies: the business's saved policies as ticks. A ticked policy shows its wording,

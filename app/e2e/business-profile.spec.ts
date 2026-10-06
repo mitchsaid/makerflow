@@ -1,5 +1,5 @@
 import { devices, expect, test } from "@playwright/test";
-import { openBusinessProfile, openSettings, signOut, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openDocuments, openSettings, signOut, signUpAndOnboard } from "./helpers";
 
 test("business details save, validate and persist", async ({
   page,
@@ -111,6 +111,16 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   // The pages behind "More" keep "More" marked.
   await openBusinessProfile(page);
   await expect(page).toHaveURL(/\/app\/business$/);
+  await expect(nav.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
+  // The numbering and wording forms now live under Quotes and invoices, not here.
+  await expect(page.getByLabel("Next number", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Save quote wording" })).toHaveCount(0);
+  await openDocuments(page);
+  await expect(page).toHaveURL(/\/app\/documents$/);
+  await expect(nav.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByLabel("Next number", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Manage quote policies" }).click();
+  await expect(page).toHaveURL(/\/app\/documents\/policies$/);
   await expect(nav.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
   await openSettings(page);
   await expect(page).toHaveURL(/\/app\/settings$/);

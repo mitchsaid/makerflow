@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openDocuments, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, item, openQuotes, sheet } from "./quote-helpers";
 
 async function addProduct(page: Page, name: string, price: string, unit: string) {
@@ -13,7 +13,7 @@ async function addProduct(page: Page, name: string, price: string, unit: string)
 
 test("the business sets its quote wording once, and each new quote starts with it", async ({ page }) => {
   await signUpAndOnboard(page, "w-defaults", "Sweet Co");
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await page.getByLabel("Sign-off message (optional)").fill("Yours in sweetness");
   await page.getByLabel("Other ways to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
   // Starting lines are one tap, can be edited, and are not added twice.
@@ -39,7 +39,7 @@ test("the business sets its quote wording once, and each new quote starts with i
   const quoteUrl = page.url().split("?")[0];
 
   // Changing the business's wording afterwards does not change a quote that exists.
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await page.getByLabel("Sign-off message (optional)").fill("Warmly");
   await page.getByRole("button", { name: "Save quote wording" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();

@@ -45,6 +45,6 @@ export async function saveQuoteNumbering(values: NumberingValues): Promise<Numbe
     console.error("could not save quote numbering:", error.code, error.message);
     return { status: "error", message: "Something went wrong saving that. Please try again." };
   }
-  revalidatePath("/app/business");
+  revalidatePath("/app/documents");
   return { status: "saved" };
 }

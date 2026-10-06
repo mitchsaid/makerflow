@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openDocuments, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, nav, openQuotes, rand, startSend } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -297,7 +297,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
 
 test("quote numbers can be set to continue from another system, and never go backwards", async ({ page }) => {
   await signUpAndOnboard(page, "iss-numbering", "Numbering Co");
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await expect(page.getByLabel("Prefix", { exact: true })).toHaveValue("QT-");
   await expect(page.getByLabel("Next number", { exact: true })).toHaveValue("1");
   await expect(page.getByTestId("number-preview")).toHaveText("Your next quote will be QT-0001.");
@@ -312,7 +312,7 @@ test("quote numbers can be set to continue from another system, and never go bac
   await expect(page.getByRole("heading", { name: /^Quote Q\/0100 Draft$/, level: 1 })).toBeVisible();
 
   // Going back to a number already used is refused, says how to fix it, and keeps what was typed.
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await expect(page.getByLabel("Next number", { exact: true })).toHaveValue("101");
   await page.getByLabel("Next number", { exact: true }).fill("50");
   await page.getByRole("button", { name: "Save quote numbers" }).click();

@@ -392,3 +392,11 @@ test("a quote id that is not an id is a plain not-found page", async ({ page }) 
   await page.goto("/app/quotes/not-an-id");
   await expect(page.getByText("This page could not be found")).toBeVisible();
 });
+
+test("the quotes page links to the quote settings", async ({ page }) => {
+  await signUpAndOnboard(page, "q-settings-link", "Link Co");
+  await openQuotes(page);
+  await page.getByRole("link", { name: "Quote settings" }).click();
+  await expect(page).toHaveURL(/\/app\/documents$/);
+  await expect(page.getByRole("heading", { name: "Quotes and invoices", level: 1 })).toBeVisible();
+});

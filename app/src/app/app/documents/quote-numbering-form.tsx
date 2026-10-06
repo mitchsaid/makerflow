@@ -9,7 +9,7 @@ import { formatDocumentNumber, parseNumbering, type NumberingErrors } from "@/li
 import { saveQuoteNumbering, type NumberingState } from "./numbering-actions";
 
 /**
- * Business profile > Quote numbers. A quote is numbered the first time it is saved, from this
+ * Quotes and invoices > Quote numbers. A quote is numbered the first time it is saved, from this
  * prefix and counter. Continue from another system by setting the next number.
  */
 export function QuoteNumberingForm({

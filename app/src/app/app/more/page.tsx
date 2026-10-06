@@ -5,7 +5,12 @@ const LINKS = [
   {
     href: "/app/business",
     title: "Business profile",
-    description: "Your business name, contact details, address and VAT.",
+    description: "Your business name, contact details, address, VAT and bank details.",
+  },
+  {
+    href: "/app/documents",
+    title: "Quotes and invoices",
+    description: "How your quotes are numbered and worded, your policies and what new quotes start with.",
   },
   {
     href: "/app/settings",

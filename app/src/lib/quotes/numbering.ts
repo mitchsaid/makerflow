@@ -1,5 +1,5 @@
 /**
- * Quote numbers: a prefix and a counter, as the Business profile lets the owner set them. The
+ * Quote numbers: a prefix and a counter, as Quotes and invoices lets the owner set them. The
  * database hands the numbers out (issue_document_number); this is for showing a preview and
  * for checking what the person typed before it is sent.
  */
