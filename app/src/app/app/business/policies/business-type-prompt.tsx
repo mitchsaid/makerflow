@@ -47,7 +47,16 @@ export function BusinessTypePrompt() {
         )}
         <BusinessTypePicker value={chosen} onChange={setChosen} idPrefix="prompt-type" labelledBy="prompt-types-heading" />
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button type="button" size="lg" disabled={pending} onClick={() => run(() => saveBusinessTypes(chosen))}>
+          <Button
+            type="button"
+            size="lg"
+            disabled={pending}
+            onClick={() =>
+              chosen.length === 0
+                ? setMessage("Tick what you make or sell, or choose Not now.")
+                : run(() => saveBusinessTypes(chosen))
+            }
+          >
             {pending ? "Saving…" : "Show examples for me"}
           </Button>
           <Button type="button" size="lg" variant="outline" disabled={pending} onClick={() => run(dismissBusinessTypePrompt)}>

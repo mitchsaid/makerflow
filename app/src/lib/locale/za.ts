@@ -257,15 +257,15 @@ const ZA_POLICIES: PolicyPackContent = {
       key: "engraving",
       types: ["jewellery", "craft", "art"],
       title: "Engraving and personalising",
-      text: "Engraved or personalised items are made just for you. Please check the spelling and details on your proof carefully before you approve it, because we start making it once you do. If we make a mistake, we will put it right.",
+      text: "Engraved or personalised items are made just for you. Please check the spelling and details on your proof carefully before you approve it, because we start making it once you do. If we make a mistake, we will put it right. This does not affect your legal rights.",
       goodToKnow:
-        "Made-for-you goods are treated differently from standard goods, but you can't take away your customer's right to have faults put right. Showing a proof and asking for approval is how you show the customer agreed the details.",
+        "Made-for-you goods are treated differently from standard goods, but you can't take away your customer's right to have faults put right. A proof gives the customer a chance to check the details before you start; it does not replace that right.",
     },
     {
       key: "measurements",
       types: ["clothing"],
       title: "Measurements and alterations",
-      text: "We make your item to the measurements you give us or that we take at your fitting, so please tell us if anything changes. If it does not fit as we agreed, tell us within [14 days] of getting it and we will [alter it]. This does not affect your legal rights.",
+      text: "We make your item to the measurements you give us or that we take at your fitting, so please tell us if anything changes. If it does not fit as we agreed, tell us and we will [alter it] at no cost. This is on top of your legal rights.",
       goodToKnow:
         "Made to measure is made for one person. Offering alterations adds to your customer's rights; it can't replace them: faulty goods can still be returned within six months.",
     },
@@ -273,9 +273,9 @@ const ZA_POLICIES: PolicyPackContent = {
       key: "flowers-substitutions",
       types: ["flowers"],
       title: "Seasonal substitutions",
-      text: "Flowers are fresh and seasonal. If a flower on your order is not available, we replace it with one of a similar colour and value, and tell you before delivery where we can.",
+      text: "Flowers are fresh and seasonal. If a flower on your order is not available, we replace it with one of a similar colour and value, and we tell you before delivery where we can. If you would rather not have a substitute, tell us and we will agree the change with you.",
       goodToKnow:
-        "Say this before the customer agrees, and be specific about what may change. It does not excuse flowers that arrive in poor condition.",
+        "Say this before the customer agrees, and be specific about what may change (colour and value, not the whole order). Offering to agree a change with them keeps the customer in charge of what they are paying for. It does not excuse flowers that arrive in poor condition.",
     },
     {
       key: "safe-use",

@@ -62,7 +62,7 @@ export function hasSpecificTypes(chosen: readonly BusinessType[] | null | undefi
   return !!chosen && chosen.some((t) => t !== "other");
 }
 
-const fits = (item: Typed, chosen: readonly BusinessType[]) => !!item.types && item.types.some((t) => chosen.includes(t));
+const fits = (item: Typed, chosen: readonly BusinessType[]) => !!item.types?.length && item.types.some((t) => chosen.includes(t));
 
 /**
  * Splits a list into what is for this business (the ones that fit their types first, then the ones
@@ -75,8 +75,8 @@ export function splitForTypes<T extends Typed>(
 ): { forYou: T[]; others: T[] } {
   if (!hasSpecificTypes(chosen)) return { forYou: [...items], others: [] };
   return {
-    forYou: [...items.filter((i) => fits(i, chosen)), ...items.filter((i) => !i.types)],
-    others: items.filter((i) => i.types && !fits(i, chosen)),
+    forYou: [...items.filter((i) => fits(i, chosen)), ...items.filter((i) => !i.types?.length)],
+    others: items.filter((i) => !!i.types?.length && !fits(i, chosen)),
   };
 }
 

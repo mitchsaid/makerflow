@@ -91,6 +91,23 @@ begin
     'org B should still never have been asked';
   reset role;
 
+  -- Dismissed prompts are personal: each member sees only their own.
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  insert into public.prompt_dismissals (user_id, organisation_id, prompt_key) values (a, org_a, 'business-type');
+  reset role;
+  perform pg_temp.as_user(d);
+  set local role authenticated;
+  assert (select count(*) from public.prompt_dismissals) = 0, 'a member can see another member''s dismissals';
+  insert into public.prompt_dismissals (user_id, organisation_id, prompt_key) values (d, org_a, 'business-type');
+  assert (select count(*) from public.prompt_dismissals) = 1, 'a member should see only their own dismissal';
+  begin
+    insert into public.prompt_dismissals (user_id, organisation_id, prompt_key) values (a, org_a, 'other-prompt');
+    raise exception 'FAIL: a dismissal was recorded for someone else';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  reset role;
+
   raise notice 'business types tests passed';
 end
 $$;

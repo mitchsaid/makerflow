@@ -82,6 +82,9 @@ test("the prompt on the policies page saves what they tick, and 'Something else'
   await page.getByRole("button", { name: "Skip for now" }).click();
   await openBusinessProfile(page);
   await page.getByRole("link", { name: "Manage quote policies" }).click();
+  // Pressing the button with nothing ticked says what to do, and saves nothing.
+  await page.getByRole("button", { name: "Show examples for me" }).click();
+  await expect(page.getByTestId("business-type-prompt").getByRole("alert")).toContainText("Tick what you make or sell, or choose Not now.");
   await page.getByTestId("business-type-prompt").getByRole("checkbox", { name: "Something else" }).check();
   await page.getByRole("button", { name: "Show examples for me" }).click();
   await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);

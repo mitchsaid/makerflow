@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { canEditBusinessProfile } from "@/lib/business-profile";
 import { TypeForm } from "./type-form";
 
 /**
@@ -7,8 +8,9 @@ import { TypeForm } from "./type-form";
  * answer, or a skip, this goes straight to Home.
  */
 export default async function OnboardingTypePage() {
-  const { profile } = await requireOrganisation();
-  if (profile.businessTypes !== null) redirect("/app");
+  const { profile, role } = await requireOrganisation();
+  // Answered already, or not theirs to answer (only owners and admins can change it): Home.
+  if (profile.businessTypes !== null || !canEditBusinessProfile(role)) redirect("/app");
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">

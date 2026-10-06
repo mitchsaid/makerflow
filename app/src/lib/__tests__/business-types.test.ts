@@ -59,6 +59,15 @@ describe("tailoring", () => {
     expect(splitForTypes(items, ["food", "flowers"]).others).toEqual([]);
   });
 
+  it("treats an empty list of types like none (fits everyone), and ignores 'Something else' next to a real type", () => {
+    const withEmpty = [{ id: "general" }, { id: "empty", types: [] as const }, { id: "food", types: ["food"] as const }, { id: "art", types: ["art"] as const }];
+    const { forYou, others } = splitForTypes(withEmpty, ["food"]);
+    expect(forYou.map((i) => i.id)).toEqual(["food", "general", "empty"]);
+    expect(others.map((i) => i.id)).toEqual(["art"]);
+    expect(hasSpecificTypes(["other", "food"])).toBe(true);
+    expect(splitForTypes(items, ["other", "food"]).forYou.map((i) => i.id)).toEqual(["food-only", "both", "general"]);
+  });
+
   it("never loses or repeats an item", () => {
     for (const chosen of [["food"], ["flowers"], ["workshops"], ["food", "flowers"]] as const) {
       const ranked = rankForTypes(items, chosen).map((i) => i.id).sort();
@@ -101,7 +110,12 @@ describe("what the types tailor", () => {
     for (const e of ZA_LOCALE.policies.examples) {
       expect(e.text, e.key).not.toMatch(/not (be )?(liable|responsible)|no refunds?|all sales are final|limited to/i);
     }
-    const measurements = ZA_LOCALE.policies.examples.find((x) => x.key === "measurements")!;
-    expect(measurements.text).toMatch(/does not affect your legal rights/);
+    // The ones about made-to-order goods add to the customer's rights and never narrow them.
+    const find = (key: string) => ZA_LOCALE.policies.examples.find((x) => x.key === key)!;
+    expect(find("measurements").text).toMatch(/on top of your legal rights/);
+    expect(find("measurements").text).not.toMatch(/within \[?\d+ days\]?/);
+    expect(find("engraving").text).toMatch(/does not affect your legal rights/);
+    // A substitution is agreed with the customer, never only imposed.
+    expect(find("flowers-substitutions").text).toMatch(/agree the change with you/);
   });
 });

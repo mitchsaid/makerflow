@@ -63,6 +63,8 @@ export function PolicyForm({
   const [pending, startTransition] = useTransition();
   const fid = (key: string) => `${idPrefix}${key}`;
   const examples = splitForTypes(content.examples, useBusinessTypes());
+  // An example picked from "More examples" (a link from the library) keeps its row open, so its pressed button shows.
+  const [moreOpen, setMoreOpen] = useState(!!start && examples.others.some((e) => e.key === start.key));
 
   useEffect(() => embedded?.onPendingChange(pending), [pending, embedded]);
 
@@ -145,7 +147,7 @@ export function PolicyForm({
               {examples.forYou.map(exampleButton)}
             </div>
             {examples.others.length > 0 && (
-              <details className="space-y-2">
+              <details className="space-y-2" open={moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)}>
                 <summary className="min-h-11 cursor-pointer py-2.5 text-base font-medium">More examples</summary>
                 <div className="flex flex-wrap gap-2">{examples.others.map(exampleButton)}</div>
               </details>
