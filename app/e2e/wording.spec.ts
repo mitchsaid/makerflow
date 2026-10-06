@@ -17,9 +17,9 @@ test("the business sets its quote wording once, and each new quote starts with i
   await page.getByLabel("Sign-off message (optional)").fill("Yours in sweetness");
   await page.getByLabel("Other ways to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
   // Starting lines are one tap, can be edited, and are not added twice.
-  await page.getByRole("button", { name: "Deposit" }).click();
+  await page.getByRole("button", { name: "Deposit", exact: true }).click();
   await expect(page.getByLabel("Small print (optional)")).toHaveValue("A deposit is needed to start work.");
-  await expect(page.getByRole("button", { name: "Deposit" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Deposit", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Lead time" }).click();
   await expect(page.getByLabel("Small print (optional)")).toHaveValue(
     "A deposit is needed to start work.\nPlease allow [2 weeks] to make your order.",
