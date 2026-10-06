@@ -10,6 +10,8 @@ export type PolicyExample = {
   title: string;
   /** The starting wording. Anything in [square brackets] is for the maker to fill in. */
   text: string;
+  /** A cancellation policy: the form shows the (not yet built) stages table beside it. */
+  suggestsStages?: boolean;
   /** A plain note on what the country's consumer rules mean for this kind of policy. */
   goodToKnow: string;
 };

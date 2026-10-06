@@ -63,6 +63,9 @@ export function PolicyForm({
 
   useEffect(() => embedded?.onPendingChange(pending), [pending, embedded]);
 
+  // The note belongs to the example the policy started from; with nothing written it no longer applies.
+  const shownExample = values.title.trim() === "" && values.body.trim() === "" ? undefined : example;
+
   const set =
     <K extends keyof PolicyFormValues>(key: K) =>
     (value: PolicyFormValues[K]) =>
@@ -166,10 +169,10 @@ export function PolicyForm({
           maxLength={POLICY_BODY_MAX}
           rows={7}
         />
-        {example && (
+        {shownExample && (
           <div className="rounded-lg bg-muted/50 p-3" data-testid="good-to-know">
             <p className="text-sm font-medium">Good to know</p>
-            <p className="text-sm text-muted-foreground">{example.goodToKnow}</p>
+            <p className="text-sm text-muted-foreground">{shownExample.goodToKnow}</p>
           </div>
         )}
         <Field orientation="horizontal" className="items-start py-2.5">
@@ -189,7 +192,7 @@ export function PolicyForm({
         </FieldDescription>
       </Section>
 
-      {/cancel/i.test(values.title) && (
+      {shownExample?.suggestsStages && (
         <ComingSoonSection
           title="Cancellation stages"
           description="A table of what the customer is charged at each stage, like deposit, materials bought and work done."

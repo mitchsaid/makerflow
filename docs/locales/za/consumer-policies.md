@@ -1,6 +1,6 @@
 # South Africa (ZA): consumer-law points behind a maker's quote policies
 
-> **Applies to businesses whose country is South Africa (`country_code` = `ZA`) and to no one else.** The example policies a maker can start from (changes after sign-off, cancellation for made-to-order goods and for bookings, handmade variations, allergies and handling, fittings and dates, repairs and aftercare) are South African and lives in the South African locale pack (`app/src/lib/locale/za.ts`). Other countries get their own research and their own starters. **This is research to inform wording, not legal advice. A South African legal adviser should check the starters before they are relied on** (same item as POPIA in `docs/security-notes.md`).
+> **Applies to businesses whose country is South Africa (`country_code` = `ZA`) and to no one else.** The example policies a maker can start from (changes after sign-off, cancellation for made-to-order goods and for bookings, handmade variations, allergies and handling, fittings and dates, repairs and aftercare) are South African and live in the South African locale pack (`app/src/lib/locale/za.ts`). Other countries get their own research and their own starters. **This is research to inform wording, not legal advice. A South African legal adviser should check the starters before they are relied on** (same item as POPIA in `docs/security-notes.md`).
 
 Read 2026-10-05 from the **Consumer Protection Act 68 of 2008** (Government Gazette 32186, https://www.gov.za/sites/default/files/32186_467.pdf). The text was extracted from the PDF locally and read directly; quotations below are from that text. **Not read:** the Consumer Protection Act Regulations (2011), the National Consumer Commission's explanatory notes (for example on reasonable cancellation charges), and the Minister's thresholds; the points that depend on them are marked.
 
@@ -27,9 +27,9 @@ Read 2026-10-05 from the **Consumer Protection Act 68 of 2008** (Government Gaze
    - 61(1): the producer, importer, distributor or retailer is liable for harm caused by "supplying any unsafe goods", "a product failure, defect or hazard", or "inadequate instructions or warnings provided to the consumer pertaining to any hazard arising from or associated with the use of any goods", "irrespective of whether the harm resulted from any negligence". **Giving real handling, storage and allergen information is part of what protects the maker**, which is why "client responsibilities" should be filled in with real instructions, not left generic. (Food-labelling and allergen rules under other law were not researched.)
 
 ## What this means for the build (see `docs/plans/quote-policies.md`)
-- Policies are shown as **headed sections** on the quote, in plain language, before the customer agrees (decision, founder 2026-10-05).
-- The **cancellation** heading offers two starters (made-to-order goods; services and bookings).
-- The **changes** starter says the new price and date are agreed with the customer.
-- The **liability and aftercare** starter adds to, and never removes, the customer's legal rights, and offers no liability cap; the form's "good to know" line explains why.
-- Every starter marks what to fill in with [square brackets] and is labelled as a prompt, not legal advice.
+- Policies are shown as **titled sections** on the quote, in plain language, before the customer agrees (decision, founder 2026-10-05).
+- **Cancellation** has two examples (made-to-order goods; services and bookings).
+- The **changes** example says the new price and date are agreed with the customer.
+- The **repairs and aftercare** example adds to, and never removes, the customer's legal rights, and offers no liability cap; the form's "good to know" line explains why.
+- Every example marks what to fill in with [square brackets] and is labelled as a prompt, not legal advice.
 - Not built or not verified: the thresholds and regulations listed at the top, the National Consumer Commission's notes on reasonable charges, food and allergen labelling law, and signing or initialling for unusual risks (a customer acceptance step arrives with online quotes).

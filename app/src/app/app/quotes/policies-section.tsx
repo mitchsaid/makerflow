@@ -114,12 +114,12 @@ export function PoliciesSection({
                   disabled={!copy && full}
                   onCheckedChange={(checked) => toggle(p, checked === true)}
                 />
-                <FieldLabel htmlFor={`policy-${p.id}`} className="flex flex-col items-start text-base">
-                  <span>{p.title}</span>
-                  <span className="line-clamp-1 text-sm font-normal text-muted-foreground">{p.body}</span>
+                <FieldLabel htmlFor={`policy-${p.id}`} className="text-base">
+                  {p.title}
                 </FieldLabel>
               </Field>
-              {copy && body(copy, p)}
+              {/* A glimpse of the wording until it is ticked (then the wording itself is shown). */}
+              {copy ? body(copy, p) : <p className="-mt-2 line-clamp-1 pl-9 text-sm text-muted-foreground">{p.body}</p>}
             </li>
           );
         })}

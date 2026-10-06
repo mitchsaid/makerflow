@@ -23,9 +23,9 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
   const errors: WordingErrors = state.status === "error" ? (state.errors ?? {}) : {};
   const problems: FormProblem[] = (
     [
-      ["wordingSignOff", "Sign-off", errors.signOff],
+      ["wordingSignOff", "Sign-off message", errors.signOff],
       ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
-      ["wordingTerms", "Terms", errors.terms],
+      ["wordingTerms", "Small print", errors.terms],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
 

@@ -189,6 +189,7 @@ const ZA_POLICIES: PolicyPackContent = {
     },
     {
       key: "made-to-order",
+      suggestsStages: true,
       title: "If you cancel: made to order",
       text: "This is made to order for you. If you cancel after saying yes, you pay what we have already spent on materials for your order and the work we have already done. Your deposit of [amount or %] counts towards that; if it is more than what we have spent, we refund the difference. We will show you how we worked it out.",
       goodToKnow:
@@ -196,6 +197,7 @@ const ZA_POLICIES: PolicyPackContent = {
     },
     {
       key: "bookings",
+      suggestsStages: true,
       title: "If you cancel: bookings and services",
       text: "If you cancel [7] or more days before [the date], we refund your deposit. If you cancel later, we keep [amount or %], because it is hard to fill the date again. We do not charge a cancellation fee if you cannot keep the booking because you or the person it is for are in hospital, or the person it is for has died.",
       goodToKnow:

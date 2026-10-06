@@ -120,8 +120,8 @@ export function CustomerForm({
       ["city", "City or town"],
       ["region", locale.address.regionLabel],
       ["postalCode", "Postal code"],
-      ["deliveryAddress", "Delivery address"],
-      ["notes", "Private notes"],
+      ["deliveryAddress", "Deliver to"],
+      ["notes", "Anything to remember"],
     ] as const
   ).flatMap(([field, label]) => {
     // Business-only fields are not on screen when "this is a business" is off.
