@@ -41,6 +41,8 @@ export const classicStyles = StyleSheet.create({
   quoteTitle: { fontSize: 14, fontWeight: 700, marginBottom: 4 },
   intro: { marginBottom: 14 },
   notes: { marginTop: 22 },
+  depositBlock: { marginTop: 14, alignSelf: "flex-end", width: "52%" },
+  bold: { fontWeight: 700 },
   bankBlock: { marginTop: 22 },
   bankRow: { flexDirection: "row", paddingVertical: 1 },
   bankLabel: { width: 110, color: MUTED },

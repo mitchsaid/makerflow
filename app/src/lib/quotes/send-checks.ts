@@ -7,7 +7,7 @@ import type { ContactFacts, LocalePack } from "../locale";
  * sends, so a hand-built request cannot skip them.
  */
 
-export type SendProblemCode = "customer" | "items" | "contact" | "validity";
+export type SendProblemCode = "customer" | "items" | "contact" | "validity" | "deposit";
 
 export type SendProblem = {
   code: SendProblemCode;
@@ -24,6 +24,8 @@ export function sendProblems(input: {
   /** The business's contact details (phone, email and address). */
   profile: ContactFacts;
   locale: LocalePack;
+  /** A fixed deposit that is more than the quote total. */
+  depositTooBig?: boolean;
 }): SendProblem[] {
   const problems: SendProblem[] = [];
   if (!input.hasCustomer) {
@@ -36,6 +38,12 @@ export function sendProblems(input: {
     problems.push({
       code: "validity",
       message: "The valid-until date has already passed. Choose a new date so the quote is still valid.",
+    });
+  }
+  if (input.depositTooBig) {
+    problems.push({
+      code: "deposit",
+      message: "The deposit is more than the quote total. Lower the deposit, or add what it is for to the quote.",
     });
   }
   if (missingForQuote(input.profile, input.locale).length > 0) {

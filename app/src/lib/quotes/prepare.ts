@@ -4,6 +4,7 @@ import { getLocalePack, vatSettingsFor } from "../locale";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
 import { findStoredQuote, type StoredQuote } from "./data";
+import { depositAmounts } from "./deposit";
 import { toFormValues } from "./form-values";
 import { sendProblems, type SendProblem } from "./send-checks";
 import { buildQuoteSnapshot, type QuoteSnapshot } from "./snapshot";
@@ -64,6 +65,7 @@ export async function prepareQuote(
     today: todayIn(locale.timeZone),
     profile,
     locale,
+    depositTooBig: parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit).tooBig : false,
   });
   return {
     ok: true,

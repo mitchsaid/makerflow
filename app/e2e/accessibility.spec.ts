@@ -118,6 +118,11 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /Delivery/ }).check();
       await expectNoViolations(page, "new quote, all sections open");
+      await page.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+      await page.getByLabel("Percentage (%)").fill("50");
+      await page.getByLabel("Balance due", { exact: true }).selectOption("date");
+      await expectNoViolations(page, "new quote, deposit open");
+      await page.getByLabel("Balance due", { exact: true }).selectOption("handover");
       await page.getByRole("button", { name: "Add a policy" }).click();
       await expect(page.getByRole("dialog", { name: "Add a policy" })).toBeVisible();
       await expectNoViolations(page, "new quote, add policy sheet");
@@ -240,6 +245,15 @@ for (const scheme of ["light", "dark"] as const) {
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices");
+      // The default deposit: with an error, then saved.
+      await page.getByRole("checkbox", { name: "Ask for a deposit on new quotes" }).check();
+      await page.getByRole("button", { name: "Save deposit" }).click();
+      await expect(page.getByText("Enter a percentage").first()).toBeVisible();
+      await expectNoViolations(page, "quotes and invoices, default deposit with an error");
+      await page.getByLabel("Percentage (%)").fill("40");
+      await page.getByRole("button", { name: "Save deposit" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
+      await expectNoViolations(page, "quotes and invoices, default deposit saved");
       // Quote numbers, with a number that has already been used.
       await page.getByLabel("Next number", { exact: true }).fill("1");
       await page.getByRole("button", { name: "Save quote numbers" }).click();

@@ -46,6 +46,10 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     terms: "",
     paymentInstructions: "",
     showBankDetails: true,
+    depositKind: "none",
+    depositValue: "",
+    balanceDue: "handover",
+    balanceDueDate: "",
     policies: [],
     ...over,
   };
@@ -205,5 +209,23 @@ describe("bank details on the document", () => {
     for (const pdf of [both, onlyBank, without]) expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     expect(onlyBank.length).toBeGreaterThan(without.length);
     expect(both.length).toBeGreaterThan(onlyBank.length);
+  });
+});
+
+describe("the deposit on the document", () => {
+  it("renders the deposit and the balance, and an old version without them", async () => {
+    const base = snapshot(vats.inclusive);
+    const deposit = {
+      label: "Deposit to start work",
+      depositCents: 125_000,
+      percentText: "50%",
+      balanceLabel: "Balance",
+      balanceCents: 125_000,
+      dueText: "due by 14 Nov 2026",
+    };
+    const withDeposit = await renderQuotePdf({ ...base, deposit });
+    const without = await renderQuotePdf({ ...base, deposit: undefined });
+    expect(withDeposit.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(withDeposit.length).toBeGreaterThan(without.length);
   });
 });

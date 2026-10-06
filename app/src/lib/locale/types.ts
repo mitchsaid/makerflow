@@ -95,6 +95,15 @@ export type LocalePack = {
   policies: PolicyPackContent;
   documents: {
     quoteTitle: string;
+    /** The deposit on a quote, in plain words ("Deposit to start work"). */
+    deposit: {
+      label: string;
+      balanceLabel: string;
+      /** When the rest is due when it is paid on handover: "due on collection". */
+      dueOnHandover(handover: "collection" | "delivery" | "either"): string;
+      /** "due by 14 Nov 2026", given the date already written. */
+      dueOnDate(dateText: string): string;
+    };
     quoteNotATaxInvoice: string;
     /** What the business must still provide before it can send a quote. */
     missingForQuote(facts: ContactFacts): ProfileField[];

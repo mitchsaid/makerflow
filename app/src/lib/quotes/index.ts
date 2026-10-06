@@ -14,6 +14,7 @@ import {
 import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
+import { depositColumns, isDepositKind, parseDeposit, type DepositFormValues, type ParsedDeposit } from "./deposit";
 
 /**
  * A quote as it is typed (QuoteFormValues: everything is text) and as it is stored
@@ -86,6 +87,11 @@ export type QuoteFormValues = {
   paymentInstructions: string;
   /** Show the business's bank details on this quote (when it has saved them). */
   showBankDetails: boolean;
+  /** The deposit and when the balance is due (see ./deposit). */
+  depositKind: DepositFormValues["depositKind"];
+  depositValue: string;
+  balanceDue: DepositFormValues["balanceDue"];
+  balanceDueDate: string;
   /** This quote's own copy of each policy it includes (see lib/policies). */
   policies: QuotePolicyValues[];
 };
@@ -110,6 +116,8 @@ export type QuoteErrors = {
       | "signOff"
       | "terms"
       | "paymentInstructions"
+      | "depositValue"
+      | "balanceDueDate"
       | "policies",
       string
     >
@@ -147,6 +155,8 @@ export type ParsedQuote = {
   terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
+  /** Null: no deposit. */
+  deposit: ParsedDeposit | null;
   policies: { policyId: string | null; title: string; body: string }[];
   totals: DocumentTotals;
 };
@@ -186,6 +196,11 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (!strings.every((key) => typeof v[key] === "string")) return false;
   // A phone still running an older version of the app does not send it: that means on.
   if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
+  // Same for the deposit: an older app does not send it, and that means no deposit.
+  if (v.depositKind !== undefined && !isDepositKind(v.depositKind)) return false;
+  if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date") return false;
+  if (v.depositValue !== undefined && typeof v.depositValue !== "string") return false;
+  if (v.balanceDueDate !== undefined && typeof v.balanceDueDate !== "string") return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
   if (
@@ -385,6 +400,9 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
+  const deposit = parseDeposit(values, values.issueDate);
+  if (!deposit.ok) Object.assign(errors.fields, deposit.errors);
+
   const policies = parseQuotePolicies(values.policies);
   if (!policies.ok) {
     errors.fields.policies = policies.error;
@@ -415,7 +433,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
 
   const hasErrors =
     Object.keys(errors.fields).length > 0 || Object.keys(errors.lines).length > 0;
-  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !terms.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok) {
+  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !terms.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok || !deposit.ok) {
     return { ok: false, errors };
   }
 
@@ -466,6 +484,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       terms: terms.value,
       paymentInstructions: payment.value,
       showBankDetails: values.showBankDetails !== false,
+      deposit: deposit.deposit,
       policies: policies.policies,
       totals,
     },
@@ -533,6 +552,7 @@ export function toDatabasePayload(
       terms: quote.terms,
       payment_instructions: quote.paymentInstructions,
       show_bank_details: quote.showBankDetails,
+      ...depositColumns(quote.deposit),
       policies: quote.policies.map((p) => ({ policy_id: p.policyId, title: p.title, body: p.body })),
       country_code: context.countryCode,
       currency_code: context.currencyCode,

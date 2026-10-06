@@ -1,4 +1,7 @@
 import { bankLines, type BankDetails, type BankLine } from "../bank";
+import { formatPercent } from "../money";
+import { depositAmounts } from "./deposit";
+import { formatDay } from "./dates";
 import type { Customer } from "../customers";
 import type { LocalePack } from "../locale";
 import type { NumberStyle, VatGroup, VatSettings } from "../money";
@@ -94,6 +97,20 @@ export type QuoteSnapshot = {
    * existed, or when the quote left them off.
    */
   bankDetails?: BankLine[];
+  /**
+   * The deposit and the balance, frozen with the words used (so a later change to the wording never alters a
+   * sent quote). Absent on versions sent before deposits existed, and when the quote asks for none.
+   */
+  deposit?: {
+    label: string;
+    depositCents: number;
+    /** "50%" when it was a percentage, else null. */
+    percentText: string | null;
+    balanceLabel: string;
+    balanceCents: number;
+    /** "due on collection", "due by 14 Nov 2026". */
+    dueText: string;
+  } | null;
   /** The policies the quote included, each under its own title. Absent on versions sent before policies existed. */
   policies?: { title: string; body: string; /** Sent before policies lost their headings. */ kind?: string }[];
   wording: {
@@ -132,6 +149,28 @@ export function customerParty(customer: Customer, locale: LocalePack): SnapshotP
     }),
     vatNumber: customer.vatNumber,
     companyRegistrationNumber: customer.companyRegistrationNumber,
+  };
+}
+
+function depositFor(quote: ParsedQuote, locale: LocalePack): QuoteSnapshot["deposit"] {
+  if (!quote.deposit) return null;
+  const { depositCents, balanceCents } = depositAmounts(quote.totals.grossCents, quote.deposit);
+  const handover = quote.lines.some((l) => l.kind === "delivery")
+    ? "delivery"
+    : quote.lines.some((l) => l.kind === "collection")
+      ? "collection"
+      : "either";
+  const words = locale.documents.deposit;
+  return {
+    label: words.label,
+    depositCents,
+    percentText: quote.deposit.kind === "percent" ? formatPercent(quote.deposit.basisPoints, locale.numberStyle) : null,
+    balanceLabel: words.balanceLabel,
+    balanceCents,
+    dueText:
+      quote.deposit.balance.kind === "date"
+        ? words.dueOnDate(formatDay(quote.deposit.balance.date, locale.formatLocale))
+        : words.dueOnHandover(handover),
   };
 }
 
@@ -225,6 +264,7 @@ export function buildQuoteSnapshot(input: {
     terms: quote.terms,
     paymentInstructions: quote.paymentInstructions,
     bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
+    deposit: depositFor(quote, locale),
     policies: quote.policies.map((p) => ({ title: p.title, body: p.body })),
     wording: {
       title: locale.documents.quoteTitle,

@@ -10,6 +10,9 @@ import {
 export type BusinessProfile = {
   /** What the business makes or sells (see lib/business-types): null = never asked, empty = skipped. */
   businessTypes: BusinessType[] | null;
+  /** What a new quote starts with for its deposit: 'none', a percentage (basis points) or an amount (cents). */
+  defaultDepositKind: "none" | "percent" | "fixed";
+  defaultDepositValue: number;
   /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
   countryCode: string;
   /** ISO currency code. Not editable yet. */
@@ -32,7 +35,7 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue">;
 
 export type FieldName =
   | "name"

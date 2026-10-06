@@ -139,6 +139,8 @@ const emptyProfile: BusinessProfile = {
   pricesIncludeVat: true,
   defaultSignOff: null, defaultTerms: null, paymentInstructions: null,
       businessTypes: null,
+      defaultDepositKind: "none",
+      defaultDepositValue: 0,
 };
 
 describe("what is missing before documents (South African rules, via the locale pack)", () => {

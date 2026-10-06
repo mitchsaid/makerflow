@@ -178,6 +178,24 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           ) : null}
         </View>
 
+        {s.deposit ? (
+          <View style={styles.depositBlock} wrap={false}>
+            <View style={styles.totalRow}>
+              <Text style={styles.bold}>
+                {s.deposit.label}
+                {s.deposit.percentText ? ` (${s.deposit.percentText})` : ""}
+              </Text>
+              <Text style={styles.bold}>{money(s.deposit.depositCents)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text>
+                {s.deposit.balanceLabel}, {s.deposit.dueText}
+              </Text>
+              <Text>{money(s.deposit.balanceCents)}</Text>
+            </View>
+          </View>
+        ) : null}
+
         {s.notes ? (
           // One piece of text with its label, so it can run over a page break without leaving the
           // label alone at the foot of the page.

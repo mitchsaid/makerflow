@@ -121,6 +121,16 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           )}
         </dl>
 
+        {s.deposit && (
+          <dl className="space-y-1 text-base" data-testid="deposit-lines">
+            <Row
+              label={`${s.deposit.label}${s.deposit.percentText ? ` (${s.deposit.percentText})` : ""}`}
+              value={money(s.deposit.depositCents)}
+            />
+            <Row label={`${s.deposit.balanceLabel}, ${s.deposit.dueText}`} value={money(s.deposit.balanceCents)} />
+          </dl>
+        )}
+
         {s.notes && (
           <div className="space-y-0.5">
             <p className="text-xs font-medium uppercase text-muted-foreground">Notes</p>

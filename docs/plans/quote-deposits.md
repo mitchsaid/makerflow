@@ -1,6 +1,6 @@
 # Plan: quote deposits (and where quote and invoice defaults live)
 
-Status: **plan approved by the founder 2026-10-06 (the three-place split and plainer wording). The split is built first, in its own change; deposits follow.** Money logic and the database are touched, so it needs human review. Builds the "Deposits" part of `docs/plans/quotes.md` (slice 5); inclusions and exclusions are dropped as a separate feature (founder, 2026-10-06: exclusions become a policy example, inclusions are the item lines).
+Status: **plan approved by the founder 2026-10-06; the split is merged; deposits built, in review** (migration `20261010100000`; money and database: needs human review). Money logic and the database are touched, so it needs human review. Builds the "Deposits" part of `docs/plans/quotes.md` (slice 5); inclusions and exclusions are dropped as a separate feature (founder, 2026-10-06: exclusions become a policy example, inclusions are the item lines).
 
 ## Decisions so far (founder, 2026-10-06)
 1. **Balance due: on collection or delivery, or by a date the maker picks.** No "N days" terms.

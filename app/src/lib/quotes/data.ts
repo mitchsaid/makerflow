@@ -1,4 +1,5 @@
 import "server-only";
+import type { BalanceDue, DepositKind } from "./deposit";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
@@ -139,6 +140,10 @@ type QuoteRow = {
   terms: string | null;
   payment_instructions: string | null;
   show_bank_details: boolean;
+  deposit_kind: DepositKind;
+  deposit_value: number | string;
+  balance_due: BalanceDue;
+  balance_due_date: string | null;
   policies: unknown;
   customers: CustomerRow | CustomerRow[] | null;
   quote_lines: LineRow[];
@@ -171,6 +176,11 @@ export type StoredQuote = {
   paymentInstructions: string | null;
   /** Show the business's bank details on this quote. */
   showBankDetails: boolean;
+  /** The deposit terms (basis points or cents) and when the balance is due. */
+  depositKind: DepositKind;
+  depositValue: number;
+  balanceDue: BalanceDue;
+  balanceDueDate: string | null;
   /** This quote's own copy of the policies it includes. */
   policies: { policyId: string | null; title: string; body: string }[];
   lines: {
@@ -219,7 +229,8 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, terms, payment_instructions, show_bank_details, policies,
+       title, description, sign_off, terms, payment_instructions, show_bank_details,
+       deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
          discount_kind, discount_value
@@ -257,6 +268,10 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     terms: row.terms,
     paymentInstructions: row.payment_instructions,
     showBankDetails: row.show_bank_details,
+    depositKind: row.deposit_kind,
+    depositValue: Number(row.deposit_value),
+    balanceDue: row.balance_due,
+    balanceDueDate: row.balance_due_date,
     policies: storedPolicies(row.policies),
     lines: row.quote_lines.map((l) => ({
       id: l.id,

@@ -52,6 +52,10 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
     terms: "",
     paymentInstructions: "",
     showBankDetails: true,
+    depositKind: "none",
+    depositValue: "",
+    balanceDue: "handover",
+    balanceDueDate: "",
     policies: [],
   ...over,
 });
