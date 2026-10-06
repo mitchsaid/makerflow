@@ -1,6 +1,8 @@
 "use client";
 
 import { TextField, type ExtraInputProps } from "@/components/form-fields";
+import { useBusinessTypes } from "@/components/business-types-context";
+import { rankForTypes } from "@/lib/business-types";
 import { UNIT_SUGGESTIONS } from "@/lib/quotes/units";
 
 /**
@@ -26,6 +28,7 @@ export function UnitField({
   onChange: (value: string) => void;
 }) {
   const listId = `${id}-suggestions`;
+  const suggestions = rankForTypes(UNIT_SUGGESTIONS, useBusinessTypes());
   return (
     <>
       <TextField
@@ -42,8 +45,8 @@ export function UnitField({
         {...props}
       />
       <datalist id={listId}>
-        {UNIT_SUGGESTIONS.map((u) => (
-          <option key={u} value={u} />
+        {suggestions.map((s) => (
+          <option key={s.unit} value={s.unit} />
         ))}
       </datalist>
     </>

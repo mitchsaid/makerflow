@@ -56,6 +56,8 @@ export async function signUpAndOnboard(
   await page.goto(await waitForSignInLink(email));
   await page.getByLabel("Business name").fill(businessName);
   await page.getByRole("button", { name: "Continue" }).click();
+  // The optional "what do you make?" step: most tests skip it.
+  await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page.getByTestId("business-name")).toHaveText(businessName);
   return email;
 }

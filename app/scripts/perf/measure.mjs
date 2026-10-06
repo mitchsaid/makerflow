@@ -23,6 +23,7 @@ for (let i = 0; i < 40 && !link; i++) {
 await page.goto(link);
 await page.getByLabel("Business name").fill("Perf Co");
 await page.getByRole("button", { name: "Continue" }).click();
+await page.getByRole("button", { name: "Skip for now" }).click(); // the optional "what do you make?" step
 await page.getByTestId("business-name").waitFor();
 await page.waitForTimeout(1500); // let prefetching settle, like a user looking at the page
 

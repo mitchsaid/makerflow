@@ -1,6 +1,6 @@
 # Plan: "What do you make?" (business type that tailors the examples)
 
-Status: **decisions confirmed by the founder 2026-10-06; plan awaiting approval. Nothing built.** Touches the database (one new column on `business_profiles`), so it needs human review. Fits into `docs/plans/onboarding.md` as its first screen after the business name.
+Status: **plan approved by the founder 2026-10-06 (types list as proposed); built, in review.** Touches the database (one new column on `business_profiles`), so it needs human review. Fits into `docs/plans/onboarding.md` as its first screen after the business name.
 
 ## Why
 The policy examples (and the terms and unit suggestions) are either too generic to help or, if made specific, too long to scan. One answer about what the maker makes lets us put the examples that fit first, without hiding the others.
