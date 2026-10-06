@@ -90,7 +90,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: /Edit details/ }).click();
       await expect(page.getByRole("dialog", { name: "Customer details" })).toBeVisible();
       await expectNoViolations(page, "new quote, edit customer sheet");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /Delivery/ }).check();
@@ -98,7 +98,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add a policy" }).click();
       await expect(page.getByRole("dialog", { name: "Add a policy" })).toBeVisible();
       await expectNoViolations(page, "new quote, add policy sheet");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
       // Bank details on a quote: the sheet to add them, with and without errors.
@@ -108,7 +108,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "new quote, add bank details sheet with errors");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
       // The item sheet: pick, one-off configure (with errors), product form.
@@ -118,7 +118,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Add new product" }).click();
       await expect(page.getByRole("dialog", { name: "Add a product" })).toBeVisible();
       await expectNoViolations(page, "item sheet, add product");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
       await expect(page.getByRole("dialog", { name: "One-off item" })).toBeVisible();
       await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
@@ -236,7 +236,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save policy" }).click();
       await expect(page.getByTestId("policy-saved")).toBeVisible();
       await expectNoViolations(page, "quote policies, with a policy");
-      await page.getByRole("link", { name: /If you cancel/ }).first().click();
+      await page.getByRole("list", { name: "Your policies" }).getByRole("link", { name: /If you cancel/ }).click();
       await expect(page.getByRole("heading", { name: "If you cancel: made to order", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit policy");
     });

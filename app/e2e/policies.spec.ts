@@ -54,7 +54,7 @@ test("the policy library: your own title and wording, examples to start from, go
   await page.getByRole("checkbox", { name: "Include on new quotes" }).check();
   await page.getByRole("button", { name: "Save policy" }).click();
   await expect(page.getByTestId("policy-saved")).toContainText("Saved “If you cancel”");
-  const card = page.getByRole("link", { name: /If you cancel/ });
+  const card = page.getByRole("list", { name: "Your policies" }).getByRole("link", { name: /If you cancel/ });
   await expect(card).toContainText("On new quotes");
   await expect(card).toContainText("You pay the deposit of 50%");
 
@@ -69,6 +69,8 @@ test("the policy library: your own title and wording, examples to start from, go
 });
 
 test("policies on a quote: ticked by default, edited for this quote only, shown on the document, frozen from the library", async ({ page }) => {
+  // A long walk through the library, a quote, its preview and archiving: it takes ~25 s alone.
+  test.setTimeout(60_000);
   await signUpAndOnboard(page, "pol-quote", "Policy Co");
   await openPolicies(page);
   await addPolicyFromExample(page, "Changes after you say yes");
@@ -109,7 +111,7 @@ test("policies on a quote: ticked by default, edited for this quote only, shown 
 
   // The saved policy was not changed by editing it on a quote.
   await openPolicies(page);
-  await page.getByRole("link", { name: /^Changes after you say yes/ }).first().click();
+  await page.getByRole("list", { name: "Your policies" }).getByRole("link", { name: /^Changes after you say yes/ }).click();
   await expect(page.getByLabel("Wording")).toHaveValue(/Once you have said yes to this quote, any change is quoted again/);
 
   // Archiving hides it from new quotes; the quote that has it keeps its copy.
@@ -118,7 +120,7 @@ test("policies on a quote: ticked by default, edited for this quote only, shown 
   await page.goto("/app/quotes/new");
   await expect(page.getByRole("checkbox", { name: /^Changes after you say yes/ })).toHaveCount(0);
   await page.goto(quoteUrl);
-  await expect(page.getByText(/no longer in your saved policies/)).toBeVisible();
+  await expect(page.getByText(/No longer in your saved policies/)).toBeVisible();
   await expect(page.getByLabel("Wording for this quote: Changes after you say yes")).toHaveValue("Any change is re-quoted first. Dates move only if you agree.");
 });
 
@@ -141,5 +143,5 @@ test("adding a policy from inside a quote keeps everything typed on the quote an
   await expect(page.getByLabel("Wording for this quote: Allergies and handling")).toHaveValue(/tell us about any allergies/);
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
   await openPolicies(page);
-  await expect(page.getByRole("link", { name: /Allergies and handling/ }).first()).toContainText("tell us about any allergies");
+  await expect(page.getByRole("list", { name: "Your policies" }).getByRole("link", { name: /Allergies and handling/ })).toContainText("tell us about any allergies");
 });
