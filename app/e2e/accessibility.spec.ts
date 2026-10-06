@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
+import { openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -52,7 +52,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Continue" }).click();
       await expect(page.getByTestId("business-name")).toBeVisible();
 
-      await page.goto("/app/business/policies");
+      await page.goto("/app/documents/policies");
       await expect(page.getByTestId("showing-types")).toBeVisible();
       await page.getByTestId("more-examples").locator("summary").click();
       await expectNoViolations(page, "quote policies, examples for you with more examples open");
@@ -223,14 +223,6 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "business profile with errors");
 
-      // Quote numbers, with a number that has already been used.
-      await page.getByLabel("Next number", { exact: true }).fill("1");
-      await page.getByRole("button", { name: "Save quote numbers" }).click();
-      // Wait for THIS form's answer (the profile form's own summary is still on the page above it).
-      await expect(page.getByText(/has already been used/).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: "Save quote numbers" })).toBeEnabled();
-      await expectNoViolations(page, "business profile, quote numbers with an error");
-
       // Bank details: with errors, then saved.
       await page.getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByText("Enter the account holder").first()).toBeVisible();
@@ -244,6 +236,18 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByText(/Last changed /)).toBeVisible();
       await expectNoViolations(page, "business profile, bank details saved");
+
+      // Quotes and invoices: the settings page, then quote numbers with a number already used.
+      await openDocuments(page);
+      await expectNoViolations(page, "quotes and invoices");
+      // Quote numbers, with a number that has already been used.
+      await page.getByLabel("Next number", { exact: true }).fill("1");
+      await page.getByRole("button", { name: "Save quote numbers" }).click();
+      // Wait for THIS form's answer .
+      await expect(page.getByText(/has already been used/).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "Save quote numbers" })).toBeEnabled();
+      await expectNoViolations(page, "quotes and invoices, quote numbers with an error");
+
 
       // Quote policies: the library, the form (with errors and a starter), and the saved list.
       await page.getByRole("link", { name: "Manage quote policies" }).click();

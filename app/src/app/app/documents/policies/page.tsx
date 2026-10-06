@@ -12,10 +12,10 @@ import { forOrganisation } from "@/lib/scope";
 import { BusinessTypePrompt } from "./business-type-prompt";
 
 /**
- * Business profile > Quote policies: the library of policies a business reuses on its quotes,
+ * Quotes and invoices > Quote policies: the library of policies a business reuses on its quotes,
  * Owners and admins manage it; every member can use it on a quote.
  */
-export default async function PoliciesPage({ searchParams }: PageProps<"/app/business/policies">) {
+export default async function PoliciesPage({ searchParams }: PageProps<"/app/documents/policies">) {
   // The policies query runs beside the workspace check, not after it.
   const [all, { organisation, profile, role, dismissedPrompts }, params] = await Promise.all([
     getPolicies(),
@@ -35,8 +35,8 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="space-y-1">
-        <Link href="/app/business" className="text-sm text-muted-foreground underline">
-          Business profile
+        <Link href="/app/documents" className="text-sm text-muted-foreground underline">
+          Quotes and invoices
         </Link>
         <h1 className="text-xl font-semibold">Quote policies</h1>
         <p className="text-muted-foreground">
@@ -89,7 +89,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
               <li key={p.id}>
                 {canEdit ? (
                   <Link
-                    href={`/app/business/policies/${p.id}`}
+                    href={`/app/documents/policies/${p.id}`}
                     className="block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
                     {card}
@@ -107,7 +107,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
 
       {canEdit && (
         <>
-          <Link href="/app/business/policies/new" className={buttonVariants({ variant: "outline" })}>
+          <Link href="/app/documents/policies/new" className={buttonVariants({ variant: "outline" })}>
             Add a policy
           </Link>
           <section className="space-y-2" aria-labelledby="examples-heading" data-testid="example-links">
@@ -127,7 +127,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
             <ul className="flex flex-wrap gap-2">
               {examples.forYou.map((e) => (
                 <li key={e.key}>
-                  <Link href={`/app/business/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
+                  <Link href={`/app/documents/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
                     {e.title}
                   </Link>
                 </li>
@@ -139,7 +139,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/bus
                 <ul className="flex flex-wrap gap-2">
                   {examples.others.map((e) => (
                     <li key={e.key}>
-                      <Link href={`/app/business/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
+                      <Link href={`/app/documents/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
                         {e.title}
                       </Link>
                     </li>

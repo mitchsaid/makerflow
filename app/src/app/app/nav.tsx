@@ -23,12 +23,16 @@ const ITEMS: Item[] = [
   { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon },
   { href: "/app/products", label: "Products", match: (p) => p.startsWith("/app/products"), icon: ProductsIcon },
   { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
+  { href: "/app/documents", label: "Quotes and invoices", match: (p) => p.startsWith("/app/documents"), icon: DocumentsIcon, only: "desktop" },
   { href: "/app/settings", label: "Settings", match: (p) => p.startsWith("/app/settings"), icon: SettingsIcon, only: "desktop" },
   {
     href: "/app/more",
     label: "More",
     match: (p) =>
-      p.startsWith("/app/more") || p.startsWith("/app/business") || p.startsWith("/app/settings"),
+      p.startsWith("/app/more") ||
+      p.startsWith("/app/business") ||
+      p.startsWith("/app/documents") ||
+      p.startsWith("/app/settings"),
     icon: MoreIcon,
     only: "phone",
   },
@@ -164,6 +168,17 @@ function BusinessIcon() {
       <path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
       <path d="M5 12.5V20h14v-7.5" />
       <path d="M10 20v-4.5h4V20" />
+    </svg>
+  );
+}
+
+function DocumentsIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6M9 16h6" />
     </svg>
   );
 }

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openDocuments, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, openQuotes, sheet } from "./quote-helpers";
 
 async function openPolicies(page: Page) {
-  await openBusinessProfile(page);
+  await openDocuments(page);
   await page.getByRole("link", { name: "Manage quote policies" }).click();
   await expect(page.getByRole("heading", { name: "Quote policies", level: 1 })).toBeVisible();
 }
@@ -116,7 +116,7 @@ test("policies on a quote: ticked by default, edited for this quote only, shown 
 
   // Archiving hides it from new quotes; the quote that has it keeps its copy.
   await page.getByRole("button", { name: "Archive this policy" }).click();
-  await expect(page).toHaveURL(/\/app\/business\/policies$/);
+  await expect(page).toHaveURL(/\/app\/documents\/policies$/);
   await page.goto("/app/quotes/new");
   await expect(page.getByRole("checkbox", { name: /^Changes after you say yes/ })).toHaveCount(0);
   await page.goto(quoteUrl);

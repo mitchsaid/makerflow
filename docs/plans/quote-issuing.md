@@ -11,7 +11,7 @@ Status: **approved and built 2026-10-03** (founder confirmed all four decisions 
 4. A **sent quote** opens as the document with its number, status and activity (created, sent or marked sent), and can be shared or downloaded again at any time. It can no longer be edited.
 5. **Revise** a sent quote (brought into this slice, founder 2026-10-03): it opens as a new draft version with the same number ("QT-0042 · v2"); sending it freezes v2, and earlier versions stay readable from the quote's activity.
 6. The **Quotes list** shows the number, and status chips with counts, including a derived **Expired** (valid-until date passed while still sent).
-7. **Business profile > Quote numbers:** prefix and next number (to continue from another system), with a preview ("Your next quote will be QT-0042"). The number can never go backwards past one already used.
+7. **Quotes and invoices > Quote numbers:** prefix and next number (to continue from another system), with a preview ("Your next quote will be QT-0042"). The number can never go backwards past one already used.
 
 ## Placeholders (visible, inactive, "coming soon")
 Following the thin-slice rule, the sent quote's actions that belong to later slices are shown where they will live: **Record accepted or declined** (slice 6), **Quote again** (slice 6), **Withdraw** (slice 6), **Email to the customer** (needs our own email sender), **Send a link the customer can accept online** (hosted quotes). Deposit, inclusions and exclusions arrive in slice 5.

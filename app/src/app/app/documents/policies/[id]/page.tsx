@@ -8,7 +8,7 @@ import { getPolicy } from "@/lib/policies/data";
 import { PolicyArchiveButton } from "../archive-button";
 import { PolicyForm } from "../policy-form";
 
-export default async function EditPolicyPage({ params }: PageProps<"/app/business/policies/[id]">) {
+export default async function EditPolicyPage({ params }: PageProps<"/app/documents/policies/[id]">) {
   const { id } = await params;
   // The policy loads beside the workspace check, not after it.
   const [policy, { organisation, profile, role }] = await Promise.all([getPolicy(id), requireOrganisation()]);
@@ -19,7 +19,7 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/busines
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="space-y-1">
-        <Link href="/app/business/policies" className="text-sm text-muted-foreground underline">
+        <Link href="/app/documents/policies" className="text-sm text-muted-foreground underline">
           Quote policies
         </Link>
         <h1 className="text-xl font-semibold">{policy.title}</h1>

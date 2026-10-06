@@ -117,7 +117,7 @@ export function PolicyForm({
         if (result.status === "saved") {
           setErrors({});
           if (embedded) embedded.onDone(result.policy);
-          else router.push(`/app/business/policies?saved=${result.policy.id}`);
+          else router.push(`/app/documents/policies?saved=${result.policy.id}`);
         } else {
           setErrors(result.errors ?? {});
           setMessage(result.message ?? null);
@@ -225,7 +225,7 @@ export function PolicyForm({
             Cancel
           </Button>
         ) : (
-          <Link href="/app/business/policies" className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <Link href="/app/documents/policies" className={buttonVariants({ variant: "outline", size: "lg" })}>
             Cancel
           </Link>
         )}

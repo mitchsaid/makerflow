@@ -27,7 +27,7 @@ export function PolicyArchiveButton({ id, archived }: { id: string; archived: bo
             try {
               const result = await setPolicyArchived(id, !archived);
               if (result.status === "error") setMessage(result.message);
-              else router.push("/app/business/policies");
+              else router.push("/app/documents/policies");
             } catch {
               setMessage("Couldn't reach the server. Check your connection and try again.");
             }
