@@ -132,8 +132,8 @@ test("sending lists what is missing, carries on once contact details are added, 
   await expect(document).toContainText("This quotation is not a tax invoice.");
   await expect(page.getByRole("button", { name: "Save draft" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Delete draft" })).toHaveCount(0);
-  // What comes later is shown, and does nothing: five actions and two design options.
-  await expect(page.getByTestId("coming-soon")).toHaveCount(7);
+  // What comes later is shown, and does nothing: emailing and the online link, and two design options.
+  await expect(page.getByTestId("coming-soon")).toHaveCount(4);
   await expect(page.getByTestId("current-design")).toHaveText("Classic");
   // The sent quote is the real document, drawn on the screen.
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();

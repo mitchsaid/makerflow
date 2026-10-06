@@ -4,6 +4,9 @@
  * where the business is.
  */
 
+/** How long a new quote is valid for, until it becomes a business setting. */
+export const DEFAULT_VALID_DAYS = 14;
+
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** Is this a real calendar day in the form YYYY-MM-DD? */

@@ -51,4 +51,7 @@ export const STATUS_FILTERS: readonly { key: "all" | QuoteStatusKey; label: stri
   { key: "revising", label: "Revising" },
   { key: "sent", label: "Sent" },
   { key: "expired", label: "Expired" },
+  { key: "accepted", label: "Accepted" },
+  { key: "declined", label: "Declined" },
+  { key: "withdrawn", label: "Withdrawn" },
 ];

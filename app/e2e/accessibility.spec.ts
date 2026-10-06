@@ -183,6 +183,25 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Mark as sent" }).click();
       await expect(page.getByTestId("sent-banner")).toBeVisible();
       await expectNoViolations(page, "sent quote");
+
+      // What the customer said: the sheet, its errors, the answered quote, and withdrawing.
+      await page.getByRole("button", { name: "They accepted" }).click();
+      await expect(page.getByRole("dialog", { name: "They accepted" })).toBeVisible();
+      await expectNoViolations(page, "outcome sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "outcome sheet, with an error");
+      await page.getByRole("dialog").getByLabel("How they told you").selectOption("whatsapp");
+      await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
+      await expect(page.getByTestId("outcome-banner")).toContainText("Accepted");
+      await expectNoViolations(page, "accepted quote");
+      await page.getByRole("button", { name: "Change the answer" }).click();
+      await expect(page.getByRole("button", { name: "They accepted" })).toBeVisible();
+      await page.getByRole("button", { name: "Withdraw this quote" }).click();
+      await expect(page.getByRole("dialog", { name: "Withdraw this quote" })).toBeVisible();
+      await expectNoViolations(page, "withdraw sheet");
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: "Revise this quote" }).click();
       await expect(page.getByTestId("revising-note")).toBeVisible();
       await expectNoViolations(page, "quote being revised");

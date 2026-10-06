@@ -14,7 +14,7 @@ Status: **approved and built 2026-10-03** (founder confirmed all four decisions 
 7. **Quotes and invoices > Quote numbers:** prefix and next number (to continue from another system), with a preview ("Your next quote will be QT-0042"). The number can never go backwards past one already used.
 
 ## Placeholders (visible, inactive, "coming soon")
-Following the thin-slice rule, the sent quote's actions that belong to later slices are shown where they will live: **Record accepted or declined** (slice 6), **Quote again** (slice 6), **Withdraw** (slice 6), **Email to the customer** (needs our own email sender), **Send a link the customer can accept online** (hosted quotes). Deposit, inclusions and exclusions arrive in slice 5.
+Following the thin-slice rule, the sent quote's actions that belong to later slices are shown where they will live: **Record accepted or declined**, **Quote again** and **Withdraw** (built in slice 6, `docs/plans/quote-outcomes.md`), **Email to the customer** (needs our own email sender), **Send a link the customer can accept online** (hosted quotes). Deposit, inclusions and exclusions arrive in slice 5.
 
 ## The document (PDF)
 - Made on the server with **React-PDF** (as `docs/adr/0001-stack.md` planned; written up as ADR 0006 when built). No headless browser.

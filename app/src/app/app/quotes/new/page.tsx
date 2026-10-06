@@ -9,12 +9,9 @@ import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { moneyToInput, percentToInput } from "@/lib/money";
-import { addDays, todayIn } from "@/lib/quotes/dates";
+import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
-
-/** How long a new quote is valid for, until it becomes a business setting. */
-const DEFAULT_VALID_DAYS = 14;
 
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.

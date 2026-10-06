@@ -11,6 +11,9 @@ import {
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
+import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
+import { findStoredQuote } from "@/lib/quotes/data";
+import { toFormValues } from "@/lib/quotes/form-values";
 import { createClient } from "@/lib/supabase/server";
 
 export type SaveQuoteState =
@@ -105,4 +108,43 @@ export async function deleteQuoteDraft(id: string): Promise<DeleteState> {
 
   revalidatePath("/app/quotes");
   redirect("/app/quotes");
+}
+
+/**
+ * Starts a new draft from a quote that has been sent: the same customer, items, wording, policies
+ * and deposit, with a new number and today's dates. The old quote is left as it is. The copy is
+ * saved the same way as any draft (checked, priced on the server, numbered), then opened.
+ */
+export async function quoteAgain(quoteId: string): Promise<{ status: "error"; message: string }> {
+  const { organisation, profile } = await requireOrganisation();
+  if (!UUID.test(quoteId)) return { status: "error", message: "Something went wrong. Please try again." };
+  const quote = await findStoredQuote(quoteId);
+  if (!quote || quote.organisationId !== organisation.id) {
+    return { status: "error", message: "That quote could not be found." };
+  }
+  if (quote.status === "draft" && quote.versions.length === 0) {
+    return { status: "error", message: "This quote hasn't been sent yet, so there's nothing to copy. Keep editing it." };
+  }
+
+  const locale = getLocalePack(profile.countryCode);
+  const today = todayIn(locale.timeZone);
+  const values = toFormValues(quote, locale.numberStyle);
+  const copy: QuoteFormValues = {
+    ...values,
+    issueDate: today,
+    validUntil: addDays(today, DEFAULT_VALID_DAYS),
+    // Dates from the old quote that have passed no longer make sense.
+    neededBy: values.neededBy && values.neededBy >= today ? values.neededBy : "",
+    ...(values.balanceDue === "date" && values.balanceDueDate < today
+      ? { balanceDue: "handover" as const, balanceDueDate: "" }
+      : {}),
+  };
+
+  const saved = await saveQuoteDraft(null, copy);
+  // A good save ends by opening the new draft (a redirect), so we only get here when it failed.
+  if (saved.status === "error" && saved.errors) console.error("could not copy a quote:", JSON.stringify(saved.errors));
+  return {
+    status: "error",
+    message: saved.status === "error" && saved.message ? saved.message : "That quote couldn't be copied. Start a new quote instead.",
+  };
 }
