@@ -12,7 +12,7 @@ import {
   type VatSettings,
 } from "../money";
 import { optionalMultiline, optionalText } from "../form-values";
-import { isPolicyKind, parseQuotePolicies, type PolicyKind, type QuotePolicyError, type QuotePolicyValues } from "../policies";
+import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
 
 /**
@@ -147,7 +147,7 @@ export type ParsedQuote = {
   terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
-  policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
+  policies: { policyId: string | null; title: string; body: string }[];
   totals: DocumentTotals;
 };
 
@@ -198,8 +198,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
         typeof x.key === "string" &&
         typeof x.policyId === "string" &&
         typeof x.title === "string" &&
-        typeof x.body === "string" &&
-        isPolicyKind(x.kind)
+        typeof x.body === "string"
       );
     })
   ) {
@@ -534,7 +533,7 @@ export function toDatabasePayload(
       terms: quote.terms,
       payment_instructions: quote.paymentInstructions,
       show_bank_details: quote.showBankDetails,
-      policies: quote.policies.map((p) => ({ policy_id: p.policyId, kind: p.kind, title: p.title, body: p.body })),
+      policies: quote.policies.map((p) => ({ policy_id: p.policyId, title: p.title, body: p.body })),
       country_code: context.countryCode,
       currency_code: context.currencyCode,
       net_cents: quote.totals.netCents,

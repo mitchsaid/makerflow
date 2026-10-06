@@ -18,7 +18,6 @@ function isValues(v: unknown): v is PolicyFormValues {
   const x = v as Record<string, unknown> | null;
   return (
     !!x &&
-    typeof x.kind === "string" &&
     typeof x.title === "string" &&
     typeof x.body === "string" &&
     typeof x.includeByDefault === "boolean"
@@ -40,12 +39,11 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
 
   const supabase = await createClient();
   if (id === null) {
-    // New policies go to the end of their heading.
+    // New policies go to the end of the list.
     const { data: last } = await supabase
       .from("policies")
       .select("sort_order")
       .eq("organisation_id", organisation.id)
-      .eq("kind", v.kind)
       .order("sort_order", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -54,7 +52,6 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
       .from("policies")
       .insert({
         organisation_id: organisation.id,
-        kind: v.kind,
         title: v.title,
         body: v.body,
         include_by_default: v.includeByDefault,
@@ -75,7 +72,7 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
 
   const { data, error } = await supabase
     .from("policies")
-    .update({ kind: v.kind, title: v.title, body: v.body, include_by_default: v.includeByDefault })
+    .update({ title: v.title, body: v.body, include_by_default: v.includeByDefault })
     .eq("id", id)
     .eq("organisation_id", organisation.id)
     .select("id, sort_order, archived_at");

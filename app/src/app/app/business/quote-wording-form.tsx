@@ -68,7 +68,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         <TextField
           id="wordingSignOff"
           name="signOff"
-          label="Sign-off (optional)"
+          label="Sign-off message (optional)"
           autoComplete="off"
           maxLength={QUOTE_SIGN_OFF_MAX}
           value={values.signOff}
@@ -89,7 +89,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         <TextAreaField
           id="wordingTerms"
           name="terms"
-          label="Terms (optional)"
+          label="Small print (optional)"
           hint="Shown in small print at the end of the quote."
           value={values.terms}
           error={errors.terms}

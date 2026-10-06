@@ -118,7 +118,7 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   }
   await page.goto("/app/quotes/new");
 
-  const input = page.getByLabel("Customer", { exact: true });
+  const input = page.getByLabel("Customer name", { exact: true });
   const options = page.getByRole("listbox", { name: "Customers" }).getByRole("option");
   await input.fill("bong");
   // The match, then the offer to add "bong" as someone new; Enter takes the first.
@@ -136,18 +136,18 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
 
   await page.getByRole("button", { name: "Change customer" }).click();
   // ...and back to the search box when changing.
-  await expect(page.getByLabel("Customer", { exact: true })).toBeFocused();
+  await expect(page.getByLabel("Customer name", { exact: true })).toBeFocused();
   // Enter in the search box never saves the quote.
-  await page.getByLabel("Customer", { exact: true }).press("Enter");
+  await page.getByLabel("Customer name", { exact: true }).press("Enter");
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
   await expect(page.getByTestId("form-summary")).toHaveCount(0);
 
-  await page.getByLabel("Customer", { exact: true }).fill("Bongani Dube");
+  await page.getByLabel("Customer name", { exact: true }).fill("Bongani Dube");
   // An exact match offers no "Add" option: no accidental duplicate.
   await expect(page.getByRole("option", { name: /Add “/ })).toHaveCount(0);
-  await page.getByLabel("Customer", { exact: true }).fill("Carla");
+  await page.getByLabel("Customer name", { exact: true }).fill("Carla");
   await expect(page.getByRole("option", { name: /Add “Carla”/ })).toBeVisible();
-  await page.getByLabel("Customer", { exact: true }).press("Escape");
+  await page.getByLabel("Customer name", { exact: true }).press("Escape");
   await expect(options).toHaveCount(0);
 });
 
@@ -169,7 +169,7 @@ test("adding a customer never depends on pressing Enter or finding the option", 
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   // Typing a name and walking away does not quietly leave a name that isn't a customer.
-  await page.getByLabel("Customer", { exact: true }).fill("Lerato Mokoena");
+  await page.getByLabel("Customer name", { exact: true }).fill("Lerato Mokoena");
   await page.getByLabel("Quote date", { exact: true }).click();
   await expect(page.getByTestId("customer-not-chosen")).toContainText("“Lerato Mokoena” isn't chosen yet");
   await page.getByRole("button", { name: "Add “Lerato Mokoena” as a new customer" }).click();
@@ -226,7 +226,7 @@ test("adding someone who already exists offers to use them instead", async ({ pa
   await expect(page.getByTestId("customer-added")).toBeVisible();
 
   await page.goto("/app/quotes/new");
-  await page.getByLabel("Customer", { exact: true }).fill("Thandi N");
+  await page.getByLabel("Customer name", { exact: true }).fill("Thandi N");
   await page.getByRole("option", { name: /Add “Thandi N”/ }).click();
   const sheet = page.getByRole("dialog", { name: "Add a customer" });
   await sheet.getByLabel("Name", { exact: true }).fill("thandi nkosi");
@@ -242,16 +242,16 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   await signUpAndOnboard(page, "q-offline", "Offline Co");
   await page.goto("/app/quotes/new");
   await fillItem(page, 1, "Cupcakes", "12", "15");
-  await page.getByLabel("Notes for the customer (optional)").fill("Quote notes");
+  await page.getByLabel("Extra details (optional)").fill("Quote notes");
 
-  await page.getByLabel("Customer", { exact: true }).fill("Someone");
+  await page.getByLabel("Customer name", { exact: true }).fill("Someone");
   await page.getByRole("option", { name: /Add “Someone”/ }).click();
   const sheet = page.getByRole("dialog", { name: "Add a customer" });
   await sheet.getByRole("button", { name: "Add address, delivery details or notes" }).click();
   // The customer's notes field has its own label and its own id, apart from the quote's notes.
-  await sheet.getByLabel("Notes (optional)").fill("Customer notes");
-  await expect(page.getByLabel("Notes for the customer (optional)")).toHaveValue("Quote notes");
-  await expect(sheet.getByLabel("Notes (optional)")).toHaveValue("Customer notes");
+  await sheet.getByLabel("Anything to remember (optional)").fill("Customer notes");
+  await expect(page.getByLabel("Extra details (optional)")).toHaveValue("Quote notes");
+  await expect(sheet.getByLabel("Anything to remember (optional)")).toHaveValue("Customer notes");
   const ids = await page.locator("[id]").evaluateAll((els) => els.map((e) => e.id).filter(Boolean));
   expect(ids.length).toBe(new Set(ids).size);
 

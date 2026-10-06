@@ -88,8 +88,8 @@ export default async function BusinessProfilePage() {
         <CardHeader>
           <CardTitle className="text-lg">Quote policies</CardTitle>
           <CardDescription className="text-base">
-            Changes, cancellation, expected variations, client responsibilities, and liability and aftercare:
-            write each once and tick them onto your quotes.
+            Cancellation, changes, aftercare and the rest: write each once, in your own words,
+            and tick them onto your quotes.
           </CardDescription>
         </CardHeader>
         <CardContent>

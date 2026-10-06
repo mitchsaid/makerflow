@@ -295,7 +295,7 @@ export function CustomerPicker({
     <Field data-invalid={!!error}>
       {/* The section is already titled "Customer": the label is for screen readers. */}
       <FieldLabel htmlFor={id} className="sr-only">
-        Customer
+        Customer name
       </FieldLabel>
       <div className="relative">
         <Input

@@ -180,7 +180,7 @@ export function CustomerForm({
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="Customer">
         {text("name", "Name", { autoComplete: "off", required: true, maxLength: 120 })}
-        <Field orientation="horizontal" className="min-h-11 items-center">
+        <Field orientation="horizontal" className="items-start py-2.5">
           <Checkbox
             id={fid("isBusiness")}
             name="kind"
@@ -234,7 +234,7 @@ export function CustomerForm({
             <TextAreaField
               id={fid("deliveryAddress")}
               name="deliveryAddress"
-              label="Delivery address (optional)"
+              label="Deliver to (optional)"
               hint="Only if it is different from the address above."
               error={errors.deliveryAddress}
               value={values.deliveryAddress}
@@ -246,7 +246,7 @@ export function CustomerForm({
             <TextAreaField
               id={fid("notes")}
               name="notes"
-              label="Notes (optional)"
+              label="Anything to remember (optional)"
               hint="Only you and your team see these. They never appear on a quote or invoice."
               error={errors.notes}
               value={values.notes}

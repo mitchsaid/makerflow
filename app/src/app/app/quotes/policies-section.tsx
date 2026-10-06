@@ -11,7 +11,6 @@ import {
   copyForQuote,
   inLibraryOrder,
   POLICY_BODY_MAX,
-  POLICY_HEADINGS,
   QUOTE_MAX_POLICIES,
   sortPolicies,
   type PolicyPackContent,
@@ -108,7 +107,7 @@ export function PoliciesSection({
           const copy = copyOf(p.id);
           return (
             <li key={p.id} className="space-y-2">
-              <Field orientation="horizontal" className="min-h-11 items-center">
+              <Field orientation="horizontal" className="items-start py-2.5">
                 <Checkbox
                   id={`policy-${p.id}`}
                   checked={!!copy}
@@ -117,7 +116,7 @@ export function PoliciesSection({
                 />
                 <FieldLabel htmlFor={`policy-${p.id}`} className="flex flex-col items-start text-base">
                   <span>{p.title}</span>
-                  <span className="text-sm font-normal text-muted-foreground">{POLICY_HEADINGS[p.kind]}</span>
+                  <span className="line-clamp-1 text-sm font-normal text-muted-foreground">{p.body}</span>
                 </FieldLabel>
               </Field>
               {copy && body(copy, p)}
@@ -129,9 +128,7 @@ export function PoliciesSection({
             <div className="flex min-h-11 items-center justify-between gap-3">
               <p className="text-base">
                 {c.title}
-                <span className="block text-sm text-muted-foreground">
-                  {POLICY_HEADINGS[c.kind]} · no longer in your saved policies
-                </span>
+                <span className="block text-sm text-muted-foreground">No longer in your saved policies</span>
               </p>
               <Button type="button" variant="ghost" onClick={() => onChange(value.filter((x) => x.key !== c.key))}>
                 Remove<span className="sr-only"> {c.title}</span>
@@ -175,7 +172,7 @@ export function PoliciesSection({
           <div className="px-4 pt-4">
             <PolicyForm
               key={sheetOpen ? "open" : "closed"}
-              initial={{ kind: "changes", title: POLICY_HEADINGS.changes, body: "", includeByDefault: false }}
+              initial={{ title: "", body: "", includeByDefault: false }}
               policyId={null}
               content={content}
               idPrefix="policy-sheet-"

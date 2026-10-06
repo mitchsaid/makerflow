@@ -191,12 +191,12 @@ describe("the quote snapshot", () => {
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
 
-  it("carries the policies the quote included, each with its heading's title and wording", () => {
+  it("carries the policies the quote included, each with its own title and wording", () => {
     const parsed = parseQuote(
       form({
         policies: [
-          { key: "p-0", policyId: "", kind: "cancellation", title: "If you cancel", body: "You pay the deposit." },
-          { key: "p-1", policyId: "", kind: "variations", title: "Handmade", body: "Items vary a little." },
+          { key: "p-0", policyId: "", title: "If you cancel", body: "You pay the deposit." },
+          { key: "p-1", policyId: "", title: "Handmade", body: "Items vary a little." },
         ],
       }),
       INCLUSIVE,
@@ -215,8 +215,8 @@ describe("the quote snapshot", () => {
       bank: null,
     });
     expect(s.policies).toEqual([
-      { kind: "cancellation", title: "If you cancel", body: "You pay the deposit." },
-      { kind: "variations", title: "Handmade", body: "Items vary a little." },
+      { title: "If you cancel", body: "You pay the deposit." },
+      { title: "Handmade", body: "Items vary a little." },
     ]);
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
@@ -306,7 +306,7 @@ describe("bank details on the document", () => {
     const s = snapshotWith({}, bank);
     expect(s.bankDetails).toEqual([
       { label: "Account holder", value: "Sweet Co" },
-      { label: "Bank", value: "FNB" },
+      { label: "Bank name", value: "FNB" },
       { label: "Account type", value: "Cheque or current" },
       { label: "Account number", value: "62123456789" },
       { label: "Branch code", value: "250655" },

@@ -248,7 +248,7 @@ export function QuoteBuilder({
     problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
   }
   if (f.terms) problems.push({ fieldId: "terms", label: "Other terms", message: f.terms });
-  if (f.signOff) problems.push({ fieldId: "signOff", label: "Sign-off", message: f.signOff });
+  if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
 
   const priceLabel = priceEntryLabel(vat, taxName);
 
@@ -394,7 +394,7 @@ export function QuoteBuilder({
               ["delivery", "Delivery (you deliver, with a fee)"],
             ] as const
           ).map(([option, label]) => (
-            <Field key={option} orientation="horizontal" className="min-h-11 items-center">
+            <Field key={option} orientation="horizontal" className="items-start py-2.5">
               <RadioGroupItem id={`fulfilment-${option}`} value={option} />
               <FieldLabel htmlFor={`fulfilment-${option}`} className="text-base">
                 {label}
@@ -454,7 +454,7 @@ export function QuoteBuilder({
       <Section title="Notes">
         <TextAreaField
           id="notes"
-          label="Notes for the customer (optional)"
+          label="Extra details (optional)"
           hint="Shown on the quote, for example how long the work takes."
           value={values.notes}
           error={f.notes}
@@ -497,7 +497,7 @@ export function QuoteBuilder({
       <Section title="Terms">
         <TextAreaField
           id="terms"
-          label="Other terms (optional)"
+          label="Small print (optional)"
           hint="Anything else, shown in small print at the end of the quote."
           value={values.terms}
           error={f.terms}
@@ -510,7 +510,7 @@ export function QuoteBuilder({
       <Section title="Sign-off">
         <TextField
           id="signOff"
-          label="Sign-off (optional)"
+          label="Message (optional)"
           autoComplete="off"
           maxLength={200}
           value={values.signOff}

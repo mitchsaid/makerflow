@@ -89,7 +89,7 @@ describe("bankFromRow, bankLines, bankSummary", () => {
     const bank = bankFromRow(row, ZA_LOCALE)!;
     expect(bankLines(bank, "QT-0007", ZA_LOCALE).map((l) => l.label)).toEqual([
       "Account holder",
-      "Bank",
+      "Bank name",
       "Account type",
       "Account number",
       "Branch code",

@@ -42,7 +42,7 @@ export const rand = (whole: string, cents = "00") =>
 
 /** Types a new name in the picker and adds them through the full customer form in the sheet. */
 export async function addCustomerInSheet(page: Page, name: string, details: { phone?: string } = {}) {
-  await page.getByLabel("Customer", { exact: true }).fill(name);
+  await page.getByLabel("Customer name", { exact: true }).fill(name);
   await page.getByRole("option", { name: new RegExp(`Add “${name}”`) }).click();
   const sheet = page.getByRole("dialog", { name: "Add a customer" });
   await expect(sheet.getByLabel("Name", { exact: true })).toHaveValue(name);

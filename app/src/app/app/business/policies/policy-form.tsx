@@ -5,24 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
   POLICY_BODY_MAX,
-  POLICY_HEADINGS,
-  POLICY_KINDS,
-  POLICY_PURPOSES,
   POLICY_TITLE_MAX,
+  type PolicyExample,
   type PolicyFieldErrors,
   type PolicyFormValues,
-  type PolicyKind,
   type PolicyPackContent,
   type PolicySummary,
 } from "@/lib/policies";
-import { addStarter } from "@/lib/quotes/terms-starters";
 import { savePolicy } from "./actions";
 
 /** Set when the form is shown in a sheet over a quote: it hands the saved policy back instead of navigating. */
@@ -33,25 +29,32 @@ export type EmbeddedPolicyForm = {
 };
 
 /**
- * Add or edit a policy: the heading it goes under, a title, the wording (with starters to tap and a
- * plain "good to know"), and whether new quotes include it. Starters are prompts to edit, not
- * legal advice.
+ * Add or edit a policy: a title, the wording, and whether new quotes include it. A new policy can
+ * start from an example (it fills in both the title and the wording, to be changed); examples are
+ * prompts to edit, not legal advice.
  */
 export function PolicyForm({
   initial,
   policyId,
   content,
+  startFrom,
   idPrefix = "",
   embedded,
 }: {
   initial: PolicyFormValues;
   policyId: string | null;
   content: PolicyPackContent;
+  /** The key of an example to start from (a link from the library can pick one). */
+  startFrom?: string;
   idPrefix?: string;
   embedded?: EmbeddedPolicyForm;
 }) {
   const router = useRouter();
-  const [values, setValues] = useState(initial);
+  const start = policyId === null ? content.examples.find((e) => e.key === startFrom) : undefined;
+  const [values, setValues] = useState<PolicyFormValues>(
+    start ? { ...initial, title: start.title, body: start.text } : initial,
+  );
+  const [example, setExample] = useState<PolicyExample | undefined>(start);
   const [errors, setErrors] = useState<PolicyFieldErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
@@ -60,24 +63,22 @@ export function PolicyForm({
 
   useEffect(() => embedded?.onPendingChange(pending), [pending, embedded]);
 
-  const guidance = content.kinds[values.kind];
   const set =
     <K extends keyof PolicyFormValues>(key: K) =>
     (value: PolicyFormValues[K]) =>
       setValues((v) => ({ ...v, [key]: value }));
 
-  /** Changing the heading renames a title that still has the old heading's name. */
-  function chooseKind(kind: string) {
-    setValues((v) => {
-      const next = kind as PolicyKind;
-      const wasDefault = v.title.trim() === "" || v.title === POLICY_HEADINGS[v.kind];
-      return { ...v, kind: next, title: wasDefault ? POLICY_HEADINGS[next] : v.title };
-    });
+  // An example only fills in what is empty or still exactly the example before it: never over the maker's own words.
+  const untouched =
+    (values.title.trim() === "" && values.body.trim() === "") ||
+    (!!example && values.title === example.title && values.body === example.text);
+  function chooseExample(e: PolicyExample) {
+    setExample(e);
+    setValues((v) => ({ ...v, title: e.title, body: e.text }));
   }
 
   const problems: FormProblem[] = (
     [
-      ["policyKind", "Heading", errors.kind],
       ["policyTitle", "Title", errors.title],
       ["policyBody", "Wording", errors.body],
     ] as const
@@ -115,19 +116,34 @@ export function PolicyForm({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Section title="The policy">
-        <SelectField
-          id={fid("policyKind")}
-          name="kind"
-          label="Heading"
-          placeholder="Choose a heading"
-          options={POLICY_KINDS}
-          optionLabels={POLICY_HEADINGS}
-          value={values.kind}
-          error={errors.kind}
-          onChange={chooseKind}
-        />
-        <p className="-mt-2 text-sm text-muted-foreground">{POLICY_PURPOSES[values.kind]}</p>
+      <Section title="Policy">
+        {policyId === null && content.examples.length > 0 && (
+          <div className="space-y-2" data-testid="examples">
+            <p className="text-sm text-muted-foreground">
+              Write your own, or start from an example and change it to suit you:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {content.examples.map((e) => (
+                <Button
+                  key={e.key}
+                  type="button"
+                  variant="outline"
+                  aria-pressed={example?.key === e.key && untouched}
+                  disabled={!untouched}
+                  onClick={() => chooseExample(e)}
+                >
+                  {e.title}
+                </Button>
+              ))}
+            </div>
+            {!untouched && (
+              <p className="text-sm text-muted-foreground">
+                Examples fill in an empty policy. Clear the title and wording to pick a different one.
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground">{content.adviceNote}</p>
+          </div>
+        )}
         <TextField
           id={fid("policyTitle")}
           name="title"
@@ -150,30 +166,13 @@ export function PolicyForm({
           maxLength={POLICY_BODY_MAX}
           rows={7}
         />
-        {guidance.starters.length > 0 && (
-          <div className="space-y-2" data-testid="starters">
-            <p className="text-sm text-muted-foreground">Start from some wording, then change it to suit you:</p>
-            <div className="flex flex-wrap gap-2">
-              {guidance.starters.map((s) => (
-                <Button
-                  key={s.key}
-                  type="button"
-                  variant="outline"
-                  disabled={values.body.includes(s.text)}
-                  onClick={() => set("body")(addStarter(values.body, s.text))}
-                >
-                  {s.label}
-                </Button>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">{content.adviceNote}</p>
+        {example && (
+          <div className="rounded-lg bg-muted/50 p-3" data-testid="good-to-know">
+            <p className="text-sm font-medium">Good to know</p>
+            <p className="text-sm text-muted-foreground">{example.goodToKnow}</p>
           </div>
         )}
-        <div className="rounded-lg bg-muted/50 p-3" data-testid="good-to-know">
-          <p className="text-sm font-medium">Good to know</p>
-          <p className="text-sm text-muted-foreground">{guidance.goodToKnow}</p>
-        </div>
-        <Field orientation="horizontal" className="min-h-11 items-center">
+        <Field orientation="horizontal" className="items-start py-2.5">
           <Checkbox
             id={fid("includeByDefault")}
             name="includeByDefault"
@@ -190,7 +189,7 @@ export function PolicyForm({
         </FieldDescription>
       </Section>
 
-      {values.kind === "cancellation" && (
+      {/cancel/i.test(values.title) && (
         <ComingSoonSection
           title="Cancellation stages"
           description="A table of what the customer is charged at each stage, like deposit, materials bought and work done."

@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
 import type { Customer, CustomerKind } from "../customers";
-import { isPolicyKind, type PolicyKind } from "../policies";
 import type { QuoteSnapshot } from "./snapshot";
 
 /**
@@ -173,7 +172,7 @@ export type StoredQuote = {
   /** Show the business's bank details on this quote. */
   showBankDetails: boolean;
   /** This quote's own copy of the policies it includes. */
-  policies: { policyId: string | null; kind: PolicyKind; title: string; body: string }[];
+  policies: { policyId: string | null; title: string; body: string }[];
   lines: {
     id: string;
     sortOrder: number;
@@ -200,11 +199,10 @@ function storedPolicies(value: unknown): StoredQuote["policies"] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
     const x = item as Record<string, unknown> | null;
-    if (!x || !isPolicyKind(x.kind) || typeof x.title !== "string" || typeof x.body !== "string") return [];
+    if (!x || typeof x.title !== "string" || typeof x.body !== "string") return [];
     return [
       {
         policyId: typeof x.policy_id === "string" ? x.policy_id : null,
-        kind: x.kind,
         title: x.title,
         body: x.body,
       },

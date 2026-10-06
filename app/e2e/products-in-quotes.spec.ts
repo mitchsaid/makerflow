@@ -91,7 +91,7 @@ test("a product's new price never moves a line, but is offered", async ({ page }
 test("add a new service from inside a quote, then straight on to configuring it", async ({ page }) => {
   await signUpAndOnboard(page, "piq-new", "New Product Co");
   await page.goto("/app/quotes/new");
-  await page.getByLabel("Notes for the customer (optional)").fill("Kept while adding a product");
+  await page.getByLabel("Extra details (optional)").fill("Kept while adding a product");
 
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(sheet(page)).toContainText("Nothing saved yet");
@@ -118,7 +118,7 @@ test("add a new service from inside a quote, then straight on to configuring it"
   await expect(line(page, 1)).toContainText(/2,5 × R\s?450,00/);
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("1 125"));
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
-  await expect(page.getByLabel("Notes for the customer (optional)")).toHaveValue("Kept while adding a product");
+  await expect(page.getByLabel("Extra details (optional)")).toHaveValue("Kept while adding a product");
 
   // It is a real service, and now offered in the sheet under Services.
   await page.getByRole("button", { name: "Add item" }).click();

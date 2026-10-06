@@ -1,6 +1,6 @@
 import type { BasisPoints, Cents } from "../money/primitives";
 import type { NumberStyle } from "../money/format";
-import type { PolicyPackContent } from "../policies/kinds";
+import type { PolicyPackContent } from "../policies/examples";
 import type { ValidationResult } from "../validation";
 
 /**
@@ -91,7 +91,7 @@ export type LocalePack = {
     /** A short line saying which account this is, for a screen (never the whole account number). */
     bankSummary(details: Record<string, string>): string;
   };
-  /** Starter wording and plain "good to know" notes for each policy heading, from the country's consumer rules. */
+  /** Examples a maker can start a policy from, with plain "good to know" notes, from the country's consumer rules. */
   policies: PolicyPackContent;
   documents: {
     quoteTitle: string;
