@@ -57,6 +57,7 @@ test("the action bar stays put at the end of the page, and nothing is hidden ben
   const previewFar = await barTopAt(page, Math.max(previewMax - 200, 0));
   const previewEnd = await barTopAt(page, "end");
   expect(Math.abs(previewEnd - previewFar)).toBeLessThan(2);
-  const lastBox = (await page.getByTestId("coming-soon").last().boundingBox())!;
+  // The last thing on the page is the Design section.
+  const lastBox = (await page.getByRole("region", { name: "Design" }).boundingBox())!;
   expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(previewEnd);
 });
