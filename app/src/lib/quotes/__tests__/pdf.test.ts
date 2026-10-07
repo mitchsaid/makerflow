@@ -205,6 +205,14 @@ describe("designs", () => {
     }
   });
 
+  it("marks a draft in every design, the band included", async () => {
+    for (const { key } of DESIGNS) {
+      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: key, theme: resolveTheme(key) }, { draft: true });
+      const text = (await pageTexts(pdf)).flat().join(" ");
+      expect(text, key).toContain("DRAFT PREVIEW");
+    }
+  });
+
   it("draws a sent version from its frozen theme, whatever the design or brand colour is now", async () => {
     const frozen = resolveTheme("bold", {}, "#7e22ce");
     const a = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: frozen });

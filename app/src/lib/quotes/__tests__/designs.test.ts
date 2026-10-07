@@ -56,6 +56,7 @@ describe("resolveTheme", () => {
         const t = resolveTheme(d.key, {}, colour);
         expect(contrast(t.onAccent, t.accent)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(t.accentInk, t.paper)).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(t.accentInk, t.tint)).toBeGreaterThanOrEqual(4.5);
       }
     }
   });

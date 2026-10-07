@@ -21,9 +21,10 @@ export async function saveLook(brandColour: string, design: string, options: unk
     return { status: "error", message: "Only owners and admins can change the look of your quotes. Ask one of them." };
   }
   const colour = brandColour === "" ? null : normaliseColour(brandColour);
-  if (typeof brandColour !== "string" || (brandColour !== "" && !colour) || !isDesignKey(design)) {
+  if (typeof brandColour !== "string" || (brandColour !== "" && !colour)) {
     return { status: "error", message: "That colour isn't one we can use. Pick one from the colour picker." };
   }
+  if (!isDesignKey(design)) return { status: "error", message: GENERIC_ERROR };
 
   const supabase = await createClient();
   const { data, error } = await supabase

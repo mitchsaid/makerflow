@@ -3,7 +3,8 @@ import type { BankLine } from "../../bank";
 import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
 import { quantityText } from "../units";
-import { makeStyles, themeFor } from "./designs";
+import { themeFor } from "../designs";
+import { makeStyles } from "./designs";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 
 /**
@@ -71,6 +72,7 @@ export function QuoteDocument({
 }) {
   const theme = themeFor(s);
   const styles = makeStyles(theme);
+  const draftBanner = <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>;
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
   const lineTotal = s.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
@@ -97,9 +99,8 @@ export function QuoteDocument({
         {theme.header === "bar" ? <View style={styles.topBar} fixed /> : null}
 
         <View>
-          {draft ? (
-            <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>
-          ) : null}
+          {/* On a band the colour must start at the very top of the page, so the draft banner goes beneath it. */}
+          {draft && theme.header !== "band" ? draftBanner : null}
 
           {/* The business, the kind of document and the number: on a band of colour, or plain on the page. */}
           <View style={theme.header === "band" ? styles.band : undefined}>
@@ -129,6 +130,8 @@ export function QuoteDocument({
               <Text style={styles.number}>{numberText}</Text>
             </View>
           </View>
+
+          {draft && theme.header === "band" ? <View style={{ marginTop: 12 }}>{draftBanner}</View> : null}
 
           <View style={styles.partiesRow}>
             <View style={styles.party}>

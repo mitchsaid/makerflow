@@ -102,6 +102,15 @@ function DraftDesign({
   const [updating, startUpdating] = useTransition();
   // Several quick taps are saved in order, and the preview is redrawn once, from the last one.
   const latest = useRef(0);
+  // What the server last accepted, so a failed save puts the picker back to what is really stored.
+  const saved = useRef({ design: initialDesign, options: initialOptions, following: initialFollowing });
+
+  function revert(why: string) {
+    setDesign(saved.current.design);
+    setOptions(saved.current.options);
+    setFollowing(saved.current.following);
+    setMessage(why);
+  }
 
   function save(nextDesign: DesignKey | null, nextOptions: DesignOptions) {
     const ticket = ++latest.current;
@@ -109,10 +118,14 @@ function DraftDesign({
     startUpdating(async () => {
       try {
         const result = await saveQuoteDesign(quoteId, nextDesign, nextOptions);
-        if (result.status === "error") setMessage(result.message);
-        else if (ticket === latest.current) router.refresh();
+        if (result.status === "error") {
+          if (ticket === latest.current) revert(result.message);
+        } else {
+          saved.current = { design: nextDesign ?? usual.design, options: nextDesign === null ? usual.options : nextOptions, following: nextDesign === null };
+          if (ticket === latest.current) router.refresh();
+        }
       } catch {
-        setMessage("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
+        if (ticket === latest.current) revert("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
       }
     });
   }

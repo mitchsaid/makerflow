@@ -14,7 +14,7 @@ import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { formatMoment, todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
-import { resolveTheme } from "@/lib/quotes/designs";
+import { themeFor } from "@/lib/quotes/designs";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { currentOutcome, outcomeSentence } from "@/lib/quotes/outcome";
 import { customerOptions } from "../builder-data";
@@ -185,7 +185,7 @@ export default async function QuotePage({
       <section className="sr-only" aria-label="The quote as text">
         <QuoteDocumentView snapshot={shown.snapshot} />
       </section>
-      <DesignSection theme={shown.snapshot.theme ?? resolveTheme(shown.snapshot.design)} sent />
+      <DesignSection theme={themeFor(shown.snapshot)} sent />
 
       <section className="space-y-3" aria-labelledby="more-heading">
         <h2 id="more-heading" className="text-base font-semibold">

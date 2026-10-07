@@ -265,6 +265,7 @@ export function resolveTheme(key: DesignKey | string | undefined, options: Desig
   const accent = normaliseColour(options.accent) ?? normaliseColour(brandColour) ?? preset.accent;
   const paperChoice = options.paper ?? preset.paper;
   const paper = paperChoice === "tinted" ? preset.tintedPaper : WHITE;
+  const tint = mix(accent, paper, design === "classic" && !options.accent && !brandColour ? 0.05 : 0.1);
   return {
     key: design,
     headingFont: options.headingFont ?? preset.headingFont,
@@ -279,8 +280,9 @@ export function resolveTheme(key: DesignKey | string | undefined, options: Desig
     line: mix(INK, paper, 0.16),
     accent,
     onAccent: onColour(accent),
-    accentInk: readableOn(paper, accent),
-    tint: mix(accent, paper, design === "classic" && !options.accent && !brandColour ? 0.05 : 0.1),
+    // Dark enough to read on the tint too (the tint is a little darker than the paper).
+    accentInk: readableOn(tint, accent),
+    tint,
     tintStrong: mix(accent, paper, 0.06),
   };
 }
@@ -300,4 +302,9 @@ export function isTheme(value: unknown): value is Theme {
     typeof t.radius === "number" &&
     [t.paper, t.ink, t.muted, t.line, t.accent, t.onAccent, t.accentInk, t.tint, t.tintStrong].every(hex)
   );
+}
+
+/** The theme to draw a snapshot with: its own frozen one, else the design it names, else classic. */
+export function themeFor(snapshot: { theme?: unknown; design?: string }): Theme {
+  return isTheme(snapshot.theme) ? snapshot.theme : resolveTheme(snapshot.design as DesignKey | undefined);
 }

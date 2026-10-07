@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote } from "@/lib/quotes/data";
-import { DEFAULT_DESIGN, resolveTheme } from "@/lib/quotes/designs";
+import { DEFAULT_DESIGN, themeFor } from "@/lib/quotes/designs";
 import { prepareQuote } from "@/lib/quotes/prepare";
 import { getLocalePack } from "@/lib/locale";
 import { DesignSection } from "../../design-section";
@@ -63,7 +63,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
       </section>
 
       <DesignSection
-        theme={snapshot.theme ?? resolveTheme(snapshot.design)}
+        theme={themeFor(snapshot)}
         quoteId={id}
         options={quote.designOptions ?? (quote.design === null ? workspace.profile.defaultDesignOptions : {})}
         brandColor={workspace.profile.brandColor}

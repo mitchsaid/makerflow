@@ -1,5 +1,5 @@
 import { StyleSheet } from "@react-pdf/renderer";
-import { isTheme, resolveTheme, type DesignKey, type Theme } from "../designs";
+import type { Theme } from "../designs";
 import { PDF_FONT, PDF_FONT_SERIF } from "./fonts";
 
 /**
@@ -27,11 +27,6 @@ const COL_QTY = "18%";
 const COL_PRICE = "20%";
 const COL_AMOUNT = "20%";
 const TOTALS_WIDTH = "40%";
-
-/** The theme to draw a snapshot with: its own frozen one, else the design it names, else classic. */
-export function themeFor(snapshot: { theme?: unknown; design?: string }): Theme {
-  return isTheme(snapshot.theme) ? snapshot.theme : resolveTheme(snapshot.design as DesignKey | undefined);
-}
 
 export function makeStyles(theme: Theme) {
   const heading = theme.headingFont === "serif" ? PDF_FONT_SERIF : PDF_FONT;

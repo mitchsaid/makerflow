@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { DesignThumbnail } from "@/components/design-thumbnail";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,12 +71,26 @@ export function DesignPicker({
     onChange(design, next as DesignOptions);
   }
 
+  // Dragging in the colour picker fires many changes: show each at once, keep the last one.
+  const [picked, setPicked] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function pickAny(value: string) {
+    setPicked(value);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setPicked(null);
+      setAccent(normaliseColour(value));
+    }, 400);
+  }
+
   function setAccent(colour: string | null) {
     const next = { ...options };
     if (colour === null) delete next.accent;
     else next.accent = colour;
     onChange(design, next);
   }
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const changedParts = Object.keys(options).filter((k) => k !== "accent").length;
 
@@ -87,21 +101,22 @@ export function DesignPicker({
           const selected = d.key === design;
           const theme = resolveTheme(d.key, selected ? options : options.accent ? { accent: options.accent } : {}, brandColor);
           return (
-            <button
+            <Button
               key={d.key}
               type="button"
+              variant="outline"
               id={`${idPrefix}-${d.key}`}
               aria-pressed={selected}
               disabled={disabled}
               onClick={() => pickDesign(d.key)}
-              className="flex flex-col gap-2 rounded-xl p-2 text-left ring-1 ring-foreground/15 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60 aria-pressed:bg-primary/5 aria-pressed:ring-2 aria-pressed:ring-primary"
+              className="h-auto flex-col items-stretch justify-start gap-2 whitespace-normal rounded-xl p-2 text-left font-normal aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:ring-2 aria-pressed:ring-primary"
             >
               <DesignThumbnail theme={theme} />
               <span className="block px-1 pb-1">
                 <span className="block text-base font-medium">{d.name}</span>
                 <span className="block text-sm text-muted-foreground">{d.description}</span>
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -123,26 +138,29 @@ export function DesignPicker({
               <legend className="text-sm font-medium">Your colour</legend>
               <div className="flex flex-wrap items-center gap-2">
                 {normaliseColour(brandColor) && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     aria-pressed={!options.accent}
                     aria-label={`Your brand colour, ${normaliseColour(brandColor)}`}
                     onClick={() => setAccent(null)}
-                    className="flex h-11 items-center gap-2 rounded-full px-3 text-sm ring-1 ring-foreground/20 aria-pressed:ring-2 aria-pressed:ring-primary"
+                    className="rounded-full aria-pressed:border-primary aria-pressed:ring-2 aria-pressed:ring-primary"
                   >
                     <span className="size-5 rounded-full ring-1 ring-foreground/20" style={{ background: normaliseColour(brandColor)! }} />
                     Brand colour
-                  </button>
+                  </Button>
                 )}
                 {SWATCHES.map(([hex, name]) => (
-                  <button
+                  <Button
                     key={hex}
                     type="button"
+                    variant="outline"
+                    size="icon"
                     aria-pressed={options.accent === hex}
                     aria-label={name}
                     title={name}
                     onClick={() => setAccent(hex)}
-                    className="size-11 rounded-full ring-1 ring-foreground/20 aria-pressed:ring-[3px] aria-pressed:ring-primary"
+                    className="rounded-full border-transparent aria-pressed:border-primary aria-pressed:ring-[3px] aria-pressed:ring-primary"
                     style={{ background: hex }}
                   />
                 ))}
@@ -150,8 +168,8 @@ export function DesignPicker({
                   <input
                     type="color"
                     aria-label="Pick any colour"
-                    value={accent}
-                    onChange={(e) => setAccent(normaliseColour(e.target.value))}
+                    value={picked ?? accent}
+                    onChange={(e) => pickAny(e.target.value)}
                     className="size-6 cursor-pointer border-0 bg-transparent p-0"
                   />
                   Any colour
