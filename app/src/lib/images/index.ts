@@ -34,6 +34,21 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isImageId = (value: unknown): value is string => typeof value === "string" && UUID.test(value);
 
+/** The private storage bucket the picture files live in. */
+export const BUCKET = "pictures";
+
+/** Where a picture's files are: <business>/<picture>/<display or thumb>. The bucket's rules read this shape. */
+export const pathFor = (organisationId: string, imageId: string, size: ImageSize) =>
+  `${organisationId}/${imageId}/${size}`;
+
+/** Do these bytes really start like the picture type they claim (JPEG: ff d8 ff; PNG: its 8-byte signature)? */
+export function looksLikeImage(bytes: Uint8Array, contentType: string): boolean {
+  const starts = (signature: number[]) => bytes.length > signature.length && signature.every((b, i) => bytes[i] === b);
+  if (contentType === "image/jpeg") return starts([0xff, 0xd8, 0xff]);
+  if (contentType === "image/png") return starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return false;
+}
+
 /** The address a picture is served from. */
 export function imageUrl(id: string, size: ImageSize = "display"): string {
   return `/app/images/${id}${size === "thumb" ? "?size=thumb" : ""}`;

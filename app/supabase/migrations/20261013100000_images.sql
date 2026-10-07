@@ -1,19 +1,25 @@
 -- Pictures: product photos and the business logo, shown on quotes.
 --
--- SECURITY-SENSITIVE (a new table with row-level security, new columns with grants, a replaced
--- function callable by signed-in users). Needs human review before it is applied to any hosted
--- project. Decisions in docs/plans/quote-looks.md.
+-- SECURITY-SENSITIVE (a new table and a storage bucket with row-level security, new columns with
+-- grants, a replaced function callable by signed-in users). Needs human review before it is
+-- applied to any hosted project. Decisions in docs/plans/quote-looks.md and ADR 0007.
 --
--- * images: each upload is stored in the database as two small renditions made by the server (a
---   display copy and a thumbnail), never the original. Members of the business can read and add
---   them; nobody can change or delete one, because a sent quote's frozen snapshot names the images
---   it used and must keep them forever. Replacing or removing a photo only stops pointing at it.
+-- * images: the record of a picture (which business, what kind, its size). The bytes are two
+--   small renditions made by the server (a display copy and a thumbnail), never the original,
+--   kept as files in the private "pictures" storage bucket at
+--   <organisation id>/<image id>/display and <organisation id>/<image id>/thumb.
+--   Members of the business can read and add them; nobody can change or delete one, because a
+--   sent quote's frozen snapshot names the images it used and must keep them forever. Replacing or
+--   removing a photo only stops pointing at it.
+-- * The bucket's rules (on storage.objects): members of the business can read its files and add
+--   a file only for a picture record that exists for their business; nobody can update or delete.
 -- * products.photo_image_id and business_profiles.logo_image_id point at an image of the SAME
 --   business (composite foreign keys, so a business can never point at another's picture).
 -- * quotes.show_photos: the per-quote switch (on by default). save_quote_draft carries it; a
 --   payload without it (an older app still open on a phone) keeps what the draft has.
 
 create table public.images (
+  -- The server chooses the id before it uploads the files (their path contains it).
   id uuid primary key default gen_random_uuid(),
   organisation_id uuid not null references public.organisations (id) on delete cascade,
   kind text not null check (kind in ('product', 'logo')),
@@ -22,22 +28,12 @@ create table public.images (
   -- The display rendition's size in pixels.
   width integer not null check (width between 1 and 4000),
   height integer not null check (height between 1 and 4000),
-  display bytea not null check (octet_length(display) between 1 and 700000),
-  thumb bytea not null check (octet_length(thumb) between 1 and 150000),
+  -- How big the two files are (the bucket refuses anything over its own limit too).
+  display_bytes integer not null check (display_bytes between 1 and 700000),
+  thumb_bytes integer not null check (thumb_bytes between 1 and 150000),
   created_by uuid references auth.users (id) on delete set null default auth.uid(),
   created_at timestamptz not null default now(),
-  constraint images_org_id_unique unique (organisation_id, id),
-  -- The bytes must really start like the picture type they claim (a JPEG starts ff d8 ff, a PNG with
-  -- its 8-byte signature), so a signed-in person cannot store anything else and have a quote's PDF
-  -- fail on it. The server re-encodes every upload, so what it stores always passes.
-  constraint images_bytes_match_type check (
-    (content_type = 'image/jpeg'
-       and substring(display from 1 for 3) = '\xffd8ff'::bytea
-       and substring(thumb from 1 for 3) = '\xffd8ff'::bytea)
-    or (content_type = 'image/png'
-       and substring(display from 1 for 8) = '\x89504e470d0a1a0a'::bytea
-       and substring(thumb from 1 for 8) = '\x89504e470d0a1a0a'::bytea)
-  )
+  constraint images_org_id_unique unique (organisation_id, id)
 );
 
 create index images_org_idx on public.images (organisation_id);
@@ -65,10 +61,10 @@ create trigger images_limit
   before insert on public.images
   for each row execute function public.images_limit();
 
--- Members read (name the columns you need: the bytes are big) and add. No update, no delete.
+-- Members read and add. No update, no delete.
 revoke all on public.images from anon, authenticated;
 grant select on public.images to authenticated;
-grant insert (organisation_id, kind, content_type, width, height, display, thumb)
+grant insert (id, organisation_id, kind, content_type, width, height, display_bytes, thumb_bytes)
   on public.images to authenticated;
 
 alter table public.images enable row level security;
@@ -85,6 +81,54 @@ create policy session_required on public.images
   as restrictive for all to authenticated
   using ((select public.session_is_active()))
   with check ((select public.session_is_active()));
+
+-- ---------------------------------------------------------------------------
+-- The "pictures" bucket: private, JPEG and PNG only, small files only.
+--
+-- A file's name is <organisation id>/<image id>/<display or thumb>. The name is checked with a
+-- pattern BEFORE anything is cast to a uuid (a CASE keeps the order), so a strange name is refused
+-- and never causes an error. Reading needs membership of the business named first in the path.
+-- Adding needs a picture record for exactly that business and image, so no one can store more than
+-- two files per record (and records are capped per business, below). No update and no delete
+-- policy: nothing can be changed or removed through the storage API either.
+-- ---------------------------------------------------------------------------
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('pictures', 'pictures', false, 700000, array['image/jpeg', 'image/png'])
+on conflict (id) do nothing;
+
+create policy pictures_select_members
+  on storage.objects for select to authenticated
+  using (
+    bucket_id = 'pictures'
+    and case
+      when name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(display|thumb)$'
+        then public.is_org_member(((storage.foldername(name))[1])::uuid)
+      else false
+    end
+  );
+
+create policy pictures_insert_members
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'pictures'
+    and case
+      when name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(display|thumb)$'
+        then public.is_org_member(((storage.foldername(name))[1])::uuid)
+          and exists (
+            select 1 from public.images i
+             where i.id = ((storage.foldername(name))[2])::uuid
+               and i.organisation_id = ((storage.foldername(name))[1])::uuid
+          )
+      else false
+    end
+  );
+
+-- Like every table: a signed-out or revoked session sees and does nothing in this bucket.
+create policy pictures_session_required
+  on storage.objects as restrictive for all to authenticated
+  using (bucket_id <> 'pictures' or (select public.session_is_active()))
+  with check (bucket_id <> 'pictures' or (select public.session_is_active()));
 
 -- ---------------------------------------------------------------------------
 -- Pointers to images
