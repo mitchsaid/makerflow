@@ -29,6 +29,7 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   lines: [line()],
   fulfilment: "none",
   deliveryFee: "",
+  deliveryAddress: "",
   discountKind: "none",
   discountValue: "",
   notes: "",

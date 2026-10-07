@@ -83,7 +83,7 @@ export default async function QuotePage({
           key={quote.id}
           quoteId={quote.id}
           initial={toFormValues(quote, locale.numberStyle)}
-          customers={customerOptions(customers)}
+          customers={customerOptions(customers, locale)}
           products={forOrganisation(allProducts, organisation.id)}
           vat={vatSettingsFor(profile, locale)}
           currencyCode={profile.currencyCode}

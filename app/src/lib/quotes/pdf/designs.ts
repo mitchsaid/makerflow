@@ -53,6 +53,7 @@ export const classicStyles = StyleSheet.create({
   partiesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
   party: { width: "55%" },
   partyName: { fontWeight: 700 },
+  deliverTo: { marginTop: 8 },
   // Starts level with the customer's name (below the "Prepared for" label).
   meta: { width: TOTALS_WIDTH, marginTop: 15 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 2 },

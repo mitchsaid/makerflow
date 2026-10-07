@@ -86,6 +86,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   lines: [{ key: "a", kind: "custom", productId: "", name: "Cake", description: "", quantity: "1", unit: "", unitPrice: "2500", discountKind: "none", discountValue: "" }],
   fulfilment: "none",
   deliveryFee: "",
+  deliveryAddress: "",
   discountKind: "none",
   discountValue: "",
   notes: "",
@@ -119,7 +120,7 @@ describe("a deposit on a quote", () => {
     expect(payload).toMatchObject({ deposit_kind: "percent", deposit_value: 5000, balance_due: "date", balance_due_date: "2026-11-14" });
     const back = toFormValues(
       {
-        customerId: null, issueDate: "2026-10-10", validUntil: "2026-10-24", neededBy: null, discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null, terms: null,
+        customerId: null, issueDate: "2026-10-10", validUntil: "2026-10-24", neededBy: null, deliveryAddress: null, discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null, terms: null,
         paymentInstructions: null, showBankDetails: true, depositKind: "percent", depositValue: 5000, balanceDue: "date", balanceDueDate: "2026-11-14", policies: [], lines: [],
       },
       ZA_LOCALE.numberStyle,

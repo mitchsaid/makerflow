@@ -116,8 +116,17 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
-      await page.getByRole("radio", { name: /Delivery/ }).check();
+      await page.getByRole("radio", { name: /^Delivery \(you deliver/ }).check();
       await expectNoViolations(page, "new quote, all sections open");
+      // Delivery with addresses on file: the choices, and "a different address".
+      await page.getByRole("button", { name: /Edit details/ }).click();
+      await page.getByRole("dialog").getByLabel("Deliver to (optional)").fill("The gate at the back");
+      await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeVisible();
+      await expectNoViolations(page, "new quote, delivery to an address on file");
+      await page.getByRole("radio", { name: "A different address" }).check();
+      await expectNoViolations(page, "new quote, delivery to a different address");
       await page.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
       await page.getByLabel("Percentage (%)").fill("50");
       await page.getByLabel("Balance due", { exact: true }).selectOption("date");

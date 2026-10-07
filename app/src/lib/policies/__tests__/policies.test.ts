@@ -97,6 +97,7 @@ describe("a quote's own copy of policies", () => {
       lines: [],
       fulfilment: "none",
       deliveryFee: "",
+      deliveryAddress: "",
       discountKind: "none",
       discountValue: "",
       notes: "",

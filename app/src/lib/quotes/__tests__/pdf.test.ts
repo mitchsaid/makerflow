@@ -37,6 +37,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     ],
     fulfilment: "delivery",
     deliveryFee: "50",
+    deliveryAddress: "",
     discountKind: "fixed",
     discountValue: "20",
     notes: "Thank you!",

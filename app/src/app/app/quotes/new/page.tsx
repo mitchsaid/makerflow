@@ -45,6 +45,7 @@ export default async function NewQuotePage() {
           lines: [],
           fulfilment: "none",
           deliveryFee: "",
+          deliveryAddress: "",
           discountKind: "none",
           discountValue: "",
           notes: "",
@@ -74,7 +75,7 @@ export default async function NewQuotePage() {
         canManagePolicies={canEditBusinessProfile(role)}
         bankDetails={bankPreview(bankDetails, locale)}
         canEditBankDetails={canEditBankDetails(role)}
-        customers={customerOptions(customers)}
+        customers={customerOptions(customers, locale)}
         products={forOrganisation(allProducts, organisation.id)}
         vat={vatSettingsFor(profile, locale)}
         currencyCode={profile.currencyCode}

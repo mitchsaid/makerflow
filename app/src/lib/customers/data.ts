@@ -23,6 +23,11 @@ type SummaryRow = {
   email: string | null;
   city: string | null;
   archived_at: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  region: string | null;
+  postal_code: string | null;
+  delivery_address: string | null;
 };
 
 /** Every customer of the business, archived ones included, A to Z. One query. */
@@ -30,7 +35,9 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, organisation_id, name, kind, contact_person, phone, email, city, archived_at")
+    .select(
+      "id, organisation_id, name, kind, contact_person, phone, email, city, archived_at, address_line1, address_line2, region, postal_code, delivery_address",
+    )
     .order("name", { ascending: true })
     .limit(5000);
   if (error) throw new Error(`Could not load customers: ${error.message}`);
@@ -44,15 +51,15 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
     email: row.email,
     city: row.city,
     archived: row.archived_at !== null,
+    addressLine1: row.address_line1,
+    addressLine2: row.address_line2,
+    region: row.region,
+    postalCode: row.postal_code,
+    deliveryAddress: row.delivery_address,
   }));
 }
 
 type FullRow = SummaryRow & {
-  address_line1: string | null;
-  address_line2: string | null;
-  region: string | null;
-  postal_code: string | null;
-  delivery_address: string | null;
   vat_number: string | null;
   company_registration_number: string | null;
   notes: string | null;

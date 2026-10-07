@@ -1,6 +1,6 @@
 # Plan: where a quote is delivered to (delivery address on the quote)
 
-Status: **building 2026-10-07** (founder: "ensure delivery address has an option to use saved customer address or add another one"). Migration: needs human review (a new column on quotes, a replaced `save_quote_draft`).
+Status: **built 2026-10-07** (founder: "ensure delivery address has an option to use saved customer address or add another one"). Migration: needs human review (a new column on quotes, a replaced `save_quote_draft`).
 
 ## Goal
 When a quote says "Delivery", the maker can say where to. It prints on the document so the customer sees it was understood, and it is the same address the maker will need again for the job later. No more retyping an address the customer already has on file.
