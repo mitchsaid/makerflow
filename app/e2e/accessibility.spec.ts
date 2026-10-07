@@ -300,7 +300,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quotes and invoices, default deposit with an error");
       await page.getByLabel("Percentage (%)").fill("40");
       await page.getByRole("button", { name: "Save deposit" }).click();
-      await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
+      await expect(page.locator("#deposit-default").getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
       await expectNoViolations(page, "quotes and invoices, default deposit saved");
       // Quote numbers, with a number that has already been used.
       await page.getByLabel("Next number", { exact: true }).fill("1");
