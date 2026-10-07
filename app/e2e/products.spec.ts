@@ -14,7 +14,7 @@ async function addProduct(page: Page, name: string, price: string) {
   await expect(page.getByTestId("product-added")).toHaveText(`Added ${name}.`);
 }
 
-const COMING_SOON = ["Photo", "Variations and extras", "Costs and margin", "Quantity prices", "Production steps", "Stock"];
+const COMING_SOON = ["Variations and extras", "Costs and margin", "Quantity prices", "Production steps", "Stock"];
 
 test("the first product: a name and a price; the later layers are shown but do nothing", async ({ page }) => {
   await signUpAndOnboard(page, "p-first", "Product Co");

@@ -46,7 +46,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     signOff: "",
     terms: "",
     paymentInstructions: "",
-    showBankDetails: true,
+    showBankDetails: true, showPhotos: true,
     depositKind: "none",
     depositValue: "",
     balanceDue: "handover",
@@ -321,5 +321,39 @@ describe("the delivery address on the document", () => {
     expect(without[0].join(" ")).not.toMatch(/deliver to/i);
     const nullAddress = await pageTexts(await renderQuotePdf({ ...base, deliveryAddress: null }));
     expect(nullAddress[0].join(" ")).not.toMatch(/deliver to/i);
+  });
+});
+
+describe("pictures on the document", () => {
+  async function sample(color: string) {
+    const sharp = (await import("sharp")).default;
+    return sharp({ create: { width: 200, height: 200, channels: 3, background: color } }).jpeg().toBuffer();
+  }
+
+  it("draws a logo and the product photos it is given, and none when it is given none", async () => {
+    const base = snapshot(vats.inclusive);
+    const withIds = { ...base, logoImageId: "logo", lines: base.lines.map((l) => ({ ...l, photoImageId: "photo" })) };
+    const images = new Map([["photo", { contentType: "image/jpeg", bytes: await sample("#d97706") }]]);
+    const logo = { contentType: "image/jpeg", bytes: await sample("#1e3a8a") };
+    const pdf = await renderQuotePdf(withIds, { images, logo });
+    const plain = await renderQuotePdf(withIds);
+    expect(pdf.toString("latin1")).toContain("/Subtype /Image");
+    expect(plain.toString("latin1")).not.toContain("/Subtype /Image");
+  });
+
+  it("leaves a missing picture out rather than failing, and keeps the names lined up", async () => {
+    const base = snapshot(vats.inclusive);
+    const lines = [{ ...base.lines[0], photoImageId: "gone" }, { ...base.lines[0], name: "Second item", photoImageId: null }];
+    const pdf = await renderQuotePdf({ ...base, lines, logoImageId: "gone" }, { images: new Map(), logo: null });
+    expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    const text = (await pageTexts(pdf))[0].join(" ");
+    expect(text).toContain("Second item");
+  });
+
+  it("draws a version sent before pictures existed", async () => {
+    const old = { ...snapshot(vats.inclusive) } as Record<string, unknown>;
+    delete old.logoImageId;
+    const pdf = await renderQuotePdf(old as unknown as ReturnType<typeof snapshot>);
+    expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
 });

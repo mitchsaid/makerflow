@@ -249,6 +249,7 @@ function productValues(p: ProductSummary, style: NumberStyle): ProductFormValues
     unitPrice: moneyToInput(p.unitPriceCents, style),
     unit: p.unit ?? "",
     description: p.description ?? "",
+    photoImageId: p.photoImageId ?? "",
   };
 }
 

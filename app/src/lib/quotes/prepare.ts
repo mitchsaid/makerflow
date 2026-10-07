@@ -1,6 +1,7 @@
 import "server-only";
 import type { Workspace } from "../auth/dal";
 import { getLocalePack, vatSettingsFor } from "../locale";
+import { createClient } from "../supabase/server";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
 import { findStoredQuote, type StoredQuote } from "./data";
@@ -45,6 +46,23 @@ export async function prepareQuote(
   // The customer must belong to this business (the database already guarantees it; belt and braces).
   const ownCustomer = customer && customer.organisationId === organisation.id ? customer : null;
 
+  // The photos of the products on the quote, as they are now (frozen into the snapshot when it is sent).
+  const productIds = [...new Set(parsed.quote.lines.flatMap((l) => (l.productId ? [l.productId] : [])))];
+  const productPhotos = new Map<string, string>();
+  if (productIds.length > 0 && parsed.quote.showPhotos !== false) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, photo_image_id")
+      .eq("organisation_id", organisation.id)
+      .in("id", productIds);
+    // Never carry on without the photos: a quote sent now would be frozen without them for good.
+    if (error) throw new Error(`Could not load the products' photos: ${error.message}`);
+    for (const row of (data ?? []) as { id: string; photo_image_id: string | null }[]) {
+      if (row.photo_image_id) productPhotos.set(row.id, row.photo_image_id);
+    }
+  }
+
   const snapshot = buildQuoteSnapshot({
     quote: parsed.quote,
     number: stored.number,
@@ -56,6 +74,7 @@ export async function prepareQuote(
     vat,
     locale,
     bank: workspace.bankDetails,
+    productPhotos,
   });
   const depositNow = parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit) : null;
   const problems = sendProblems({

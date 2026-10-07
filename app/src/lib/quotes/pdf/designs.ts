@@ -42,6 +42,8 @@ export const classicStyles = StyleSheet.create({
 
   // The top of the page: the business and the kind of document on one line (their baselines
   // match), the business's details and the number beneath, then who it is for and the dates.
+  logoBox: { marginBottom: 12 },
+  logo: { maxHeight: 48, maxWidth: 160, objectFit: "contain", objectPosition: "left" },
   headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   headerDetails: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   headerLeft: { width: "55%" },
@@ -74,6 +76,10 @@ export const classicStyles = StyleSheet.create({
   colQty: { width: COL_QTY, textAlign: "right", paddingRight: 10 },
   colPrice: { width: COL_PRICE, textAlign: "right", paddingRight: 10 },
   colAmount: { width: COL_AMOUNT, textAlign: "right" },
+  nameRow: { flexDirection: "row" },
+  nameText: { flex: 1 },
+  thumb: { width: 38, height: 38, borderRadius: 3, marginRight: 10, objectFit: "cover" },
+  thumbSpace: { width: 38, marginRight: 10 },
   description: { color: MUTED, fontSize: 9, marginTop: 2 },
 
   totals: { marginTop: 8, alignSelf: "flex-end", width: TOTALS_WIDTH },

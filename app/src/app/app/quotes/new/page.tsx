@@ -57,6 +57,8 @@ export default async function NewQuotePage() {
           paymentInstructions: profile.paymentInstructions ?? "",
           // Bank details print by default; the switch on the quote turns them off for this one.
           showBankDetails: true,
+          // Product photos show by default (each quote can switch them off).
+          showPhotos: true,
           // The deposit the business has set as its default, if any (the balance starts on collection or delivery).
           depositKind: profile.defaultDepositKind,
           depositValue:

@@ -90,6 +90,8 @@ export type QuoteFormValues = {
   paymentInstructions: string;
   /** Show the business's bank details on this quote (when it has saved them). */
   showBankDetails: boolean;
+  /** Show each product's photo beside its item. On unless switched off. */
+  showPhotos: boolean;
   /** The deposit and when the balance is due (see ./deposit). */
   depositKind: DepositFormValues["depositKind"];
   depositValue: string;
@@ -164,6 +166,8 @@ export type ParsedQuote = {
   terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
+  /** Show each product's photo beside its item. Undefined when an older app saved the quote: the draft keeps its setting. */
+  showPhotos: boolean | undefined;
   /** Null: no deposit. */
   deposit: ParsedDeposit | null;
   policies: { policyId: string | null; title: string; body: string }[];
@@ -205,6 +209,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (!strings.every((key) => typeof v[key] === "string")) return false;
   // A phone still running an older version of the app does not send it: that means on.
   if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
+  if (v.showPhotos !== undefined && typeof v.showPhotos !== "boolean") return false;
   // Same for the deposit: an older app does not send it, and that means no deposit.
   if (v.depositKind !== undefined && !isDepositKind(v.depositKind)) return false;
   if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date") return false;
@@ -504,6 +509,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       terms: terms.value,
       paymentInstructions: payment.value,
       showBankDetails: values.showBankDetails !== false,
+      showPhotos: typeof values.showPhotos === "boolean" ? values.showPhotos : undefined,
       deposit: deposit.deposit,
       policies: policies.policies,
       totals,
@@ -574,6 +580,8 @@ export function toDatabasePayload(
       terms: quote.terms,
       payment_instructions: quote.paymentInstructions,
       show_bank_details: quote.showBankDetails,
+      // Absent (not false) when an older app did not send it, so the draft keeps its setting.
+      ...(quote.showPhotos === undefined ? {} : { show_photos: quote.showPhotos }),
       ...depositColumns(quote.deposit),
       policies: quote.policies.map((p) => ({ policy_id: p.policyId, title: p.title, body: p.body })),
       country_code: context.countryCode,

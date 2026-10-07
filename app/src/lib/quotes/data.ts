@@ -145,6 +145,7 @@ type QuoteRow = {
   terms: string | null;
   payment_instructions: string | null;
   show_bank_details: boolean;
+  show_photos: boolean;
   deposit_kind: DepositKind;
   deposit_value: number | string;
   balance_due: BalanceDue;
@@ -183,6 +184,8 @@ export type StoredQuote = {
   paymentInstructions: string | null;
   /** Show the business's bank details on this quote. */
   showBankDetails: boolean;
+  /** Show each product's photo beside its item. */
+  showPhotos: boolean;
   /** The deposit terms (basis points or cents) and when the balance is due. */
   depositKind: DepositKind;
   depositValue: number;
@@ -246,7 +249,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, terms, payment_instructions, show_bank_details,
+       title, description, sign_off, terms, payment_instructions, show_bank_details, show_photos,
        deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
@@ -286,6 +289,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     terms: row.terms,
     paymentInstructions: row.payment_instructions,
     showBankDetails: row.show_bank_details,
+    showPhotos: row.show_photos,
     depositKind: row.deposit_kind,
     depositValue: Number(row.deposit_value),
     balanceDue: row.balance_due,

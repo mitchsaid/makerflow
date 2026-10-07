@@ -47,6 +47,12 @@ export type SnapshotLine = {
   discount: SnapshotDiscount | null;
   /** Quantity x price less the line's own discount (before any discount on the whole quote). */
   lineTotalCents: number;
+  /**
+   * The product's photo as it was when the version was sent (an id from lib/images; the picture never
+   * changes under its id). Absent or null on versions sent before photos existed, for one-off items,
+   * and when the quote left photos off.
+   */
+  photoImageId?: string | null;
 };
 
 export type QuoteSnapshot = {
@@ -69,6 +75,8 @@ export type QuoteSnapshot = {
   numberStyle: NumberStyle;
   dateLocale: string;
   business: SnapshotParty & { name: string };
+  /** The business's logo when the version was sent (an id from lib/images). Absent before logos existed. */
+  logoImageId?: string | null;
   /** Null only in a preview of a draft that has no customer yet; a quote cannot be sent without one. */
   customer: SnapshotParty | null;
   vat: {
@@ -137,6 +145,7 @@ type BusinessFacts = {
   postalCode: string | null;
   vatRegistered: boolean;
   vatNumber: string | null;
+  logoImageId?: string | null;
 };
 
 export function customerParty(customer: Customer, locale: LocalePack): SnapshotParty {
@@ -191,6 +200,8 @@ export function buildQuoteSnapshot(input: {
   locale: LocalePack;
   /** The business's saved bank details, if any. Printed only when the quote has them switched on. */
   bank: BankDetails | null;
+  /** Each product's photo (product id to image id), for the lines that come from products. */
+  productPhotos?: ReadonlyMap<string, string>;
 }): QuoteSnapshot {
   const { quote, business, locale, vat } = input;
   const totals = quote.totals;
@@ -228,6 +239,7 @@ export function buildQuoteSnapshot(input: {
       vatNumber: business.vatRegistered ? business.vatNumber : null,
       companyRegistrationNumber: null,
     },
+    logoImageId: business.logoImageId ?? null,
     customer: input.customer ? customerParty(input.customer, locale) : null,
     vat: {
       registered: vat.registered,
@@ -249,6 +261,8 @@ export function buildQuoteSnapshot(input: {
           : { kind: "fixed", cents: l.discount.cents }
         : null,
       lineTotalCents: totalOf.get(l.key) ?? 0,
+      // Photos only when the quote shows them, and only for lines that come from a product that has one.
+      photoImageId: quote.showPhotos !== false && l.productId ? (input.productPhotos?.get(l.productId) ?? null) : null,
     })),
     quoteDiscount: quote.quoteDiscount
       ? quote.quoteDiscount.kind === "percent"

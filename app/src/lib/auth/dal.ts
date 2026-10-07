@@ -86,6 +86,7 @@ type ProfileRow = {
   default_sign_off: string | null;
   default_terms: string | null;
   payment_instructions: string | null;
+  logo_image_id: string | null;
 };
 type OrganisationRow = {
   id: string;
@@ -120,7 +121,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
            default_sign_off, default_terms, payment_instructions, business_types,
-           default_deposit_kind, default_deposit_value
+           default_deposit_kind, default_deposit_value, logo_image_id
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
@@ -170,6 +171,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       defaultSignOff: p?.default_sign_off ?? null,
       defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
+      logoImageId: p?.logo_image_id ?? null,
     },
     bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
     dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),

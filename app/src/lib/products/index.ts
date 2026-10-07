@@ -1,4 +1,5 @@
 import { optionalMultiline, optionalText } from "../form-values";
+import { isImageId } from "../images";
 import { parseMoney, type Cents } from "../money";
 import type { ValidationResult } from "../validation";
 
@@ -23,11 +24,16 @@ export type ProductFields = {
   unitPriceCents: Cents;
   /** What one is: "dozen", "kg", "hour". Fills a quote line's unit. Null for a plain count. */
   unit: string | null;
+  /**
+   * The photo (an id from lib/images), or null for none. Undefined when the form that saved the
+   * product did not carry one (an older app): the photo is left as it is.
+   */
+  photoImageId?: string | null;
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
 
-export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "unit";
+export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "unit" | "photo";
 export type ProductFieldErrors = Partial<Record<ProductFieldName, string>>;
 
 export type ParsedProductForm =
@@ -59,6 +65,16 @@ export function parseProductForm(form: FormData): ParsedProductForm {
   const unit = optionalText(form.get("unit"), PRODUCT_UNIT_MAX, "The unit");
   if (!unit.ok) errors.unit = unit.error;
 
+  // The photo is attached by its id (the picture was uploaded when it was chosen). Services have none.
+  let photoImageId: string | null | undefined;
+  const photoRaw = form.get("photoImageId");
+  if (photoRaw !== null) {
+    const text = typeof photoRaw === "string" ? photoRaw.trim() : "";
+    if (text === "" || kind === "service") photoImageId = null;
+    else if (isImageId(text)) photoImageId = text;
+    else errors.photo = "That photo could not be used. Choose it again.";
+  }
+
   const priceRaw = form.get("unitPrice");
   const priceText = typeof priceRaw === "string" ? priceRaw : "";
   const price = parseMoney(priceText);
@@ -71,7 +87,14 @@ export function parseProductForm(form: FormData): ParsedProductForm {
   }
   return {
     ok: true,
-    value: { kind, name: name.value, description: description.value, unitPriceCents: price.value, unit: unit.value },
+    value: {
+      kind,
+      name: name.value,
+      description: description.value,
+      unitPriceCents: price.value,
+      unit: unit.value,
+      photoImageId,
+    },
   };
 }
 
@@ -85,6 +108,8 @@ export type ProductSummary = {
   unitPriceCents: Cents;
   unit: string | null;
   archived: boolean;
+  /** The photo's id, or null. Shown small in lists, and on quotes. */
+  photoImageId: string | null;
 };
 
 /** Does a list row match what the person typed in the search box? */

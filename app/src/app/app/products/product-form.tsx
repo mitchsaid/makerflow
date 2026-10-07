@@ -5,6 +5,7 @@ import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { UnitField } from "@/components/unit-field";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
@@ -18,7 +19,6 @@ import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
  */
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
-    ["Photo", "A picture, so you can spot it in lists and show it on your quotes."],
     ["Variations and extras", "Choices like size or flavour, and optional add-ons, each with its own price."],
     ["Costs and margin", "What it costs to make (materials, your time, other costs), so you can see your profit."],
     ["Quantity prices", "Lower prices when someone orders more."],
@@ -96,9 +96,13 @@ export function ProductForm({
       embeddedRef.current?.onDone(state.product);
     }
   }, [state]);
+  // A photo is on its way (chosen, not finished uploading). Saving now would leave it out.
+  const [uploading, setUploading] = useState(false);
+  const [waiting, setWaiting] = useState(false);
   useEffect(() => {
-    embeddedRef.current?.onPendingChange(pending);
-  }, [pending]);
+    // A sheet over a quote must not close while either the save or a photo is on its way.
+    embeddedRef.current?.onPendingChange(pending || uploading);
+  }, [pending, uploading]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -111,6 +115,7 @@ export function ProductForm({
       ["unitPrice", priceLabel],
       ["unit", "Unit"],
       ["description", "Description"],
+      ["photo", "Photo"],
     ] as const
   ).flatMap(([field, label]) => {
     const message = errors[field];
@@ -128,6 +133,10 @@ export function ProductForm({
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
+    if (uploading) {
+      setWaiting(true);
+      return;
+    }
     const formData = new FormData(event.currentTarget);
     setEditedSinceSave(false);
     startTransition(() => formAction(formData));
@@ -178,6 +187,27 @@ export function ProductForm({
           onChange={set("description")}
         />
       </Section>
+
+      {/* Services have no photo (founder, 2026-10-03). */}
+      {values.kind === "product" && (
+        <Section title="Photo">
+          <ImageField
+            id={fid("photo")}
+            name="photoImageId"
+            label="Photo (optional)"
+            kind="product"
+            value={values.photoImageId}
+            alt={values.name ? `Photo of ${values.name}` : "Photo of this product"}
+            hint="Shown small beside the item on your quotes. It is cropped square, so keep the product in the middle."
+            error={errors.photo ?? (waiting && uploading ? "Wait for the photo to finish uploading, then save." : undefined)}
+            onChange={(photoImageId) => set("photoImageId")(photoImageId)}
+            onPendingChange={(busy) => {
+              setUploading(busy);
+              if (!busy) setWaiting(false);
+            }}
+          />
+        </Section>
+      )}
 
       {COMING_SOON[values.kind].map(([title, description]) => (
         <ComingSoonSection key={title} title={title} description={description} />

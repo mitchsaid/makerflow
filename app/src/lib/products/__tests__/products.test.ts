@@ -70,11 +70,35 @@ describe("productMatchesSearch", () => {
     unit: null,
     unitPriceCents: 80000,
     archived: false,
+    photoImageId: null,
   };
   it("searches the name and description without caring about case", () => {
     expect(productMatchesSearch(p, "WEDDING")).toBe(true);
     expect(productMatchesSearch(p, "buttercream")).toBe(true);
     expect(productMatchesSearch(p, "cupcake")).toBe(false);
     expect(productMatchesSearch(p, " ")).toBe(true);
+  });
+});
+
+describe("the photo on a product form", () => {
+  it("is attached by id, cleared when empty, and left alone when the form has no photo field", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    const base = { name: "Cake", unitPrice: "80" };
+    const withPhoto = parseProductForm(form({ ...base, photoImageId: id }));
+    expect(withPhoto.ok && withPhoto.value.photoImageId).toBe(id);
+    const cleared = parseProductForm(form({ ...base, photoImageId: "" }));
+    expect(cleared.ok && cleared.value.photoImageId).toBeNull();
+    const absent = parseProductForm(form(base));
+    expect(absent.ok && absent.value.photoImageId).toBeUndefined();
+  });
+
+  it("refuses something that is not a picture id, and never gives a service a photo", () => {
+    const bad = parseProductForm(form({ name: "Cake", unitPrice: "80", photoImageId: "not-an-id" }));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors.photo).toBeDefined();
+    const service = parseProductForm(
+      form({ kind: "service", name: "Design", unitPrice: "300", photoImageId: "11111111-1111-4111-8111-111111111111" }),
+    );
+    expect(service.ok && service.value.photoImageId).toBeNull();
   });
 });
