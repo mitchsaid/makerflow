@@ -6,6 +6,7 @@ vi.mock("server-only", () => ({}));
 import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
 import { parseQuote, type QuoteFormValues } from "../index";
+import { DESIGNS, resolveTheme } from "../designs";
 import { renderQuotePdf } from "../pdf/render";
 import { buildQuoteSnapshot } from "../snapshot";
 
@@ -192,6 +193,39 @@ describe("designs", () => {
       expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     }
     expect(Math.abs(withoutDesign.length - classic.length)).toBeLessThan(200);
+  });
+
+  it("draws every design with all of its text, the page numbers included", async () => {
+    for (const { key } of DESIGNS) {
+      const theme = resolveTheme(key, {}, "#7e22ce");
+      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: key, theme });
+      const text = (await pageTexts(pdf)).flat().join(" ");
+      expect(text, key).toContain("Page 1 of");
+      expect(text, key).toContain("Total including VAT");
+    }
+  });
+
+  it("marks a draft in every design, the band included", async () => {
+    for (const { key } of DESIGNS) {
+      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: key, theme: resolveTheme(key) }, { draft: true });
+      const text = (await pageTexts(pdf)).flat().join(" ");
+      expect(text, key).toContain("DRAFT PREVIEW");
+    }
+  });
+
+  it("draws a sent version from its frozen theme, whatever the design or brand colour is now", async () => {
+    const frozen = resolveTheme("bold", {}, "#7e22ce");
+    const a = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: frozen });
+    // The same snapshot read again later draws identically: nothing is looked up from the business.
+    const b = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: frozen });
+    expect(a.length).toBe(b.length);
+    const other = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: resolveTheme("bold", {}, "#0f766e") });
+    expect(Buffer.compare(a, other)).not.toBe(0);
+  });
+
+  it("falls back to the design's own look when a stored theme is damaged", async () => {
+    const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "warm", theme: { key: "warm" } as never });
+    expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
 });
 

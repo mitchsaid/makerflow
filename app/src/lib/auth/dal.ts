@@ -6,6 +6,7 @@ import type { BusinessProfile } from "@/lib/business-profile";
 import { businessTypesFromRow } from "@/lib/business-types";
 import { bankFromRow, type BankDetails, type BankRow } from "@/lib/bank";
 import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
+import { isDesignKey, normaliseColour, parseDesignOptions } from "@/lib/quotes/designs";
 
 /**
  * Data access layer: who is signed in, and which business they are working in.
@@ -87,6 +88,9 @@ type ProfileRow = {
   default_terms: string | null;
   payment_instructions: string | null;
   logo_image_id: string | null;
+  brand_color: string | null;
+  default_design: string | null;
+  default_design_options: unknown;
 };
 type OrganisationRow = {
   id: string;
@@ -121,7 +125,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
            default_sign_off, default_terms, payment_instructions, business_types,
-           default_deposit_kind, default_deposit_value, logo_image_id
+           default_deposit_kind, default_deposit_value, logo_image_id,
+           brand_color, default_design, default_design_options
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
@@ -172,6 +177,9 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
       logoImageId: p?.logo_image_id ?? null,
+      brandColor: normaliseColour(p?.brand_color),
+      defaultDesign: isDesignKey(p?.default_design) ? p.default_design : null,
+      defaultDesignOptions: parseDesignOptions(p?.default_design_options),
     },
     bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
     dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),

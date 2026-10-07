@@ -52,9 +52,9 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   expect(inked).toBeGreaterThan(500);
   // The text version of the same document is there for screen readers.
   await expect(page.getByRole("region", { name: "The quote as text" })).toContainText("Wedding cake");
-  // The design: one in use, the rest on their way.
+  // The design: the business's usual look (Classic), changeable from here.
   await expect(page.getByTestId("current-design")).toHaveText("Classic");
-  await expect(page.getByTestId("coming-soon")).toHaveCount(2);
+  await expect(page.getByRole("group", { name: "Design" }).getByRole("button")).toHaveCount(5);
   // Download is a plain link to the PDF.
   expect(await page.getByRole("link", { name: "Download" }).getAttribute("href")).toBe(`${new URL(quoteUrl).pathname}/pdf?download=1`);
   const download = await page.request.get(`${quoteUrl}/pdf?download=1`);
@@ -132,8 +132,8 @@ test("sending lists what is missing, carries on once contact details are added, 
   await expect(document).toContainText("This quotation is not a tax invoice.");
   await expect(page.getByRole("button", { name: "Save draft" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Delete draft" })).toHaveCount(0);
-  // What comes later is shown, and does nothing: emailing and the online link, and two design options.
-  await expect(page.getByTestId("coming-soon")).toHaveCount(4);
+  // What comes later is shown, and does nothing: emailing and the online link.
+  await expect(page.getByTestId("coming-soon")).toHaveCount(2);
   await expect(page.getByTestId("current-design")).toHaveText("Classic");
   // The sent quote is the real document, drawn on the screen.
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();

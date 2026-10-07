@@ -3,7 +3,8 @@ import type { BankLine } from "../../bank";
 import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
 import { quantityText } from "../units";
-import { designStyles } from "./designs";
+import { themeFor } from "../designs";
+import { makeStyles } from "./designs";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 
 /**
@@ -69,7 +70,9 @@ export function QuoteDocument({
   /** The business's logo, if the snapshot names one and it could be loaded. */
   logo?: PdfImage | null;
 }) {
-  const styles = designStyles(s.design);
+  const theme = themeFor(s);
+  const styles = makeStyles(theme);
+  const draftBanner = <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>;
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
   const lineTotal = s.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
@@ -92,36 +95,43 @@ export function QuoteDocument({
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
 
+        {/* A line of colour across the top of every page (header "bar"). */}
+        {theme.header === "bar" ? <View style={styles.topBar} fixed /> : null}
+
         <View>
-          {draft ? (
-            <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>
-          ) : null}
+          {/* On a band the colour must start at the very top of the page, so the draft banner goes beneath it. */}
+          {draft && theme.header !== "band" ? draftBanner : null}
 
-          {logo ? (
-            <View style={styles.logoBox}>
-              {/* A picture inside a PDF: react-pdf's Image, not an HTML img, so no alt text applies. */}
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              <Image src={pdfSource(logo)} style={styles.logo} />
-            </View>
-          ) : null}
+          {/* The business, the kind of document and the number: on a band of colour, or plain on the page. */}
+          <View style={theme.header === "band" ? styles.band : undefined}>
+            {logo ? (
+              <View style={theme.header === "band" ? styles.logoTile : styles.logoBox}>
+                {/* A picture inside a PDF: react-pdf's Image, not an HTML img, so no alt text applies. */}
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image src={pdfSource(logo)} style={styles.logo} />
+              </View>
+            ) : null}
 
-          <View style={styles.headerTop}>
-            <View style={styles.businessNameBox}>
-              <Text style={styles.businessName}>{s.business.name}</Text>
+            <View style={styles.headerTop}>
+              <View style={styles.businessNameBox}>
+                <Text style={styles.businessName}>{s.business.name}</Text>
+              </View>
+              <Text style={styles.title}>{s.wording.title}</Text>
             </View>
-            <Text style={styles.title}>{s.wording.title}</Text>
-          </View>
-          <View style={styles.headerDetails}>
-            <View style={styles.headerLeft}>
-              <PartyLines party={s.business} />
-              {s.business.vatNumber ? (
-                <Text>
-                  {s.vat.registrationNumberLabel}: {s.business.vatNumber}
-                </Text>
-              ) : null}
+            <View style={styles.headerDetails}>
+              <View style={styles.headerLeft}>
+                <PartyLines party={s.business} />
+                {s.business.vatNumber ? (
+                  <Text>
+                    {s.vat.registrationNumberLabel}: {s.business.vatNumber}
+                  </Text>
+                ) : null}
+              </View>
+              <Text style={styles.number}>{numberText}</Text>
             </View>
-            <Text style={styles.number}>{numberText}</Text>
           </View>
+
+          {draft && theme.header === "band" ? <View style={{ marginTop: 12 }}>{draftBanner}</View> : null}
 
           <View style={styles.partiesRow}>
             <View style={styles.party}>
@@ -184,7 +194,7 @@ export function QuoteDocument({
             </View>
             {s.lines.map((l, i) => (
               <View key={i} wrap={false}>
-                <View style={styles.row}>
+                <View style={theme.rows === "zebra" && i % 2 === 1 ? [styles.row, styles.rowShaded] : styles.row}>
                   <View style={styles.colName}>
                     <View style={styles.nameRow}>
                       {anyPhoto ? (

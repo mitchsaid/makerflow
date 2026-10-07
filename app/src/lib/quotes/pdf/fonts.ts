@@ -2,8 +2,12 @@ import { Font } from "@react-pdf/renderer";
 import { NOTO_SANS_BOLD } from "./fonts/noto-sans-bold";
 import { NOTO_SANS_RANGES } from "./fonts/noto-sans-ranges";
 import { NOTO_SANS_REGULAR } from "./fonts/noto-sans-regular";
+import { NOTO_SERIF_BOLD } from "./fonts/noto-serif-bold";
+import { NOTO_SERIF_REGULAR } from "./fonts/noto-serif-regular";
 
 export const PDF_FONT = "Noto Sans";
+/** The serif face some designs use for headings. Same letters covered as the sans (see the font files). */
+export const PDF_FONT_SERIF = "Noto Serif";
 
 let registered = false;
 
@@ -15,6 +19,13 @@ export function registerPdfFonts() {
     fonts: [
       { src: NOTO_SANS_REGULAR, fontWeight: 400 },
       { src: NOTO_SANS_BOLD, fontWeight: 700 },
+    ],
+  });
+  Font.register({
+    family: PDF_FONT_SERIF,
+    fonts: [
+      { src: NOTO_SERIF_REGULAR, fontWeight: 400 },
+      { src: NOTO_SERIF_BOLD, fontWeight: 700 },
     ],
   });
   // Never break a word with a hyphen: a name or a number split across lines reads wrongly.
