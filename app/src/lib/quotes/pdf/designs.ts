@@ -47,7 +47,7 @@ export const classicStyles = StyleSheet.create({
   businessName: { fontSize: 16, fontWeight: 700 },
   title: { fontSize: 20, fontWeight: 700 },
   number: { fontWeight: 700 },
-  partiesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  partiesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
   party: { width: "55%" },
   partyName: { fontWeight: 700 },
   // Starts level with the customer's name (below the "Prepared for" label).
@@ -59,13 +59,13 @@ export const classicStyles = StyleSheet.create({
   label: { fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6 },
   sectionLabel: { fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 },
 
-  intro: { marginTop: 24 },
+  intro: { marginTop: 20 },
   quoteTitle: { fontSize: 12, fontWeight: 700, marginBottom: 2 },
 
-  table: { marginTop: 20 },
+  table: { marginTop: 16 },
   tableHead: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: INK, paddingBottom: 5 },
   tableHeadText: { fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6 },
-  row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: LINE, paddingVertical: 7 },
+  row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: LINE, paddingVertical: 6 },
   colName: { width: COL_NAME, paddingRight: 10 },
   colQty: { width: COL_QTY, textAlign: "right", paddingRight: 10 },
   colPrice: { width: COL_PRICE, textAlign: "right", paddingRight: 10 },
@@ -81,9 +81,11 @@ export const classicStyles = StyleSheet.create({
 
   // Blocks of text under the table. Each is the same distance from the one above.
   section: { marginTop: 20 },
+  bankColumns: { flexDirection: "row" },
+  bankColumn: { width: "50%", paddingRight: 12 },
   bankRow: { flexDirection: "row", paddingVertical: 1.5 },
-  bankLabel: { width: 100, color: MUTED },
-  bankValue: { fontWeight: 700 },
+  bankLabel: { width: 94, color: MUTED },
+  bankValue: { fontWeight: 700, flexShrink: 1 },
   payOther: { marginTop: 6 },
   signOff: { marginTop: 20 },
   signOffName: { fontWeight: 700, marginTop: 2 },

@@ -13,6 +13,13 @@ import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
  * the design the snapshot names (see designs.ts); the content and layout are the same for all.
  */
 
+/** Bank lines in one column when there are up to three, otherwise two (the first takes the extra). */
+function splitInTwo<T>(lines: T[]): T[][] {
+  if (lines.length <= 3) return [lines];
+  const half = Math.ceil(lines.length / 2);
+  return [lines.slice(0, half), lines.slice(half)];
+}
+
 function lineDiscountText(d: SnapshotDiscount, s: QuoteSnapshot): string {
   return d.kind === "percent"
     ? `Discount: ${formatPercent(d.basisPoints, s.numberStyle)}`
@@ -23,15 +30,18 @@ function quoteDiscountText(d: SnapshotDiscount, s: QuoteSnapshot): string {
   return d.kind === "percent" ? `Discount (${formatPercent(d.basisPoints, s.numberStyle)})` : "Discount";
 }
 
+/**
+ * A business's or customer's details in as few lines as read well: the contact person, the
+ * address on one line (it wraps when it must), then phone and email on one line. The address
+ * lines are the country's own (from its locale pack); they are only joined here.
+ */
 function PartyLines({ party }: { party: QuoteSnapshot["business"] | NonNullable<QuoteSnapshot["customer"]> }) {
+  const contact = [party.phone, party.email].filter(Boolean).join(" · ");
   return (
     <>
       {party.contactPerson ? <Text>{party.contactPerson}</Text> : null}
-      {party.addressLines.map((line, i) => (
-        <Text key={i}>{line}</Text>
-      ))}
-      {party.phone ? <Text>{party.phone}</Text> : null}
-      {party.email ? <Text>{party.email}</Text> : null}
+      {party.addressLines.length > 0 ? <Text>{party.addressLines.join(", ")}</Text> : null}
+      {contact ? <Text>{contact}</Text> : null}
     </>
   );
 }
@@ -123,7 +133,8 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           ) : null}
 
           <View style={styles.table}>
-            <View style={styles.tableHead}>
+            {/* Fixed inside the table: it repeats at the top of each page the table runs onto. */}
+            <View style={styles.tableHead} fixed>
               <Text style={[styles.tableHeadText, styles.colName]}>Item</Text>
               <Text style={[styles.tableHeadText, styles.colQty]}>Qty</Text>
               <Text style={[styles.tableHeadText, styles.colPrice]}>Price</Text>
@@ -228,12 +239,19 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
               {/* The label, its rows and the other ways to pay stay together: a short block that never splits across pages. */}
               <View wrap={false}>
                 <Text style={styles.sectionLabel}>How to pay</Text>
-                {s.bankDetails.map((line, i) => (
-                  <View key={i} style={styles.bankRow}>
-                    <Text style={styles.bankLabel}>{line.label}</Text>
-                    <Text style={styles.bankValue}>{line.value}</Text>
-                  </View>
-                ))}
+                {/* Two columns when there are more than three lines, so the block stays short. */}
+                <View style={styles.bankColumns}>
+                  {splitInTwo(s.bankDetails).map((column, c) => (
+                    <View key={c} style={styles.bankColumn}>
+                      {column.map((line, i) => (
+                        <View key={i} style={styles.bankRow}>
+                          <Text style={styles.bankLabel}>{line.label}</Text>
+                          <Text style={styles.bankValue}>{line.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
                 {s.paymentInstructions ? <Text style={styles.payOther}>{s.paymentInstructions}</Text> : null}
               </View>
             </View>
