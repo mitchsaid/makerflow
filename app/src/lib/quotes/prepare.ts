@@ -51,11 +51,13 @@ export async function prepareQuote(
   const productPhotos = new Map<string, string>();
   if (productIds.length > 0 && parsed.quote.showPhotos !== false) {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("products")
       .select("id, photo_image_id")
       .eq("organisation_id", organisation.id)
       .in("id", productIds);
+    // Never carry on without the photos: a quote sent now would be frozen without them for good.
+    if (error) throw new Error(`Could not load the products' photos: ${error.message}`);
     for (const row of (data ?? []) as { id: string; photo_image_id: string | null }[]) {
       if (row.photo_image_id) productPhotos.set(row.id, row.photo_image_id);
     }

@@ -64,7 +64,9 @@ export function ImageField({
 
   return (
     <Field data-invalid={!!shown}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel id={`${id}-label`} htmlFor={id}>
+        {label}
+      </FieldLabel>
       {name && <input type="hidden" name={name} value={value} />}
       <div className="flex items-center gap-4">
         {value ? (
@@ -88,7 +90,19 @@ export function ImageField({
           </div>
         )}
         <div className="flex flex-col items-start gap-2">
-          <Button type="button" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
+          {/* The button is the field: it carries the label, the hint and any problem, and is what a
+              keyboard or a screen reader reaches (and what the form's summary link focuses). */}
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            disabled={busy}
+            // "Photo (optional) Replace picture": the field's name, then what pressing it does.
+            aria-labelledby={`${id}-label ${id}`}
+            aria-describedby={describedBy || undefined}
+            aria-invalid={!!shown}
+            onClick={() => input.current?.click()}
+          >
             {busy ? "Uploading…" : value ? "Replace picture" : "Choose a picture"}
           </Button>
           {value && !busy && (
@@ -98,15 +112,15 @@ export function ImageField({
           )}
         </div>
       </div>
+      {/* The browser's file chooser, opened by the button above; nothing to reach here. */}
       <input
         ref={input}
-        id={id}
+        id={`${id}-file`}
         type="file"
         accept={ACCEPT_ATTRIBUTE}
         className="sr-only"
         tabIndex={-1}
-        aria-describedby={describedBy || undefined}
-        aria-invalid={!!shown}
+        aria-hidden="true"
         onChange={(event) => void chosen(event.target.files?.[0])}
       />
       <p className="sr-only" role="status">

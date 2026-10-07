@@ -28,7 +28,9 @@ export type ProcessedImage = {
   thumb: Buffer;
 };
 
-const MIN_SIDE = 100;
+/** A wide wordmark can be thin, so only the longer side has to be a decent size. */
+const MIN_LONG_SIDE = 100;
+const MIN_SHORT_SIDE = 40;
 /** Refuse absurd pixel counts before decoding them (a tiny file can describe a gigantic picture). */
 const MAX_INPUT_PIXELS = 60_000_000;
 const FORMATS = new Set(["jpeg", "png", "webp"]);
@@ -50,7 +52,7 @@ export async function processImage(
     const sideways = (meta.orientation ?? 1) >= 5;
     const w = sideways ? meta.height : meta.width;
     const h = sideways ? meta.width : meta.height;
-    if (!w || !h || Math.min(w, h) < MIN_SIDE) return { ok: false, error: IMAGE_ERRORS.tooSmall };
+    if (!w || !h || Math.max(w, h) < MIN_LONG_SIDE || Math.min(w, h) < MIN_SHORT_SIDE) return { ok: false, error: IMAGE_ERRORS.tooSmall };
 
     if (kind === "logo") {
       const make = async (px: number, palette: boolean) =>

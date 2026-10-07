@@ -96,9 +96,13 @@ export function ProductForm({
       embeddedRef.current?.onDone(state.product);
     }
   }, [state]);
+  // A photo is on its way (chosen, not finished uploading). Saving now would leave it out.
+  const [uploading, setUploading] = useState(false);
+  const [waiting, setWaiting] = useState(false);
   useEffect(() => {
-    embeddedRef.current?.onPendingChange(pending);
-  }, [pending]);
+    // A sheet over a quote must not close while either the save or a photo is on its way.
+    embeddedRef.current?.onPendingChange(pending || uploading);
+  }, [pending, uploading]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -129,6 +133,10 @@ export function ProductForm({
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
+    if (uploading) {
+      setWaiting(true);
+      return;
+    }
     const formData = new FormData(event.currentTarget);
     setEditedSinceSave(false);
     startTransition(() => formAction(formData));
@@ -191,9 +199,12 @@ export function ProductForm({
             value={values.photoImageId}
             alt={values.name ? `Photo of ${values.name}` : "Photo of this product"}
             hint="Shown small beside the item on your quotes. It is cropped square, so keep the product in the middle."
-            error={errors.photo}
+            error={errors.photo ?? (waiting && uploading ? "Wait for the photo to finish uploading, then save." : undefined)}
             onChange={(photoImageId) => set("photoImageId")(photoImageId)}
-            onPendingChange={embedded?.onPendingChange}
+            onPendingChange={(busy) => {
+              setUploading(busy);
+              if (!busy) setWaiting(false);
+            }}
           />
         </Section>
       )}

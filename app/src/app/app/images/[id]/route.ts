@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { requireOrganisation } from "@/lib/auth/dal";
+import { getUser } from "@/lib/auth/dal";
 import { getRendition } from "@/lib/images/data";
 
 /**
@@ -9,7 +9,8 @@ import { getRendition } from "@/lib/images/data";
  */
 export async function GET(request: NextRequest, ctx: RouteContext<"/app/images/[id]">) {
   const { id } = await ctx.params;
-  await requireOrganisation();
+  // Row-level security limits what can be read to the business's own pictures; no need for the whole workspace.
+  if (!(await getUser())) return new Response("Sign in to see this picture", { status: 401 });
   const size = request.nextUrl.searchParams.get("size") === "thumb" ? "thumb" : "display";
   const image = await getRendition(id, size);
   if (!image) return new Response("Not found", { status: 404 });

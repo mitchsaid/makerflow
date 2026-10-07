@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   try {
     form = await request.formData();
   } catch {
-    return json({ ok: false, error: IMAGE_ERRORS.tooBig }, 413);
+    return json({ ok: false, error: IMAGE_ERRORS.generic }, 400);
   }
   const kind = form.get("kind");
   const file = form.get("file");
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const id = await insertImage(organisation.id, kind as ImageKind, processed.value);
     return json({ ok: true, id }, 201);
   } catch (error) {
+    if ((error as { code?: string }).code === "54000") return json({ ok: false, error: IMAGE_ERRORS.full }, 409);
     console.error("could not save a picture:", (error as Error).message);
     return json({ ok: false, error: IMAGE_ERRORS.generic }, 500);
   }

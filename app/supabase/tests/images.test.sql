@@ -44,7 +44,7 @@ begin
   set local role authenticated;
   org_b := public.ensure_organisation('B Co');
   insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
-    values (org_b, 'product', 'image/jpeg', 10, 10, '\x01', '\x01') returning id into img_b;
+    values (org_b, 'product', 'image/jpeg', 10, 10, '\xffd8ff01', '\xffd8ff02') returning id into img_b;
   reset role;
 
   ----------------------------------------------------------------------
@@ -64,7 +64,7 @@ begin
   assert (select count(*) from public.images where id = img_a) = 0, 'another business can read an image';
   begin
     insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
-      values (org_a, 'logo', 'image/png', 10, 10, '\x01', '\x01');
+      values (org_a, 'logo', 'image/png', 10, 10, '\x89504e470d0a1a0a01', '\x89504e470d0a1a0a02');
     raise exception 'FAIL: a non-member added an image';
   exception when insufficient_privilege then null;
   end;
@@ -94,26 +94,46 @@ begin
   set local role authenticated;
   begin
     insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
-      values (org_a, 'product', 'image/gif', 10, 10, '\x01', '\x01');
+      values (org_a, 'product', 'image/gif', 10, 10, '\xffd8ff01', '\xffd8ff02');
     raise exception 'FAIL: a gif was accepted';
   exception when check_violation then null;
   end;
   begin
     insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
-      values (org_a, 'banner', 'image/png', 10, 10, '\x01', '\x01');
+      values (org_a, 'banner', 'image/png', 10, 10, '\xffd8ff01', '\xffd8ff02');
     raise exception 'FAIL: an unknown kind was accepted';
   exception when check_violation then null;
   end;
   begin
     insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
-      values (org_a, 'product', 'image/jpeg', 10, 10, decode(repeat('00', 700001), 'hex'), '\x01');
+      values (org_a, 'product', 'image/jpeg', 10, 10, '\xffd8ff'::bytea || decode(repeat('00', 700001), 'hex'), '\xffd8ff');
     raise exception 'FAIL: an oversized display copy was accepted';
   exception when check_violation then null;
   end;
   begin
     insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
-      values (org_a, 'product', 'image/jpeg', 10, 10, '\x01', decode(repeat('00', 150001), 'hex'));
+      values (org_a, 'product', 'image/jpeg', 10, 10, '\xffd8ff', '\xffd8ff'::bytea || decode(repeat('00', 150001), 'hex'));
     raise exception 'FAIL: an oversized thumbnail was accepted';
+  exception when check_violation then null;
+  end;
+
+  -- The bytes must really be the type claimed.
+  begin
+    insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
+      values (org_a, 'product', 'image/jpeg', 10, 10, '\x68656c6c6f', '\x68656c6c6f');
+    raise exception 'FAIL: text stored as a jpeg';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
+      values (org_a, 'logo', 'image/png', 10, 10, '\xffd8ff01', '\xffd8ff02');
+    raise exception 'FAIL: jpeg bytes stored as a png';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
+      values (org_a, 'product', 'image/jpeg', 10, 10, '\xffd8ff01', '\x68656c6c6f');
+    raise exception 'FAIL: a thumbnail that is not a jpeg was stored';
   exception when check_violation then null;
   end;
 
@@ -142,12 +162,42 @@ begin
   end;
   reset role;
 
+  -- Any member (staff too) can attach a photo to a product.
+  perform pg_temp.as_user(s);
+  set local role authenticated;
+  update public.products set photo_image_id = img_a where id = prod_a;
+  assert (select photo_image_id = img_a from public.products where id = prod_a), 'staff could not attach a photo';
+  reset role;
+
   -- Staff cannot change the business's logo (the profile is for owners and admins).
   perform pg_temp.as_user(s);
   set local role authenticated;
   update public.business_profiles set logo_image_id = null where organisation_id = org_a;
   get diagnostics n = row_count;
   assert n = 0, 'staff changed the logo';
+  reset role;
+
+  ----------------------------------------------------------------------
+  -- A business can only keep so many pictures (nothing is ever deleted)
+  ----------------------------------------------------------------------
+  reset role;
+  insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
+    select org_a, 'product', 'image/jpeg', 10, 10, '\xffd8ff', '\xffd8ff' from generate_series(1, 600 - (select count(*)::int from public.images where organisation_id = org_a));
+  assert (select count(*) from public.images where organisation_id = org_a) = 600, 'setup: not at the limit';
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  begin
+    insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
+      values (org_a, 'product', 'image/jpeg', 10, 10, '\xffd8ff', '\xffd8ff');
+    raise exception 'FAIL: a business went over its limit of pictures';
+  exception when program_limit_exceeded then null;
+  end;
+  reset role;
+  -- Another business is not affected.
+  perform pg_temp.as_user(b);
+  set local role authenticated;
+  insert into public.images (organisation_id, kind, content_type, width, height, display, thumb)
+    values (org_b, 'product', 'image/jpeg', 10, 10, '\xffd8ff', '\xffd8ff');
   reset role;
 
   ----------------------------------------------------------------------

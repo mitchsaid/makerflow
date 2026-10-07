@@ -26,10 +26,44 @@ create table public.images (
   thumb bytea not null check (octet_length(thumb) between 1 and 150000),
   created_by uuid references auth.users (id) on delete set null default auth.uid(),
   created_at timestamptz not null default now(),
-  constraint images_org_id_unique unique (organisation_id, id)
+  constraint images_org_id_unique unique (organisation_id, id),
+  -- The bytes must really start like the picture type they claim (a JPEG starts ff d8 ff, a PNG with
+  -- its 8-byte signature), so a signed-in person cannot store anything else and have a quote's PDF
+  -- fail on it. The server re-encodes every upload, so what it stores always passes.
+  constraint images_bytes_match_type check (
+    (content_type = 'image/jpeg'
+       and substring(display from 1 for 3) = '\xffd8ff'::bytea
+       and substring(thumb from 1 for 3) = '\xffd8ff'::bytea)
+    or (content_type = 'image/png'
+       and substring(display from 1 for 8) = '\x89504e470d0a1a0a'::bytea
+       and substring(thumb from 1 for 8) = '\x89504e470d0a1a0a'::bytea)
+  )
 );
 
 create index images_org_idx on public.images (organisation_id);
+
+-- A business can keep a limited number of pictures: nothing is ever deleted, so without a cap one
+-- account could fill the database. 600 is far more than a maker's products plus the pictures they
+-- replace along the way. Raising it is a one-line change.
+create function public.images_limit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (select count(*) from public.images where organisation_id = new.organisation_id) >= 600 then
+    raise exception 'this business has reached its limit of stored pictures' using errcode = '54000';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.images_limit() from public, anon, authenticated;
+
+create trigger images_limit
+  before insert on public.images
+  for each row execute function public.images_limit();
 
 -- Members read (name the columns you need: the bytes are big) and add. No update, no delete.
 revoke all on public.images from anon, authenticated;

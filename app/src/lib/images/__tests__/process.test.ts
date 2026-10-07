@@ -113,3 +113,32 @@ describe("what is refused", () => {
     expect(await processImage(Buffer.alloc(8_000_001), "product")).toEqual({ ok: false, error: IMAGE_ERRORS.tooBig });
   });
 });
+
+describe("awkward but legitimate pictures", () => {
+  it("accepts a wide, thin wordmark logo", async () => {
+    const result = await processImage(await picture(800, 90, "png", { alpha: true }), "logo");
+    if (!result.ok) throw new Error(result.error);
+    expect([result.value.width, result.value.height]).toEqual([600, 68]);
+  });
+
+  it("keeps an extreme shape in range and still makes a square thumbnail", async () => {
+    const result = await processImage(await picture(2400, 120), "product");
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.width).toBe(1200);
+    expect((await sharp(result.value.thumb).metadata()).width).toBe(400);
+  });
+
+  it("turns a CMYK photo into a normal one", async () => {
+    const cmyk = await sharp(await picture(500, 500)).toColourspace("cmyk").jpeg().toBuffer();
+    const result = await processImage(cmyk, "product");
+    if (!result.ok) throw new Error(result.error);
+    expect((await sharp(result.value.display).metadata()).space).toBe("srgb");
+  });
+
+  it("refuses an animated picture rather than keeping one frame", async () => {
+    const frames = await Promise.all([60, 120, 180].map((v) => picture(150, 150).then((p) => sharp(p).modulate({ brightness: v / 100 }).png().toBuffer())));
+    const animated = await sharp(frames, { join: { animated: true } }).webp({ loop: 0, delay: [100, 100, 100] }).toBuffer();
+    expect((await sharp(animated, { animated: true }).metadata()).pages).toBe(3);
+    expect(await processImage(animated, "product")).toEqual({ ok: false, error: IMAGE_ERRORS.notAPicture });
+  });
+});

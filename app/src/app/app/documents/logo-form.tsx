@@ -20,6 +20,10 @@ export function LogoForm({ initial, businessName }: { initial: string; businessN
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) {
+      setState({ status: "error", message: "Wait for the logo to finish uploading, then save." });
+      return;
+    }
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
@@ -58,7 +62,7 @@ export function LogoForm({ initial, businessName }: { initial: string; businessN
         />
       </Section>
       <div className="flex items-center gap-4">
-        <Button type="submit" size="lg" disabled={pending || uploading}>
+        <Button type="submit" size="lg" disabled={pending}>
           {pending ? "Saving…" : "Save logo"}
         </Button>
         {state.status === "saved" && !editedSinceSave && (

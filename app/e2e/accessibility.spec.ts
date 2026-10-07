@@ -282,6 +282,13 @@ for (const scheme of ["light", "dark"] as const) {
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices");
+      // The logo: chosen, then saved.
+      const logo = await sharp({ create: { width: 400, height: 150, channels: 3, background: "#1e3a8a" } }).png().toBuffer();
+      await page.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: logo });
+      await expect(page.getByTestId("logoImage-preview")).toBeVisible();
+      await expectNoViolations(page, "quotes and invoices, logo chosen");
+      await page.getByRole("button", { name: "Save logo" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
       // The default deposit: with an error, then saved.
       await page.getByRole("checkbox", { name: "Ask for a deposit on new quotes" }).check();
       await page.getByRole("button", { name: "Save deposit" }).click();

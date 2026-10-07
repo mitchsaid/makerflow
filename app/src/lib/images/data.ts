@@ -54,6 +54,7 @@ export async function insertImage(organisationId: string, kind: ImageKind, image
     })
     .select("id")
     .single();
+  if (error?.code === "54000") throw Object.assign(new Error("picture limit reached"), { code: "54000" });
   if (error || !data) throw new Error(`Could not save the picture: ${error?.message ?? "no row"}`);
   return data.id as string;
 }

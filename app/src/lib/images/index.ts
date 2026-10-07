@@ -45,7 +45,8 @@ export type UploadResult = { ok: true; id: string } | { ok: false; error: string
 export const IMAGE_ERRORS = {
   notAPicture: "That doesn't look like a picture we can use. Choose a JPEG, PNG or WebP photo.",
   tooBig: "That picture is too large to read. Try a smaller one.",
-  tooSmall: "That picture is very small. Choose one at least 100 pixels wide and tall.",
+  tooSmall: "That picture is very small. Choose a larger one (at least 100 pixels across).",
   offline: "Couldn't upload it. Check your connection and try again.",
   generic: "Something went wrong with that picture. Please try another.",
+  full: "You have reached the limit for stored pictures, so this one could not be added. Please get in touch and we will sort it out.",
 } as const;

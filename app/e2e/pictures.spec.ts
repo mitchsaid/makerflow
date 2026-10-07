@@ -88,6 +88,29 @@ test("a product photo is chosen, shown, replaced and removed", async ({ page }) 
   await other.close();
 });
 
+test("saving while a photo is still uploading waits instead of leaving the photo out", async ({ page }) => {
+  await signUpAndOnboard(page, "pic-slow", "Slow Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByLabel("Price", { exact: true }).fill("800");
+  // A slow connection: the upload takes a few seconds.
+  await page.route("**/app/images", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await route.continue();
+  });
+  await chooseFile(page, await picture(1200, 1200), "cake.jpg", "image/jpeg");
+  await expect(page.getByRole("button", { name: /Uploading…/ })).toBeVisible();
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByText("Wait for the photo to finish uploading, then save.")).toBeVisible();
+  await expect(page).toHaveURL(/\/app\/products\/new$/);
+  // Once it is up, saving keeps the photo.
+  await expect(page.getByTestId("photo-preview")).toBeVisible();
+  await expect(page.getByText("Wait for the photo to finish uploading, then save.")).toHaveCount(0);
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page).toHaveURL(/\/app\/products\?added=/);
+  await expect(page.getByRole("link", { name: /Wedding cake/ }).locator("img")).toHaveCount(1);
+});
+
 test("a service has no photo", async ({ page }) => {
   await signUpAndOnboard(page, "pic-service", "Service Co");
   await page.goto("/app/products/new?kind=service");
