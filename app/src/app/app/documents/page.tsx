@@ -9,6 +9,7 @@ import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { DepositDefaultForm } from "./deposit-default-form";
 import { LogoForm } from "./logo-form";
+import { LookForm } from "./look-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
 
@@ -45,6 +46,14 @@ export default async function DocumentSettingsPage() {
       </Card>
 
       {canEdit && <LogoForm initial={profile.logoImageId ?? ""} businessName={organisation.name} />}
+
+      {canEdit && (
+        <LookForm
+          initialColour={profile.brandColor}
+          initialDesign={profile.defaultDesign}
+          initialOptions={profile.defaultDesignOptions}
+        />
+      )}
 
       {canEdit && (
         <QuoteWordingForm

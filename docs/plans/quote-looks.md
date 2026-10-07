@@ -1,6 +1,6 @@
 # Plan: how quotes look (pictures, then designs)
 
-Status: **approved in outline 2026-10-07**. Slice 1 (pictures) built; slice 2 (designs) next. Founder's brief: "finish quotes as a whole: quote design templates, product images on quotes"; photos first planned for the database, then moved to Supabase Storage the same day (ADR 0007); "5 design themes, made up of customizable components. Look at the prototype for inspiration. We can work through this more. Beautiful quotes that look custom-branded are a major differentiator. Makers care about aesthetics."
+Status: **approved in outline 2026-10-07**. Slice 1 (pictures) built and deployed; slice 2 (designs) built. Founder's brief: "finish quotes as a whole: quote design templates, product images on quotes"; photos first planned for the database, then moved to Supabase Storage the same day (ADR 0007); "5 design themes, made up of customizable components. Look at the prototype for inspiration. We can work through this more. Beautiful quotes that look custom-branded are a major differentiator. Makers care about aesthetics."
 
 Two slices, each its own PR with its own migration (needs human review):
 
@@ -65,7 +65,9 @@ Unit (pipeline on real sample images: rotation, size, metadata stripped, transpa
 5. **Where it lives:** the default design, brand colour and component choices are set under **Quotes and invoices, Look** (owners and admins); each quote can pick a different design in its Design section. Invoices will reuse the same theme.
 
 ### Database
-- `business_profiles`: `brand_color`, `default_design`, `design_options` (jsonb, validated), with owner/admin update grants. `quotes.design`, `quotes.design_options`. `save_quote_draft` carries them.
+- `business_profiles`: `brand_color`, `default_design`, `design_options` (jsonb, validated), with owner/admin update grants. `quotes.design`, `quotes.design_options`. `save_quote_draft` is not changed: the design is saved straight to the draft by its own action as it is chosen on the preview (drafts only, by the existing update policy), so it never needs the whole quote form.
+
+**As built:** the picker is `components/design-picker.tsx`; `lib/quotes/designs.ts` holds the five designs as data and `resolveTheme`; `lib/quotes/pdf/designs.ts` turns a theme into styles. A quote whose design is null follows the business's usual look. Known small thing: on the Bold design a wide logo sits on a white tile a little wider than the logo.
 
 ### Tests
 Unit (theme resolution, contrast rules, each design renders, an old snapshot still renders as Classic, a frozen theme is unaffected by later changes), browser (pick a design, change colour, see the preview change, send, change the brand colour, the sent version is unchanged), accessibility.

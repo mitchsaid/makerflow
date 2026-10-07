@@ -179,6 +179,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Preview", exact: true }).click();
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "quote preview");
+      await page.getByRole("button", { name: "Make it yours" }).click();
+      await expectNoViolations(page, "quote preview, design details open");
       await page.getByRole("button", { name: "Send", exact: true }).click();
       await expect(page.getByRole("dialog", { name: "Before you can send this quote" })).toBeVisible();
       await expectNoViolations(page, "send sheet, something missing");
@@ -282,6 +284,8 @@ for (const scheme of ["light", "dark"] as const) {
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices");
+      await page.locator("#look").getByRole("button", { name: "Make it yours" }).click();
+      await expectNoViolations(page, "quotes and invoices, look details open");
       // The logo: chosen, then saved.
       const logo = await sharp({ create: { width: 400, height: 150, channels: 3, background: "#1e3a8a" } }).png().toBuffer();
       await page.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: logo });

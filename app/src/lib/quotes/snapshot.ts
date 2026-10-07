@@ -5,7 +5,7 @@ import { formatDay } from "./dates";
 import type { Customer } from "../customers";
 import type { LocalePack } from "../locale";
 import type { NumberStyle, VatGroup, VatSettings } from "../money";
-import { DEFAULT_DESIGN, type DesignKey } from "./designs";
+import { resolveTheme, type DesignKey, type DesignOptions, type Theme } from "./designs";
 import type { ParsedQuote } from "./index";
 
 /**
@@ -59,8 +59,13 @@ export type QuoteSnapshot = {
   schema: typeof SNAPSHOT_SCHEMA;
   number: string;
   version: number;
-  /** The look the document is drawn in (see designs.ts). Absent on versions sent before designs existed: classic. */
+  /** The design the document is drawn in (see designs.ts). Absent on versions sent before designs existed: classic. */
   design?: DesignKey;
+  /**
+   * The finished look: the design with the brand colour and any changes worked into plain values, frozen
+   * so the document never changes when a design or the brand colour does. Absent before themes existed.
+   */
+  theme?: Theme;
   issueDate: string;
   validUntil: string;
   neededBy: string | null;
@@ -202,6 +207,8 @@ export function buildQuoteSnapshot(input: {
   bank: BankDetails | null;
   /** Each product's photo (product id to image id), for the lines that come from products. */
   productPhotos?: ReadonlyMap<string, string>;
+  /** The design to draw in, what was changed from its own look, and the business's brand colour. */
+  look?: { design: DesignKey; options: DesignOptions; brandColor: string | null };
 }): QuoteSnapshot {
   const { quote, business, locale, vat } = input;
   const totals = quote.totals;
@@ -214,7 +221,10 @@ export function buildQuoteSnapshot(input: {
     schema: SNAPSHOT_SCHEMA,
     number: input.number,
     version: input.version,
-    design: DEFAULT_DESIGN,
+    ...(() => {
+      const theme = resolveTheme(input.look?.design, input.look?.options ?? {}, input.look?.brandColor ?? null);
+      return { design: theme.key, theme };
+    })(),
     issueDate: quote.issueDate,
     validUntil: quote.validUntil,
     neededBy: quote.neededBy,
