@@ -36,6 +36,7 @@ export const QUOTE_TITLE_MAX = 120;
 export const QUOTE_DESCRIPTION_MAX = 2000;
 export const QUOTE_SIGN_OFF_MAX = 200;
 export const QUOTE_TERMS_MAX = 4000;
+export const QUOTE_DELIVERY_ADDRESS_MAX = 400;
 export const QUOTE_PAYMENT_MAX = 1000;
 /** A page can only hold so many lines, however few characters they have. */
 export const QUOTE_DESCRIPTION_MAX_LINES = 30;
@@ -72,6 +73,8 @@ export type QuoteFormValues = {
   lines: LineFormValues[];
   fulfilment: Fulfilment;
   deliveryFee: string;
+  /** Where a delivery goes: a customer's saved address, or one typed for this quote. Optional. */
+  deliveryAddress: string;
   discountKind: DiscountKind;
   discountValue: string;
   notes: string;
@@ -108,6 +111,7 @@ export type QuoteErrors = {
       | "validUntil"
       | "neededBy"
       | "deliveryFee"
+      | "deliveryAddress"
       | "discountValue"
       | "notes"
       | "lines"
@@ -145,6 +149,11 @@ export type ParsedQuote = {
   issueDate: string;
   validUntil: string;
   neededBy: string | null;
+  /**
+   * Where a delivery goes, or null. Kept on the draft even if the quote is not (or no longer) a delivery.
+   * Undefined when an older app that doesn't know about it saved the quote: the draft keeps what it has.
+   */
+  deliveryAddress: string | null | undefined;
   /** Goods and services in order, then the delivery or collection line if there is one. */
   lines: ParsedLine[];
   quoteDiscount?: Discount;
@@ -200,6 +209,8 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (v.depositKind !== undefined && !isDepositKind(v.depositKind)) return false;
   if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date") return false;
   if (v.depositValue !== undefined && typeof v.depositValue !== "string") return false;
+  // An older app does not send the delivery address either: that means keep what the draft has.
+  if (v.deliveryAddress !== undefined && typeof v.deliveryAddress !== "string") return false;
   if (v.balanceDueDate !== undefined && typeof v.balanceDueDate !== "string") return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
@@ -397,6 +408,14 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   if (!signOff.ok) errors.fields.signOff = signOff.error;
   const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms", QUOTE_TERMS_MAX_LINES);
   if (!terms.ok) errors.fields.terms = terms.error;
+  const deliveryAddress = optionalMultiline(
+    typeof values.deliveryAddress === "string" ? values.deliveryAddress : "",
+    QUOTE_DELIVERY_ADDRESS_MAX,
+    "The delivery address",
+  );
+  // Only a delivery shows the box, so only then can a too-long address be refused (it could not be fixed
+  // otherwise). A quote that isn't a delivery drops one that is too long: it would never be printed.
+  if (!deliveryAddress.ok && values.fulfilment === "delivery") errors.fields.deliveryAddress = deliveryAddress.error;
   const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
@@ -475,6 +494,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       issueDate: values.issueDate,
       validUntil: values.validUntil,
       neededBy,
+      deliveryAddress: typeof values.deliveryAddress !== "string" ? undefined : deliveryAddress.ok ? deliveryAddress.value : null,
       lines: all,
       quoteDiscount: quoteDiscount.value,
       notes: notes.value,
@@ -543,6 +563,8 @@ export function toDatabasePayload(
       issue_date: quote.issueDate,
       valid_until: quote.validUntil,
       needed_by: quote.neededBy,
+      // Absent (not null) when an older app did not send it, so the draft keeps its address.
+      ...(quote.deliveryAddress === undefined ? {} : { delivery_address: quote.deliveryAddress }),
       quote_discount_kind: d ? d.kind : "none",
       quote_discount_value: d ? (d.kind === "percent" ? d.basisPoints : d.cents) : 0,
       notes: quote.notes,

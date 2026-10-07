@@ -58,6 +58,11 @@ export type QuoteSnapshot = {
   issueDate: string;
   validUntil: string;
   neededBy: string | null;
+  /**
+   * Where a delivery goes, as the customer received it. Present only on a delivery quote that has an
+   * address; absent on versions sent before delivery addresses existed.
+   */
+  deliveryAddress?: string | null;
   countryCode: string;
   currencyCode: string;
   /** How the document writes numbers and dates, from the locale pack in force when it was sent. */
@@ -202,6 +207,8 @@ export function buildQuoteSnapshot(input: {
     issueDate: quote.issueDate,
     validUntil: quote.validUntil,
     neededBy: quote.neededBy,
+    // Only a delivery quote prints where it goes (a collection quote keeps the text on the draft, unprinted).
+    deliveryAddress: quote.lines.some((l) => l.kind === "delivery") ? (quote.deliveryAddress ?? null) : null,
     countryCode: input.countryCode,
     currencyCode: input.currencyCode,
     numberStyle: locale.numberStyle,

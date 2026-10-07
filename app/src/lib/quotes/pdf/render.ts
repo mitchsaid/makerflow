@@ -36,6 +36,7 @@ export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
       unit: clean(l.unit ?? null),
     })),
     notes: clean(snapshot.notes),
+    deliveryAddress: clean(snapshot.deliveryAddress ?? null),
     title: clean(snapshot.title ?? null),
     description: clean(snapshot.description ?? null),
     signOff: clean(snapshot.signOff ?? null),

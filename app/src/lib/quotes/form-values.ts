@@ -8,6 +8,7 @@ export type StoredQuoteFields = {
   issueDate: string;
   validUntil: string;
   neededBy: string | null;
+  deliveryAddress: string | null;
   discountKind: DiscountKind;
   discountValue: number;
   notes: string | null;
@@ -73,6 +74,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     neededBy: quote.neededBy ?? "",
     lines: goods,
     fulfilment,
+    deliveryAddress: quote.deliveryAddress ?? "",
     deliveryFee:
       fulfilmentLine?.kind === "delivery" ? moneyToInput(fulfilmentLine.unitPriceCents, style) : "",
     discountKind: quote.discountKind,

@@ -45,6 +45,10 @@ export type CustomerSummary = {
   archived: boolean;
 };
 
+/** A summary with the address details a quote offers as "deliver to" (see savedAddresses). */
+export type CustomerSummaryWithAddress = CustomerSummary &
+  Pick<CustomerFields, "addressLine1" | "addressLine2" | "region" | "postalCode" | "deliveryAddress">;
+
 export type CustomerFieldName = keyof CustomerFields;
 export type CustomerFieldErrors = Partial<Record<CustomerFieldName, string>>;
 
@@ -202,6 +206,36 @@ export function customerDetail(c: {
   return [c.contactPerson, c.phone ?? c.email, c.city].filter(Boolean).join(" · ");
 }
 
+/** An address a customer has on file that a quote can be delivered to. */
+export type SavedAddress = {
+  kind: "delivery" | "main";
+  /** How to name it to the maker: "Delivery address on file". */
+  label: string;
+  /** Plain text, one line per line break. */
+  text: string;
+};
+
+const sameText = (a: string, b: string) => a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * The addresses a quote can use for "deliver to": the customer's own delivery address first, then
+ * their main address, written the way their country writes it. Only the ones they have, and the
+ * main address is left out when it is the same as the delivery address.
+ */
+export function savedAddresses(
+  c: Pick<CustomerFields, "addressLine1" | "addressLine2" | "city" | "region" | "postalCode" | "deliveryAddress">,
+  locale: LocalePack,
+): SavedAddress[] {
+  const out: SavedAddress[] = [];
+  const delivery = c.deliveryAddress?.trim();
+  if (delivery) out.push({ kind: "delivery", label: "Delivery address on file", text: delivery });
+  const main = locale.address
+    .formatLines({ line1: c.addressLine1, line2: c.addressLine2, city: c.city, region: c.region, postalCode: c.postalCode })
+    .join("\n");
+  if (main && !out.some((a) => sameText(a.text, main))) out.push({ kind: "main", label: "Address on file", text: main });
+  return out;
+}
+
 /** What the quote's customer picker needs to know about a customer. */
 export type CustomerOption = {
   id: string;
@@ -209,6 +243,8 @@ export type CustomerOption = {
   /** See customerDetail(). */
   detail: string;
   archived: boolean;
+  /** The addresses on file, for "deliver to". */
+  addresses: SavedAddress[];
 };
 
 /** Does a list row match what the person typed in the search box? */

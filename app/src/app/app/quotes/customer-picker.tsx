@@ -11,7 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { Customer, CustomerOption } from "@/lib/customers";
+import type { Customer, CustomerOption, SavedAddress } from "@/lib/customers";
 import {
   createCustomerInQuote,
   loadCustomerForEdit,
@@ -47,7 +47,8 @@ function focusSoon(elementId: string) {
  */
 export function CustomerPicker({
   id,
-  customers: initialCustomers,
+  customers,
+  onCustomersChange,
   countryCode,
   value,
   onChange,
@@ -55,15 +56,18 @@ export function CustomerPicker({
 }: {
   id: string;
   customers: CustomerOption[];
+  /** The list is kept by the quote (it needs the chosen customer's addresses), so changes go up. */
+  onCustomersChange: (update: (list: CustomerOption[]) => CustomerOption[]) => void;
   /** The business's country, for the customer form's province list and so on. */
   countryCode: string;
   /** The chosen customer's id, or "". */
   value: string;
-  onChange: (customerId: string) => void;
+  /** The addresses come too: the list the quote keeps may not have this customer in it yet. */
+  onChange: (customerId: string, addresses: SavedAddress[]) => void;
   error?: string;
 }) {
   const listId = useId();
-  const [customers, setCustomers] = useState(initialCustomers);
+  const setCustomers = onCustomersChange;
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   // The highlighted option: -1 until the person types or uses the arrow keys, so that Enter on
@@ -98,8 +102,8 @@ export function CustomerPicker({
 
   const optionId = (i: number) => `${listId}-option-${i}`;
 
-  function select(customerId: string) {
-    onChange(customerId);
+  function select(customerId: string, addresses: SavedAddress[]) {
+    onChange(customerId, addresses);
     setLeftUnchosen(false);
     setQuery("");
     setOpen(false);
@@ -112,15 +116,15 @@ export function CustomerPicker({
     setCustomers((list) =>
       list.some((c) => c.id === option.id)
         ? list
-        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false }],
+        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false, addresses: option.addresses }],
     );
-    select(option.id);
+    select(option.id, customers.find((c) => c.id === option.id)?.addresses ?? option.addresses);
   }
 
   function choose(choice: Choice) {
     setLoadError(null);
     if (choice.kind === "customer") {
-      select(choice.customer.id);
+      select(choice.customer.id, choice.customer.addresses);
       return;
     }
     openAdd(choice.name);
@@ -157,11 +161,11 @@ export function CustomerPicker({
     setCustomers((list) => {
       const existing = list.find((c) => c.id === option.id);
       return existing
-        ? list.map((c) => (c.id === option.id ? { ...c, name: option.name, detail: option.detail } : c))
-        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false }];
+        ? list.map((c) => (c.id === option.id ? { ...c, name: option.name, detail: option.detail, addresses: option.addresses } : c))
+        : [...list, { id: option.id, name: option.name, detail: option.detail, archived: false, addresses: option.addresses }];
     });
     if (kind === "add") {
-      select(option.id);
+      select(option.id, option.addresses);
     } else {
       setSheetOpen(false);
       focusSoon(`${id}-edit`);
@@ -277,7 +281,7 @@ export function CustomerPicker({
               type="button"
               variant="outline"
               onClick={() => {
-                onChange("");
+                onChange("", []);
                 focusSoon(id);
               }}
             >

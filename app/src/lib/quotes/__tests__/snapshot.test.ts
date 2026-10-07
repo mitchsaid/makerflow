@@ -43,6 +43,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   ],
   fulfilment: "delivery",
   deliveryFee: "50",
+  deliveryAddress: "",
   discountKind: "fixed",
   discountValue: "20",
   notes: "Thank you!",
@@ -327,5 +328,36 @@ describe("bank details on the document", () => {
   it("prints nothing when the quote switches them off, or none are saved", () => {
     expect(snapshotWith({ showBankDetails: false }, bank).bankDetails).toEqual([]);
     expect(snapshotWith({}, null).bankDetails).toEqual([]);
+  });
+});
+
+describe("the delivery address in the snapshot", () => {
+  const snap = (over: Partial<QuoteFormValues>) => {
+    const parsed = parseQuote(form(over), INCLUSIVE);
+    if (!parsed.ok) throw new Error("should parse");
+    return buildQuoteSnapshot({
+      quote: parsed.quote,
+      number: "QT-0001",
+      version: 1,
+      business,
+      customer,
+      countryCode: "ZA",
+      currencyCode: "ZAR",
+      vat: INCLUSIVE,
+      locale: ZA_LOCALE,
+      bank: null,
+    });
+  };
+
+  it("is frozen on a delivery quote", () => {
+    expect(snap({ fulfilment: "delivery", deliveryAddress: "22 Jacaranda Avenue\nParkhurst" }).deliveryAddress).toBe(
+      "22 Jacaranda Avenue\nParkhurst",
+    );
+  });
+
+  it("is not printed when the quote is a collection or undecided, or has no address", () => {
+    expect(snap({ fulfilment: "collection", deliveryAddress: "22 Jacaranda Avenue" }).deliveryAddress).toBeNull();
+    expect(snap({ fulfilment: "none", deliveryAddress: "22 Jacaranda Avenue" }).deliveryAddress).toBeNull();
+    expect(snap({ fulfilment: "delivery", deliveryAddress: "" }).deliveryAddress).toBeNull();
   });
 });

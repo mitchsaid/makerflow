@@ -37,6 +37,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     ],
     fulfilment: "delivery",
     deliveryFee: "50",
+    deliveryAddress: "",
     discountKind: "fixed",
     discountValue: "20",
     notes: "Thank you!",
@@ -305,4 +306,20 @@ describe("headings and page breaks", () => {
       expect(texts.includes("ITEM") || texts.includes("Item")).toBe(hasRows);
     }
   }, 60_000);
+});
+
+describe("the delivery address on the document", () => {
+  it("prints under 'Deliver to' (cleaned for the font), and an older version without one still draws", async () => {
+    const base = snapshot(vats.inclusive);
+    const withAddress = await pageTexts(await renderQuotePdf({ ...base, deliveryAddress: "22 Jacaranda Avenue 🎂\nParkhurst" }));
+    const text = withAddress[0].join(" ");
+    expect(text).toMatch(/deliver to/i);
+    expect(text).toContain("22 Jacaranda Avenue");
+    expect(text).toContain("Parkhurst");
+    expect(text).not.toContain("🎂");
+    const without = await pageTexts(await renderQuotePdf({ ...base, deliveryAddress: undefined }));
+    expect(without[0].join(" ")).not.toMatch(/deliver to/i);
+    const nullAddress = await pageTexts(await renderQuotePdf({ ...base, deliveryAddress: null }));
+    expect(nullAddress[0].join(" ")).not.toMatch(/deliver to/i);
+  });
 });

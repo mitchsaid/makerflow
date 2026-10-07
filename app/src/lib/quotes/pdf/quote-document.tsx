@@ -113,6 +113,12 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
               ) : (
                 <Text style={styles.muted}>No customer chosen yet</Text>
               )}
+              {s.deliveryAddress ? (
+                <View style={styles.deliverTo}>
+                  <Text style={styles.sectionLabel}>Deliver to</Text>
+                  <Text>{s.deliveryAddress}</Text>
+                </View>
+              ) : null}
             </View>
             <View style={styles.meta}>
               <View style={styles.metaRow}>

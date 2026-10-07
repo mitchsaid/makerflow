@@ -135,6 +135,7 @@ type QuoteRow = {
   issue_date: string;
   valid_until: string;
   needed_by: string | null;
+  delivery_address: string | null;
   quote_discount_kind: DiscountKind;
   quote_discount_value: number;
   notes: string | null;
@@ -170,6 +171,8 @@ export type StoredQuote = {
   issueDate: string;
   validUntil: string;
   neededBy: string | null;
+  /** Where a delivery goes (this quote's own copy), or null. */
+  deliveryAddress: string | null;
   discountKind: DiscountKind;
   discountValue: number;
   notes: string | null;
@@ -242,7 +245,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .from("quotes")
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
-       valid_until, needed_by, quote_discount_kind, quote_discount_value, notes,
+       valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
        title, description, sign_off, terms, payment_instructions, show_bank_details,
        deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
@@ -273,6 +276,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     issueDate: row.issue_date,
     validUntil: row.valid_until,
     neededBy: row.needed_by,
+    deliveryAddress: row.delivery_address,
     discountKind: row.quote_discount_kind,
     discountValue: Number(row.quote_discount_value),
     notes: row.notes,

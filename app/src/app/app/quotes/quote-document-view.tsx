@@ -56,6 +56,13 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
+        {s.deliveryAddress && (
+          <div className="space-y-0.5">
+            <p className="text-xs font-medium uppercase text-muted-foreground">Deliver to</p>
+            <p className="whitespace-pre-line text-base">{s.deliveryAddress}</p>
+          </div>
+        )}
+
         {(s.title || s.description) && (
           <div className="space-y-1">
             {s.title && <h3 className="text-base font-semibold">{s.title}</h3>}

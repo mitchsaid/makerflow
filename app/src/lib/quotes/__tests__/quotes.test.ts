@@ -38,6 +38,7 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   lines: [line()],
   fulfilment: "none",
   deliveryFee: "",
+  deliveryAddress: "",
   discountKind: "none",
   discountValue: "",
   notes: "",
@@ -269,6 +270,7 @@ describe("toFormValues", () => {
     issueDate: "2026-10-02",
     validUntil: "2026-10-16",
     neededBy: null,
+    deliveryAddress: null,
     discountKind: "percent" as const,
     discountValue: 750,
     notes: null,
@@ -287,6 +289,12 @@ describe("toFormValues", () => {
       ["Cupcakes", "12", "15,50", "none", ""],
     ]);
     expect(v).toMatchObject({ fulfilment: "delivery", deliveryFee: "35", discountKind: "percent", discountValue: "7,5", neededBy: "", notes: "" });
+  });
+
+  it("brings the delivery address back as typed, or empty when there is none", () => {
+    const withAddress = { ...stored, deliveryAddress: "22 Jacaranda Avenue\nParkhurst" };
+    expect(toFormValues(withAddress, ZA_LOCALE.numberStyle).deliveryAddress).toBe("22 Jacaranda Avenue\nParkhurst");
+    expect(toFormValues(stored, ZA_LOCALE.numberStyle).deliveryAddress).toBe("");
   });
 
   it("saves back to exactly what was stored", () => {
@@ -363,7 +371,7 @@ describe("lines from products", () => {
   it("comes back from storage as the same kind of line", () => {
     const v = toFormValues(
       {
-        customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null,
+        customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null, deliveryAddress: null,
         discountKind: "none", discountValue: 0, notes: null,
         title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
         lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unit: null, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
@@ -371,5 +379,39 @@ describe("lines from products", () => {
       ZA_LOCALE.numberStyle,
     );
     expect(v.lines[0]).toMatchObject({ kind: "service", productId: PRODUCT, quantity: "2", unitPrice: "450" });
+  });
+});
+
+describe("the delivery address", () => {
+  it("is optional, tidied, and limited to 400 characters", () => {
+    expect(parsed(quote({ fulfilment: "delivery", deliveryAddress: "" })).deliveryAddress).toBeNull();
+    expect(parsed(quote({ fulfilment: "delivery", deliveryAddress: "  22 Jacaranda Avenue \r\n  Parkhurst  " })).deliveryAddress).toBe(
+      "22 Jacaranda Avenue\nParkhurst",
+    );
+    expect(parsed(quote({ deliveryAddress: "x".repeat(400) })).deliveryAddress).toHaveLength(400);
+    expect(errorsOf(quote({ fulfilment: "delivery", deliveryAddress: "x".repeat(401) })).fields.deliveryAddress).toMatch(/400/);
+  });
+
+  it("can only be refused when a delivery shows the box: otherwise a too-long one is dropped, not blocked", () => {
+    const tooLong = "x".repeat(401);
+    expect(parsed(quote({ fulfilment: "collection", deliveryAddress: tooLong })).deliveryAddress).toBeNull();
+    expect(parsed(quote({ fulfilment: "none", deliveryAddress: tooLong })).deliveryAddress).toBeNull();
+    expect(errorsOf(quote({ fulfilment: "delivery", deliveryAddress: tooLong })).fields.deliveryAddress).toBeDefined();
+  });
+
+  it("is saved with the draft, and an older app that doesn't send it leaves the saved one alone", () => {
+    const withIt = toDatabasePayload(parsed(quote({ deliveryAddress: "The gate at the back" })), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(withIt.quote.delivery_address).toBe("The gate at the back");
+    const cleared = toDatabasePayload(parsed(quote({ deliveryAddress: "" })), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(cleared.quote).toHaveProperty("delivery_address", null);
+    const older: Record<string, unknown> = { ...quote() };
+    delete older.deliveryAddress;
+    expect(isQuoteFormValues(older)).toBe(true);
+    const payload = toDatabasePayload(parsed(older as QuoteFormValues), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.quote).not.toHaveProperty("delivery_address");
+  });
+
+  it("is refused when it is not text", () => {
+    expect(isQuoteFormValues({ ...quote(), deliveryAddress: 5 })).toBe(false);
   });
 });

@@ -5,17 +5,19 @@ import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import {
   customerDetail,
+  savedAddresses,
+  type SavedAddress,
   findPossibleDuplicates,
   parseCustomerForm,
   type CustomerFieldErrors,
   type CustomerFields,
 } from "@/lib/customers";
-import { getLocalePack } from "@/lib/locale";
+import { getLocalePack, type LocalePack } from "@/lib/locale";
 import { findCustomer } from "@/lib/customers/data";
 import { createClient } from "@/lib/supabase/server";
 
 /** What the quote's customer picker needs back after a customer is added or changed. */
-export type CustomerSummaryOption = { id: string; name: string; detail: string };
+export type CustomerSummaryOption = { id: string; name: string; detail: string; addresses: SavedAddress[] };
 
 export type CustomerSaveState =
   | { status: "idle" }
@@ -48,8 +50,8 @@ function toRow(c: CustomerFields) {
   };
 }
 
-function optionFor(id: string, c: CustomerFields): CustomerSummaryOption {
-  return { id, name: c.name, detail: customerDetail(c) };
+function optionFor(id: string, c: CustomerFields, locale: LocalePack): CustomerSummaryOption {
+  return { id, name: c.name, detail: customerDetail(c), addresses: savedAddresses(c, locale) };
 }
 
 /**
@@ -70,7 +72,7 @@ async function insertCustomer(
   if (formData.get("confirmDuplicate") !== "yes") {
     const { data: existing, error: lookupError } = await supabase
       .from("customers")
-      .select("id, name, phone")
+      .select("id, name, phone, address_line1, address_line2, city, region, postal_code, delivery_address")
       .eq("organisation_id", organisation.id)
       .limit(5000);
     if (lookupError) {
@@ -85,7 +87,23 @@ async function insertCustomer(
           status: "duplicate",
           matches: matches
             .slice(0, 3)
-            .map(({ id, name, phone }) => ({ id, name, detail: phone ?? "" })),
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              detail: c.phone ?? "",
+              // So that choosing "use this one" still offers their addresses for a delivery.
+              addresses: savedAddresses(
+                {
+                  addressLine1: c.address_line1,
+                  addressLine2: c.address_line2,
+                  city: c.city,
+                  region: c.region,
+                  postalCode: c.postal_code,
+                  deliveryAddress: c.delivery_address,
+                },
+                getLocalePack(profile.countryCode),
+              ),
+            })),
         },
       };
     }
@@ -102,7 +120,7 @@ async function insertCustomer(
   }
 
   revalidatePath("/app/customers");
-  return { ok: true, option: optionFor(created.id, parsed.value) };
+  return { ok: true, option: optionFor(created.id, parsed.value, getLocalePack(profile.countryCode)) };
 }
 
 /** Adds a customer from the Customers screen, then shows the list. Any member can. */
@@ -163,7 +181,7 @@ export async function updateCustomer(
   }
 
   revalidatePath("/app/customers");
-  return { status: "saved", option: optionFor(id, parsed.value) };
+  return { status: "saved", option: optionFor(id, parsed.value, getLocalePack(profile.countryCode)) };
 }
 
 export type ArchiveState = { status: "idle" } | { status: "error"; message: string };

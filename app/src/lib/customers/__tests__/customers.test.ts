@@ -6,6 +6,7 @@ import {
   forOrganisation,
   matchesSearch,
   parseCustomerForm,
+  savedAddresses,
   validateCustomerName,
   type CustomerSummary,
 } from "../index";
@@ -172,5 +173,32 @@ describe("customerDetail", () => {
     );
     expect(customerDetail({ contactPerson: null, phone: null, email: "s@x.example", city: null })).toBe("s@x.example");
     expect(customerDetail({ contactPerson: null, phone: null, email: null, city: null })).toBe("");
+  });
+});
+
+describe("savedAddresses", () => {
+  const base = { addressLine1: null, addressLine2: null, city: null, region: null, postalCode: null, deliveryAddress: null };
+
+  it("offers nothing when the customer has no address", () => {
+    expect(savedAddresses(base, ZA_LOCALE)).toEqual([]);
+    expect(savedAddresses({ ...base, deliveryAddress: "   " }, ZA_LOCALE)).toEqual([]);
+  });
+
+  it("offers the delivery address first, then the main address written the way the country writes it", () => {
+    const list = savedAddresses(
+      { ...base, deliveryAddress: "The gate at the back", addressLine1: "12 Main Road", city: "Soweto", region: "Gauteng", postalCode: "1804" },
+      ZA_LOCALE,
+    );
+    expect(list.map((a) => a.kind)).toEqual(["delivery", "main"]);
+    expect(list[0].text).toBe("The gate at the back");
+    expect(list[1].text).toContain("12 Main Road");
+    expect(list[1].text).toContain("Soweto");
+    expect(list[1].text).toContain("1804");
+  });
+
+  it("offers one address when the main address is the delivery address", () => {
+    const list = savedAddresses({ ...base, addressLine1: "12 Main Road", city: "Soweto", deliveryAddress: "12  Main Road\nSoweto" }, ZA_LOCALE);
+    expect(list).toHaveLength(1);
+    expect(list[0].kind).toBe("delivery");
   });
 });

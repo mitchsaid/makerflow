@@ -8,18 +8,15 @@ import { TermsStarters } from "@/components/terms-starters";
 import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
+import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
+import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
 import { PoliciesSection } from "./policies-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   formatMoney,
   currencySymbol,
@@ -35,13 +32,12 @@ import { addDays } from "@/lib/quotes/dates";
 import {
   previewTotals,
   type DiscountKind,
-  type Fulfilment,
   type LineFormValues,
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
-import type { CustomerOption } from "@/lib/customers";
+import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
 import { LineSheet, type LineSheetView } from "./line-sheet";
 
@@ -56,7 +52,7 @@ const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 export function QuoteBuilder({
   quoteId,
   initial,
-  customers,
+  customers: initialCustomers,
   products: initialProducts,
   vat,
   currencyCode,
@@ -103,6 +99,8 @@ export function QuoteBuilder({
 }) {
   const router = useRouter();
   const [values, setValues] = useState<QuoteFormValues>(initial);
+  // Kept here (not in the picker) because "deliver to" offers the chosen customer's addresses.
+  const [customers, setCustomers] = useState(initialCustomers);
   const [state, setState] = useState<SaveQuoteState>(
     justSaved ? { status: "saved", savedAt: 0 } : { status: "idle" },
   );
@@ -119,6 +117,35 @@ export function QuoteBuilder({
   function update(change: Partial<QuoteFormValues>) {
     setEditedSinceSave(true);
     setValues((v) => ({ ...v, ...change }));
+  }
+  const savedAddresses = customers.find((c) => c.id === values.customerId)?.addresses ?? [];
+
+  /**
+   * Choosing another customer (or none) moves the address along with them, whatever the quote says
+   * about delivery right now: an empty address, or the previous customer's own saved one, becomes
+   * the new customer's. An address typed for this quote is never replaced.
+   */
+  function chooseCustomer(customerId: string, next: SavedAddress[]) {
+    setEditedSinceSave(true);
+    setValues((v) => ({
+      ...v,
+      customerId,
+      deliveryAddress: addressWhenCustomerChanges(v.deliveryAddress, savedAddresses, next),
+    }));
+  }
+
+  /** The picker adds or edits customers; when the chosen one's saved addresses change, the quote's follows. */
+  function changeCustomers(update: (list: CustomerOption[]) => CustomerOption[]) {
+    const after = update(customers).find((c) => c.id === values.customerId)?.addresses ?? [];
+    setCustomers(update);
+    if (after !== savedAddresses && values.customerId !== "") {
+      const follows = addressWhenSavedAddressesChange(values.deliveryAddress, savedAddresses, after);
+      if (follows !== values.deliveryAddress) setDeliveryAddress(follows);
+    }
+  }
+  function setDeliveryAddress(deliveryAddress: string) {
+    setEditedSinceSave(true);
+    setValues((v) => ({ ...v, deliveryAddress }));
   }
   // The item sheet: choosing what to add, configuring a line, or a product form.
   const [products, setProducts] = useState(initialProducts);
@@ -235,6 +262,7 @@ export function QuoteBuilder({
   });
   if (f.lines) problems.push({ fieldId: "add-item", label: "Items", message: f.lines });
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
+  if (f.deliveryAddress) problems.push({ fieldId: "deliveryAddress", label: "Deliver to", message: f.deliveryAddress });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.depositValue) problems.push({ fieldId: "depositValue", label: "Deposit", message: f.depositValue });
   if (f.balanceDueDate) problems.push({ fieldId: "balanceDueDate", label: "Balance due by", message: f.balanceDueDate });
@@ -264,9 +292,10 @@ export function QuoteBuilder({
         <CustomerPicker
           id="customer"
           customers={customers}
+          onCustomersChange={changeCustomers}
           countryCode={countryCode}
           value={values.customerId}
-          onChange={(customerId) => update({ customerId })}
+          onChange={chooseCustomer}
           error={f.customerId}
         />
       </Section>
@@ -384,43 +413,17 @@ export function QuoteBuilder({
         />
       </Section>
 
-      <Section title="Delivery or collection">
-        <RadioGroup
-          aria-label="Delivery or collection"
-          value={values.fulfilment}
-          onValueChange={(v) => update({ fulfilment: v as Fulfilment })}
-        >
-          {(
-            [
-              ["none", "Not decided yet"],
-              ["collection", "Collection (the customer collects)"],
-              ["delivery", "Delivery (you deliver, with a fee)"],
-            ] as const
-          ).map(([option, label]) => (
-            <Field key={option} orientation="horizontal" className="items-start py-2.5">
-              <RadioGroupItem id={`fulfilment-${option}`} value={option} />
-              <FieldLabel htmlFor={`fulfilment-${option}`} className="text-base">
-                {label}
-              </FieldLabel>
-            </Field>
-          ))}
-        </RadioGroup>
-        {values.fulfilment === "delivery" && (
-          <TextField
-            id="deliveryFee"
-            label={priceEntryLabel(vat, taxName, "Delivery fee")}
-            startText={symbol}
-            inputMode="decimal"
-            autoComplete="off"
-            value={values.deliveryFee}
-            error={f.deliveryFee}
-            onChange={(deliveryFee) => update({ deliveryFee })}
-          />
-        )}
-        {values.fulfilment === "delivery" && (
-          <FieldDescription>Leave the fee empty if delivery is free.</FieldDescription>
-        )}
-      </Section>
+      <DeliverySection
+        fulfilment={values.fulfilment}
+        deliveryFee={values.deliveryFee}
+        deliveryAddress={values.deliveryAddress}
+        onChange={update}
+        saved={savedAddresses}
+        hasCustomer={values.customerId !== ""}
+        feeLabel={priceEntryLabel(vat, taxName, "Delivery fee")}
+        symbol={symbol}
+        errors={{ deliveryFee: f.deliveryFee, deliveryAddress: f.deliveryAddress }}
+      />
 
       <Section title="Discount">
         <Field>

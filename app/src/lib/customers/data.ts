@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
-import type { Customer, CustomerKind, CustomerSummary } from "./index";
+import type { Customer, CustomerKind, CustomerSummary, CustomerSummaryWithAddress } from "./index";
 
 /**
  * Customer reads. Row-level security limits every query to businesses the signed-in person
@@ -47,12 +47,47 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
   }));
 }
 
-type FullRow = SummaryRow & {
+type AddressRow = {
   address_line1: string | null;
   address_line2: string | null;
   region: string | null;
   postal_code: string | null;
   delivery_address: string | null;
+};
+
+/**
+ * Every customer with the address details a quote offers as "deliver to". For the quote pages only:
+ * the customers list does not need the addresses, so it uses getCustomers().
+ */
+export async function getCustomersWithAddresses(): Promise<CustomerSummaryWithAddress[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select(
+      "id, organisation_id, name, kind, contact_person, phone, email, city, archived_at, address_line1, address_line2, region, postal_code, delivery_address",
+    )
+    .order("name", { ascending: true })
+    .limit(5000);
+  if (error) throw new Error(`Could not load customers: ${error.message}`);
+  return (data as (SummaryRow & AddressRow)[]).map((row) => ({
+    id: row.id,
+    organisationId: row.organisation_id,
+    name: row.name,
+    kind: row.kind,
+    contactPerson: row.contact_person,
+    phone: row.phone,
+    email: row.email,
+    city: row.city,
+    archived: row.archived_at !== null,
+    addressLine1: row.address_line1,
+    addressLine2: row.address_line2,
+    region: row.region,
+    postalCode: row.postal_code,
+    deliveryAddress: row.delivery_address,
+  }));
+}
+
+type FullRow = SummaryRow & AddressRow & {
   vat_number: string | null;
   company_registration_number: string | null;
   notes: string | null;

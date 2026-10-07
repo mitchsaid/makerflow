@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { getCustomers } from "@/lib/customers/data";
+import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
 import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
@@ -34,7 +34,7 @@ export default async function QuotePage({
   // The quote and the customers load beside the workspace check, not after it.
   const [quote, allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails }, query] = await Promise.all([
     getStoredQuote(id),
-    getCustomers(),
+    getCustomersWithAddresses(),
     getProducts(),
     getPolicies(),
     requireOrganisation(),
@@ -83,7 +83,7 @@ export default async function QuotePage({
           key={quote.id}
           quoteId={quote.id}
           initial={toFormValues(quote, locale.numberStyle)}
-          customers={customerOptions(customers)}
+          customers={customerOptions(customers, locale)}
           products={forOrganisation(allProducts, organisation.id)}
           vat={vatSettingsFor(profile, locale)}
           currencyCode={profile.currencyCode}
