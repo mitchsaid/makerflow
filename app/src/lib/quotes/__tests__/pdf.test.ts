@@ -229,3 +229,10 @@ describe("the deposit on the document", () => {
     expect(withDeposit.length).toBeGreaterThan(without.length);
   });
 });
+
+describe("the footer", () => {
+  it("is not given a page-wide line height, which makes react-pdf drop the page number (and the footer with it)", async () => {
+    const { classicStyles } = await import("../pdf/designs");
+    expect(classicStyles.page).not.toHaveProperty("lineHeight");
+  });
+});
