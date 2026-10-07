@@ -43,13 +43,11 @@ export type CustomerSummary = {
   email: string | null;
   city: string | null;
   archived: boolean;
-  /** What a quote can offer as "deliver to" (see savedAddresses). */
-  addressLine1: string | null;
-  addressLine2: string | null;
-  region: string | null;
-  postalCode: string | null;
-  deliveryAddress: string | null;
 };
+
+/** A summary with the address details a quote offers as "deliver to" (see savedAddresses). */
+export type CustomerSummaryWithAddress = CustomerSummary &
+  Pick<CustomerFields, "addressLine1" | "addressLine2" | "region" | "postalCode" | "deliveryAddress">;
 
 export type CustomerFieldName = keyof CustomerFields;
 export type CustomerFieldErrors = Partial<Record<CustomerFieldName, string>>;

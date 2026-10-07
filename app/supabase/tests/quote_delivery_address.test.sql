@@ -57,6 +57,12 @@ begin
   assert (select delivery_address = E'22 Jacaranda Avenue\nParkhurst' from public.quotes where id = q),
     'a payload without the key changed the address';
 
+  -- An explicit null clears it too (unlike a missing key, which keeps it).
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{"delivery_address":null}'), '[]'::jsonb);
+  assert (select delivery_address is null from public.quotes where id = q), 'an explicit null did not clear the address';
+  perform public.save_quote_draft(org_a, q,
+    pg_temp.quote_json(jsonb_build_object('delivery_address', 'Back again')), '[]'::jsonb);
+
   -- An empty or blank address clears it.
   perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{"delivery_address":"   "}'), '[]'::jsonb);
   assert (select delivery_address is null from public.quotes where id = q), 'a blank address was kept';

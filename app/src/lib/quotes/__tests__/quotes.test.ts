@@ -392,6 +392,13 @@ describe("the delivery address", () => {
     expect(errorsOf(quote({ fulfilment: "delivery", deliveryAddress: "x".repeat(401) })).fields.deliveryAddress).toMatch(/400/);
   });
 
+  it("can only be refused when a delivery shows the box: otherwise a too-long one is dropped, not blocked", () => {
+    const tooLong = "x".repeat(401);
+    expect(parsed(quote({ fulfilment: "collection", deliveryAddress: tooLong })).deliveryAddress).toBeNull();
+    expect(parsed(quote({ fulfilment: "none", deliveryAddress: tooLong })).deliveryAddress).toBeNull();
+    expect(errorsOf(quote({ fulfilment: "delivery", deliveryAddress: tooLong })).fields.deliveryAddress).toBeDefined();
+  });
+
   it("is saved with the draft, and an older app that doesn't send it leaves the saved one alone", () => {
     const withIt = toDatabasePayload(parsed(quote({ deliveryAddress: "The gate at the back" })), { countryCode: "ZA", currencyCode: "ZAR" });
     expect(withIt.quote.delivery_address).toBe("The gate at the back");

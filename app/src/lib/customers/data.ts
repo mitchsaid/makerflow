@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
-import type { Customer, CustomerKind, CustomerSummary } from "./index";
+import type { Customer, CustomerKind, CustomerSummary, CustomerSummaryWithAddress } from "./index";
 
 /**
  * Customer reads. Row-level security limits every query to businesses the signed-in person
@@ -23,6 +23,31 @@ type SummaryRow = {
   email: string | null;
   city: string | null;
   archived_at: string | null;
+};
+
+/** Every customer of the business, archived ones included, A to Z. One query. */
+export async function getCustomers(): Promise<CustomerSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, organisation_id, name, kind, contact_person, phone, email, city, archived_at")
+    .order("name", { ascending: true })
+    .limit(5000);
+  if (error) throw new Error(`Could not load customers: ${error.message}`);
+  return (data as SummaryRow[]).map((row) => ({
+    id: row.id,
+    organisationId: row.organisation_id,
+    name: row.name,
+    kind: row.kind,
+    contactPerson: row.contact_person,
+    phone: row.phone,
+    email: row.email,
+    city: row.city,
+    archived: row.archived_at !== null,
+  }));
+}
+
+type AddressRow = {
   address_line1: string | null;
   address_line2: string | null;
   region: string | null;
@@ -30,8 +55,11 @@ type SummaryRow = {
   delivery_address: string | null;
 };
 
-/** Every customer of the business, archived ones included, A to Z. One query. */
-export async function getCustomers(): Promise<CustomerSummary[]> {
+/**
+ * Every customer with the address details a quote offers as "deliver to". For the quote pages only:
+ * the customers list does not need the addresses, so it uses getCustomers().
+ */
+export async function getCustomersWithAddresses(): Promise<CustomerSummaryWithAddress[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
@@ -41,7 +69,7 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
     .order("name", { ascending: true })
     .limit(5000);
   if (error) throw new Error(`Could not load customers: ${error.message}`);
-  return (data as SummaryRow[]).map((row) => ({
+  return (data as (SummaryRow & AddressRow)[]).map((row) => ({
     id: row.id,
     organisationId: row.organisation_id,
     name: row.name,
@@ -59,7 +87,7 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
   }));
 }
 
-type FullRow = SummaryRow & {
+type FullRow = SummaryRow & AddressRow & {
   vat_number: string | null;
   company_registration_number: string | null;
   notes: string | null;

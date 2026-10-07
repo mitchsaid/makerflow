@@ -413,7 +413,9 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
     QUOTE_DELIVERY_ADDRESS_MAX,
     "The delivery address",
   );
-  if (!deliveryAddress.ok) errors.fields.deliveryAddress = deliveryAddress.error;
+  // Only a delivery shows the box, so only then can a too-long address be refused (it could not be fixed
+  // otherwise). A quote that isn't a delivery drops one that is too long: it would never be printed.
+  if (!deliveryAddress.ok && values.fulfilment === "delivery") errors.fields.deliveryAddress = deliveryAddress.error;
   const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 

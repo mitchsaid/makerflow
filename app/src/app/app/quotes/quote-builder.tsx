@@ -8,6 +8,7 @@ import { TermsStarters } from "@/components/terms-starters";
 import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
+import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
 import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
 import { PoliciesSection } from "./policies-section";
@@ -120,19 +121,31 @@ export function QuoteBuilder({
   const savedAddresses = customers.find((c) => c.id === values.customerId)?.addresses ?? [];
 
   /**
-   * Choosing another customer on a delivery quote moves the address along with them, but only when
-   * the address is empty or is the previous customer's own saved one: an address typed for this
-   * quote is never replaced.
+   * Choosing another customer (or none) moves the address along with them, whatever the quote says
+   * about delivery right now: an empty address, or the previous customer's own saved one, becomes
+   * the new customer's. An address typed for this quote is never replaced.
    */
   function chooseCustomer(customerId: string, next: SavedAddress[]) {
     setEditedSinceSave(true);
-    setValues((v) => {
-      if (v.fulfilment !== "delivery") return { ...v, customerId };
-      const previous = customers.find((c) => c.id === v.customerId)?.addresses ?? [];
-      const now = v.deliveryAddress.replace(/\s+/g, " ").trim();
-      const wasTheirs = now === "" || previous.some((a) => a.text.replace(/\s+/g, " ").trim() === now);
-      return { ...v, customerId, deliveryAddress: wasTheirs ? (next[0]?.text ?? "") : v.deliveryAddress };
-    });
+    setValues((v) => ({
+      ...v,
+      customerId,
+      deliveryAddress: addressWhenCustomerChanges(v.deliveryAddress, savedAddresses, next),
+    }));
+  }
+
+  /** The picker adds or edits customers; when the chosen one's saved addresses change, the quote's follows. */
+  function changeCustomers(update: (list: CustomerOption[]) => CustomerOption[]) {
+    const after = update(customers).find((c) => c.id === values.customerId)?.addresses ?? [];
+    setCustomers(update);
+    if (after !== savedAddresses && values.customerId !== "") {
+      const follows = addressWhenSavedAddressesChange(values.deliveryAddress, savedAddresses, after);
+      if (follows !== values.deliveryAddress) setDeliveryAddress(follows);
+    }
+  }
+  function setDeliveryAddress(deliveryAddress: string) {
+    setEditedSinceSave(true);
+    setValues((v) => ({ ...v, deliveryAddress }));
   }
   // The item sheet: choosing what to add, configuring a line, or a product form.
   const [products, setProducts] = useState(initialProducts);
@@ -279,7 +292,7 @@ export function QuoteBuilder({
         <CustomerPicker
           id="customer"
           customers={customers}
-          onCustomersChange={setCustomers}
+          onCustomersChange={changeCustomers}
           countryCode={countryCode}
           value={values.customerId}
           onChange={chooseCustomer}

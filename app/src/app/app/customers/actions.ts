@@ -72,7 +72,7 @@ async function insertCustomer(
   if (formData.get("confirmDuplicate") !== "yes") {
     const { data: existing, error: lookupError } = await supabase
       .from("customers")
-      .select("id, name, phone")
+      .select("id, name, phone, address_line1, address_line2, city, region, postal_code, delivery_address")
       .eq("organisation_id", organisation.id)
       .limit(5000);
     if (lookupError) {
@@ -87,7 +87,23 @@ async function insertCustomer(
           status: "duplicate",
           matches: matches
             .slice(0, 3)
-            .map(({ id, name, phone }) => ({ id, name, detail: phone ?? "", addresses: [] })),
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              detail: c.phone ?? "",
+              // So that choosing "use this one" still offers their addresses for a delivery.
+              addresses: savedAddresses(
+                {
+                  addressLine1: c.address_line1,
+                  addressLine2: c.address_line2,
+                  city: c.city,
+                  region: c.region,
+                  postalCode: c.postal_code,
+                  deliveryAddress: c.delivery_address,
+                },
+                getLocalePack(profile.countryCode),
+              ),
+            })),
         },
       };
     }

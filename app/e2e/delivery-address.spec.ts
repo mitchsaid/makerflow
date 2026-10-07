@@ -155,3 +155,41 @@ test("changing the customer moves the saved address along, but never replaces on
   await expect(page.getByRole("radio", { name: "A different address" })).toBeChecked();
   await expect(page.getByLabel("Delivery address", { exact: true })).toHaveValue("5 Elm Street");
 });
+
+test("one customer's saved address never ends up on another customer's quote", async ({ page }) => {
+  await signUpAndOnboard(page, "del-carry", "Carry Co");
+  await newQuote(page);
+  await addCustomer(page, "Thandi Nkosi", { deliverTo: "The gate at the back" });
+  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeChecked();
+
+  // Collection in between, then another customer, then delivery again: Thandi's address is gone.
+  await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
+  await page.getByRole("button", { name: "Change customer" }).click();
+  await addCustomer(page, "Sipho Dlamini");
+  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await expect(page.getByText("The gate at the back")).toHaveCount(0);
+  await expect(page.getByLabel("Deliver to (optional)")).toHaveValue("");
+
+  // Editing the chosen customer's address changes the quote's address with it.
+  await page.getByRole("button", { name: /Edit details/ }).click();
+  await page.getByRole("dialog").getByLabel("Deliver to (optional)").fill("Unit 4, Sandton Mews");
+  await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeVisible();
+  await page.getByRole("radio", { name: /Delivery address on file/ }).check();
+  await page.getByRole("button", { name: /Edit details/ }).click();
+  await page.getByRole("dialog").getByLabel("Deliver to (optional)").fill("Unit 9, Sandton Mews");
+  await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByText("Unit 9, Sandton Mews")).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeChecked();
+  await expect(page.getByText("Unit 4, Sandton Mews")).toHaveCount(0);
+
+  // A too-long address typed and then hidden by choosing Collection does not block saving.
+  await page.getByRole("radio", { name: "A different address" }).check();
+  await page.getByLabel("Delivery address", { exact: true }).fill("x".repeat(450));
+  await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+});

@@ -11,10 +11,11 @@ Under **Delivery or collection**, when **Delivery** is chosen (after the fee):
   - the customer's **saved delivery address** (their "Deliver to" on the customer, if they have one),
   - the customer's **address** (their main address, if they have one and it differs),
   - **A different address**: an empty box to type one in (for this quote only).
-- The first saved address is picked for them when they choose Delivery (or change the customer), so the usual case is zero taps. A choice they typed themselves is never replaced when the customer changes.
+- The first saved address is picked for them when they choose Delivery (or change the customer), so the usual case is zero taps. A choice they typed themselves is never replaced when the customer changes. A saved address always follows its customer: change the customer (even while Collection is chosen) and it moves to the new customer's, and if the customer's saved address is edited from the quote, the quote's follows. The rules are in `lib/quotes/delivery.ts`, with unit tests.
 - Nothing is required: **no address is needed to send a quote** (founder, 2026-10-02, "Minimum to send a quote"). With no saved address the box is simply empty, with a hint that it can be left for now.
 - Choosing Collection or "Not decided yet" hides it; the address stays on the draft, but is not printed unless Delivery is chosen.
 - Editing the customer from the quote (the existing "Edit details") refreshes the saved choices.
+- A too-long address (over 400 characters) is refused only while Delivery is chosen, where the box is on screen. On a quote that isn't a delivery it is dropped, since it would never be printed and could not be fixed.
 
 ## On the document
 A **Deliver to** block under the customer's details (same small capital label), only when the quote is a delivery and has an address. It is part of the frozen snapshot, so a sent quote keeps what the customer received.
@@ -31,7 +32,7 @@ A **Deliver to** block under the customer's details (same small capital label), 
 - Existing row-level security and `session_required` cover the new column. SQL test: `quote_delivery_address.test.sql`.
 
 ## App
-- `lib/customers`: `savedAddresses(customer, locale)` gives the saved choices; `CustomerOption` and the picker's results carry them.
+- `lib/customers`: `savedAddresses(customer, locale)` gives the saved choices; `CustomerOption` and the picker's results carry them. Only the quote pages load customers' addresses (`getCustomersWithAddresses`); the Customers list keeps its lighter query.
 - `QuoteFormValues.deliveryAddress`; parsed and checked by `parseQuote`; stored, read back and copied by Quote again.
 - The builder: the "Deliver to" choices and box; the customer picker's list moves up into the builder so the choices follow the chosen customer.
 - Snapshot field `deliveryAddress` (optional, so old snapshots still render), the PDF block, and the document-as-text view.

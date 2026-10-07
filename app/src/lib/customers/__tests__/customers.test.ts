@@ -141,11 +141,6 @@ describe("matchesSearch", () => {
     email: "orders@cakes.example",
     city: "Cape Town",
     archived: false,
-    addressLine1: null,
-    addressLine2: null,
-    region: null,
-    postalCode: null,
-    deliveryAddress: null,
   };
   it("searches name, contact, email and town without caring about case", () => {
     for (const q of ["cape", "JACOBS", "orders@", "town"]) expect(matchesSearch(c, q)).toBe(true);

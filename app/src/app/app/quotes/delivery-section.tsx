@@ -6,8 +6,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { SavedAddress } from "@/lib/customers";
 import { QUOTE_DELIVERY_ADDRESS_MAX, type Fulfilment } from "@/lib/quotes";
-
-const same = (a: string, b: string) => a.replace(/\s+/g, " ").trim() === b.replace(/\s+/g, " ").trim();
+import { addressWhenFulfilmentChanges, sameAddress } from "@/lib/quotes/delivery";
 
 /**
  * "Delivery or collection". Choosing Delivery asks for the fee and where to: one of the addresses
@@ -39,7 +38,7 @@ export function DeliverySection({
   // "A different address" was picked and nothing is typed yet.
   const [otherPicked, setOtherPicked] = useState(false);
 
-  const savedIndex = saved.findIndex((a) => same(a.text, deliveryAddress));
+  const savedIndex = saved.findIndex((a) => sameAddress(a.text, deliveryAddress));
   const typed = deliveryAddress.trim() !== "";
   const choice = savedIndex >= 0 ? `saved-${savedIndex}` : otherPicked || typed ? "other" : "";
 
@@ -57,8 +56,7 @@ export function DeliverySection({
 
   function chooseFulfilment(next: Fulfilment) {
     // Delivery to a customer who has an address on file: use it unless something is already typed.
-    if (next === "delivery" && !typed && saved.length > 0) onChange({ fulfilment: next, deliveryAddress: saved[0].text });
-    else onChange({ fulfilment: next });
+    onChange({ fulfilment: next, deliveryAddress: addressWhenFulfilmentChanges(next, deliveryAddress, saved) });
   }
 
   return (
@@ -99,7 +97,7 @@ export function DeliverySection({
           <FieldDescription>Leave the fee empty if delivery is free.</FieldDescription>
 
           {saved.length > 0 ? (
-            <div role="group" aria-labelledby="deliver-to-label" className="space-y-1">
+            <div className="space-y-1">
               <p id="deliver-to-label" className="text-sm font-medium">
                 Deliver to
               </p>
@@ -123,7 +121,7 @@ export function DeliverySection({
             </div>
           ) : null}
 
-          {(saved.length === 0 || choice === "other") && (
+          {(saved.length === 0 || choice === "other" || errors.deliveryAddress) && (
             <TextAreaField
               id="deliveryAddress"
               label={saved.length === 0 ? "Deliver to (optional)" : "Delivery address"}
@@ -141,9 +139,6 @@ export function DeliverySection({
               error={errors.deliveryAddress}
               onChange={(text) => onChange({ deliveryAddress: text })}
             />
-          )}
-          {errors.deliveryAddress && saved.length > 0 && choice !== "other" && (
-            <p className="text-sm text-destructive">{errors.deliveryAddress}</p>
           )}
         </>
       )}

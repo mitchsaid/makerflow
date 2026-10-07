@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { getCustomers } from "@/lib/customers/data";
+import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
 import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
@@ -16,7 +16,7 @@ import { QuoteBuilder } from "../quote-builder";
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.
   const [allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails }] = await Promise.all([
-    getCustomers(),
+    getCustomersWithAddresses(),
     getProducts(),
     getPolicies(),
     requireOrganisation(),
