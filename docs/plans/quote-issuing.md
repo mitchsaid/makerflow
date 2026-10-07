@@ -14,7 +14,7 @@ Status: **approved and built 2026-10-03** (founder confirmed all four decisions 
 7. **Quotes and invoices > Quote numbers:** prefix and next number (to continue from another system), with a preview ("Your next quote will be QT-0042"). The number can never go backwards past one already used.
 
 ## Placeholders (visible, inactive, "coming soon")
-Following the thin-slice rule, the sent quote's actions that belong to later slices are shown where they will live: **Record accepted or declined** (slice 6), **Quote again** (slice 6), **Withdraw** (slice 6), **Email to the customer** (needs our own email sender), **Send a link the customer can accept online** (hosted quotes). Deposit, inclusions and exclusions arrive in slice 5.
+Following the thin-slice rule, the sent quote's actions that belong to later slices are shown where they will live: **Record accepted or declined**, **Quote again** and **Withdraw** (built in slice 6, `docs/plans/quote-outcomes.md`), **Email to the customer** (needs our own email sender), **Send a link the customer can accept online** (hosted quotes). Deposit, inclusions and exclusions arrive in slice 5.
 
 ## The document (PDF)
 - Made on the server with **React-PDF** (as `docs/adr/0001-stack.md` planned; written up as ADR 0006 when built). No headless browser.
@@ -38,7 +38,7 @@ Following the thin-slice rule, the sent quote's actions that belong to later sli
 - Quotes list: status filter chips with counts, number and version on each row.
 - A sent quote shows its versions, and `?version=` opens an earlier one; PDFs per version.
 - The PDF embeds Noto Sans; emoji and symbols are dropped from the PDF only.
-- **Not built (shown as "coming soon"):** accepted/declined, quote again, withdraw, email, online link. **Not built, not shown:** discarding a revision to go back to the sent version (opening Revise by mistake means sending version 2 unchanged for now).
+- **Not built (shown as "coming soon"):** email, online link. (Accepted/declined, quote again and withdraw were built in slice 6.) **Not built, not shown:** discarding a revision to go back to the sent version (opening Revise by mistake means sending version 2 unchanged for now).
 
 ## Tests
 SQL: only drafts can be sent; numbers are gapless and per business; a sent quote and its lines cannot change; events per business; the send path cannot be reached by a signed-in user directly; revising keeps the number, adds a version and leaves the earlier one unchanged; numbering settings. Unit: snapshot building, the PDF content. Browser (phone): preview, send by share and by mark-as-sent, the missing-details sheet carrying on with the send, a sent quote is read-only with its placeholders, expiry, numbering settings. Accessibility for every new screen and sheet.

@@ -11,6 +11,9 @@ import {
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
+import { datesForCopy, todayIn } from "@/lib/quotes/dates";
+import { findStoredQuote } from "@/lib/quotes/data";
+import { toFormValues } from "@/lib/quotes/form-values";
 import { createClient } from "@/lib/supabase/server";
 
 export type SaveQuoteState =
@@ -105,4 +108,33 @@ export async function deleteQuoteDraft(id: string): Promise<DeleteState> {
 
   revalidatePath("/app/quotes");
   redirect("/app/quotes");
+}
+
+/**
+ * Starts a new draft from a quote that has been sent: the same customer, items, wording, policies
+ * and deposit, with a new number and today's dates. The old quote is left as it is. The copy is
+ * saved the same way as any draft (checked, priced on the server, numbered), then opened.
+ */
+export async function quoteAgain(quoteId: string): Promise<{ status: "error"; message: string }> {
+  const { organisation, profile } = await requireOrganisation();
+  if (!UUID.test(quoteId)) return { status: "error", message: "Something went wrong. Please try again." };
+  const quote = await findStoredQuote(quoteId);
+  if (!quote || quote.organisationId !== organisation.id) {
+    return { status: "error", message: "That quote could not be found." };
+  }
+  // A draft (even a revision of a sent quote) holds edits the customer hasn't seen: copy what was sent.
+  if (quote.status === "draft") {
+    return { status: "error", message: "This quote is still a draft. Finish it and send it, or keep editing it." };
+  }
+
+  const locale = getLocalePack(profile.countryCode);
+  const copy = datesForCopy(toFormValues(quote, locale.numberStyle), todayIn(locale.timeZone));
+
+  const saved = await saveQuoteDraft(null, copy);
+  // A good save ends by opening the new draft (a redirect), so we only get here when it failed.
+  if (saved.status === "error" && saved.errors) console.error("could not copy a quote:", JSON.stringify(saved.errors));
+  return {
+    status: "error",
+    message: saved.status === "error" && saved.message ? saved.message : "That quote couldn't be copied. Start a new quote instead.",
+  };
 }

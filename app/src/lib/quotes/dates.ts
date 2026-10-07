@@ -4,6 +4,9 @@
  * where the business is.
  */
 
+/** How long a new quote is valid for, until it becomes a business setting. */
+export const DEFAULT_VALID_DAYS = 14;
+
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** Is this a real calendar day in the form YYYY-MM-DD? */
@@ -46,6 +49,25 @@ export function formatDay(isoDay: string, locale: string): string {
     month: "short",
     year: "numeric",
   }).format(new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))));
+}
+
+/**
+ * A quote's form values with the dates made fresh for a copy of it: issued today, valid for the
+ * usual time, and no date from the old quote that has already passed (a needed-by date, or a
+ * deposit balance due by a date, which falls back to "on collection or delivery").
+ */
+export function datesForCopy<
+  V extends { issueDate: string; validUntil: string; neededBy: string; balanceDue: "handover" | "date"; balanceDueDate: string },
+>(values: V, today: string): V {
+  return {
+    ...values,
+    issueDate: today,
+    validUntil: addDays(today, DEFAULT_VALID_DAYS),
+    neededBy: values.neededBy && values.neededBy >= today ? values.neededBy : "",
+    ...(values.balanceDue === "date" && values.balanceDueDate < today
+      ? { balanceDue: "handover" as const, balanceDueDate: "" }
+      : {}),
+  };
 }
 
 /** Whole days from `from` to `to` (negative when `to` is earlier). */

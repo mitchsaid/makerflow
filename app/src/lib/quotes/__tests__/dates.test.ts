@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, daysBetween, formatDay, isIsoDay, todayIn } from "../dates";
+import { addDays, datesForCopy, daysBetween, formatDay, isIsoDay, todayIn } from "../dates";
 
 describe("isIsoDay", () => {
   it("accepts real calendar days only", () => {
@@ -34,5 +34,35 @@ describe("formatDay", () => {
   it("shows the stored day without shifting it", () => {
     expect(formatDay("2026-10-02", "en-ZA")).toMatch(/2.*(Oct|okt).*2026/i);
     expect(formatDay("nonsense", "en-ZA")).toBe("nonsense");
+  });
+});
+
+describe("datesForCopy", () => {
+  const old = {
+    issueDate: "2026-09-01",
+    validUntil: "2026-09-15",
+    neededBy: "2026-09-20",
+    balanceDue: "date" as const,
+    balanceDueDate: "2026-09-25",
+    title: "kept",
+  };
+
+  it("makes the dates fresh and keeps everything else", () => {
+    const copy = datesForCopy(old, "2026-10-06");
+    expect(copy).toMatchObject({ issueDate: "2026-10-06", validUntil: "2026-10-20", title: "kept" });
+  });
+
+  it("drops dates that have passed", () => {
+    const copy = datesForCopy(old, "2026-10-06");
+    expect(copy.neededBy).toBe("");
+    expect(copy.balanceDue).toBe("handover");
+    expect(copy.balanceDueDate).toBe("");
+  });
+
+  it("keeps dates that are still ahead, including today", () => {
+    const copy = datesForCopy({ ...old, neededBy: "2026-10-06", balanceDueDate: "2026-11-01" }, "2026-10-06");
+    expect(copy.neededBy).toBe("2026-10-06");
+    expect(copy.balanceDue).toBe("date");
+    expect(copy.balanceDueDate).toBe("2026-11-01");
   });
 });

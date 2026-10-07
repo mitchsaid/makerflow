@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
 import type { Customer, CustomerKind } from "../customers";
+import type { QuoteEventKind } from "./outcome";
 import type { QuoteSnapshot } from "./snapshot";
 
 /**
@@ -94,9 +95,12 @@ type VersionRow = {
 
 type EventRow = {
   id: string;
-  kind: "created" | "sent" | "revised";
+  kind: QuoteEventKind;
   version: number;
   via: "shared" | "marked" | null;
+  on_date: string | null;
+  how: string | null;
+  note: string | null;
   created_at: string;
 };
 
@@ -201,7 +205,17 @@ export type StoredQuote = {
   /** Every time it was sent, newest first, with the frozen document. */
   versions: { version: number; sentAt: string; sentVia: "shared" | "marked"; snapshot: QuoteSnapshot }[];
   /** The activity log, oldest first. */
-  events: { id: string; kind: "created" | "sent" | "revised"; version: number; via: "shared" | "marked" | null; at: string }[];
+  events: {
+    id: string;
+    kind: QuoteEventKind;
+    version: number;
+    via: "shared" | "marked" | null;
+    /** For an answer from the customer: the day, and how they said it. */
+    on: string | null;
+    how: string | null;
+    note: string | null;
+    at: string;
+  }[];
 };
 
 /** The quote's own policies as stored (a list), ignoring anything that isn't one. */
@@ -241,7 +255,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
          vat_number, company_registration_number, notes
        ),
        quote_versions ( version, sent_at, sent_via, snapshot ),
-       quote_events ( id, kind, version, via, created_at )`,
+       quote_events ( id, kind, version, via, on_date, how, note, created_at )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -315,7 +329,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       .map((v) => ({ version: v.version, sentAt: v.sent_at, sentVia: v.sent_via, snapshot: v.snapshot })),
     events: [...row.quote_events]
       .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.version - b.version)
-      .map((e) => ({ id: e.id, kind: e.kind, version: e.version, via: e.via, at: e.created_at })),
+      .map((e) => ({ id: e.id, kind: e.kind, version: e.version, via: e.via, on: e.on_date, how: e.how, note: e.note, at: e.created_at })),
   };
 }
 

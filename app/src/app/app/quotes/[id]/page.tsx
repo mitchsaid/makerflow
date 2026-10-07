@@ -15,10 +15,12 @@ import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { formatMoment, todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
+import { currentOutcome, outcomeSentence } from "@/lib/quotes/outcome";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
 import { DesignSection } from "../design-section";
 import { PdfPreview } from "../pdf-preview";
+import { ChangeAnswerButton, OutcomeButtons, QuoteAgainButton } from "../quote-outcome";
 import { QuoteDocumentView } from "../quote-document-view";
 import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
@@ -115,6 +117,8 @@ export default async function QuotePage({
   const latestSent = quote.versions[0];
   const isLatest = shown.version === latestSent.version;
   const canRevise = isLatest && quote.status === "sent";
+  const outcome = currentOutcome(quote.status, quote.events);
+  const answered = quote.status === "accepted" || quote.status === "declined";
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -131,6 +135,14 @@ export default async function QuotePage({
       {query.sent === "marked" && (
         <Alert data-testid="sent-banner">
           <AlertDescription>{quote.number} is marked as sent and locked.</AlertDescription>
+        </Alert>
+      )}
+      {outcome && isLatest && (
+        <Alert data-testid="outcome-banner">
+          <AlertDescription className="space-y-1">
+            <span className="block font-medium">{outcomeSentence(outcome, locale.formatLocale)}</span>
+            {outcome.note && <span className="block">{outcome.note}</span>}
+          </AlertDescription>
         </Alert>
       )}
       {!isLatest && (
@@ -178,23 +190,27 @@ export default async function QuotePage({
         <h2 id="more-heading" className="text-base font-semibold">
           What you can do next
         </h2>
-        <ComingSoonSection
-          title="Record accepted or declined"
-          description="Note your customer's answer on the quote, and turn an accepted quote into a job."
-        />
-        <ComingSoonSection title="Quote again" description="Start a new quote for the same customer from this one." />
-        <ComingSoonSection
-          title="Withdraw this quote"
-          description="Take it back if it should no longer be honoured. It stays on record."
-        />
-        <ComingSoonSection
-          title="Email it to your customer"
-          description="We'll send it from MakerFlow, with a message, and show when it was sent."
-        />
-        <ComingSoonSection
-          title="Send a link they can accept online"
-          description="Your customer opens the quote, accepts it or asks for changes, and you see it here."
-        />
+        {canRevise && <OutcomeButtons quoteId={quote.id} number={quote.number} today={today} />}
+        {isLatest && answered && <ChangeAnswerButton quoteId={quote.id} />}
+        {isLatest && quote.status === "accepted" && (
+          <ComingSoonSection
+            title="Create a job"
+            description="Turn the accepted quote into a job, with the items, the deposit and the dates carried over."
+          />
+        )}
+        {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
+        {canRevise && (
+          <>
+            <ComingSoonSection
+              title="Email it to your customer"
+              description="We'll send it from MakerFlow, with a message, and show when it was sent."
+            />
+            <ComingSoonSection
+              title="Send a link they can accept online"
+              description="Your customer opens the quote, accepts it or asks for changes, and you see it here."
+            />
+          </>
+        )}
       </section>
 
       <Versions quote={quote} shown={shown.version} />
@@ -233,6 +249,9 @@ function Activity({ quote, locale, timeZone }: { quote: StoredQuote; locale: str
   const words = (e: StoredQuote["events"][number]) => {
     if (e.kind === "created") return "Draft created";
     if (e.kind === "revised") return `Revised: version ${e.version} started`;
+    if (e.kind === "accepted" || e.kind === "declined" || e.kind === "withdrawn" || e.kind === "reopened") {
+      return outcomeSentence(e, locale);
+    }
     return `Version ${e.version} ${e.via ? SENT_VIA[e.via] : "sent"}`;
   };
   return (
@@ -245,7 +264,10 @@ function Activity({ quote, locale, timeZone }: { quote: StoredQuote; locale: str
           <ol className="space-y-2" data-testid="activity">
             {quote.events.map((e) => (
               <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-x-4 text-base">
-                <span>{words(e)}</span>
+                <span>
+                  {words(e)}
+                  {e.note && <span className="block text-sm text-muted-foreground">{e.note}</span>}
+                </span>
                 <span className="text-sm text-muted-foreground">{formatMoment(e.at, locale, timeZone)}</span>
               </li>
             ))}

@@ -107,7 +107,7 @@ Per decision 4. Components: field-level error text, a form summary with links to
    - **Money text is deterministic.** Amounts, quantities and percentages are written by `src/lib/money/format.ts` from the locale pack's `numberStyle`, never by `Intl`: the server and the browser carry different locale data (the same amount came out as "R 0,00" on one and "R 0.00" on the other) and React could not hydrate the page. The browser tests caught it.
 4. **Issuing (built 2026-10-03, see `docs/plans/quote-issuing.md`):** number assignment, snapshot, server PDF, share, mark sent, revise, derived expiry, activity log.
 5. **Deposit, inclusions and exclusions, notes and terms** on the document and in the builder.
-6. **Revisions, quote again, record accepted or declined,** and the later job and invoice prompts as those features exist.
+6. **Revisions, quote again, record accepted or declined,** and the later job and invoice prompts as those features exist. **Built 2026-10-06 (see `docs/plans/quote-outcomes.md`):** accepted, declined, withdrawn, change the answer, quote again. Discard-a-revision and Create a job are not built.
 7. **Minimal products and the line picker with "Add new product"** (name, price, description, kind). **Brought forward ahead of issuing (2026-10-03); planned in `docs/plans/products.md`.** Options, price breaks, recipes and costs then arrive as the products work layers on, and the quote's private margin strip appears when costs exist.
 
 Order note: slice 7 could move earlier if makers' first quotes should use products, but typed lines let the first quotes ship sooner.
