@@ -13,8 +13,9 @@ import { PDF_FONT } from "./fonts";
  * already holds is always drawn the way they received it.
  *
  * One scale keeps the page consistent. Type: 8 (section labels), 9 (small print, descriptions),
- * 10 (body), 12 (grand total, quote title), 16 (business name), 20 (document title). Space: 4, 8,
- * 12, 20 between things, with 44 as the page margin. Colour: ink for what to read, muted for what
+ * 10 (body), 12 (grand total, quote title), 16 (business name), 20 (document title). Space: 20 between
+ * sections, 16 around the table and parties, 8 to 12 inside a block, 2 to 6 between rows, with 44 as the
+ * page margin. Colour: ink for what to read, muted for what
  * explains it, a hairline for rules.
  */
 
@@ -44,8 +45,10 @@ export const classicStyles = StyleSheet.create({
   headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   headerDetails: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   headerLeft: { width: "55%" },
+  // A long name wraps inside this box and never pushes the title off the page.
+  businessNameBox: { flexShrink: 1, maxWidth: "62%", paddingRight: 12 },
   businessName: { fontSize: 16, fontWeight: 700 },
-  title: { fontSize: 20, fontWeight: 700 },
+  title: { fontSize: 20, fontWeight: 700, flexShrink: 0 },
   number: { fontWeight: 700 },
   partiesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
   party: { width: "55%" },
@@ -76,15 +79,16 @@ export const classicStyles = StyleSheet.create({
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 2.5 },
   totalLabel: { flexShrink: 1, paddingRight: 10 },
   grandRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingTop: 6, paddingBottom: 2, marginTop: 4, borderTopWidth: 1, borderTopColor: INK, fontWeight: 700, fontSize: 12 },
-  depositBlock: { marginTop: 12, alignSelf: "flex-end", width: TOTALS_WIDTH, backgroundColor: TINT, borderRadius: 3, paddingVertical: 6, paddingHorizontal: 8 },
+  depositBlock: { marginTop: 12, alignSelf: "flex-end", width: "48%", backgroundColor: TINT, borderRadius: 3, paddingVertical: 6, paddingHorizontal: 8 },
   bold: { fontWeight: 700 },
 
   // Blocks of text under the table. Each is the same distance from the one above.
   section: { marginTop: 20 },
   bankColumns: { flexDirection: "row" },
   bankColumn: { width: "50%", paddingRight: 12 },
+  bankColumnFull: { width: "100%" },
   bankRow: { flexDirection: "row", paddingVertical: 1.5 },
-  bankLabel: { width: 94, color: MUTED },
+  bankLabel: { width: 94, flexShrink: 0, color: MUTED },
   bankValue: { fontWeight: 700, flexShrink: 1 },
   payOther: { marginTop: 6 },
   signOff: { marginTop: 20 },

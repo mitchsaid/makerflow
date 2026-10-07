@@ -54,7 +54,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     ...over,
   };
   const parsed = parseQuote(values, vat);
-  if (!parsed.ok) throw new Error("should parse");
+  if (!parsed.ok) throw new Error("should parse: " + JSON.stringify(parsed.errors));
   return buildQuoteSnapshot({
     quote: parsed.quote,
     number: "QT-0001",
@@ -230,9 +230,79 @@ describe("the deposit on the document", () => {
   });
 });
 
+/** The text on each page of a PDF, in drawing order (read back with pdf.js, as the preview does). */
+async function pageTexts(pdf: Buffer): Promise<string[][]> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdf), verbosity: 0 }).promise;
+  const pages: string[][] = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const content = await (await doc.getPage(n)).getTextContent();
+    pages.push(content.items.map((item) => ("str" in item ? item.str.trim() : "")).filter((t) => t !== ""));
+  }
+  return pages;
+}
+
+function manyLines(count: number): QuoteFormValues["lines"] {
+  return Array.from({ length: count }, (_, i) => ({
+    key: `l${i}`,
+    kind: "custom" as const,
+    productId: "",
+    name: `Item ${i + 1}`,
+    description: "A description that is long enough to need some room on the page.",
+    quantity: "2",
+    unit: "",
+    unitPrice: "19,99",
+    discountKind: "none" as const,
+    discountValue: "",
+  }));
+}
+
 describe("the footer", () => {
-  it("is not given a page-wide line height, which makes react-pdf drop the page number (and the footer with it)", async () => {
-    const { classicStyles } = await import("../pdf/designs");
-    expect(classicStyles.page).not.toHaveProperty("lineHeight");
+  it("prints on every page: the business and number, and 'Page n of m' (a page-wide line height makes react-pdf drop it)", async () => {
+    const pdf = await renderQuotePdf(snapshot(vats.inclusive, { lines: manyLines(30) }));
+    const pages = await pageTexts(pdf);
+    expect(pages.length).toBeGreaterThan(1);
+    pages.forEach((texts, i) => {
+      expect(texts.join(" ")).toContain(`Page ${i + 1} of ${pages.length}`);
+      expect(texts.join(" ")).toContain("Sweet Co · QT-0001");
+    });
   });
+});
+
+describe("headings and page breaks", () => {
+  const LABELS = ["NOTES", "Notes", "HOW TO PAY", "How to pay", "TERMS", "Terms", "OTHER TERMS", "Other terms", "TERMS AND POLICIES", "Terms and policies", "PREPARED FOR"];
+
+  it("never leave a heading alone at the foot of a page, however the page happens to fall", async () => {
+    // Walk the first item's description through a page boundary, so that some length puts the notes
+    // (and the heading above them) right at it.
+    for (let descriptionLines = 3; descriptionLines <= 12; descriptionLines += 1) {
+      const lines = manyLines(6);
+      lines[0] = { ...lines[0], description: Array.from({ length: descriptionLines }, (_, i) => `Detail ${i + 1}`).join("\n") };
+      const pdf = await renderQuotePdf(
+        snapshot(vats.exclusive, {
+          lines,
+          notes: "Thank you for asking. ".repeat(12),
+          paymentInstructions: "EFT is fine. SnapScan too.",
+          terms: "Some terms. ".repeat(20),
+        }),
+      );
+      const pages = await pageTexts(pdf);
+      pages.forEach((texts, i) => {
+        // Leave out the footer (it is drawn first); what is left ends with the body's last text.
+        const body = texts.filter((t) => t !== "Sweet Co · QT-0001" && !/^Page \d+ of \d+$/.test(t));
+        const last = body[body.length - 1] ?? "";
+        expect(LABELS, `${descriptionLines} description lines, page ${i + 1} ends with "${last}"`).not.toContain(last);
+      });
+    }
+  }, 60_000);
+
+  it("repeats the table's column headings on a page the table runs onto, and only there", async () => {
+    const pages = await pageTexts(await renderQuotePdf(snapshot(vats.inclusive, { lines: manyLines(60) })));
+    expect(pages.length).toBeGreaterThan(2);
+    // Every page that carries table rows carries the headings.
+    for (const texts of pages) {
+      const hasRows = texts.some((t) => /^Item \d+$/.test(t));
+      expect(texts.includes("ITEM") || texts.includes("Item")).toBe(hasRows);
+    }
+  }, 60_000);
 });

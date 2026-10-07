@@ -1,4 +1,5 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
+import type { BankLine } from "../../bank";
 import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
 import { quantityText } from "../units";
@@ -13,9 +14,12 @@ import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
  * the design the snapshot names (see designs.ts); the content and layout are the same for all.
  */
 
-/** Bank lines in one column when there are up to three, otherwise two (the first takes the extra). */
-function splitInTwo<T>(lines: T[]): T[][] {
-  if (lines.length <= 3) return [lines];
+/**
+ * Bank lines in one column when there are up to three, or when any label or value is too long
+ * for half the page; otherwise two (the first takes the extra).
+ */
+function splitInTwo(lines: BankLine[]): BankLine[][] {
+  if (lines.length <= 3 || lines.some((l) => l.label.length > 18 || l.value.length > 26)) return [lines];
   const half = Math.ceil(lines.length / 2);
   return [lines.slice(0, half), lines.slice(half)];
 }
@@ -53,6 +57,7 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
   const lineTotal = s.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
   const inclusive = s.vat.registered && s.vat.entry === "inclusive";
   const exclusive = s.vat.registered && s.vat.entry === "exclusive";
+  const columns = s.bankDetails ? splitInTwo(s.bankDetails) : [];
   const numberText = s.version > 1 ? `${s.number} · version ${s.version}` : s.number;
 
   return (
@@ -72,7 +77,9 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           ) : null}
 
           <View style={styles.headerTop}>
-            <Text style={styles.businessName}>{s.business.name}</Text>
+            <View style={styles.businessNameBox}>
+              <Text style={styles.businessName}>{s.business.name}</Text>
+            </View>
             <Text style={styles.title}>{s.wording.title}</Text>
           </View>
           <View style={styles.headerDetails}>
@@ -225,13 +232,13 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           ) : null}
 
           {s.notes ? (
-            // The label never sits alone at the foot of a page; the text can run over a page break.
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel} minPresenceAhead={40}>
-                Notes
-              </Text>
-              <Text>{s.notes}</Text>
-            </View>
+            // One piece of text with its label, so the label can never be left alone at the foot of
+            // a page (minPresenceAhead does nothing on a first child), and the text can still run
+            // over a page break.
+            <Text style={styles.section}>
+              <Text style={styles.label}>{"Notes\n"}</Text>
+              {s.notes}
+            </Text>
           ) : null}
 
           {s.bankDetails && s.bankDetails.length > 0 ? (
@@ -239,10 +246,10 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
               {/* The label, its rows and the other ways to pay stay together: a short block that never splits across pages. */}
               <View wrap={false}>
                 <Text style={styles.sectionLabel}>How to pay</Text>
-                {/* Two columns when there are more than three lines, so the block stays short. */}
+                {/* Two columns when there are more than three short lines, so the block stays short. */}
                 <View style={styles.bankColumns}>
-                  {splitInTwo(s.bankDetails).map((column, c) => (
-                    <View key={c} style={styles.bankColumn}>
+                  {columns.map((column, c) => (
+                    <View key={c} style={columns.length > 1 ? styles.bankColumn : styles.bankColumnFull}>
                       {column.map((line, i) => (
                         <View key={i} style={styles.bankRow}>
                           <Text style={styles.bankLabel}>{line.label}</Text>
@@ -256,12 +263,10 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
               </View>
             </View>
           ) : s.paymentInstructions ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel} minPresenceAhead={40}>
-                How to pay
-              </Text>
-              <Text>{s.paymentInstructions}</Text>
-            </View>
+            <Text style={styles.section}>
+              <Text style={styles.label}>{"How to pay\n"}</Text>
+              {s.paymentInstructions}
+            </Text>
           ) : null}
 
           {s.signOff ? (
@@ -285,12 +290,10 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
           ) : null}
 
           {s.terms ? (
-            <View style={s.policies && s.policies.length > 0 ? styles.terms : styles.termsAlone}>
-              <Text style={styles.sectionLabel} minPresenceAhead={40}>
-                {s.policies && s.policies.length > 0 ? "Other terms" : "Terms"}
-              </Text>
-              <Text>{s.terms}</Text>
-            </View>
+            <Text style={s.policies && s.policies.length > 0 ? styles.terms : styles.termsAlone}>
+              <Text style={styles.label}>{s.policies && s.policies.length > 0 ? "Other terms\n" : "Terms\n"}</Text>
+              {s.terms}
+            </Text>
           ) : null}
 
           <View style={styles.statement}>
