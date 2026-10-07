@@ -106,7 +106,7 @@ describe("a quote's own copy of policies", () => {
       signOff: "",
       terms: "",
       paymentInstructions: "",
-      showBankDetails: true,
+      showBankDetails: true, showPhotos: true,
       depositKind: "none",
       depositValue: "",
       balanceDue: "handover",

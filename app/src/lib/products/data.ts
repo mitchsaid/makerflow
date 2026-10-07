@@ -19,9 +19,10 @@ type Row = {
   unit_price_cents: number;
   unit: string | null;
   archived_at: string | null;
+  photo_image_id: string | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -33,6 +34,7 @@ function fromRow(row: Row): ProductSummary {
     unitPriceCents: Number(row.unit_price_cents),
     unit: row.unit,
     archived: row.archived_at !== null,
+    photoImageId: row.photo_image_id,
   };
 }
 

@@ -18,6 +18,7 @@ export type StoredQuoteFields = {
   terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
+  showPhotos: boolean;
   depositKind: DepositKind;
   depositValue: number;
   balanceDue: BalanceDue;
@@ -86,6 +87,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     terms: quote.terms ?? "",
     paymentInstructions: quote.paymentInstructions ?? "",
     showBankDetails: quote.showBankDetails,
+    showPhotos: quote.showPhotos,
     depositKind: quote.depositKind,
     depositValue:
       quote.depositKind === "percent"

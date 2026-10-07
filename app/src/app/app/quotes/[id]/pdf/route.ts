@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { getRenditions } from "@/lib/images/data";
 import { findStoredQuote } from "@/lib/quotes/data";
 import { renderQuotePdf } from "@/lib/quotes/pdf/render";
 import { prepareQuote } from "@/lib/quotes/prepare";
@@ -36,9 +37,17 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
   }
   if (!snapshot) return notFound();
 
+  // The pictures the snapshot names (the product photos' small copies, and the logo).
+  const photoIds = snapshot.lines.flatMap((l) => (l.photoImageId ? [l.photoImageId] : []));
+  const [photos, logos] = await Promise.all([
+    getRenditions(photoIds, "thumb"),
+    getRenditions(snapshot.logoImageId ? [snapshot.logoImageId] : [], "display"),
+  ]);
+  const logo = snapshot.logoImageId ? (logos.get(snapshot.logoImageId) ?? null) : null;
+
   let pdf: Buffer;
   try {
-    pdf = await renderQuotePdf(snapshot, { draft });
+    pdf = await renderQuotePdf(snapshot, { draft, images: photos, logo });
   } catch (error) {
     // The preview shows its own message; nothing about the quote is lost.
     console.error("could not draw the quote PDF:", error);

@@ -47,7 +47,7 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   signOff: "",
   terms: "",
   paymentInstructions: "",
-  showBankDetails: true,
+  showBankDetails: true, showPhotos: true,
   depositKind: "none",
   depositValue: "",
   balanceDue: "handover",
@@ -274,7 +274,7 @@ describe("toFormValues", () => {
     discountKind: "percent" as const,
     discountValue: 750,
     notes: null,
-    title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
+    title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
     lines: [
       { id: "l2", sortOrder: 1, kind: "custom", productId: null, name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unit: null, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
       { id: "l3", sortOrder: 2, kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
@@ -373,7 +373,7 @@ describe("lines from products", () => {
       {
         customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null, deliveryAddress: null,
         discountKind: "none", discountValue: 0, notes: null,
-        title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
+        title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
         lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unit: null, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
       },
       ZA_LOCALE.numberStyle,
@@ -413,5 +413,20 @@ describe("the delivery address", () => {
 
   it("is refused when it is not text", () => {
     expect(isQuoteFormValues({ ...quote(), deliveryAddress: 5 })).toBe(false);
+  });
+});
+
+describe("the photos switch", () => {
+  it("is saved with the draft, and an older app that doesn't send it leaves the saved one alone", () => {
+    const on = toDatabasePayload(parsed(quote({ showPhotos: true })), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(on.quote.show_photos).toBe(true);
+    const off = toDatabasePayload(parsed(quote({ showPhotos: false })), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(off.quote.show_photos).toBe(false);
+    const older: Record<string, unknown> = { ...quote() };
+    delete older.showPhotos;
+    expect(isQuoteFormValues(older)).toBe(true);
+    const payload = toDatabasePayload(parsed(older as QuoteFormValues), { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.quote).not.toHaveProperty("show_photos");
+    expect(isQuoteFormValues({ ...quote(), showPhotos: "yes" })).toBe(false);
   });
 });

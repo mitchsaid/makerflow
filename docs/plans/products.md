@@ -28,7 +28,7 @@ Configure sheet > "Edit this product" -> Product sheet (stays on the quote)
 ## Screens
 1. **Product form** (a page under Products, and the same form in a sheet over the quote):
    - **Basics (working):** name (required), price (typed in the business's VAT entry mode, like quote lines), description (optional, shown on quotes), product or service.
-   - **Inactive "coming soon" sections**, in this order: Photo; Variations and extras; Costs and margin (materials, labour, other costs); Quantity prices; Production steps; Stock. Each is a card with its title, one plain line on what it will do, and no inputs.
+   - **Inactive "coming soon" sections**, in this order (Photo is now real, see `docs/plans/quote-looks.md`): Photo; Variations and extras; Costs and margin (materials, labour, other costs); Quantity prices; Production steps; Stock. Each is a card with its title, one plain line on what it will do, and no inputs.
 2. **Products list:** search, add, edit, archive and restore (archive, never delete: quote lines will point at products). Empty state: "Add your first product" plus the inactive "Import from Shopify or a CSV". On phones it is **its own tab** (Home, Quotes, Customers, Products, More); the desktop sidebar lists it too.
 3. **Quote items:**
    - The items section becomes a **list of lines** (name, quantity x price, line total, Edit, Remove) with an **"Add item"** button. Lines are edited in the Configure sheet, not inline. This is the plan's original "line editor as a sheet", and it is where variations and extras will go.

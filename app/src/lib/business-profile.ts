@@ -32,10 +32,12 @@ export type BusinessProfile = {
   defaultSignOff: string | null;
   defaultTerms: string | null;
   paymentInstructions: string | null;
+  /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set under Quotes and invoices. */
+  logoImageId: string | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "logoImageId">;
 
 export type FieldName =
   | "name"

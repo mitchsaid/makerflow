@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
@@ -232,6 +233,14 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "add product with errors");
       await page.getByLabel("Name", { exact: true }).fill("Axe product");
       await page.getByLabel("Price", { exact: true }).fill("10");
+      // A photo chosen (and one that isn't a picture, with its message).
+      await page.locator('input[type="file"]').setInputFiles({ name: "x.png", mimeType: "image/png", buffer: Buffer.from("nope") });
+      await expect(page.getByText(/doesn.t look like a picture/)).toBeVisible();
+      await expectNoViolations(page, "add product, photo problem");
+      const swatch = await sharp({ create: { width: 300, height: 300, channels: 3, background: "#d97706" } }).jpeg().toBuffer();
+      await page.locator('input[type="file"]').setInputFiles({ name: "x.jpg", mimeType: "image/jpeg", buffer: swatch });
+      await expect(page.getByTestId("photo-preview")).toBeVisible();
+      await expectNoViolations(page, "add product, with a photo");
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("product-added")).toBeVisible();
       await expectNoViolations(page, "products, with a product");

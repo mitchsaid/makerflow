@@ -5,6 +5,7 @@ import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { UnitField } from "@/components/unit-field";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
@@ -18,7 +19,6 @@ import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
  */
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
-    ["Photo", "A picture, so you can spot it in lists and show it on your quotes."],
     ["Variations and extras", "Choices like size or flavour, and optional add-ons, each with its own price."],
     ["Costs and margin", "What it costs to make (materials, your time, other costs), so you can see your profit."],
     ["Quantity prices", "Lower prices when someone orders more."],
@@ -111,6 +111,7 @@ export function ProductForm({
       ["unitPrice", priceLabel],
       ["unit", "Unit"],
       ["description", "Description"],
+      ["photo", "Photo"],
     ] as const
   ).flatMap(([field, label]) => {
     const message = errors[field];
@@ -178,6 +179,24 @@ export function ProductForm({
           onChange={set("description")}
         />
       </Section>
+
+      {/* Services have no photo (founder, 2026-10-03). */}
+      {values.kind === "product" && (
+        <Section title="Photo">
+          <ImageField
+            id={fid("photo")}
+            name="photoImageId"
+            label="Photo (optional)"
+            kind="product"
+            value={values.photoImageId}
+            alt={values.name ? `Photo of ${values.name}` : "Photo of this product"}
+            hint="Shown small beside the item on your quotes. It is cropped square, so keep the product in the middle."
+            error={errors.photo}
+            onChange={(photoImageId) => set("photoImageId")(photoImageId)}
+            onPendingChange={embedded?.onPendingChange}
+          />
+        </Section>
+      )}
 
       {COMING_SOON[values.kind].map(([title, description]) => (
         <ComingSoonSection key={title} title={title} description={description} />

@@ -72,7 +72,7 @@ test("a product's new price never moves a line, but is offered", async ({ page }
   await line(page, 1).getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Edit product");
-  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(6);
+  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(5);
   await sheet(page).getByLabel("Price", { exact: true }).fill("900");
   await sheet(page).getByRole("button", { name: "Save changes" }).click();
 

@@ -95,7 +95,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   signOff: "",
   terms: "",
   paymentInstructions: "",
-  showBankDetails: true,
+  showBankDetails: true, showPhotos: true,
   depositKind: "none",
   depositValue: "",
   balanceDue: "handover",
@@ -121,7 +121,7 @@ describe("a deposit on a quote", () => {
     const back = toFormValues(
       {
         customerId: null, issueDate: "2026-10-10", validUntil: "2026-10-24", neededBy: null, deliveryAddress: null, discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null, terms: null,
-        paymentInstructions: null, showBankDetails: true, depositKind: "percent", depositValue: 5000, balanceDue: "date", balanceDueDate: "2026-11-14", policies: [], lines: [],
+        paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "percent", depositValue: 5000, balanceDue: "date", balanceDueDate: "2026-11-14", policies: [], lines: [],
       },
       ZA_LOCALE.numberStyle,
     );

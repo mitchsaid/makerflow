@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { imageUrl } from "@/lib/images";
 import { useState } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { buttonVariants } from "@/components/ui/button";
@@ -108,6 +109,15 @@ export function ProductList({
               >
                 <span className="flex items-baseline justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-2">
+                    {p.photoImageId && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrl(p.photoImageId, "thumb")}
+                        alt=""
+                        loading="lazy"
+                        className="size-10 shrink-0 self-center rounded-md object-cover ring-1 ring-foreground/10"
+                      />
+                    )}
                     <span className="truncate text-base font-medium">{p.name}</span>
                     {p.archived && (
                       <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">

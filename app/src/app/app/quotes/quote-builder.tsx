@@ -9,6 +9,8 @@ import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
 import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
+import { Checkbox } from "@/components/ui/checkbox";
+import { imageUrl } from "@/lib/images";
 import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
 import { PoliciesSection } from "./policies-section";
@@ -118,6 +120,9 @@ export function QuoteBuilder({
     setEditedSinceSave(true);
     setValues((v) => ({ ...v, ...change }));
   }
+  /** A line's product photo (null for a one-off item or a product with no photo). */
+  const photoOf = (line: LineFormValues) =>
+    line.productId ? (products.find((p) => p.id === line.productId)?.photoImageId ?? null) : null;
   const savedAddresses = customers.find((c) => c.id === values.customerId)?.addresses ?? [];
 
   /**
@@ -388,6 +393,7 @@ export function QuoteBuilder({
                   const r = totals?.lines.find((l) => l.id === line.key);
                   return r ? r.amountBeforeDiscountCents - r.lineDiscountCents : null;
                 })()}
+                photoId={values.showPhotos ? photoOf(line) : null}
                 onEdit={() => openSheet({ kind: "configure", line, isNew: false })}
                 onRemove={() => removeLine(line.key, index)}
               />
@@ -397,6 +403,20 @@ export function QuoteBuilder({
         <Button id="add-item" type="button" variant="outline" onClick={() => openSheet({ kind: "pick" })}>
           Add item
         </Button>
+        {/* Only when an item has a photo to show; nothing to decide otherwise. */}
+        {values.lines.some((l) => photoOf(l)) && (
+          <Field orientation="horizontal" className="items-start py-2.5">
+            <Checkbox
+              id="showPhotos"
+              name="showPhotos"
+              checked={values.showPhotos}
+              onCheckedChange={(checked) => update({ showPhotos: checked === true })}
+            />
+            <FieldLabel htmlFor="showPhotos" className="text-base">
+              Show product photos on this quote
+            </FieldLabel>
+          </Field>
+        )}
         <LineSheet
           open={sheetOpen}
           view={sheetView}
@@ -625,11 +645,14 @@ function LineRow({
   error,
   money,
   lineTotal,
+  photoId,
   onEdit,
   onRemove,
 }: {
   line: LineFormValues;
   number: number;
+  /** The product's photo, shown small when the quote shows photos. */
+  photoId: string | null;
   error?: string;
   money: (cents: number) => string;
   lineTotal: number | null;
@@ -643,9 +666,20 @@ function LineRow({
     <li>
       <Card className="bg-muted/30" data-testid="quote-line">
         <CardContent className="space-y-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="min-w-0 truncate text-base font-medium">{name}</p>
-            <p className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</p>
+          <div className="flex items-center gap-3">
+            {photoId && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl(photoId, "thumb")}
+                alt=""
+                loading="lazy"
+                className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10"
+              />
+            )}
+            <div className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+              <p className="min-w-0 truncate text-base font-medium">{name}</p>
+              <p className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</p>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}

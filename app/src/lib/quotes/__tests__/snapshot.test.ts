@@ -52,7 +52,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
     signOff: "",
     terms: "",
     paymentInstructions: "",
-    showBankDetails: true,
+    showBankDetails: true, showPhotos: true,
     depositKind: "none",
     depositValue: "",
     balanceDue: "handover",
@@ -359,5 +359,56 @@ describe("the delivery address in the snapshot", () => {
     expect(snap({ fulfilment: "collection", deliveryAddress: "22 Jacaranda Avenue" }).deliveryAddress).toBeNull();
     expect(snap({ fulfilment: "none", deliveryAddress: "22 Jacaranda Avenue" }).deliveryAddress).toBeNull();
     expect(snap({ fulfilment: "delivery", deliveryAddress: "" }).deliveryAddress).toBeNull();
+  });
+});
+
+describe("pictures in the snapshot", () => {
+  const productId = "22222222-2222-4222-8222-222222222222";
+  const line = (over: Partial<QuoteFormValues["lines"][number]> = {}): QuoteFormValues["lines"][number] => ({
+    key: "a",
+    kind: "product",
+    productId,
+    name: "Cake",
+    description: "",
+    quantity: "1",
+    unit: "",
+    unitPrice: "100",
+    discountKind: "none",
+    discountValue: "",
+    ...over,
+  });
+  const snap = (over: Partial<QuoteFormValues>, businessOver: Record<string, unknown> = {}) => {
+    const parsed = parseQuote(
+      form({ lines: [line(), line({ key: "b", kind: "custom", productId: "", name: "One-off" })], fulfilment: "none", ...over }),
+      INCLUSIVE,
+    );
+    if (!parsed.ok) throw new Error("should parse");
+    return buildQuoteSnapshot({
+      quote: parsed.quote,
+      number: "QT-0001",
+      version: 1,
+      business: { ...business, ...businessOver },
+      customer,
+      countryCode: "ZA",
+      currencyCode: "ZAR",
+      vat: INCLUSIVE,
+      locale: ZA_LOCALE,
+      bank: null,
+      productPhotos: new Map([[productId, "photo-1"]]),
+    });
+  };
+
+  it("freezes a product's photo on its line, and gives a one-off item none", () => {
+    const s = snap({});
+    expect(s.lines.map((l) => l.photoImageId)).toEqual(["photo-1", null]);
+  });
+
+  it("leaves photos out when the quote has them switched off", () => {
+    expect(snap({ showPhotos: false }).lines.map((l) => l.photoImageId)).toEqual([null, null]);
+  });
+
+  it("freezes the logo, or none", () => {
+    expect(snap({}, { logoImageId: "logo-1" }).logoImageId).toBe("logo-1");
+    expect(snap({}).logoImageId).toBeNull();
   });
 });

@@ -9,9 +9,11 @@ export type ProductFormValues = {
   /** "dozen", "kg": optional. */
   unit: string;
   description: string;
+  /** The photo's id (an uploaded picture), or "". Products only. */
+  photoImageId: string;
 };
 
-export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", unit: "", description: "" };
+export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", unit: "", description: "", photoImageId: "" };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
   return { ...EMPTY_PRODUCT, kind };
@@ -35,6 +37,7 @@ export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormVa
     unitPrice: moneyToInput(p.unitPriceCents, style),
     unit: p.unit ?? "",
     description: p.description ?? "",
+    photoImageId: p.photoImageId ?? "",
   };
 }
 

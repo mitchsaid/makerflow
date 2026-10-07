@@ -1,4 +1,4 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import type { BankLine } from "../../bank";
 import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
@@ -50,7 +50,25 @@ function PartyLines({ party }: { party: QuoteSnapshot["business"] | NonNullable<
   );
 }
 
-export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteSnapshot; draft?: boolean }) {
+/** A picture's bytes, loaded by the caller (the document itself never reads the database). */
+export type PdfImage = { contentType: string; bytes: Buffer };
+
+/** What react-pdf wants for a picture it is given as bytes. */
+const pdfSource = (image: PdfImage) => ({ data: image.bytes, format: image.contentType === "image/png" ? ("png" as const) : ("jpg" as const) });
+
+export function QuoteDocument({
+  snapshot: s,
+  draft = false,
+  images,
+  logo,
+}: {
+  snapshot: QuoteSnapshot;
+  draft?: boolean;
+  /** The product photos named in the snapshot (small copies), by image id. A missing one is left out. */
+  images?: ReadonlyMap<string, PdfImage>;
+  /** The business's logo, if the snapshot names one and it could be loaded. */
+  logo?: PdfImage | null;
+}) {
   const styles = designStyles(s.design);
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
@@ -58,6 +76,9 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
   const inclusive = s.vat.registered && s.vat.entry === "inclusive";
   const exclusive = s.vat.registered && s.vat.entry === "exclusive";
   const columns = s.bankDetails ? splitInTwo(s.bankDetails) : [];
+  const photoOf = (l: QuoteSnapshot["lines"][number]) => (l.photoImageId ? (images?.get(l.photoImageId) ?? null) : null);
+  // When any item has a photo, every item keeps a photo-sized space so the names line up.
+  const anyPhoto = s.lines.some((l) => photoOf(l) !== null);
   const numberText = s.version > 1 ? `${s.number} · version ${s.version}` : s.number;
 
   return (
@@ -74,6 +95,14 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
         <View>
           {draft ? (
             <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>
+          ) : null}
+
+          {logo ? (
+            <View style={styles.logoBox}>
+              {/* A picture inside a PDF: react-pdf's Image, not an HTML img, so no alt text applies. */}
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={pdfSource(logo)} style={styles.logo} />
+            </View>
           ) : null}
 
           <View style={styles.headerTop}>
@@ -157,9 +186,21 @@ export function QuoteDocument({ snapshot: s, draft = false }: { snapshot: QuoteS
               <View key={i} wrap={false}>
                 <View style={styles.row}>
                   <View style={styles.colName}>
-                    <Text>{l.name}</Text>
-                    {l.description ? <Text style={styles.description}>{l.description}</Text> : null}
-                    {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                    <View style={styles.nameRow}>
+                      {anyPhoto ? (
+                        photoOf(l) ? (
+                          // eslint-disable-next-line jsx-a11y/alt-text
+                          <Image src={pdfSource(photoOf(l)!)} style={styles.thumb} />
+                        ) : (
+                          <View style={styles.thumbSpace} />
+                        )
+                      ) : null}
+                      <View style={styles.nameText}>
+                        <Text>{l.name}</Text>
+                        {l.description ? <Text style={styles.description}>{l.description}</Text> : null}
+                        {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                      </View>
+                    </View>
                   </View>
                   <Text style={styles.colQty}>{quantityText(l.quantityMilli, l.unit, s.numberStyle, " ")}</Text>
                   <Text style={styles.colPrice}>{money(l.unitPriceCents)}</Text>

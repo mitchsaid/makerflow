@@ -28,11 +28,13 @@ function toRow(p: ProductFields) {
     description: p.description,
     unit_price_cents: p.unitPriceCents,
     unit: p.unit,
+    // Only when the form carried a photo field: otherwise the saved photo is left alone.
+    ...(p.photoImageId === undefined ? {} : { photo_image_id: p.photoImageId }),
   };
 }
 
 function summaryFor(id: string, organisationId: string, p: ProductFields): ProductSummary {
-  return { id, organisationId, archived: false, ...p };
+  return { id, organisationId, archived: false, ...p, photoImageId: p.photoImageId ?? null };
 }
 
 async function insertProduct(
@@ -48,6 +50,9 @@ async function insertProduct(
     .insert({ organisation_id: organisation.id, ...toRow(parsed.value) })
     .select("id")
     .single();
+  if (error?.code === "23503") {
+    return { ok: false, state: { status: "error", errors: { photo: "That photo could not be used. Choose it again." } } };
+  }
   if (error || !created) {
     console.error("could not add product:", error?.message);
     return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
@@ -95,6 +100,9 @@ export async function updateProduct(
     .eq("id", id)
     .eq("organisation_id", organisation.id)
     .select("id");
+  if (error?.code === "23503") {
+    return { status: "error", errors: { photo: "That photo could not be used. Choose it again." } };
+  }
   if (error || !saved || saved.length !== 1) {
     console.error("could not save product:", error?.message);
     return { status: "error", message: GENERIC_ERROR };
