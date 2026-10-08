@@ -10,6 +10,7 @@ import {
   type LineInput,
   type QuantityMilli,
   type VatSettings,
+  type VatStatus,
 } from "../money";
 import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
@@ -61,6 +62,8 @@ export type LineFormValues = {
   unitPrice: string;
   discountKind: DiscountKind;
   discountValue: string;
+  /** How VAT treats this item. Only a VAT-registered business sees it; everything else is standard. */
+  vatStatus?: VatStatus;
 };
 
 export type QuoteFormValues = {
@@ -144,6 +147,7 @@ export type ParsedLine = {
   unit: string | null;
   unitPriceCents: Cents;
   discount?: Discount;
+  vatStatus: VatStatus;
 };
 
 export type ParsedQuote = {
@@ -180,6 +184,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const DISCOUNT_KINDS: readonly unknown[] = ["none", "percent", "fixed"];
 const ITEM_KINDS: readonly unknown[] = ["product", "service", "custom"];
+export const VAT_STATUSES: readonly VatStatus[] = ["standard", "zero", "exempt"];
 const FULFILMENTS: readonly unknown[] = ["none", "collection", "delivery"];
 /** Far more rows than a quote can hold, so a hand-built request can't make us parse thousands. */
 const MAX_RAW_LINES = 500;
@@ -243,7 +248,9 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
         (key) => typeof l[key] === "string",
       ) &&
       DISCOUNT_KINDS.includes(l.discountKind) &&
-      ITEM_KINDS.includes(l.kind)
+      ITEM_KINDS.includes(l.kind) &&
+      // An older app does not send it: that means standard-rated.
+      (l.vatStatus === undefined || VAT_STATUSES.includes(l.vatStatus as VatStatus))
     );
   });
 }
@@ -261,6 +268,7 @@ export function blankLine(key: string): LineFormValues {
     unitPrice: "",
     discountKind: "none",
     discountValue: "",
+    vatStatus: "standard",
   };
 }
 
@@ -343,6 +351,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       unit: unit.value,
       unitPriceCents: price.value,
       discount: discount.value,
+      vatStatus: line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
     },
   };
 }
@@ -353,7 +362,7 @@ function toInputs(lines: readonly ParsedLine[]): LineInput[] {
     quantityMilli: l.quantityMilli,
     unitPriceCents: l.unitPriceCents,
     discount: l.discount,
-    vatStatus: "standard" as const,
+    vatStatus: l.vatStatus,
   }));
 }
 
@@ -365,14 +374,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0 },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard" },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard" },
   };
 }
 
@@ -445,7 +454,8 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   const lines: ParsedLine[] = [];
   for (const line of kept) {
     const r = parseLine(line);
-    if (r.ok) lines.push(r.line);
+    // Without VAT there is only one treatment; a leftover from when the business was registered is dropped.
+    if (r.ok) lines.push(vat.registered ? r.line : { ...r.line, vatStatus: "standard" });
     else errors.lines[line.key] = r.errors;
   }
 
@@ -540,6 +550,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       unit: null,
       unitPriceCents: price.value,
       discount: discount.ok ? discount.value : undefined,
+      vatStatus: vat.registered && line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
     });
   }
   const fulfilment = fulfilmentLine(values);
@@ -605,7 +616,7 @@ export function toDatabasePayload(
           ? l.discount.basisPoints
           : l.discount.cents
         : 0,
-      vat_status: "standard",
+      vat_status: l.vatStatus,
     })),
   };
 }

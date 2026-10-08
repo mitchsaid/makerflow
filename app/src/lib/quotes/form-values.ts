@@ -1,3 +1,4 @@
+import type { VatStatus } from "../money";
 import { moneyToInput, percentToInput, quantityToInput, type NumberStyle } from "../money";
 import type { BalanceDue, DepositKind } from "./deposit";
 import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, QuoteFormValues } from "./index";
@@ -36,6 +37,7 @@ export type StoredQuoteFields = {
     unitPriceCents: number;
     discountKind: DiscountKind;
     discountValue: number;
+    vatStatus?: VatStatus;
   }[];
 };
 
@@ -64,6 +66,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
       unitPrice: moneyToInput(l.unitPriceCents, style),
       discountKind: l.discountKind,
       discountValue: discountText(l.discountKind, l.discountValue, style),
+      vatStatus: l.vatStatus ?? "standard",
     }));
   const fulfilmentLine = sorted.find((l) => l.kind === "delivery" || l.kind === "collection");
   const fulfilment: Fulfilment = fulfilmentLine ? (fulfilmentLine.kind as Fulfilment) : "none";

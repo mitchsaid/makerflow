@@ -10,6 +10,7 @@ import { FONT_LIST } from "../font-list";
 import { BLANK_SPEC, HEADERS, LAYOUTS, LOGO_MODES, ROWS, STARTERS, TABLE_HEADS, TOTALS, resolveTheme, themeFromStored, type ThemeSpec } from "../themes";
 import { renderQuotePdf } from "../pdf/render";
 import { buildQuoteSnapshot } from "../snapshot";
+import { vatView } from "../vat-view";
 
 const vats: Record<string, VatSettings> = {
   inclusive: { registered: true, entry: "inclusive", standardRateBp: 1500 },
@@ -513,5 +514,66 @@ describe("pictures on the document", () => {
     delete old.logoImageId;
     const pdf = await renderQuotePdf(old as unknown as ReturnType<typeof snapshot>);
     expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  });
+});
+
+describe("VAT treatments on items", () => {
+  const mixedLines: QuoteFormValues["lines"] = [
+    { key: "a", kind: "custom", productId: "", name: "Wedding cake", description: "", quantity: "1", unit: "", unitPrice: "1150", discountKind: "none", discountValue: "", vatStatus: "standard" },
+    { key: "b", kind: "custom", productId: "", name: "Brown bread", description: "", quantity: "2", unit: "", unitPrice: "50", discountKind: "none", discountValue: "", vatStatus: "zero" },
+    { key: "c", kind: "custom", productId: "", name: "Hall hire", description: "", quantity: "1", unit: "", unitPrice: "200", discountKind: "none", discountValue: "", vatStatus: "exempt" },
+  ];
+  const plain = { fulfilment: "none" as const, discountKind: "none" as const, discountValue: "" };
+
+  it("freezes each item's treatment, the words for them and a statement that fits a mixed quote", () => {
+    const s = snapshot(vats.inclusive, { ...plain, lines: mixedLines });
+    expect(s.lines.map((l) => l.vatStatus)).toEqual(["standard", "zero", "exempt"]);
+    expect(s.wording.vatStatusLabels).toEqual({ standard: "Standard-rated", zero: "Zero-rated", exempt: "Exempt" });
+    expect(s.wording.inclusiveStatement).toBe("Prices include VAT at 15% on standard-rated items. Zero-rated and exempt items carry no VAT.");
+    // VAT only on the standard-rated part: 1150 x 15/115.
+    expect(s.totals.vatCents).toBe(15_000);
+    expect(s.totals.grossCents).toBe(115_000 + 10_000 + 20_000);
+    expect(s.totals.groups.map((g) => g.vatStatus)).toEqual(["standard", "zero", "exempt"]);
+  });
+
+  it("keeps the plain statement and no labels when every item is standard-rated", () => {
+    const s = snapshot(vats.inclusive, { ...plain, lines: [mixedLines[0]] });
+    expect(s.wording.inclusiveStatement).toBe("All prices include VAT at 15%.");
+    expect(vatView(s).mixed).toBe(false);
+    expect(vatView(s).lineLabel(s.lines[0])).toBeNull();
+    expect(vatView(s).breakdown).toEqual([]);
+  });
+
+  it("says no VAT is charged when nothing is standard-rated", () => {
+    const s = snapshot(vats.inclusive, { ...plain, lines: [mixedLines[1]] });
+    expect(s.wording.inclusiveStatement).toBe("No VAT is charged: all items are zero-rated.");
+    expect(s.totals.vatCents).toBe(0);
+    expect(vatView(s).showRate).toBe(false);
+  });
+
+  it("ignores treatments for a business that is not VAT registered", () => {
+    const s = snapshot(vats.none, { ...plain, lines: mixedLines });
+    expect(s.lines.every((l) => l.vatStatus === undefined)).toBe(true);
+    expect(s.wording.vatStatusLabels).toBeUndefined();
+    expect(s.totals.vatCents).toBe(0);
+    expect(vatView(s).mixed).toBe(false);
+  });
+
+  it("names the treatment under each item and breaks the totals down, in every layout", async () => {
+    const s = snapshot(vats.inclusive, { ...plain, lines: mixedLines });
+    for (const layout of LAYOUTS) {
+      const themed = { ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout }, "Test") };
+      const text = (await pageTexts(await renderQuotePdf(themed))).flat().join(" ");
+      expect(text, layout).toContain("Zero-rated");
+      expect(text, layout).toContain("Exempt");
+      expect(text, layout).toContain("no VAT");
+    }
+  }, 60_000);
+
+  it("draws a version sent before items had treatments exactly as it was", async () => {
+    const old = snapshot(vats.inclusive);
+    const text = (await pageTexts(await renderQuotePdf({ ...old, lines: old.lines.map((l) => ({ ...l, vatStatus: undefined })), wording: { ...old.wording, vatStatusLabels: undefined } }))).flat().join(" ");
+    expect(text).not.toContain("Standard-rated");
+    expect(text).toContain("All prices include VAT");
   });
 });

@@ -29,7 +29,7 @@ import {
   type VatSettings,
 } from "@/lib/money";
 import type { ProductSummary } from "@/lib/products";
-import { getLocalePack, priceEntryLabel } from "@/lib/locale";
+import { getLocalePack, priceEntryLabel, type LocalePack } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import {
   previewTotals,
@@ -61,6 +61,7 @@ export function QuoteBuilder({
   countryCode,
   numberStyle,
   taxName,
+  vatStatuses,
   justSaved,
   focusOnLoad,
   policyLibrary: initialPolicyLibrary,
@@ -83,6 +84,8 @@ export function QuoteBuilder({
   numberStyle: NumberStyle;
   /** "VAT": what the country calls its sales tax. */
   taxName: string;
+  /** The country's names and hints for each VAT treatment (from the locale pack). */
+  vatStatuses: LocalePack["tax"]["statuses"];
   /** A new draft has just been saved and this page opened on it. */
   justSaved: boolean;
   /** The field to land on (the preview sends people back to fix something). */
@@ -455,6 +458,7 @@ export function QuoteBuilder({
                     return r ? r.amountBeforeDiscountCents - r.lineDiscountCents : null;
                   })()}
                   photoId={values.showPhotos ? photoOf(line) : null}
+                  vatLabel={vat.registered && line.vatStatus && line.vatStatus !== "standard" ? vatStatuses[line.vatStatus].label : null}
                   onEdit={() => openSheet({ kind: "configure", line, isNew: false })}
                 />
               );
@@ -495,6 +499,18 @@ export function QuoteBuilder({
           numberStyle={numberStyle}
           currencyCode={currencyCode}
           priceLabel={priceLabel}
+          vatChoices={
+            vat.registered
+              ? (["standard", "zero", "exempt"] as const).map((value) => ({
+                  value,
+                  label:
+                    value === "standard"
+                      ? `${vatStatuses.standard.label} (${formatPercent(vat.standardRateBp, numberStyle)})`
+                      : vatStatuses[value].label,
+                  hint: vatStatuses[value].hint,
+                }))
+              : null
+          }
           newKey={newKey}
           onView={openSheet}
           onClose={closeSheet}
@@ -726,9 +742,12 @@ function LineRow({
   money,
   lineTotal,
   photoId,
+  vatLabel,
   onEdit,
 }: {
   line: LineFormValues;
+  /** The VAT treatment's name when it is not the standard one. */
+  vatLabel: string | null;
   number: number;
   /** The product's photo, shown small when the quote shows photos. */
   photoId: string | null;
@@ -768,6 +787,7 @@ function LineRow({
             <span className="block truncate text-sm text-muted-foreground">
               {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}
               {line.discountKind !== "none" && " · discount"}
+              {vatLabel && ` · ${vatLabel}`}
               {!line.productId && " · one-off item"}
             </span>
           </span>

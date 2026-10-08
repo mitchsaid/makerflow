@@ -299,6 +299,20 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByText(/Last changed /)).toBeVisible();
       await expectNoViolations(page, "business profile, bank details saved");
 
+      // A VAT-registered business gets the VAT choice on each item.
+      await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
+      await page.getByLabel("VAT number").fill("4123456789");
+      await page.getByRole("button", { name: "Save details" }).click();
+      await expect(page.getByText("Saved.").first()).toBeVisible();
+      await page.goto("/app/quotes/new");
+      await page.getByRole("button", { name: "Add item" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
+      await page.getByRole("dialog").getByLabel("VAT on this item").selectOption("zero");
+      await expect(page.getByTestId("vat-hint")).toBeVisible();
+      await page.getByTestId("vat-hint").scrollIntoViewIfNeeded();
+      await expectNoViolations(page, "item sheet, VAT choice");
+      await page.keyboard.press("Escape");
+
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices");

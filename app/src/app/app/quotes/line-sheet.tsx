@@ -23,6 +23,7 @@ import {
 } from "@/lib/money";
 import { UnitField } from "@/components/unit-field";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
+import type { VatStatus } from "@/lib/money";
 import { parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
@@ -60,6 +61,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     unitPrice: moneyToInput(product.unitPriceCents, style),
     discountKind: "none",
     discountValue: "",
+    vatStatus: "standard",
   };
 }
 
@@ -70,6 +72,7 @@ export function LineSheet({
   numberStyle,
   currencyCode,
   priceLabel,
+  vatChoices,
   newKey,
   onView,
   onClose,
@@ -85,6 +88,8 @@ export function LineSheet({
   currencyCode: string;
   /** "Price (including VAT)" and so on. */
   priceLabel: string;
+  /** How VAT can treat an item, in the country's words; null when the business is not VAT registered. */
+  vatChoices: { value: VatStatus; label: string; hint: string }[] | null;
   /** A fresh key for a line that is about to be added. */
   newKey: () => string;
   onView: (view: LineSheetView) => void;
@@ -160,6 +165,7 @@ export function LineSheet({
                     unitPrice: "",
                     discountKind: "none",
                     discountValue: "",
+                    vatStatus: "standard",
                   },
                 })
               }
@@ -172,6 +178,7 @@ export function LineSheet({
               isNew={view.isNew}
               product={products.find((p) => p.id === view.line.productId)}
               priceLabel={priceLabel}
+              vatChoices={vatChoices}
               currencySymbol={symbol}
               numberStyle={numberStyle}
               money={money}
@@ -355,6 +362,7 @@ function ConfigureView({
   isNew,
   product,
   priceLabel,
+  vatChoices,
   currencySymbol: symbol,
   numberStyle,
   money,
@@ -367,6 +375,7 @@ function ConfigureView({
   isNew: boolean;
   product: ProductSummary | undefined;
   priceLabel: string;
+  vatChoices: { value: VatStatus; label: string; hint: string }[] | null;
   currencySymbol: string;
   numberStyle: NumberStyle;
   money: (cents: number) => string;
@@ -538,6 +547,22 @@ function ConfigureView({
             error={errors.discountValue}
             onChange={set("discountValue")}
           />
+        )}
+        {vatChoices && (
+          <div className="space-y-1">
+            <SelectField
+              id={id("vatStatus")}
+              label="VAT on this item"
+              value={line.vatStatus && line.vatStatus !== "standard" ? line.vatStatus : ""}
+              onChange={(status) => setLine((l) => ({ ...l, vatStatus: (status === "" ? "standard" : status) as VatStatus }))}
+              placeholder={vatChoices.find((c) => c.value === "standard")?.label ?? "Standard-rated"}
+              options={vatChoices.filter((c) => c.value !== "standard").map((c) => c.value)}
+              optionLabels={Object.fromEntries(vatChoices.map((c) => [c.value, c.label]))}
+            />
+            <p className="text-sm text-muted-foreground" data-testid="vat-hint">
+              {vatChoices.find((c) => c.value === (line.vatStatus ?? "standard"))?.hint}
+            </p>
+          </div>
         )}
       </Section>
 

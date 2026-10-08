@@ -20,6 +20,7 @@ export async function fillItem(
   quantity: string,
   price: string,
   discountPercent?: string,
+  vat?: "zero" | "exempt",
 ) {
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /One-off item/ }).click();
@@ -31,6 +32,7 @@ export async function fillItem(
     await sheet(page).getByLabel("Discount on this item").selectOption("percent");
     await sheet(page).getByLabel("Item discount (%)").fill(discountPercent);
   }
+  if (vat) await sheet(page).getByLabel("VAT on this item").selectOption(vat);
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(item(page, n)).toContainText(name);

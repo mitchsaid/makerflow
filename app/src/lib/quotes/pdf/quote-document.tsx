@@ -6,6 +6,7 @@ import { quantityText } from "../units";
 import { IMAGE_OPACITY, themeFromStored } from "../themes";
 import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
+import { vatView } from "../vat-view";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -94,6 +95,7 @@ export function QuoteDocument({
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
   const lineTotal = s.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
+  const vat = vatView(s);
   const inclusive = s.vat.registered && s.vat.entry === "inclusive";
   const exclusive = s.vat.registered && s.vat.entry === "exclusive";
   const columns = s.bankDetails ? splitInTwo(s.bankDetails) : [];
@@ -286,6 +288,7 @@ export function QuoteDocument({
                             <Text>{l.name}</Text>
                             {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                             {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                            {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
                           </View>
                         </View>
                       </View>
@@ -312,6 +315,7 @@ export function QuoteDocument({
                   <>
                     {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                     {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                    {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
                   </>
                 );
                 if (theme.layout === "cards") {
@@ -399,7 +403,7 @@ export function QuoteDocument({
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>
                     {s.vat.taxName}
-                    {s.vat.rateBp !== null ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : ""}
+                    {s.vat.rateBp !== null && vat.showRate ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : ""}
                   </Text>
                   <Text>{money(s.totals.vatCents)}</Text>
                 </View>
@@ -413,11 +417,21 @@ export function QuoteDocument({
               <View style={styles.totalRow}>
                 <Text style={[styles.muted, styles.totalLabel]}>
                   Includes {s.vat.taxName}
-                  {s.vat.rateBp !== null ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : ""}
+                  {s.vat.rateBp !== null && vat.showRate ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : ""}
                 </Text>
                 <Text style={styles.muted}>{money(s.totals.vatCents)}</Text>
               </View>
             ) : null}
+            {/* A document that mixes treatments says what each part is and what VAT is in it. */}
+            {vat.breakdown.map((b) => (
+              <View key={b.label} style={styles.totalRow}>
+                <Text style={[styles.muted, styles.totalLabel]}>
+                  {b.label}
+                  {b.vatCents > 0 ? `, ${s.vat.taxName} ${money(b.vatCents)}` : `, no ${s.vat.taxName}`}
+                </Text>
+                <Text style={styles.muted}>{money(b.amountCents)}</Text>
+              </View>
+            ))}
           </View>
 
           {s.deposit ? (

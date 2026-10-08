@@ -1,4 +1,5 @@
 import type { BasisPoints, Cents } from "../money/primitives";
+import type { VatStatus } from "../money/document";
 import type { NumberStyle } from "../money/format";
 import type { PolicyPackContent } from "../policies/examples";
 import type { ValidationResult } from "../validation";
@@ -79,6 +80,16 @@ export type LocalePack = {
     fullInvoiceThresholdCents: Cents;
     /** What a document must say when prices include the tax. */
     inclusiveStatement(rateBp: BasisPoints): string;
+    /**
+     * The treatments a line can have, in this country's words. `label` is printed on a document that mixes
+     * treatments; `hint` helps the maker choose.
+     */
+    statuses: Record<VatStatus, { label: string; hint: string }>;
+    /**
+     * What a document must say when prices include the tax and some items are not standard-rated (the
+     * `present` treatments are those the document has, at least one is not standard).
+     */
+    mixedInclusiveStatement(rateBp: BasisPoints, present: readonly VatStatus[]): string;
   };
   /** How this country's businesses are paid by bank transfer. */
   payment: {
