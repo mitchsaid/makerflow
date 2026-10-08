@@ -226,4 +226,13 @@ test("a product's VAT treatment is only for VAT-registered businesses, and its q
   // 30 (no VAT) + 115 (15 of it VAT).
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("145"));
   await expect(page.getByTestId("totals")).toContainText(rand("15"));
+
+  // Changing a product's treatment from inside the item sheet carries to the item being added.
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("");
+  await sheet(page).getByRole("button", { name: "Edit this product" }).click();
+  await sheet(page).getByLabel("VAT on this", { exact: true }).selectOption("zero");
+  await sheet(page).getByRole("button", { name: "Save changes" }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("zero");
 });

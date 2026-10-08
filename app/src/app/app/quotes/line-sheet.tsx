@@ -253,6 +253,7 @@ function followProduct(
       line.unitPrice === moneyToInput(before.unitPriceCents, style)
         ? moneyToInput(after.unitPriceCents, style)
         : line.unitPrice,
+    vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
   };
 }
 
