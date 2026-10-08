@@ -3,8 +3,8 @@ import type { BankLine } from "../../bank";
 import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
 import { quantityText } from "../units";
-import { themeFor } from "../designs";
-import { makeStyles } from "./designs";
+import { themeFromStored } from "../themes";
+import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 
 /**
@@ -40,13 +40,14 @@ function quoteDiscountText(d: SnapshotDiscount, s: QuoteSnapshot): string {
  * address on one line (it wraps when it must), then phone and email on one line. The address
  * lines are the country's own (from its locale pack); they are only joined here.
  */
-function PartyLines({ party }: { party: QuoteSnapshot["business"] | NonNullable<QuoteSnapshot["customer"]> }) {
+function PartyLines({ party, centred = false }: { party: QuoteSnapshot["business"] | NonNullable<QuoteSnapshot["customer"]>; centred?: boolean }) {
+  const align = centred ? ({ textAlign: "center" } as const) : undefined;
   const contact = [party.phone, party.email].filter(Boolean).join(" · ");
   return (
     <>
-      {party.contactPerson ? <Text>{party.contactPerson}</Text> : null}
-      {party.addressLines.length > 0 ? <Text>{party.addressLines.join(", ")}</Text> : null}
-      {contact ? <Text>{contact}</Text> : null}
+      {party.contactPerson ? <Text style={align}>{party.contactPerson}</Text> : null}
+      {party.addressLines.length > 0 ? <Text style={align}>{party.addressLines.join(", ")}</Text> : null}
+      {contact ? <Text style={align}>{contact}</Text> : null}
     </>
   );
 }
@@ -79,7 +80,7 @@ export function QuoteDocument({
   /** The business's logo, if the snapshot names one and it could be loaded. */
   logo?: PdfImage | null;
 }) {
-  const theme = themeFor(s);
+  const theme = themeFromStored(s);
   const styles = makeStyles(theme);
   const draftBanner = <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>;
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
@@ -91,6 +92,20 @@ export function QuoteDocument({
   const photoOf = (l: QuoteSnapshot["lines"][number]) => (l.photoImageId ? (images?.get(l.photoImageId) ?? null) : null);
   // When any item has a photo, every item keeps a photo-sized space so the names line up.
   const anyPhoto = s.lines.some((l) => photoOf(l) !== null);
+  // The logo and the name, as the theme asks: both, only the logo (the name when there is no logo), or only the name.
+  const showLogo = !!logo && theme.headerLogo !== "name";
+  const showName = !(theme.headerLogo === "logo" && !!logo);
+  // Photo sizes by layout and the theme's choice, and their shape.
+  const tablePhoto = theme.photo === "large" ? 60 : 36;
+  const cardPhoto = theme.photo === "large" ? 80 : 48;
+  const showcasePhoto = theme.photo === "large" ? 96 : 64;
+  const photoStyle = (size: number) => ({
+    width: size,
+    height: size,
+    marginRight: 10,
+    objectFit: "cover" as const,
+    borderRadius: theme.photoShape === "round" ? size / 2 : theme.photoShape === "rounded" ? Math.min(size / 6, 10) : 0,
+  });
   const numberText = s.version > 1 ? `${s.number} · version ${s.version}` : s.number;
 
   return (
@@ -111,33 +126,47 @@ export function QuoteDocument({
           {/* On a band the colour must start at the very top of the page, so the draft banner goes beneath it. */}
           {draft && theme.header !== "band" ? draftBanner : null}
 
-          {/* The business, the kind of document and the number: on a band of colour, or plain on the page. */}
-          <View style={theme.header === "band" ? styles.band : undefined}>
-            {logo ? (
+          {/* The business, the kind of document and the number: on a band of colour, in a frame, or plain on the page. */}
+          <View style={theme.header === "band" ? styles.band : theme.header === "boxed" ? styles.boxedHeader : undefined}>
+            {showLogo ? (
               <View style={theme.header === "band" ? styles.logoTile : styles.logoBox}>
                 {/* A picture inside a PDF: react-pdf's Image, not an HTML img, so no alt text applies. */}
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                <Image src={pdfSource(logo)} style={styles.logo} />
+                <Image src={pdfSource(logo!)} style={styles.logo} />
               </View>
             ) : null}
 
-            <View style={styles.headerTop}>
-              <View style={styles.businessNameBox}>
-                <Text style={styles.businessName}>{s.business.name}</Text>
-              </View>
-              <Text style={styles.title}>{s.wording.title}</Text>
-            </View>
-            <View style={styles.headerDetails}>
-              <View style={styles.headerLeft}>
-                <PartyLines party={s.business} />
+            {theme.headerAlign === "center" ? (
+              <View style={styles.centredHeader}>
+                {showName ? <Text style={styles.centredName}>{s.business.name}</Text> : null}
+                <PartyLines party={s.business} centred />
                 {s.business.vatNumber ? (
                   <Text>
                     {s.vat.registrationNumberLabel}: {s.business.vatNumber}
                   </Text>
                 ) : null}
+                <Text style={styles.centredTitle}>{s.wording.title}</Text>
+                <Text style={styles.centredNumber}>{numberText}</Text>
               </View>
-              <Text style={styles.number}>{numberText}</Text>
-            </View>
+            ) : (
+              <>
+                <View style={styles.headerTop}>
+                  <View style={styles.businessNameBox}>{showName ? <Text style={styles.businessName}>{s.business.name}</Text> : null}</View>
+                  <Text style={styles.title}>{s.wording.title}</Text>
+                </View>
+                <View style={styles.headerDetails}>
+                  <View style={styles.headerLeft}>
+                    <PartyLines party={s.business} />
+                    {s.business.vatNumber ? (
+                      <Text>
+                        {s.vat.registrationNumberLabel}: {s.business.vatNumber}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.number}>{numberText}</Text>
+                </View>
+              </>
+            )}
           </View>
 
           {draft && theme.header === "band" ? <View style={{ marginTop: 12 }}>{draftBanner}</View> : null}
@@ -193,42 +222,120 @@ export function QuoteDocument({
             </View>
           ) : null}
 
-          <View style={styles.table}>
-            {/* Fixed inside the table: it repeats at the top of each page the table runs onto. */}
-            <View style={styles.tableHead} fixed>
-              <Text style={[styles.tableHeadText, styles.colName]}>Item</Text>
-              <Text style={[styles.tableHeadText, styles.colQty]}>Qty</Text>
-              <Text style={[styles.tableHeadText, styles.colPrice]}>Price</Text>
-              <Text style={[styles.tableHeadText, styles.colAmount]}>Amount</Text>
-            </View>
-            {s.lines.map((l, i) => (
-              <View key={i} wrap={false}>
-                <View style={theme.rows === "zebra" && i % 2 === 1 ? [styles.row, styles.rowShaded] : styles.row}>
-                  <View style={styles.colName}>
-                    <View style={styles.nameRow}>
-                      {anyPhoto ? (
-                        photoOf(l) ? (
-                          // eslint-disable-next-line jsx-a11y/alt-text
-                          <Image src={pdfSource(photoOf(l)!)} style={styles.thumb} />
-                        ) : (
-                          <View style={styles.thumbSpace} />
-                        )
-                      ) : null}
-                      <View style={styles.nameText}>
-                        <Text>{l.name}</Text>
-                        {l.description ? <Text style={styles.description}>{l.description}</Text> : null}
-                        {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+          {theme.layout === "table" ? (
+            <View style={styles.table}>
+              {/* Fixed inside the table: it repeats at the top of each page the table runs onto. */}
+              {theme.tableHead !== "none" ? (
+                <View style={styles.tableHead} fixed>
+                  {theme.numbered ? <Text style={[styles.colNo, styles.tableHeadText]}>No.</Text> : null}
+                  <Text style={[styles.tableHeadText, styles.colName]}>Item</Text>
+                  {theme.showQty ? <Text style={[styles.tableHeadText, styles.colQty]}>Qty</Text> : null}
+                  {theme.showUnitPrice ? <Text style={[styles.tableHeadText, styles.colPrice]}>Price</Text> : null}
+                  <Text style={[styles.tableHeadText, styles.colAmount]}>Amount</Text>
+                </View>
+              ) : null}
+              {s.lines.map((l, i) => {
+                const cell = theme.rows === "grid" ? styles.cellGrid : undefined;
+                return (
+                  <View key={i} wrap={false}>
+                    <View style={[styles.row, ...(theme.rows === "zebra" && i % 2 === 1 ? [styles.rowShaded] : []), ...(i === 0 ? [styles.rowFirst] : [])]}>
+                      {theme.numbered ? <Text style={[styles.colNo, cell ?? {}]}>{i + 1}</Text> : null}
+                      <View style={[styles.colName, cell ?? {}]}>
+                        <View style={styles.nameRow}>
+                          {anyPhoto && theme.photo !== "none" ? (
+                            photoOf(l) ? (
+                              // eslint-disable-next-line jsx-a11y/alt-text
+                              <Image src={pdfSource(photoOf(l)!)} style={photoStyle(tablePhoto)} />
+                            ) : (
+                              <View style={{ width: tablePhoto, marginRight: 10 }} />
+                            )
+                          ) : null}
+                          <View style={styles.nameText}>
+                            <Text>{l.name}</Text>
+                            {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
+                            {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                          </View>
+                        </View>
                       </View>
+                      {theme.showQty ? <Text style={[styles.colQty, cell ?? {}]}>{quantityText(l.quantityMilli, l.unit, s.numberStyle, " ")}</Text> : null}
+                      {theme.showUnitPrice ? <Text style={[styles.colPrice, cell ?? {}]}>{money(l.unitPriceCents)}</Text> : null}
+                      <Text style={styles.colAmount}>{money(l.lineTotalCents)}</Text>
                     </View>
                   </View>
-                  <Text style={styles.colQty}>{quantityText(l.quantityMilli, l.unit, s.numberStyle, " ")}</Text>
-                  <Text style={styles.colPrice}>{money(l.unitPriceCents)}</Text>
-                  <Text style={styles.colAmount}>{money(l.lineTotalCents)}</Text>
-                </View>
-              </View>
-            ))}
-            {s.lines.length === 0 ? <Text style={[styles.muted, { paddingVertical: 8 }]}>No items yet</Text> : null}
-          </View>
+                );
+              })}
+              {s.lines.length === 0 ? <Text style={[styles.muted, { paddingVertical: 8 }]}>No items yet</Text> : null}
+            </View>
+          ) : (
+            <View style={{ marginTop: 16 }}>
+              {s.lines.map((l, i) => {
+                const photo = theme.photo !== "none" ? photoOf(l) : null;
+                const size = theme.layout === "cards" ? cardPhoto : theme.layout === "showcase" ? showcasePhoto : tablePhoto;
+                const shaded = theme.rows === "zebra" && i % 2 === 1;
+                const label = `${theme.numbered ? `${i + 1}. ` : ""}${l.name}`;
+                const meta = [theme.showQty ? quantityText(l.quantityMilli, l.unit, s.numberStyle, " ") : null, theme.showUnitPrice ? `${money(l.unitPriceCents)}${theme.showQty ? "" : " each"}` : null]
+                  .filter(Boolean)
+                  .join(theme.showQty && theme.showUnitPrice ? " × " : "");
+                const details = (
+                  <>
+                    {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
+                    {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                  </>
+                );
+                if (theme.layout === "cards") {
+                  return (
+                    <View key={i} wrap={false} style={styles.card}>
+                      {photo ? (
+                        // eslint-disable-next-line jsx-a11y/alt-text
+                        <Image src={pdfSource(photo)} style={photoStyle(size)} />
+                      ) : null}
+                      <View style={styles.cardBody}>
+                        <Text style={styles.itemName}>{label}</Text>
+                        {details}
+                        <View style={styles.cardBottom}>
+                          <Text style={styles.itemMeta}>{meta}</Text>
+                          <Text style={styles.bold}>{money(l.lineTotalCents)}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                }
+                if (theme.layout === "showcase") {
+                  return (
+                    <View key={i} wrap={false} style={styles.showcaseItem}>
+                      {photo ? (
+                        // eslint-disable-next-line jsx-a11y/alt-text
+                        <Image src={pdfSource(photo)} style={photoStyle(size)} />
+                      ) : null}
+                      <View style={styles.cardBody}>
+                        <Text style={styles.showcaseName}>{label}</Text>
+                        {details}
+                        <View style={styles.cardBottom}>
+                          <Text style={styles.itemMeta}>{meta}</Text>
+                          <Text style={styles.bold}>{money(l.lineTotalCents)}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                }
+                return (
+                  <View key={i} wrap={false} style={[styles.listItem, ...(shaded ? [styles.rowShaded] : [])]}>
+                    {photo ? (
+                      // eslint-disable-next-line jsx-a11y/alt-text
+                      <Image src={pdfSource(photo)} style={photoStyle(size)} />
+                    ) : null}
+                    <View style={styles.nameText}>
+                      <Text style={styles.itemName}>{label}</Text>
+                      {details}
+                      {meta ? <Text style={styles.itemMeta}>{meta}</Text> : null}
+                    </View>
+                    <Text style={styles.listAmount}>{money(l.lineTotalCents)}</Text>
+                  </View>
+                );
+              })}
+              {s.lines.length === 0 ? <Text style={[styles.muted, { paddingVertical: 8 }]}>No items yet</Text> : null}
+            </View>
+          )}
 
           <View style={styles.totals} wrap={false}>
             {s.quoteDiscount || s.vat.registered ? (

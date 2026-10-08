@@ -10,6 +10,8 @@ export async function drawPdfPages(
   label: string,
   cancelled: () => boolean,
   onFirstPage?: () => void,
+  /** Draw only this many pages (the studio shows the first). */
+  maxPages = Infinity,
 ): Promise<number | null> {
   // The legacy build runs on older phones too.
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -27,7 +29,7 @@ export async function drawPdfPages(
     const live = host.childElementCount === 0;
     const fragment = document.createDocumentFragment();
     const target: ParentNode = live ? host : fragment;
-    for (let n = 1; n <= pdf.numPages; n++) {
+    for (let n = 1; n <= Math.min(pdf.numPages, maxPages); n++) {
       const page = await pdf.getPage(n);
       if (cancelled()) return null;
       const base = page.getViewport({ scale: 1 });

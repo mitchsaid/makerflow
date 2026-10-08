@@ -1,5 +1,5 @@
 import { StyleSheet } from "@react-pdf/renderer";
-import type { Theme } from "../designs";
+import type { Theme } from "../themes";
 import { PDF_FONT, PDF_FONT_SERIF } from "./fonts";
 
 /**
@@ -22,7 +22,6 @@ import { PDF_FONT, PDF_FONT_SERIF } from "./fonts";
 export const MARGIN = 44;
 
 /** The item table's columns. The totals sit under the last two, so they line up with them. */
-const COL_NAME = "42%";
 const COL_QTY = "18%";
 const COL_PRICE = "20%";
 const COL_AMOUNT = "20%";
@@ -30,13 +29,21 @@ const TOTALS_WIDTH = "40%";
 
 export function makeStyles(theme: Theme) {
   const heading = theme.headingFont === "serif" ? PDF_FONT_SERIF : PDF_FONT;
-  const neutral = theme.accent === theme.ink;
+  const body = theme.bodyFont === "serif" ? PDF_FONT_SERIF : PDF_FONT;
+  const centred = theme.headerAlign === "center";
+  /** Space above and below an item, by how airy the theme is. */
+  const pad = { compact: 3.5, comfortable: 6, airy: 10 }[theme.density];
+  const cardGap = { compact: 5, comfortable: 8, airy: 12 }[theme.density];
+  const grid = theme.layout === "table" && theme.rows === "grid";
+  const noHead = theme.tableHead === "none";
+  const neutral = theme.accent === theme.ink || theme.accent === "#1a1a1a";
   /** The colour of small section labels and the rules that carry the accent. */
   const labelColour = neutral ? theme.muted : theme.accentInk;
   const ruleColour = neutral ? theme.ink : theme.accentInk;
   // Shaded or filled blocks need their text pulled in from the edge, and everything in the table and
   // the totals shares the same inset so that columns and amounts still line up.
-  const inset = theme.tableHead !== "line" || theme.rows === "zebra" || theme.totals !== "rule" ? 10 : 0;
+  const inset =
+    theme.tableHead === "tint" || theme.tableHead === "filled" || theme.rows === "zebra" || theme.rows === "grid" || theme.totals !== "rule" ? 10 : 0;
   const onBand = theme.header === "band";
   const band = onBand ? theme.onAccent : theme.ink;
 
@@ -52,7 +59,7 @@ export function makeStyles(theme: Theme) {
       paddingHorizontal: MARGIN,
       paddingBottom: 70,
       fontSize: 10,
-      fontFamily: PDF_FONT,
+      fontFamily: body,
       color: theme.ink,
       backgroundColor: theme.paper,
     },
@@ -74,7 +81,14 @@ export function makeStyles(theme: Theme) {
 
     // The top of the page: the business and the kind of document on one line (their baselines
     // match), the business's details and the number beneath, then who it is for and the dates.
-    logoBox: { marginBottom: 12 },
+    logoBox: { marginBottom: 12, alignSelf: centred ? "center" : "flex-start" },
+    // The header inside a frame of the accent colour.
+    boxedHeader: { borderWidth: 1, borderColor: ruleColour, borderRadius: Math.max(theme.radius, 0), padding: 14, marginBottom: 4 },
+    // Centred: everything stacked in the middle.
+    centredHeader: { alignItems: "center", textAlign: "center" },
+    centredName: { fontSize: 18, fontWeight: 700, fontFamily: heading, marginBottom: 4, textAlign: "center" },
+    centredTitle: { fontSize: 20, fontWeight: 700, fontFamily: heading, marginTop: 10, textAlign: "center", color: onBand ? theme.onAccent : neutral ? theme.ink : theme.accentInk },
+    centredNumber: { fontWeight: 700, marginTop: 2, textAlign: "center" },
     // On a band the logo sits on a white tile, so a dark logo never disappears into the colour.
     logoTile: { marginBottom: 12, alignSelf: "flex-start", backgroundColor: "#ffffff", padding: 6, borderRadius: Math.max(theme.radius, 2) },
     logo: { maxHeight: 48, maxWidth: 160, objectFit: "contain", objectPosition: "left" },
@@ -102,7 +116,10 @@ export function makeStyles(theme: Theme) {
     intro: { marginTop: 20 },
     quoteTitle: { fontSize: 12, fontWeight: 700, marginBottom: 2, fontFamily: heading },
 
-    table: { marginTop: 16 },
+    table: {
+      marginTop: 16,
+      ...(grid ? { borderWidth: 0.5, borderColor: theme.line, borderRadius: theme.radius } : {}),
+    },
     tableHead: {
       flexDirection: "row",
       paddingHorizontal: inset,
@@ -116,22 +133,62 @@ export function makeStyles(theme: Theme) {
     tableHeadText: { fontSize: 8, color: headText, textTransform: "uppercase", letterSpacing: 0.6, fontWeight: headFilled ? 700 : 400 },
     row: {
       flexDirection: "row",
-      paddingVertical: theme.rows === "none" ? 8 : 6,
+      paddingVertical: pad,
       paddingHorizontal: inset,
-      borderBottomWidth: theme.rows === "lines" ? 0.5 : 0,
+      borderBottomWidth: theme.rows === "lines" || theme.rows === "grid" ? 0.5 : 0,
       borderBottomColor: theme.line,
       borderRadius: theme.rows === "zebra" ? theme.radius : 0,
     },
     rowShaded: { backgroundColor: theme.tintStrong },
-    colName: { width: COL_NAME, paddingRight: 10 },
+    // Without a heading, a table with only space or shade between rows still wants a line to start from.
+    rowFirst: noHead && theme.rows !== "grid" ? { borderTopWidth: 0.5, borderTopColor: theme.line } : {},
+    colNo: { width: 20, paddingRight: 6, color: theme.muted },
+    colName: { flex: 1, paddingRight: 10 },
     colQty: { width: COL_QTY, textAlign: "right", paddingRight: 10 },
     colPrice: { width: COL_PRICE, textAlign: "right", paddingRight: 10 },
     colAmount: { width: COL_AMOUNT, textAlign: "right" },
+    // The full grid draws a line between the columns too.
+    cellGrid: { borderRightWidth: 0.5, borderRightColor: theme.line },
     nameRow: { flexDirection: "row" },
     nameText: { flex: 1 },
-    thumb: { width: 38, height: 38, borderRadius: Math.min(theme.radius, 8), marginRight: 10, objectFit: "cover" },
-    thumbSpace: { width: 38, marginRight: 10 },
     description: { color: theme.muted, fontSize: 9, marginTop: 2 },
+    itemName: { fontWeight: 700 },
+
+    // A list: the name and its details on the left, the amount on the right, one item under another.
+    listItem: {
+      flexDirection: "row",
+      paddingVertical: pad,
+      paddingHorizontal: inset,
+      borderBottomWidth: theme.rows === "lines" ? 0.5 : 0,
+      borderBottomColor: theme.line,
+      ...(theme.rows === "grid" ? { borderWidth: 0.5, borderColor: theme.line, borderRadius: theme.radius, marginBottom: cardGap / 2 } : {}),
+      borderRadius: theme.rows === "zebra" || theme.rows === "grid" ? theme.radius : 0,
+    },
+    listAmount: { fontWeight: 700, textAlign: "right", paddingLeft: 10 },
+    itemMeta: { color: theme.muted, fontSize: 9, marginTop: 2 },
+
+    // Cards: each item in its own box.
+    card: {
+      flexDirection: "row",
+      borderWidth: 0.75,
+      borderColor: theme.line,
+      borderRadius: Math.max(theme.radius, 2),
+      padding: 10,
+      marginBottom: cardGap,
+      backgroundColor: theme.rows === "zebra" ? theme.tintStrong : undefined,
+    },
+    cardBody: { flex: 1 },
+    cardBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginTop: 6 },
+
+    // Showcase: a large picture beside the details, with space between items.
+    showcaseItem: {
+      flexDirection: "row",
+      paddingBottom: cardGap + 4,
+      marginBottom: cardGap + 4,
+      borderBottomWidth: theme.rows === "lines" || theme.rows === "grid" ? 0.5 : 0,
+      borderBottomColor: theme.line,
+    },
+    showcaseName: { fontSize: 12, fontWeight: 700, fontFamily: heading },
 
     totals: { marginTop: 8, alignSelf: "flex-end", width: TOTALS_WIDTH },
     totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 2.5, paddingHorizontal: inset },
@@ -142,13 +199,13 @@ export function makeStyles(theme: Theme) {
       alignItems: "baseline",
       paddingTop: 6,
       paddingBottom: theme.totals === "rule" ? 2 : 6,
-      paddingHorizontal: inset,
+      paddingHorizontal: theme.totals === "pill" ? 14 : inset,
       marginTop: 4,
       borderTopWidth: theme.totals === "rule" ? 1 : 0,
       borderTopColor: ruleColour,
-      backgroundColor: theme.totals === "solid" ? theme.accent : theme.totals === "tint" ? theme.tint : undefined,
-      borderRadius: theme.totals === "rule" ? 0 : theme.radius,
-      color: theme.totals === "solid" ? theme.onAccent : theme.totals === "tint" ? theme.accentInk : theme.ink,
+      backgroundColor: theme.totals === "solid" || theme.totals === "pill" ? theme.accent : theme.totals === "tint" ? theme.tint : undefined,
+      borderRadius: theme.totals === "rule" ? 0 : theme.totals === "pill" ? 20 : theme.radius,
+      color: theme.totals === "solid" || theme.totals === "pill" ? theme.onAccent : theme.totals === "tint" ? theme.accentInk : theme.ink,
       fontWeight: 700,
       fontSize: 12,
       fontFamily: heading,

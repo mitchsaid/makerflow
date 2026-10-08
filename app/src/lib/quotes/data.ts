@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { DiscountKind } from "./index";
 import type { Customer, CustomerKind } from "../customers";
-import { isDesignKey, parseDesignOptions, type DesignKey, type DesignOptions } from "./designs";
+import { isStarterKey, type StarterKey } from "./themes";
 import type { QuoteEventKind } from "./outcome";
 import type { QuoteSnapshot } from "./snapshot";
 
@@ -147,8 +147,8 @@ type QuoteRow = {
   payment_instructions: string | null;
   show_bank_details: boolean;
   show_photos: boolean;
-  design: string | null;
-  design_options: unknown;
+  theme_id: string | null;
+  theme_starter: string | null;
   deposit_kind: DepositKind;
   deposit_value: number | string;
   balance_due: BalanceDue;
@@ -189,9 +189,9 @@ export type StoredQuote = {
   showBankDetails: boolean;
   /** Show each product's photo beside its item. */
   showPhotos: boolean;
-  /** This quote's own design, or null to follow the business's default; and what was changed from the design's own look. */
-  design: DesignKey | null;
-  designOptions: DesignOptions | null;
+  /** This quote's own theme: one of the business's (an id) or a starter; neither means it follows the business's default. */
+  themeId: string | null;
+  themeStarter: StarterKey | null;
   /** The deposit terms (basis points or cents) and when the balance is due. */
   depositKind: DepositKind;
   depositValue: number;
@@ -255,7 +255,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, terms, payment_instructions, show_bank_details, show_photos, design, design_options,
+       title, description, sign_off, terms, payment_instructions, show_bank_details, show_photos, theme_id, theme_starter,
        deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
@@ -296,8 +296,8 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     paymentInstructions: row.payment_instructions,
     showBankDetails: row.show_bank_details,
     showPhotos: row.show_photos,
-    design: isDesignKey(row.design) ? row.design : null,
-    designOptions: row.design_options === null ? null : parseDesignOptions(row.design_options),
+    themeId: row.theme_id,
+    themeStarter: isStarterKey(row.theme_starter) ? row.theme_starter : null,
     depositKind: row.deposit_kind,
     depositValue: Number(row.deposit_value),
     balanceDue: row.balance_due,

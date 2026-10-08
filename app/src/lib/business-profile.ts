@@ -1,5 +1,5 @@
 import type { BusinessType } from "./business-types";
-import type { DesignKey, DesignOptions } from "./quotes/designs";
+import type { StarterKey } from "./quotes/themes";
 import { optionalChoice, optionalText, optionalValidated } from "./form-values";
 import type { ContactFacts, LocalePack } from "./locale";
 import {
@@ -35,15 +35,13 @@ export type BusinessProfile = {
   paymentInstructions: string | null;
   /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set under Quotes and invoices. */
   logoImageId: string | null;
-  /** The brand colour ("#rrggbb") every design uses unless a quote chooses its own. Null for the design's own. */
-  brandColor: string | null;
-  /** The design a quote follows unless it picks one (null: classic), and what was changed from it. */
-  defaultDesign: DesignKey | null;
-  defaultDesignOptions: DesignOptions;
+  /** The theme a quote follows unless it picks one: one of the business's own (an id) or a starter; neither means Classic. */
+  defaultThemeId: string | null;
+  defaultThemeStarter: StarterKey | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "logoImageId" | "brandColor" | "defaultDesign" | "defaultDesignOptions">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "logoImageId" | "defaultThemeId" | "defaultThemeStarter">;
 
 export type FieldName =
   | "name"

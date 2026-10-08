@@ -9,7 +9,6 @@ import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { DepositDefaultForm } from "./deposit-default-form";
 import { LogoForm } from "./logo-form";
-import { LookForm } from "./look-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
 
@@ -47,13 +46,20 @@ export default async function DocumentSettingsPage() {
 
       {canEdit && <LogoForm initial={profile.logoImageId ?? ""} businessName={organisation.name} />}
 
-      {canEdit && (
-        <LookForm
-          initialColour={profile.brandColor}
-          initialDesign={profile.defaultDesign}
-          initialOptions={profile.defaultDesignOptions}
-        />
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quote themes</CardTitle>
+          <CardDescription className="text-base">
+            How your quotes look: colours, fonts, the top of the page, how items are shown and the total. Start from
+            a starter, remix it, or build your own from scratch.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/app/documents/themes" className={buttonVariants({ variant: "outline" })}>
+            Manage themes
+          </Link>
+        </CardContent>
+      </Card>
 
       {canEdit && (
         <QuoteWordingForm
