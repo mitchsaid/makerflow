@@ -166,6 +166,19 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByLabel(/^Price/).fill("10");
       await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
+      // The compact item row, its edit sheet with the remove question, and the cancel question.
+      await expectNoViolations(page, "new quote with an item");
+      await page.getByTestId("quote-line").getByRole("button", { name: /Edit/ }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Remove this item" }).click();
+      await expect(page.getByRole("dialog").getByRole("alertdialog")).toBeVisible();
+      await expectNoViolations(page, "item sheet, remove question");
+      await page.getByRole("dialog").getByRole("button", { name: "Keep it" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.getByRole("button", { name: "Cancel new quote" }).click();
+      await expect(page.getByRole("alertdialog", { name: "Cancel this new quote?" })).toBeVisible();
+      await expectNoViolations(page, "new quote, cancel question");
+      await page.getByRole("button", { name: "Keep editing" }).click();
 
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();

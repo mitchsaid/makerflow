@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { TermsStarters } from "@/components/terms-starters";
@@ -16,7 +17,6 @@ import { DepositSection } from "./deposit-section";
 import { PoliciesSection } from "./policies-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
@@ -68,6 +68,7 @@ export function QuoteBuilder({
   canManagePolicies,
   bankDetails: initialBankDetails,
   canEditBankDetails,
+  header,
   children,
 }: {
   quoteId: string | null;
@@ -96,6 +97,8 @@ export function QuoteBuilder({
   bankDetails: BankPreview | null;
   /** Only the owner can add bank details (from the quote or the Business profile). */
   canEditBankDetails: boolean;
+  /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
+  header?: React.ReactNode;
   /** What goes between the form and the bar, such as Delete draft. */
   children?: React.ReactNode;
 }) {
@@ -107,7 +110,11 @@ export function QuoteBuilder({
     justSaved ? { status: "saved", savedAt: 0 } : { status: "idle" },
   );
   const [editedSinceSave, setEditedSinceSave] = useState(false);
+  // A new quote is cancelled with the X: straight away when nothing has been typed, else after asking.
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [pending, startTransition] = useTransition();
+  // Long quotes show the first few items and a "Show all" button.
+  const [expanded, setExpanded] = useState(false);
   const nextKey = useRef(1);
 
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
@@ -172,6 +179,8 @@ export function QuoteBuilder({
   }
   function saveLine(line: LineFormValues, isNew: boolean) {
     setEditedSinceSave(true);
+    // The item just added is at the end: make sure it is not tucked away.
+    if (isNew && values.lines.length + 1 > COLLAPSE_OVER) setExpanded(true);
     setValues((v) => ({
       ...v,
       lines: isNew ? [...v.lines, line] : v.lines.map((l) => (l.key === line.key ? line : l)),
@@ -183,12 +192,12 @@ export function QuoteBuilder({
   function removeLine(key: string, index: number) {
     setEditedSinceSave(true);
     setValues((v) => ({ ...v, lines: v.lines.filter((l) => l.key !== key) }));
-    // Focus moves to the next line's Edit, or to "Add item" when it was the last one.
-    setTimeout(() => {
-      const next = values.lines[index + 1] ?? values.lines[index - 1];
-      const target = next && next.key !== key ? `line-${next.key}-edit` : "add-item";
-      document.getElementById(target)?.focus();
-    }, 0);
+    // Focus moves to the next line's Edit, or to "Add item" when it was the last one (also when the
+    // item sheet it was removed from closes: that is where the sheet hands focus back to).
+    const next = values.lines[index + 1] ?? values.lines[index - 1];
+    const target = next && next.key !== key ? `line-${next.key}-edit` : "add-item";
+    focusAfterSheet.current = target;
+    setTimeout(() => document.getElementById(target)?.focus(), 0);
   }
   function productSaved(product: ProductSummary) {
     setProducts((list) =>
@@ -290,8 +299,44 @@ export function QuoteBuilder({
 
   const discountsCents = totals ? totals.lineDiscountsCents + totals.quoteDiscountCents : 0;
 
+  // A long list shows its first few items; one that needs fixing is never hidden.
+  const collapsible = values.lines.length > COLLAPSE_OVER;
+  const hiddenHaveErrors = values.lines.slice(COLLAPSED_SHOWS).some((l) => errors.lines[l.key]);
+  const visibleLines = !collapsible || expanded || hiddenHaveErrors ? values.lines : values.lines.slice(0, COLLAPSED_SHOWS);
+
   return (
   <div className="space-y-6">
+    {header && (
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">{header}</div>
+        {quoteId === null && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Cancel new quote"
+            onClick={() => (editedSinceSave ? setConfirmingCancel(true) : router.push("/app/quotes"))}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
+        )}
+      </div>
+    )}
+    {quoteId === null && confirmingCancel && (
+      <Alert role="alertdialog" aria-label="Cancel this new quote?">
+        <AlertDescription className="space-y-3">
+          <p>Cancel this quote? Nothing has been saved yet, so what you typed will be lost.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="destructive" onClick={() => router.push("/app/quotes")}>
+              Yes, cancel the quote
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setConfirmingCancel(false)}>
+              Keep editing
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    )}
     <form id="quote-form" onSubmit={onSave} className="space-y-6" noValidate>
       <Section title="Customer">
         <CustomerPicker
@@ -378,27 +423,40 @@ export function QuoteBuilder({
           </p>
         )}
         {values.lines.length > 0 && (
-          <ul className="space-y-2" aria-label="Items on this quote">
-            {values.lines.map((line, index) => (
-              <LineRow
-                key={line.key}
-                line={line}
-                number={index + 1}
-                error={(() => {
-                  const e = errors.lines[line.key];
-                  return e ? (e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
-                })()}
-                money={money}
-                lineTotal={(() => {
-                  const r = totals?.lines.find((l) => l.id === line.key);
-                  return r ? r.amountBeforeDiscountCents - r.lineDiscountCents : null;
-                })()}
-                photoId={values.showPhotos ? photoOf(line) : null}
-                onEdit={() => openSheet({ kind: "configure", line, isNew: false })}
-                onRemove={() => removeLine(line.key, index)}
-              />
-            ))}
+          <ul id="items-list" className="space-y-2" aria-label="Items on this quote">
+            {visibleLines.map((line) => {
+              const index = values.lines.indexOf(line);
+              return (
+                <LineRow
+                  key={line.key}
+                  line={line}
+                  number={index + 1}
+                  error={(() => {
+                    const e = errors.lines[line.key];
+                    return e ? (e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
+                  })()}
+                  money={money}
+                  lineTotal={(() => {
+                    const r = totals?.lines.find((l) => l.id === line.key);
+                    return r ? r.amountBeforeDiscountCents - r.lineDiscountCents : null;
+                  })()}
+                  photoId={values.showPhotos ? photoOf(line) : null}
+                  onEdit={() => openSheet({ kind: "configure", line, isNew: false })}
+                />
+              );
+            })}
           </ul>
+        )}
+        {collapsible && !hiddenHaveErrors && (
+          <Button
+            type="button"
+            variant="ghost"
+            aria-expanded={expanded}
+            aria-controls="items-list"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? "Show fewer items" : `Show all ${values.lines.length} items`}
+          </Button>
         )}
         <Button id="add-item" type="button" variant="outline" onClick={() => openSheet({ kind: "pick" })}>
           Add item
@@ -428,6 +486,11 @@ export function QuoteBuilder({
           onView={openSheet}
           onClose={closeSheet}
           onSaveLine={saveLine}
+          onRemoveLine={(key) => {
+            const index = values.lines.findIndex((l) => l.key === key);
+            if (index >= 0) removeLine(key, index);
+            closeSheet();
+          }}
           onProductSaved={productSaved}
           focusOnClose={() => focusAfterSheet.current}
         />
@@ -638,7 +701,11 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-/** One line on the quote: what it is, how many at what price, its total, and Edit / Remove. */
+/** More than this many items and the list shows only the first few until "Show all" is pressed. */
+const COLLAPSE_OVER = 6;
+const COLLAPSED_SHOWS = 5;
+
+/** One line on the quote as a compact row: what it is, how many at what price, its total. Tap to edit (remove is in the sheet). */
 function LineRow({
   line,
   number,
@@ -647,7 +714,6 @@ function LineRow({
   lineTotal,
   photoId,
   onEdit,
-  onRemove,
 }: {
   line: LineFormValues;
   number: number;
@@ -657,57 +723,49 @@ function LineRow({
   money: (cents: number) => string;
   lineTotal: number | null;
   onEdit: () => void;
-  onRemove: () => void;
 }) {
   const quantity = parseQuantity(line.quantity);
   const price = parseMoney(line.unitPrice);
   const name = line.name.trim() || `Item ${number}`;
   return (
-    <li>
-      <Card className="bg-muted/30" data-testid="quote-line">
-        <CardContent className="space-y-2">
-          <div className="flex items-center gap-3">
-            {photoId && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageUrl(photoId, "thumb")}
-                alt=""
-                loading="lazy"
-                className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10"
-              />
-            )}
-            <div className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-              <p className="min-w-0 truncate text-base font-medium">{name}</p>
-              <p className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</p>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}
-            {line.discountKind !== "none" && " · discount"}
-            {!line.productId && " · one-off item"}
-          </p>
-          {line.description && <p className="line-clamp-2 text-sm text-muted-foreground">{line.description}</p>}
-          {error && (
-            <p className="text-sm text-destructive" id={`line-${line.key}-error`}>
-              {error}
-            </p>
+    <li data-testid="quote-line">
+      <Button
+        id={`line-${line.key}-edit`}
+        type="button"
+        variant="outline"
+        aria-describedby={error ? `line-${line.key}-error` : undefined}
+        onClick={onEdit}
+        className="h-auto min-h-14 w-full justify-between gap-3 px-3 py-2 text-left font-normal"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          {photoId && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl(photoId, "thumb")}
+              alt=""
+              loading="lazy"
+              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10"
+            />
           )}
-          <div className="flex gap-2">
-            <Button
-              id={`line-${line.key}-edit`}
-              type="button"
-              variant="outline"
-              aria-describedby={error ? `line-${line.key}-error` : undefined}
-              onClick={onEdit}
-            >
-              Edit<span className="sr-only"> {name}</span>
-            </Button>
-            <Button type="button" variant="ghost" onClick={onRemove}>
-              Remove<span className="sr-only"> {name}</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <span className="min-w-0">
+            <span className="block truncate text-base font-medium">
+              <span className="sr-only">Edit </span>
+              {name}
+            </span>
+            <span className="block truncate text-sm text-muted-foreground">
+              {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}
+              {line.discountKind !== "none" && " · discount"}
+              {!line.productId && " · one-off item"}
+            </span>
+          </span>
+        </span>
+        <span className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</span>
+      </Button>
+      {error && (
+        <p className="px-1 pt-1 text-sm text-destructive" id={`line-${line.key}-error`}>
+          {error}
+        </p>
+      )}
     </li>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
@@ -74,6 +74,7 @@ export function LineSheet({
   onView,
   onClose,
   onSaveLine,
+  onRemoveLine,
   onProductSaved,
   focusOnClose,
 }: {
@@ -89,6 +90,8 @@ export function LineSheet({
   onView: (view: LineSheetView) => void;
   onClose: () => void;
   onSaveLine: (line: LineFormValues, isNew: boolean) => void;
+  /** Takes an existing line off the quote (from its edit view). */
+  onRemoveLine: (key: string) => void;
   onProductSaved: (product: ProductSummary) => void;
   /** The id of the element to focus once the sheet has closed (default: what opened it). */
   focusOnClose: () => string | null;
@@ -173,6 +176,7 @@ export function LineSheet({
               numberStyle={numberStyle}
               money={money}
               onSave={(line) => onSaveLine(line, view.isNew)}
+              onRemove={view.isNew ? undefined : () => onRemoveLine(view.line.key)}
               onBack={view.isNew ? () => onView({ kind: "pick" }) : onClose}
               onEditProduct={(product, line) =>
                 onView({ kind: "product", mode: "edit", product, returnTo: { line, isNew: view.isNew } })
@@ -355,6 +359,7 @@ function ConfigureView({
   numberStyle,
   money,
   onSave,
+  onRemove,
   onBack,
   onEditProduct,
 }: {
@@ -366,6 +371,8 @@ function ConfigureView({
   numberStyle: NumberStyle;
   money: (cents: number) => string;
   onSave: (line: LineFormValues) => void;
+  /** Present when editing a line already on the quote. */
+  onRemove?: () => void;
   onBack: () => void;
   onEditProduct: (product: ProductSummary, line: LineFormValues) => void;
 }) {
@@ -374,6 +381,12 @@ function ConfigureView({
   // Changes every time Save is pressed, so the summary takes focus each time.
   const [attempt, setAttempt] = useState(0);
   const [, startTransition] = useTransition();
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const removeQuestion = useRef<HTMLDivElement>(null);
+  // The question opens at the foot of a long form, beside the sticky Save bar: bring it into view.
+  useEffect(() => {
+    if (confirmingRemove) removeQuestion.current?.scrollIntoView({ block: "center" });
+  }, [confirmingRemove]);
   const id = (field: string) => `line-sheet-${field}`;
   const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) =>
     setLine((l) => ({ ...l, [key]: value }));
@@ -531,6 +544,28 @@ function ConfigureView({
       />
 
       <FormSummary problems={problems} trigger={attempt} />
+
+      {onRemove && (
+        <section className="space-y-3" aria-label="Remove this item">
+          {!confirmingRemove ? (
+            <Button type="button" variant="ghost" className="text-destructive" onClick={() => setConfirmingRemove(true)}>
+              Remove this item
+            </Button>
+          ) : (
+            <div ref={removeQuestion} className="space-y-3 rounded-xl bg-destructive/5 p-3 scroll-mb-28" role="alertdialog" aria-label="Remove this item?">
+              <p className="text-base">Take {line.name.trim() || "this item"} off the quote?</p>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="destructive" onClick={onRemove}>
+                  Yes, remove it
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setConfirmingRemove(false)}>
+                  Keep it
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-border bg-popover px-4 py-3 sm:flex-row">
         <Button type="submit" className="w-full sm:w-auto">
