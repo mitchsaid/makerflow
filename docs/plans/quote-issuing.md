@@ -38,7 +38,7 @@ Following the thin-slice rule, the sent quote's actions that belong to later sli
 - Quotes list: status filter chips with counts, number and version on each row.
 - A sent quote shows its versions, and `?version=` opens an earlier one; PDFs per version.
 - The PDF embeds Noto Sans; emoji and symbols are dropped from the PDF only.
-- **Not built (shown as "coming soon"):** email, online link. (Accepted/declined, quote again and withdraw were built in slice 6.) **Not built, not shown:** discarding a revision to go back to the sent version (opening Revise by mistake means sending version 2 unchanged for now).
+- **Not built (shown as "coming soon"):** email, online link. (Accepted/declined, quote again and withdraw were built in slice 6.) Discarding a revision to go back to the sent version was built afterwards (`quote-discard-revision.md`).
 
 ## Tests
 SQL: only drafts can be sent; numbers are gapless and per business; a sent quote and its lines cannot change; events per business; the send path cannot be reached by a signed-in user directly; revising keeps the number, adds a version and leaves the earlier one unchanged; numbering settings. Unit: snapshot building, the PDF content. Browser (phone): preview, send by share and by mark-as-sent, the missing-details sheet carrying on with the send, a sent quote is read-only with its placeholders, expiry, numbering settings. Accessibility for every new screen and sheet.

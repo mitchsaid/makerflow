@@ -102,6 +102,7 @@ type EventRow = {
   on_date: string | null;
   how: string | null;
   note: string | null;
+  has_base: boolean;
   created_at: string;
 };
 
@@ -216,6 +217,11 @@ export type StoredQuote = {
   customer: Customer | null;
   /** Every time it was sent, newest first, with the frozen document. */
   versions: { version: number; sentAt: string; sentVia: "shared" | "marked"; snapshot: QuoteSnapshot }[];
+  /**
+   * A draft that is a revision of a sent quote can go back to the version that was sent, when the copy
+   * kept at the start of the revision exists (revisions begun before it was kept cannot).
+   */
+  canDiscardRevision: boolean;
   /** The activity log, oldest first. */
   events: {
     id: string;
@@ -267,7 +273,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
          vat_number, company_registration_number, notes
        ),
        quote_versions ( version, sent_at, sent_via, snapshot ),
-       quote_events ( id, kind, version, via, on_date, how, note, created_at )`,
+       quote_events ( id, kind, version, via, on_date, how, note, has_base, created_at )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -343,6 +349,11 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     versions: [...row.quote_versions]
       .sort((a, b) => b.version - a.version)
       .map((v) => ({ version: v.version, sentAt: v.sent_at, sentVia: v.sent_via, snapshot: v.snapshot })),
+    canDiscardRevision:
+      row.status === "draft" &&
+      row.version > 1 &&
+      row.quote_events.some((e) => e.kind === "revised" && e.version === row.version && e.has_base) &&
+      row.quote_versions.some((v) => v.version === row.version - 1),
     events: [...row.quote_events]
       .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.version - b.version)
       .map((e) => ({ id: e.id, kind: e.kind, version: e.version, via: e.via, on: e.on_date, how: e.how, note: e.note, at: e.created_at })),

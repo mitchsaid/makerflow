@@ -26,6 +26,7 @@ import { QuoteDocumentView } from "../quote-document-view";
 import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
 import { DeleteDraftButton } from "./delete-draft-button";
+import { DiscardRevisionButton } from "./discard-revision-button";
 
 export default async function QuotePage({
   params,
@@ -101,11 +102,8 @@ export default async function QuotePage({
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}
           {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}
-          {previous && (
-            <ComingSoonSection
-              title="Discard this revision"
-              description={`Go back to version ${previous.version} as it was sent, and drop the changes you've made since.`}
-            />
+          {previous && quote.canDiscardRevision && (
+            <DiscardRevisionButton quoteId={quote.id} sentVersion={previous.version} />
           )}
         </QuoteBuilder>
       </main>
@@ -250,6 +248,7 @@ function Activity({ quote, locale, timeZone }: { quote: StoredQuote; locale: str
   const words = (e: StoredQuote["events"][number]) => {
     if (e.kind === "created") return "Draft created";
     if (e.kind === "revised") return `Revised: version ${e.version} started`;
+    if (e.kind === "discarded") return `Revision discarded: back to version ${e.version - 1}`;
     if (e.kind === "accepted" || e.kind === "declined" || e.kind === "withdrawn" || e.kind === "reopened") {
       return outcomeSentence(e, locale);
     }
