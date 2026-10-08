@@ -71,3 +71,16 @@ test("a deposit percentage that can't be used says how to fix it and keeps the a
   await expect(page.getByLabel("Percentage (%)")).toHaveValue("30");
   await expect(page.getByRole("radio", { name: /^Collection/ })).toBeChecked();
 });
+
+test("a business that already set its deposit or hand-over elsewhere is not asked, and nothing is overwritten", async ({ page }) => {
+  await signUpAndOnboard(page, "setup-elsewhere", "Elsewhere Co", { quoteSetup: "leave" });
+  await openDocuments(page);
+  await page.getByLabel("New quotes start with").selectOption("delivery");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Saved.").last()).toBeVisible();
+
+  await page.goto("/app/quotes/new");
+  await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
+  await expect(card(page)).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: /^Delivery/ })).toBeChecked();
+});

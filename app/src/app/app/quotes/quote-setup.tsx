@@ -23,6 +23,8 @@ export function QuoteSetup() {
   const [state, setState] = useState<QuoteSetupState | null>(null);
   const [tries, setTries] = useState(0);
   const [pending, startTransition] = useTransition();
+  // An old error says nothing about what was typed since.
+  const forget = () => setState(null);
 
   const errors = state?.status === "error" ? (state.errors ?? {}) : {};
   const problems: FormProblem[] = errors.depositValue
@@ -72,7 +74,13 @@ export function QuoteSetup() {
             <FieldLegend variant="label" className="text-base">
               Do you usually ask for a deposit?
             </FieldLegend>
-            <RadioGroup aria-label="Do you usually ask for a deposit?" value={deposit} onValueChange={(v) => setDeposit(v as SetupAnswers["deposit"])}>
+            <RadioGroup
+              value={deposit}
+              onValueChange={(v) => {
+                forget();
+                setDeposit(v as SetupAnswers["deposit"]);
+              }}
+            >
               {(
                 [
                   ["no", "No"],
@@ -96,7 +104,10 @@ export function QuoteSetup() {
                 autoComplete="off"
                 value={percent}
                 error={errors.depositValue}
-                onChange={setPercent}
+                onChange={(v) => {
+                  forget();
+                  setPercent(v);
+                }}
               />
             )}
           </FieldSet>
@@ -106,7 +117,6 @@ export function QuoteSetup() {
               How do customers get their order?
             </FieldLegend>
             <RadioGroup
-              aria-label="How do customers get their order?"
               value={fulfilment}
               onValueChange={(v) => setFulfilment(v as SetupAnswers["fulfilment"])}
             >

@@ -38,9 +38,6 @@ export function parseSetupAnswers(
     "",
   );
   if (!parsed.ok) return { ok: false, errors: parsed.errors };
-  if (parsed.deposit?.kind === "percent" && parsed.deposit.basisPoints > 10_000) {
-    return { ok: false, errors: { depositValue: "A deposit can't be more than 100%." } };
-  }
   const columns = depositColumns(parsed.deposit);
   return {
     ok: true,

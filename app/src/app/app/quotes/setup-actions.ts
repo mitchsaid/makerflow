@@ -26,15 +26,18 @@ export async function saveQuoteSetup(answers: SetupAnswers): Promise<QuoteSetupS
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("business_profiles")
     .update({ ...parsed.columns, quote_setup_at: new Date().toISOString() })
     .eq("organisation_id", organisation.id)
-    .select("organisation_id");
-  if (error || !data || data.length !== 1) {
-    console.error("could not save the quote setup:", error?.message);
+    // Only the first answer counts: someone who answered in another tab, or changed these under Quotes and
+    // invoices, is never overwritten by a card that was open before that.
+    .is("quote_setup_at", null);
+  if (error) {
+    console.error("could not save the quote setup:", error.message);
     return { status: "error", message: GENERIC_ERROR };
   }
+  // No row changed: already set up elsewhere, which is what the card was for.
   revalidatePath("/app", "layout");
   return { status: "saved" };
 }
