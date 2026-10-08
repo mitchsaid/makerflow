@@ -1,109 +1,100 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { DesignPicker } from "@/components/design-picker";
 import { DesignThumbnail } from "@/components/design-thumbnail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DESIGNS, type DesignKey, type DesignOptions, type Theme } from "@/lib/quotes/designs";
+import { DESIGNS, resolveTheme, type DesignKey, type DesignOptions, type Theme } from "@/lib/quotes/designs";
+import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
+import { LivePdfPreview } from "./live-preview";
 import { saveQuoteDesign } from "./design-actions";
+import { scheduleDesignSave } from "./design-saves";
 
-/**
- * How the quote is dressed. On a draft's preview: pick one of the five designs and make it your own,
- * and the preview above redraws as you go. On a sent quote: the design that version was sent with,
- * as it was.
- */
-export function DesignSection({
-  theme,
-  quoteId,
-  options = {},
-  brandColor = null,
-  following = false,
-  usual,
-  sent = false,
-}: {
-  /** The finished look this quote has now (a sent version's own, frozen). */
-  theme: Theme;
-  /** Present when the design can be changed (a draft). */
-  quoteId?: string;
-  /** What this quote changed from the design's own look (a draft). */
-  options?: DesignOptions;
-  /** The business's brand colour (a draft). */
-  brandColor?: string | null;
-  /** The quote has not chosen its own design: it follows the business's default. */
-  following?: boolean;
-  /** The business's usual look (a draft): what "Use my usual look" goes back to. */
-  usual?: { design: DesignKey; options: DesignOptions };
-  sent?: boolean;
-}) {
+/** The design a sent version went out with, as it was (read-only). */
+export function DesignSection({ theme }: { theme: Theme }) {
   const current = DESIGNS.find((d) => d.key === theme.key) ?? DESIGNS[0];
-
-  if (sent || !quoteId) {
-    return (
-      <section className="space-y-3" aria-labelledby="design-heading">
-        <h2 id="design-heading" className="text-base font-semibold">
-          Design
-        </h2>
-        <Card>
-          <CardContent className="flex items-center gap-4">
-            <div className="w-16 shrink-0">
-              <DesignThumbnail theme={theme} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-medium" data-testid="current-design">
-                {current.name}
-              </p>
-              <p className="text-sm text-muted-foreground">{current.description}</p>
-            </div>
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-              Used for this version
-            </span>
-          </CardContent>
-        </Card>
-      </section>
-    );
-  }
-
   return (
-    <DraftDesign
-      quoteId={quoteId}
-      initialDesign={theme.key}
-      initialOptions={options}
-      brandColor={brandColor}
-      initialFollowing={following}
-      usual={usual ?? { design: "classic", options: {} }}
-    />
+    <section className="space-y-3" aria-labelledby="design-heading">
+      <h2 id="design-heading" className="text-base font-semibold">
+        Design
+      </h2>
+      <Card>
+        <CardContent className="flex items-center gap-4">
+          <div className="w-16 shrink-0">
+            <DesignThumbnail theme={theme} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-medium" data-testid="current-design">
+              {current.name}
+            </p>
+            <p className="text-sm text-muted-foreground">{current.description}</p>
+          </div>
+          <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+            Used for this version
+          </span>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
-function DraftDesign({
+/**
+ * A draft's preview and its design choice together, so a tap redraws the preview on the spot (the
+ * document is drawn in the browser from the choice held here) and the choice is saved quietly in the
+ * background. Nothing about the choice waits for the server.
+ */
+export function DraftPreview({
+  snapshot,
   quoteId,
+  label,
   initialDesign,
   initialOptions,
   brandColor,
   initialFollowing,
   usual,
 }: {
+  snapshot: QuoteSnapshot;
   quoteId: string;
+  label: string;
   initialDesign: DesignKey;
   initialOptions: DesignOptions;
   brandColor: string | null;
   initialFollowing: boolean;
+  /** The business's usual look: what "Use my usual look" goes back to. */
   usual: { design: DesignKey; options: DesignOptions };
 }) {
-  const router = useRouter();
   const [design, setDesign] = useState(initialDesign);
   const [options, setOptions] = useState(initialOptions);
   const [following, setFollowing] = useState(initialFollowing);
   const [message, setMessage] = useState<string | null>(null);
-  const [updating, startUpdating] = useTransition();
-  // Several quick taps are saved in order, and the preview is redrawn once, from the last one.
+  const [state, setState] = useState<"saved" | "saving">("saved");
   const latest = useRef(0);
   // What the server last accepted, so a failed save puts the picker back to what is really stored.
   const saved = useRef({ design: initialDesign, options: initialOptions, following: initialFollowing });
+
+  function save(nextDesign: DesignKey | null, nextOptions: DesignOptions) {
+    setMessage(null);
+    setState("saving");
+    const ticket = ++latest.current;
+    scheduleDesignSave(async () => {
+      try {
+        const result = await saveQuoteDesign(quoteId, nextDesign, nextOptions);
+        if (result.status === "error") return revert(result.message);
+        saved.current = {
+          design: nextDesign ?? usual.design,
+          options: nextDesign === null ? usual.options : nextOptions,
+          following: nextDesign === null,
+        };
+      } catch {
+        revert("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
+      } finally {
+        if (ticket === latest.current) setState("saved");
+      }
+    });
+  }
 
   function revert(why: string) {
     setDesign(saved.current.design);
@@ -112,59 +103,48 @@ function DraftDesign({
     setMessage(why);
   }
 
-  function save(nextDesign: DesignKey | null, nextOptions: DesignOptions) {
-    const ticket = ++latest.current;
-    setMessage(null);
-    startUpdating(async () => {
-      try {
-        const result = await saveQuoteDesign(quoteId, nextDesign, nextOptions);
-        if (result.status === "error") {
-          if (ticket === latest.current) revert(result.message);
-        } else {
-          saved.current = { design: nextDesign ?? usual.design, options: nextDesign === null ? usual.options : nextOptions, following: nextDesign === null };
-          if (ticket === latest.current) router.refresh();
-        }
-      } catch {
-        if (ticket === latest.current) revert("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
-      }
-    });
-  }
+  const theme = resolveTheme(design, options, brandColor);
+  const shown: QuoteSnapshot = { ...snapshot, design: theme.key, theme };
 
   return (
-    <section className="space-y-3" aria-labelledby="design-heading">
-      <h2 id="design-heading" className="text-base font-semibold">
-        Design
-      </h2>
-      <p className="text-base text-muted-foreground">
-        Pick a look and the preview above changes.{" "}
-        {following
-          ? "It follows your usual look. Choosing here changes this quote only."
-          : "Your usual look is set under Quotes and invoices."}{" "}
-        <Link href="/app/documents#look" className="underline">
-          Set your logo, brand colour and usual look
-        </Link>
-      </p>
-      {message && (
-        <Alert variant="destructive" role="alert">
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      )}
-      <p className="sr-only" role="status" data-testid="current-design">
-        {DESIGNS.find((d) => d.key === design)?.name}
-      </p>
-      <DesignPicker
-        design={design}
-        options={options}
-        brandColor={brandColor}
-        idPrefix="quote-design"
-        onChange={(nextDesign, nextOptions) => {
-          setDesign(nextDesign);
-          setOptions(nextOptions);
-          setFollowing(false);
-          save(nextDesign, nextOptions);
-        }}
-      />
-      <div className="flex items-center gap-3">
+    <>
+      <LivePdfPreview snapshot={shown} draft label={label} />
+      <section className="space-y-3" aria-labelledby="design-heading">
+        <h2 id="design-heading" className="text-base font-semibold">
+          Design
+        </h2>
+        <p className="text-base text-muted-foreground">
+          Pick a look and the preview above changes.{" "}
+          {following
+            ? "It follows your usual look. Choosing here changes this quote only."
+            : "Your usual look is set under Quotes and invoices."}{" "}
+          <Link href="/app/documents#look" className="underline">
+            Set your logo, brand colour and usual look
+          </Link>
+        </p>
+        {message && (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        <p className="sr-only" role="status" data-testid="current-design">
+          {DESIGNS.find((d) => d.key === design)?.name}
+        </p>
+        <DesignPicker
+          design={design}
+          options={options}
+          brandColor={brandColor}
+          idPrefix="quote-design"
+          onChange={(nextDesign, nextOptions) => {
+            setDesign(nextDesign);
+            setOptions(nextOptions);
+            setFollowing(false);
+            save(nextDesign, nextOptions);
+          }}
+        />
+        <p className="text-sm text-muted-foreground" role="status" data-testid="design-save-status">
+          {state === "saving" ? "Saving…" : ""}
+        </p>
         {!following && (
           <Button
             type="button"
@@ -179,10 +159,7 @@ function DraftDesign({
             Use my usual look
           </Button>
         )}
-        <p className="text-sm text-muted-foreground" role="status">
-          {updating ? "Updating the preview…" : ""}
-        </p>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

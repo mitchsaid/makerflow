@@ -180,6 +180,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "quote preview");
       await page.getByRole("button", { name: "Make it yours" }).click();
+      // Scroll the options to the middle of the screen, clear of the bar that stays above the tab bar.
+      await page.getByRole("button", { name: "Teal", exact: true }).evaluate((el) => el.scrollIntoView({ block: "center" }));
       await expectNoViolations(page, "quote preview, design details open");
       await page.getByRole("button", { name: "Send", exact: true }).click();
       await expect(page.getByRole("dialog", { name: "Before you can send this quote" })).toBeVisible();

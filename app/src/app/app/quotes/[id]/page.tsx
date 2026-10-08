@@ -185,7 +185,7 @@ export default async function QuotePage({
       <section className="sr-only" aria-label="The quote as text">
         <QuoteDocumentView snapshot={shown.snapshot} />
       </section>
-      <DesignSection theme={themeFor(shown.snapshot)} sent />
+      <DesignSection theme={themeFor(shown.snapshot)} />
 
       <section className="space-y-3" aria-labelledby="more-heading">
         <h2 id="more-heading" className="text-base font-semibold">

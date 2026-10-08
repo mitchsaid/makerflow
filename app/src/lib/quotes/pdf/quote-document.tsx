@@ -52,10 +52,19 @@ function PartyLines({ party }: { party: QuoteSnapshot["business"] | NonNullable<
 }
 
 /** A picture's bytes, loaded by the caller (the document itself never reads the database). */
-export type PdfImage = { contentType: string; bytes: Buffer };
+export type PdfImage = { contentType: string; bytes: Uint8Array };
 
-/** What react-pdf wants for a picture it is given as bytes. */
-const pdfSource = (image: PdfImage) => ({ data: image.bytes, format: image.contentType === "image/png" ? ("png" as const) : ("jpg" as const) });
+/**
+ * What react-pdf wants for a picture it is given as bytes: the bytes themselves on the server, a data
+ * address in the browser (which has no Buffer).
+ */
+const pdfSource = (image: PdfImage) => {
+  const format = image.contentType === "image/png" ? ("png" as const) : ("jpg" as const);
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(image.bytes)) return { data: image.bytes, format };
+  let binary = "";
+  for (let i = 0; i < image.bytes.length; i += 0x8000) binary += String.fromCharCode(...image.bytes.subarray(i, i + 0x8000));
+  return `data:${image.contentType};base64,${btoa(binary)}`;
+};
 
 export function QuoteDocument({
   snapshot: s,

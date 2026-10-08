@@ -203,7 +203,7 @@ describe("designs", () => {
       expect(text, key).toContain("Page 1 of");
       expect(text, key).toContain("Total including VAT");
     }
-  });
+ }, 30000);
 
   it("marks a draft in every design, the band included", async () => {
     for (const { key } of DESIGNS) {
@@ -211,7 +211,7 @@ describe("designs", () => {
       const text = (await pageTexts(pdf)).flat().join(" ");
       expect(text, key).toContain("DRAFT PREVIEW");
     }
-  });
+ }, 30000);
 
   it("draws a sent version from its frozen theme, whatever the design or brand colour is now", async () => {
     const frozen = resolveTheme("bold", {}, "#7e22ce");

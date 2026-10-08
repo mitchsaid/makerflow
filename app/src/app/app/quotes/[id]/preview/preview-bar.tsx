@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { waitForDesignSave } from "../../design-saves";
 import { SendQuoteSheet } from "../../send-sheet";
 
 /** Stays in view above the tab bar: back to editing, download, and send. */
@@ -18,11 +19,20 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
         </Link>
         <a
           href={`/app/quotes/${quoteId}/pdf?download=1`}
+          onClick={async (event) => {
+            event.preventDefault();
+            await waitForDesignSave();
+            window.location.assign(event.currentTarget.href);
+          }}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           Download
         </a>
-        <Button id="send-quote" type="button" size="lg" className="flex-1" onClick={() => setSendOpen(true)}>
+        <Button id="send-quote" type="button" size="lg" className="flex-1" onClick={async () => {
+            // Never send a look that is a tap behind: the server reads what is saved.
+            await waitForDesignSave();
+            setSendOpen(true);
+          }}>
           Send
         </Button>
       </div>
