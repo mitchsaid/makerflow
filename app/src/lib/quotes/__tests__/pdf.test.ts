@@ -551,6 +551,35 @@ describe("VAT treatments on items", () => {
     expect(vatView(s).showRate).toBe(false);
   });
 
+  it("lets a free delivery or a fully discounted item say nothing about VAT", () => {
+    const free = snapshot(vats.inclusive, { discountKind: "none", discountValue: "", lines: [mixedLines[1]], fulfilment: "delivery", deliveryFee: "" });
+    expect(free.wording.inclusiveStatement).toBe("No VAT is charged: all items are zero-rated.");
+    expect(vatView(free).lineLabel(free.lines[1])).toBeNull();
+    const nothing = [{ ...mixedLines[0], discountKind: "percent" as const, discountValue: "100" }, mixedLines[1]];
+    const s = snapshot(vats.inclusive, { ...plain, lines: nothing });
+    expect(s.wording.inclusiveStatement).toBe("No VAT is charged: all items are zero-rated.");
+    expect(s.totals.vatCents).toBe(0);
+  });
+
+  it("charges VAT on a paid delivery whatever the goods are rated, and says so", () => {
+    const s = snapshot(vats.inclusive, { discountKind: "none", discountValue: "", lines: [mixedLines[1]], fulfilment: "delivery", deliveryFee: "115" });
+    expect(s.totals.vatCents).toBe(1500);
+    expect(s.wording.inclusiveStatement).toContain("on standard-rated items");
+    expect(vatView(s).lineLabel(s.lines[s.lines.length - 1])).toBe("Standard-rated");
+  });
+
+  it("breaks an exclusive quote down by treatment with VAT only on the standard part", () => {
+    const s = snapshot(vats.exclusive, { ...plain, lines: mixedLines });
+    // 1150 standard (+172,50), 100 zero-rated, 200 exempt.
+    expect(s.totals.vatCents).toBe(17_250);
+    expect(s.wording.inclusiveStatement).toBeNull();
+    expect(vatView(s).breakdown).toEqual([
+      { label: "Standard-rated", amountCents: 115_000, vatCents: 17_250 },
+      { label: "Zero-rated", amountCents: 10_000, vatCents: 0 },
+      { label: "Exempt", amountCents: 20_000, vatCents: 0 },
+    ]);
+  });
+
   it("ignores treatments for a business that is not VAT registered", () => {
     const s = snapshot(vats.none, { ...plain, lines: mixedLines });
     expect(s.lines.every((l) => l.vatStatus === undefined)).toBe(true);

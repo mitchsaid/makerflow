@@ -18,11 +18,12 @@ export type VatView = {
 export function vatView(s: QuoteSnapshot): VatView {
   const labels = s.wording.vatStatusLabels;
   const statusOf = (l: SnapshotLine) => l.vatStatus ?? "standard";
-  const mixed = s.vat.registered && !!labels && s.lines.some((l) => statusOf(l) !== "standard");
+  const mixed = s.vat.registered && !!labels && s.lines.some((l) => l.lineTotalCents > 0 && statusOf(l) !== "standard");
   const groups = s.totals.groups.filter((g) => g.amountCents > 0);
   return {
     mixed,
-    lineLabel: (line) => (mixed && labels && line.kind !== "collection" ? labels[statusOf(line)] : null),
+    // Only an item with an amount carries a label (a free delivery or collection line has nothing to say about VAT).
+    lineLabel: (line) => (mixed && labels && line.lineTotalCents > 0 ? labels[statusOf(line)] : null),
     breakdown:
       mixed && labels
         ? groups.map((g) => ({ label: labels[g.vatStatus], amountCents: g.amountCents, vatCents: g.vatCents }))

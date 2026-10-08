@@ -367,12 +367,13 @@ test("items can be zero-rated or exempt: the totals, the preview and the sent qu
   await sheet(page).getByRole("button", { name: /One-off item/ }).click();
   // Standard-rated until said otherwise, and the choice explains itself.
   await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("");
-  await expect(sheet(page).getByTestId("vat-hint")).toContainText("most things you make");
+  await expect(sheet(page)).toContainText("most things you make");
   await sheet(page).getByLabel("Name", { exact: true }).fill("Brown bread");
   await sheet(page).getByLabel("Quantity").fill("2");
   await sheet(page).getByLabel(/^Price/).fill("50");
   await sheet(page).getByLabel("VAT on this item").selectOption("zero");
-  await expect(sheet(page).getByTestId("vat-hint")).toContainText("VAT at 0%");
+  await expect(sheet(page)).toContainText("VAT at 0%");
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveAccessibleDescription(/VAT at 0%/);
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(item(page, 2)).toContainText("Zero-rated");
   await expect(item(page, 1)).not.toContainText("Zero-rated");

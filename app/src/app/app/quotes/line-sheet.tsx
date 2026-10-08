@@ -549,20 +549,16 @@ function ConfigureView({
           />
         )}
         {vatChoices && (
-          <div className="space-y-1">
-            <SelectField
-              id={id("vatStatus")}
-              label="VAT on this item"
-              value={line.vatStatus && line.vatStatus !== "standard" ? line.vatStatus : ""}
-              onChange={(status) => setLine((l) => ({ ...l, vatStatus: (status === "" ? "standard" : status) as VatStatus }))}
-              placeholder={vatChoices.find((c) => c.value === "standard")?.label ?? "Standard-rated"}
-              options={vatChoices.filter((c) => c.value !== "standard").map((c) => c.value)}
-              optionLabels={Object.fromEntries(vatChoices.map((c) => [c.value, c.label]))}
-            />
-            <p className="text-sm text-muted-foreground" data-testid="vat-hint">
-              {vatChoices.find((c) => c.value === (line.vatStatus ?? "standard"))?.hint}
-            </p>
-          </div>
+          <SelectField
+            id={id("vatStatus")}
+            label="VAT on this item"
+            value={line.vatStatus && line.vatStatus !== "standard" ? line.vatStatus : ""}
+            onChange={(status) => setLine((l) => ({ ...l, vatStatus: (status === "" ? "standard" : status) as VatStatus }))}
+            placeholder={vatChoices.find((c) => c.value === "standard")?.label ?? "Standard-rated"}
+            options={vatChoices.filter((c) => c.value !== "standard").map((c) => c.value)}
+            optionLabels={Object.fromEntries(vatChoices.map((c) => [c.value, c.label]))}
+            hint={vatChoices.find((c) => c.value === (line.vatStatus ?? "standard"))?.hint}
+          />
         )}
       </Section>
 

@@ -308,8 +308,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add item" }).click();
       await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
       await page.getByRole("dialog").getByLabel("VAT on this item").selectOption("zero");
-      await expect(page.getByTestId("vat-hint")).toBeVisible();
-      await page.getByTestId("vat-hint").scrollIntoViewIfNeeded();
+      await expect(page.getByRole("dialog").getByLabel("VAT on this item")).toHaveAccessibleDescription(/VAT at 0%/);
       await expectNoViolations(page, "item sheet, VAT choice");
       await page.keyboard.press("Escape");
 

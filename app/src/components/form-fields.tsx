@@ -151,11 +151,14 @@ export function SelectField({
   options,
   optionLabels,
   autoComplete,
+  hint,
 }: {
   id: string;
   name?: string;
   label: string;
   error?: string;
+  /** Help under the field, read out with it. */
+  hint?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
@@ -174,7 +177,7 @@ export function SelectField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={[hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined}
       >
         <NativeSelectOption value="">{placeholder}</NativeSelectOption>
         {options.map((option) => (
@@ -183,6 +186,11 @@ export function SelectField({
           </NativeSelectOption>
         ))}
       </NativeSelect>
+      {hint && (
+        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+          {hint}
+        </p>
+      )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
   );

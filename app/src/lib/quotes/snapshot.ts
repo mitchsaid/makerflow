@@ -227,8 +227,10 @@ export function buildQuoteSnapshot(input: {
     totals.lines.map((l) => [l.id, l.amountBeforeDiscountCents - l.lineDiscountCents]),
   );
   const rateBp = vat.registered ? vat.standardRateBp : null;
-  // The treatments on the quote; a free collection line is not an item and does not count.
-  const present = [...new Set(quote.lines.filter((l) => l.kind !== "collection").map((l) => l.vatStatus))];
+  // The treatments that have an amount on the quote. A free delivery, a collection line or an item discounted
+  // to nothing says nothing about VAT, so it does not count.
+  const priced = new Set(totals.lines.filter((l) => l.amountCents > 0).map((l) => l.id));
+  const present = [...new Set(quote.lines.filter((l) => priced.has(l.key)).map((l) => l.vatStatus))];
 
   return {
     schema: SNAPSHOT_SCHEMA,
