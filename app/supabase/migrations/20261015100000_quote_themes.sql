@@ -52,6 +52,8 @@ security invoker
 set search_path = ''
 as $$
 begin
+  -- One insert at a time per business, so two at once cannot both pass the count.
+  perform pg_advisory_xact_lock(hashtextextended(new.organisation_id::text, 0));
   if (select count(*) from public.quote_themes where organisation_id = new.organisation_id) >= 30 then
     raise exception 'a business can have at most 30 themes' using errcode = '54000';
   end if;

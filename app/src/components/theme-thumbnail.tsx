@@ -136,8 +136,8 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
               alignItems: "center",
               gap: 3,
               padding: `${row / 4}px ${inset}px`,
-              borderBottom: theme.rows === "lines" ? `1px solid ${theme.line}` : undefined,
-              border: theme.rows === "grid" ? `1px solid ${theme.line}` : undefined,
+              // Never both the shorthand and a single side: React warns when one is removed on a redraw.
+              ...(theme.rows === "grid" ? { border: `1px solid ${theme.line}` } : { borderBottom: theme.rows === "lines" ? `1px solid ${theme.line}` : "0 solid transparent" }),
               background: theme.rows === "zebra" && i % 2 === 1 ? theme.tintStrong : undefined,
               borderRadius: theme.rows === "zebra" || theme.rows === "grid" ? r : 0,
             }}

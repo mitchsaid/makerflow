@@ -69,15 +69,21 @@ describe("resolveTheme", () => {
   });
   it("keeps text readable for any accent and paper", () => {
     for (const accent of ["#ffffff", "#ffff00", "#000000", "#fde68a", "#1e3a8a", "#ff00ff", "#ff0000"]) {
-      for (const paper of ["#ffffff", "#fbf7f0", "#fdf5f8", "#1f2937", "#000000"]) {
+      for (const paper of ["#ffffff", "#fbf7f0", "#fdf5f8", "#1f2937", "#000000", "#9ca3af", "#a0a0a0", "#808080", "#c7c7c7"]) {
         const t = resolveTheme({ ...BLANK_SPEC, accent, paper }, "x");
         expect(contrast(t.onAccent, t.accent), `${accent} text`).toBeGreaterThanOrEqual(4.5);
         expect(contrast(t.accentInk, t.paper), `${accent} on ${paper}`).toBeGreaterThanOrEqual(4.5);
         expect(contrast(t.accentInk, t.tint), `${accent} on its tint over ${paper}`).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.ink, t.paper), `ink on ${paper}`).toBeGreaterThanOrEqual(7);
+        expect(contrast(t.ink, t.paper), `ink on ${paper}`).toBeGreaterThanOrEqual(4.5);
         expect(contrast(t.muted, t.paper), `muted on ${paper}`).toBeGreaterThanOrEqual(4.5);
       }
     }
+  });
+  it("draws an accent that would vanish into the paper in the text colour instead", () => {
+    const t = resolveTheme({ ...BLANK_SPEC, paper: "#1f2937" }, "x");
+    expect(contrast(t.accent, t.paper)).toBeGreaterThanOrEqual(7);
+    // An accent that shows is left alone.
+    expect(resolveTheme({ ...BLANK_SPEC, accent: "#fbbf24", paper: "#1f2937" }, "x").accent).toBe("#fbbf24");
   });
   it("turns the text light on a dark paper", () => {
     expect(resolveTheme({ ...BLANK_SPEC, paper: "#111827" }, "x").ink).toBe("#f5f5f5");

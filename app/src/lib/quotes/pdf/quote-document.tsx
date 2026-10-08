@@ -96,7 +96,7 @@ export function QuoteDocument({
   const showLogo = !!logo && theme.headerLogo !== "name";
   const showName = !(theme.headerLogo === "logo" && !!logo);
   // Photo sizes by layout and the theme's choice, and their shape.
-  const tablePhoto = theme.photo === "large" ? 60 : 36;
+  const tablePhoto = theme.photo === "large" ? 60 : 38;
   const cardPhoto = theme.photo === "large" ? 80 : 48;
   const showcasePhoto = theme.photo === "large" ? 96 : 64;
   const photoStyle = (size: number) => ({
@@ -288,6 +288,8 @@ export function QuoteDocument({
                       {photo ? (
                         // eslint-disable-next-line jsx-a11y/alt-text
                         <Image src={pdfSource(photo)} style={photoStyle(size)} />
+                      ) : anyPhoto && theme.photo !== "none" ? (
+                        <View style={{ width: size, marginRight: 10 }} />
                       ) : null}
                       <View style={styles.cardBody}>
                         <Text style={styles.itemName}>{label}</Text>
@@ -323,6 +325,8 @@ export function QuoteDocument({
                     {photo ? (
                       // eslint-disable-next-line jsx-a11y/alt-text
                       <Image src={pdfSource(photo)} style={photoStyle(size)} />
+                    ) : anyPhoto && theme.photo !== "none" ? (
+                      <View style={{ width: size, marginRight: 10 }} />
                     ) : null}
                     <View style={styles.nameText}>
                       <Text style={styles.itemName}>{label}</Text>

@@ -32,7 +32,7 @@ export function makeStyles(theme: Theme) {
   const body = theme.bodyFont === "serif" ? PDF_FONT_SERIF : PDF_FONT;
   const centred = theme.headerAlign === "center";
   /** Space above and below an item, by how airy the theme is. */
-  const pad = { compact: 3.5, comfortable: 6, airy: 10 }[theme.density];
+  const pad = { compact: 3.5, comfortable: theme.rows === "none" ? 8 : 6, airy: 10 }[theme.density];
   const cardGap = { compact: 5, comfortable: 8, airy: 12 }[theme.density];
   const grid = theme.layout === "table" && theme.rows === "grid";
   const noHead = theme.tableHead === "none";
@@ -90,7 +90,7 @@ export function makeStyles(theme: Theme) {
     centredTitle: { fontSize: 20, fontWeight: 700, fontFamily: heading, marginTop: 10, textAlign: "center", color: onBand ? theme.onAccent : neutral ? theme.ink : theme.accentInk },
     centredNumber: { fontWeight: 700, marginTop: 2, textAlign: "center" },
     // On a band the logo sits on a white tile, so a dark logo never disappears into the colour.
-    logoTile: { marginBottom: 12, alignSelf: "flex-start", backgroundColor: "#ffffff", padding: 6, borderRadius: Math.max(theme.radius, 2) },
+    logoTile: { marginBottom: 12, alignSelf: centred ? "center" : "flex-start", backgroundColor: "#ffffff", padding: 6, borderRadius: Math.max(theme.radius, 2) },
     logo: { maxHeight: 48, maxWidth: 160, objectFit: "contain", objectPosition: "left" },
     headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
     headerDetails: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
@@ -199,7 +199,7 @@ export function makeStyles(theme: Theme) {
       alignItems: "baseline",
       paddingTop: 6,
       paddingBottom: theme.totals === "rule" ? 2 : 6,
-      paddingHorizontal: theme.totals === "pill" ? 14 : inset,
+      paddingHorizontal: inset,
       marginTop: 4,
       borderTopWidth: theme.totals === "rule" ? 1 : 0,
       borderTopColor: ruleColour,

@@ -4,7 +4,7 @@ import { getLocalePack, vatSettingsFor } from "../locale";
 import { createClient } from "../supabase/server";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
-import { getThemesByIds } from "./theme-data";
+import { getThemes } from "./theme-data";
 import { chooseTheme, resolveTheme } from "./themes";
 import { findStoredQuote, type StoredQuote } from "./data";
 import { depositAmounts } from "./deposit";
@@ -65,8 +65,8 @@ export async function prepareQuote(
     }
   }
 
-  // The theme: the quote's own pick, else the business's default, else Classic (only the themes named are read).
-  const saved = await getThemesByIds([stored.themeId, profile.defaultThemeId].filter((id): id is string => id !== null));
+  // The theme: the quote's own pick, else the business's default, else Classic (the themes are read once per request, shared with the page).
+  const saved = await getThemes();
   const chosen = chooseTheme(
     { id: stored.themeId, starter: stored.themeStarter },
     { id: profile.defaultThemeId, starter: profile.defaultThemeStarter },

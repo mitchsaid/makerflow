@@ -14,13 +14,3 @@ export const getThemes = cache(async (): Promise<SavedTheme[]> => {
   if (error) throw new Error(`Could not load the themes: ${error.message}`);
   return ((data ?? []) as ThemeRow[]).map(toSaved);
 });
-
-/** Just these themes (to draw one quote), under the signed-in person's own access. */
-export async function getThemesByIds(ids: readonly string[]): Promise<SavedTheme[]> {
-  const wanted = [...new Set(ids)];
-  if (wanted.length === 0) return [];
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("quote_themes").select("id, name, spec").in("id", wanted);
-  if (error) throw new Error(`Could not load the theme: ${error.message}`);
-  return ((data ?? []) as ThemeRow[]).map(toSaved);
-}

@@ -105,7 +105,8 @@ export function LivePdfPreview({
   const [pages, setPages] = useState(0);
   const [stamp, setStamp] = useState("");
   // What the document is drawn from, as one string, so a change is noticed whatever caused it.
-  const input = JSON.stringify(snapshot);
+  // The theme's name is never drawn, so renaming one (a keystroke at a time in the studio) draws nothing again.
+  const input = JSON.stringify(snapshot.theme ? { ...snapshot, theme: { ...snapshot.theme, name: "" } } : snapshot);
 
   useEffect(() => {
     let cancelled = false;

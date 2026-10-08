@@ -7,7 +7,7 @@ import { ChoiceCards } from "@/components/theme-choices";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BOOLEAN_PARTS, THEME_NAME_MAX, normaliseColour, resolveTheme, sameSpec, type ChoiceName, type ThemeSpec } from "@/lib/quotes/themes";
@@ -119,18 +119,18 @@ export function ThemeStudio({
       try {
         const result = id === null ? await createTheme(name, spec) : await saveTheme(id, name, spec);
         if (result.status === "error") return setError(result.message);
-        if (thenUse && quoteId) {
-          const used = await saveQuoteTheme(quoteId, result.id, null);
-          if (used.status === "error") return setError(`The theme is saved, but it couldn't be put on the quote: ${used.message}`);
-          router.push(`/app/quotes/${quoteId}/preview`);
-          return;
-        }
+        // The theme is saved from here on, whatever happens next: a second press must change it, not make another.
         setSaved({ name, spec, id: result.id });
         setJustSaved(true);
         if (id === null) {
           setId(result.id);
           // The address of a theme that exists now (a reload opens it, not a new copy), without reloading the studio.
           window.history.replaceState(null, "", `/app/documents/themes/${result.id}${quoteId ? `?quote=${quoteId}` : ""}`);
+        }
+        if (thenUse && quoteId) {
+          const used = await saveQuoteTheme(quoteId, result.id, null);
+          if (used.status === "error") return setError(`The theme is saved, but it couldn't be put on the quote: ${used.message}`);
+          router.push(`/app/quotes/${quoteId}/preview`);
         }
       } catch {
         setError("Couldn't reach the server, so nothing was saved. Check your connection and try again.");
@@ -161,6 +161,7 @@ export function ThemeStudio({
             style={{ background: hex }}
           />
         ))}
+        {/* The browser's own colour picker: there is no shadcn input for it (a deliberate exception to "no hand-written inputs"). */}
         <label className="flex h-11 cursor-pointer items-center gap-2 rounded-full px-3 text-sm ring-1 ring-foreground/20">
           <input
             type="color"
@@ -185,7 +186,7 @@ export function ThemeStudio({
           <Link href={backHref} onClick={leave} className="flex min-h-11 items-center text-sm text-muted-foreground underline">
             Back
           </Link>
-          <Button type="button" variant="secondary" size="sm" onClick={() => setFullOpen(true)}>
+          <Button type="button" variant="secondary" onClick={() => setFullOpen(true)}>
             Full preview
           </Button>
         </div>
@@ -194,7 +195,21 @@ export function ThemeStudio({
             <LivePdfPreview snapshot={shown} draft={false} label="Preview" firstPageOnly />
           </div>
         </div>
-        <div role="tablist" aria-label="Parts of the theme" className="-mx-4 flex gap-1 overflow-x-auto px-4 py-2">
+        <div
+          role="tablist"
+          aria-label="Parts of the theme"
+          className="-mx-4 flex gap-1 overflow-x-auto px-4 py-2"
+          onKeyDown={(event) => {
+            // Arrow keys move between the tabs (and Home and End jump), as a tab list should.
+            const at = TABS.indexOf(tab);
+            const next = event.key === "ArrowRight" ? at + 1 : event.key === "ArrowLeft" ? at - 1 : event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : null;
+            if (next === null) return;
+            event.preventDefault();
+            const target = TABS[(next + TABS.length) % TABS.length];
+            setTab(target);
+            document.getElementById(`tab-${target}`)?.focus();
+          }}
+        >
           {TABS.map((t) => (
             <Button
               key={t}
@@ -203,6 +218,7 @@ export function ThemeStudio({
               id={`tab-${t}`}
               aria-selected={tab === t}
               aria-controls="studio-panel"
+              tabIndex={tab === t ? 0 : -1}
               variant={tab === t ? "default" : "ghost"}
               onClick={() => setTab(t)}
               className="shrink-0"
@@ -220,19 +236,18 @@ export function ThemeStudio({
             id="theme-name"
             value={name}
             maxLength={THEME_NAME_MAX}
+            aria-invalid={nameError ? true : undefined}
+            aria-describedby={nameError ? "theme-name-error" : undefined}
             onChange={(e) => {
               setJustSaved(false);
+              setNameError(null);
               setName(e.target.value);
             }}
             className="h-11 text-base"
           />
+          {nameError && <FieldError id="theme-name-error">{nameError}</FieldError>}
         </Field>
         {basedOn && <p className="text-sm text-muted-foreground">A copy of {basedOn}. It isn&apos;t saved until you press Save.</p>}
-        {nameError && (
-          <Alert variant="destructive" role="alert">
-            <AlertDescription>{nameError}</AlertDescription>
-          </Alert>
-        )}
         {error && (
           <Alert variant="destructive" role="alert">
             <AlertDescription>{error}</AlertDescription>

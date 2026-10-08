@@ -19,6 +19,15 @@ const GENERIC: { name: string; description: string; unitPrice: string; quantity:
  * the customer and number so it can't be mistaken for a real one.
  */
 export function sampleSnapshot(workspace: Workspace, products: readonly ProductSummary[]): QuoteSnapshot {
+  try {
+    return buildSample(workspace, products);
+  } catch {
+    // Borrowed products with prices too big to total: show the generic items instead.
+    return buildSample(workspace, []);
+  }
+}
+
+function buildSample(workspace: Workspace, products: readonly ProductSummary[]): QuoteSnapshot {
   const { organisation, profile } = workspace;
   const locale = getLocalePack(profile.countryCode);
   const vat = vatSettingsFor(profile, locale);

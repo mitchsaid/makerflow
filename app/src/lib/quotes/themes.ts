@@ -155,11 +155,22 @@ export function onColour(background: string): string {
   return contrast(background, WHITE) >= contrast(background, "#000000") ? WHITE : "#000000";
 }
 
-/** The colour itself if it reads as text on `paper`, else a shade of it that does (darker on a light paper, lighter on a dark one). */
-export function readableOn(paper: string, colour: string, ratio = 4.5): string {
+/**
+ * The colour itself if it reads as text on every one of the `background`s, else a shade of it that does: lighter when the
+ * text on this paper is light (`lighten`), darker otherwise. `lighten` follows the paper's text colour,
+ * so a mid-tone paper is never pushed the wrong way.
+ */
+export function readableOn(background: string | readonly string[], colour: string, ratio = 4.5, lighten?: boolean): string {
+  const backgrounds = typeof background === "string" ? [background] : background;
+  const goLighter = lighten ?? onColour(backgrounds[0]) === WHITE;
   let c = colour;
-  const towards = luminance(paper) > 0.4 ? "#000000" : "#ffffff";
-  for (let step = 0; step < 20 && contrast(c, paper) < ratio; step++) c = mix(towards, c, 0.1);
+  const towards = goLighter ? "#ffffff" : "#000000";
+  const reads = (x: string) => backgrounds.every((b) => contrast(x, b) >= ratio);
+  for (let step = 0; step < 60 && !reads(c); step++) {
+    const next = mix(towards, c, 0.15);
+    // Colours are whole numbers, so a very dark (or light) one can stop changing: go straight to the end.
+    c = next === c ? towards : next;
+  }
   return c;
 }
 
@@ -291,23 +302,34 @@ const RADIUS: Record<Corners, number> = { square: 0, soft: 4, round: 10 };
 /** A spec as the plain values the document is drawn from. */
 export function resolveTheme(spec: ThemeSpec, name = ""): Theme {
   const { accent, paper, corners, ...parts } = spec;
-  const ink = onColour(paper) === WHITE ? "#f5f5f5" : INK; // near-black, or near-white on a dark paper
+  // Near-black, or near-white on a dark paper; pushed further if a mid-tone paper needs it to read.
+  const ink = readableOn(paper, onColour(paper) === WHITE ? "#f5f5f5" : INK, 4.5, onColour(paper) === WHITE);
   const neutral = accent === INK && paper === WHITE;
-  const tint = mix(accent, paper, neutral ? 0.05 : 0.1);
+  // An accent that all but disappears into the paper (black on a dark paper) is drawn in the text colour instead.
+  const fill = contrast(accent, paper) < 1.8 ? ink : accent;
+  // A light wash of the accent over the paper; on a mid-tone paper it is made fainter until text still reads on it.
+  let wash = neutral ? 0.05 : 0.1;
+  let tint = mix(fill, paper, wash);
+  const strongest = onColour(paper) === WHITE ? "#ffffff" : "#000000";
+  while (wash > 0 && contrast(strongest, tint) < 4.5) {
+    wash = Math.max(0, wash - 0.01);
+    tint = mix(fill, paper, wash);
+  }
   return {
     ...parts,
     name,
     radius: RADIUS[corners],
     paper,
     ink,
-    muted: mix(ink, paper, 0.67),
+    // Softer than the text, but never so soft it stops reading on a mid-tone paper.
+    muted: readableOn(paper, mix(ink, paper, 0.67), 4.5, onColour(paper) === WHITE),
     line: mix(ink, paper, 0.16),
-    accent,
-    onAccent: onColour(accent),
+    accent: fill,
+    onAccent: onColour(fill),
     // Dark enough (or light enough, on dark paper) to read on the tint too.
-    accentInk: readableOn(tint, accent),
+    accentInk: readableOn([paper, tint], fill, 4.5, onColour(paper) === WHITE),
     tint,
-    tintStrong: mix(accent, paper, 0.06),
+    tintStrong: mix(fill, paper, 0.06),
   };
 }
 
@@ -335,7 +357,7 @@ export function isTheme(value: unknown): value is Theme {
 /**
  * The theme to draw a stored version with. A version sent with the first designs (a resolved theme with
  * the old parts, or only a design's name) is upgraded: the parts it had are kept and the new ones take
- * the plain values that draw it exactly as it was drawn. Anything unreadable is the Classic starter.
+ * the plain values that draw it the same way (its own colours are kept exactly; picture corners can differ by a point or two). Anything unreadable is the Classic starter.
  */
 export function themeFromStored(stored: { theme?: unknown; design?: string } | null | undefined): Theme {
   const t = stored?.theme;
@@ -357,6 +379,8 @@ export function themeFromStored(stored: { theme?: unknown; design?: string } | n
         rows: pick(ROWS, old.rows, "lines"),
         totals: pick(TOTALS, old.totals, "rule"),
         corners: typeof old.radius === "number" ? (old.radius === 0 ? "square" : old.radius >= 10 ? "round" : "soft") : "soft",
+        // Pictures in the first designs followed the corners: square on the square ones, rounded otherwise.
+        photoShape: old.radius === 0 ? "square" : "rounded",
       };
       // Keep the exact colours that version was drawn with.
       const kept: Partial<Theme> = {};
