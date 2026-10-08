@@ -12,6 +12,7 @@ import { moneyToInput, percentToInput } from "@/lib/money";
 import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
+import { QuoteSetup } from "../quote-setup";
 
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.
@@ -25,6 +26,21 @@ export default async function NewQuotePage() {
   const locale = getLocalePack(profile.countryCode);
   const customers = forOrganisation(allCustomers, organisation.id);
   const today = todayIn(locale.timeZone);
+
+  // The first New quote of a business: two questions first, for those who can answer them.
+  if (profile.quoteSetupAt === null && canEditBusinessProfile(role)) {
+    return (
+      <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
+        <div className="space-y-1">
+          <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
+            Quotes
+          </Link>
+          <h1 className="text-xl font-semibold">New quote</h1>
+        </div>
+        <QuoteSetup />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -45,7 +61,8 @@ export default async function NewQuotePage() {
           validUntil: addDays(today, DEFAULT_VALID_DAYS),
           neededBy: "",
           lines: [],
-          fulfilment: "none",
+          // Delivery or collection, as the business usually works (set by the first-quote questions or under Quotes and invoices).
+          fulfilment: profile.usualFulfilment ?? "none",
           deliveryFee: "",
           deliveryAddress: "",
           discountKind: "none",

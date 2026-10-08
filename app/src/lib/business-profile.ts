@@ -13,6 +13,10 @@ export type BusinessProfile = {
   /** What a new quote starts with for its deposit: 'none', a percentage (basis points) or an amount (cents). */
   defaultDepositKind: "none" | "percent" | "fixed";
   defaultDepositValue: number;
+  /** What a new quote starts with for delivery or collection (null: nothing chosen). */
+  usualFulfilment: "collection" | "delivery" | null;
+  /** When an owner or admin answered or skipped the first-quote questions (null: not asked yet). */
+  quoteSetupAt: string | null;
   /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
   countryCode: string;
   /** ISO currency code. Not editable yet. */
@@ -37,7 +41,7 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "logoImageId">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
 
 export type FieldName =
   | "name"

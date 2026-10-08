@@ -13,6 +13,8 @@ Get each maker to a first useful result without feeling they are filling in form
 5. **Reading an old quote or invoice (AI) is the headline head start, but: test first, build after the manual path.** A throwaway test on real sample documents measures accuracy and cost; the manual path ships first as the fallback.
 6. **Business details are asked for at the first customer-facing document** (first quote, invoice or PDF), not in onboarding, and only the minimum: for a quote that is a phone or email, with no physical address and no VAT number; the address is asked at the first invoice (see `docs/plans/quotes.md`). **The business name stays in onboarding** (already built). The "Make your quotes look right" prompt on Home goes. The Business profile screen keeps the full business form (Settings is for account and app preferences only).
 
+> 2026-10-08: a small exception to "no setup wizard" was added at the first New quote, two questions that set defaults (a usual deposit and collect or deliver): see `quote-setup.md`.
+
 ## Flow
 1. Sign in (exists).
 2. Business name (exists).

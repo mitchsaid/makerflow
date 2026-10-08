@@ -57,6 +57,17 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("showing-types")).toBeVisible();
       await page.getByTestId("more-examples").locator("summary").click();
       await expectNoViolations(page, "quote policies, examples for you with more examples open");
+
+      // The first New quote asks two questions: with an error, then as it is.
+      await page.goto("/app/quotes/new");
+      const setup = page.getByRole("form", { name: "Two quick questions" });
+      await expect(setup).toBeVisible();
+      await expectNoViolations(page, "first quote, two questions");
+      await setup.getByRole("radio", { name: "Yes, to start work" }).check();
+      await setup.getByLabel("How much, as a percentage of the total?").fill("");
+      await setup.getByRole("button", { name: "Save and start my quote" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "first quote, two questions with an error");
     });
 
     test("signed-in pages", async ({ page }) => {
