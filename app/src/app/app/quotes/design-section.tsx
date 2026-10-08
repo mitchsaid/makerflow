@@ -182,9 +182,6 @@ export function DraftPreview({
               Remix this theme
             </Link>
           )}
-          <Link href="/app/documents/themes" className={buttonVariants({ variant: "ghost" })}>
-            Manage themes
-          </Link>
         </div>
       </section>
     </>
