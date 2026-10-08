@@ -8,6 +8,7 @@ import { currencySymbol, moneyToInput, percentToInput } from "@/lib/money";
 import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { DepositDefaultForm } from "./deposit-default-form";
+import { HandoverDefaultForm } from "./handover-default-form";
 import { LogoForm } from "./logo-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
@@ -86,6 +87,8 @@ export default async function DocumentSettingsPage() {
           }}
         />
       )}
+
+      {canEdit && <HandoverDefaultForm initial={profile.usualFulfilment ?? "none"} />}
 
       {canEdit ? (
         <QuoteNumberingForm

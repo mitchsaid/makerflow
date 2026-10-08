@@ -47,6 +47,7 @@ export async function signUpAndOnboard(
   page: Page,
   label: string,
   businessName: string,
+  options: { quoteSetup?: "skip" | "leave" } = {},
 ): Promise<string> {
   const email = uniqueEmail(label);
   await page.goto("/sign-in");
@@ -59,6 +60,14 @@ export async function signUpAndOnboard(
   // The optional "what do you make?" step: most tests skip it.
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page.getByTestId("business-name")).toHaveText(businessName);
+  // The first New quote asks two setup questions; most tests are about something else and skip them.
+  if (options.quoteSetup !== "leave") {
+    await page.goto("/app/quotes/new");
+    await page.getByRole("button", { name: "Skip for now" }).click();
+    await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
+    await page.goto("/app");
+    await expect(page.getByTestId("business-name")).toHaveText(businessName);
+  }
   return email;
 }
 
