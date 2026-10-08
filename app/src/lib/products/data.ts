@@ -1,6 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
+import type { VatStatus } from "../money";
 import type { Product, ProductKind, ProductSummary } from "./index";
 
 /**
@@ -20,9 +21,10 @@ type Row = {
   unit: string | null;
   archived_at: string | null;
   photo_image_id: string | null;
+  vat_status: VatStatus;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -35,6 +37,7 @@ function fromRow(row: Row): ProductSummary {
     unit: row.unit,
     archived: row.archived_at !== null,
     photoImageId: row.photo_image_id,
+    vatStatus: row.vat_status,
   };
 }
 

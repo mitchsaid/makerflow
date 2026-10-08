@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
+import type { VatStatus } from "@/lib/money";
 import {
   parseProductForm,
   type ProductFieldErrors,
@@ -30,11 +31,14 @@ function toRow(p: ProductFields) {
     unit: p.unit,
     // Only when the form carried a photo field: otherwise the saved photo is left alone.
     ...(p.photoImageId === undefined ? {} : { photo_image_id: p.photoImageId }),
+    // Only when the form carried a VAT choice (a VAT-registered business): otherwise it is left alone.
+    ...(p.vatStatus === undefined ? {} : { vat_status: p.vatStatus }),
   };
 }
 
-function summaryFor(id: string, organisationId: string, p: ProductFields): ProductSummary {
-  return { id, organisationId, archived: false, ...p, photoImageId: p.photoImageId ?? null };
+function summaryFor(id: string, organisationId: string, p: ProductFields, stored?: VatStatus | null): ProductSummary {
+  // What the database holds wins: a form without the VAT choice leaves it as it was.
+  return { id, organisationId, archived: false, ...p, photoImageId: p.photoImageId ?? null, vatStatus: stored ?? p.vatStatus ?? "standard" };
 }
 
 async function insertProduct(
@@ -99,7 +103,7 @@ export async function updateProduct(
     .update(toRow(parsed.value))
     .eq("id", id)
     .eq("organisation_id", organisation.id)
-    .select("id");
+    .select("id, vat_status");
   if (error?.code === "23503") {
     return { status: "error", errors: { photo: "That photo could not be used. Choose it again." } };
   }
@@ -109,7 +113,7 @@ export async function updateProduct(
   }
 
   revalidatePath("/app/products");
-  return { status: "saved", product: summaryFor(id, organisation.id, parsed.value) };
+  return { status: "saved", product: summaryFor(id, organisation.id, parsed.value, saved[0].vat_status as VatStatus) };
 }
 
 export type ProductArchiveState = { status: "idle" } | { status: "error"; message: string };

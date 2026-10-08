@@ -177,3 +177,62 @@ test("an archived product is not offered for new lines", async ({ page }) => {
   await expect(sheet(page).getByRole("button", { name: /New cake/ })).toBeVisible();
   await expect(sheet(page).getByRole("button", { name: /Old cake/ })).toHaveCount(0);
 });
+
+test("a product's VAT treatment is only for VAT-registered businesses, and its quote items start with it", async ({ page }) => {
+  await signUpAndOnboard(page, "piq-vat", "Vat Default Co");
+
+  // Not registered: no choice on the product.
+  await page.goto("/app/products/new");
+  await expect(page.getByLabel("VAT on this")).toHaveCount(0);
+
+  await page.goto("/app/more");
+  await page.getByRole("link", { name: /Business profile/ }).click();
+  await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
+  await page.getByLabel("VAT number").fill("4123456789");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+
+  // A zero-rated product.
+  await page.goto("/app/products/new");
+  await expect(page.getByLabel("VAT on this")).toHaveValue("");
+  await page.getByLabel("Name", { exact: true }).fill("Brown bread");
+  await page.getByLabel("Price (including VAT)").fill("30");
+  await page.getByLabel("VAT on this").selectOption("zero");
+  await expect(page.getByLabel("VAT on this")).toHaveAccessibleDescription(/VAT at 0%/);
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByLabel("Price (including VAT)").fill("115");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+
+  // It comes back when the product is opened.
+  await page.getByRole("link", { name: /Brown bread/ }).first().click();
+  await expect(page.getByLabel("VAT on this")).toHaveValue("zero");
+
+  // Quote items made from products start with their treatment, and can still be changed.
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Brown bread/ }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("zero");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(line(page, 1)).toContainText("Zero-rated");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(line(page, 2)).not.toContainText("Zero-rated");
+  // 30 (no VAT) + 115 (15 of it VAT).
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("145"));
+  await expect(page.getByTestId("totals")).toContainText(rand("15"));
+
+  // Changing a product's treatment from inside the item sheet carries to the item being added.
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("");
+  await sheet(page).getByRole("button", { name: "Edit this product" }).click();
+  await sheet(page).getByLabel("VAT on this", { exact: true }).selectOption("zero");
+  await sheet(page).getByRole("button", { name: "Save changes" }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("zero");
+});

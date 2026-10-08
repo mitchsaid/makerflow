@@ -71,6 +71,7 @@ describe("productMatchesSearch", () => {
     unitPriceCents: 80000,
     archived: false,
     photoImageId: null,
+    vatStatus: "standard",
   };
   it("searches the name and description without caring about case", () => {
     expect(productMatchesSearch(p, "WEDDING")).toBe(true);
@@ -100,5 +101,23 @@ describe("the photo on a product form", () => {
       form({ kind: "service", name: "Design", unitPrice: "300", photoImageId: "11111111-1111-4111-8111-111111111111" }),
     );
     expect(service.ok && service.value.photoImageId).toBeNull();
+  });
+});
+
+describe("the VAT treatment on a product form", () => {
+  const base = { name: "Bread", unitPrice: "30" };
+  it("reads a treatment, takes an empty choice as standard-rated, and leaves it alone when the form has none", () => {
+    for (const [raw, expected] of [["zero", "zero"], ["exempt", "exempt"], ["standard", "standard"], ["", "standard"]] as const) {
+      const r = parseProductForm(form({ ...base, vatStatus: raw }));
+      expect(r.ok && r.value.vatStatus, raw).toBe(expected);
+    }
+    const absent = parseProductForm(form(base));
+    expect(absent.ok && absent.value.vatStatus).toBeUndefined();
+  });
+
+  it("refuses an unknown treatment, saying how to fix it", () => {
+    const bad = parseProductForm(form({ ...base, vatStatus: "reduced" }));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors.vatStatus).toBeDefined();
   });
 });

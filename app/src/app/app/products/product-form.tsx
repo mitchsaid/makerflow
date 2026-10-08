@@ -4,13 +4,15 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { UnitField } from "@/components/unit-field";
-import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import type { VatStatus } from "@/lib/money";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
+import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 
 /**
@@ -70,6 +72,7 @@ export function ProductForm({
   initial,
   mode,
   priceLabel,
+  vatChoices,
   currencySymbol,
   idPrefix = "",
   embedded,
@@ -79,6 +82,8 @@ export function ProductForm({
   mode: "add" | "edit";
   /** "Price (including VAT)" and so on, from the business's VAT setting. */
   priceLabel: string;
+  /** How VAT can treat it, in the country's words; null when the business is not VAT registered (no choice shown). */
+  vatChoices: VatChoice[] | null;
   /** "R": shown before the price. */
   currencySymbol: string;
   /** In front of every field id, for when the form shares a page with other fields. */
@@ -114,6 +119,7 @@ export function ProductForm({
       ["name", "Name"],
       ["unitPrice", priceLabel],
       ["unit", "Unit"],
+      ["vatStatus", "VAT"],
       ["description", "Description"],
       ["photo", "Photo"],
     ] as const
@@ -176,6 +182,20 @@ export function ProductForm({
           onChange={set("unit")}
           hint="What one is, like kg, dozen or hour. The price above is per unit. Leave it empty for a plain count."
         />
+        {vatChoices && (
+          <SelectField
+            id={fid("vatStatus")}
+            name="vatStatus"
+            label="VAT on this"
+            value={values.vatStatus === "standard" ? "" : values.vatStatus}
+            onChange={(status) => set("vatStatus")(status === "" ? "standard" : (status as VatStatus))}
+            placeholder={vatChoices.find((c) => c.value === "standard")?.label ?? "Standard-rated"}
+            options={vatChoices.filter((c) => c.value !== "standard").map((c) => c.value)}
+            optionLabels={Object.fromEntries(vatChoices.map((c) => [c.value, c.label]))}
+            hint={`${vatChoices.find((c) => c.value === values.vatStatus)?.hint ?? ""} A quote item starts with this, and can be changed on the quote.`}
+            error={errors.vatStatus}
+          />
+        )}
         <TextAreaField
           id={fid("description")}
           name="description"

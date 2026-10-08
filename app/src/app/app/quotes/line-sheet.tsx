@@ -24,6 +24,7 @@ import {
 import { UnitField } from "@/components/unit-field";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
 import type { VatStatus } from "@/lib/money";
+import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
@@ -61,7 +62,8 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     unitPrice: moneyToInput(product.unitPriceCents, style),
     discountKind: "none",
     discountValue: "",
-    vatStatus: "standard",
+    // The product's usual treatment (the item keeps its own copy and can be changed).
+    vatStatus: product.vatStatus,
   };
 }
 
@@ -89,7 +91,7 @@ export function LineSheet({
   /** "Price (including VAT)" and so on. */
   priceLabel: string;
   /** How VAT can treat an item, in the country's words; null when the business is not VAT registered. */
-  vatChoices: { value: VatStatus; label: string; hint: string }[] | null;
+  vatChoices: VatChoice[] | null;
   /** A fresh key for a line that is about to be added. */
   newKey: () => string;
   onView: (view: LineSheetView) => void;
@@ -197,6 +199,7 @@ export function LineSheet({
               action={view.mode === "add" ? createProductInQuote : updateProduct.bind(null, view.product!.id)}
               initial={view.product ? productValues(view.product, numberStyle) : emptyOfKind(view.productKind ?? "product")}
               priceLabel={priceLabel}
+              vatChoices={vatChoices}
               currencySymbol={symbol}
               idPrefix="product-sheet-"
               embedded={{
@@ -250,6 +253,7 @@ function followProduct(
       line.unitPrice === moneyToInput(before.unitPriceCents, style)
         ? moneyToInput(after.unitPriceCents, style)
         : line.unitPrice,
+    vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
   };
 }
 
@@ -261,6 +265,7 @@ function productValues(p: ProductSummary, style: NumberStyle): ProductFormValues
     unit: p.unit ?? "",
     description: p.description ?? "",
     photoImageId: p.photoImageId ?? "",
+    vatStatus: p.vatStatus,
   };
 }
 
@@ -375,7 +380,7 @@ function ConfigureView({
   isNew: boolean;
   product: ProductSummary | undefined;
   priceLabel: string;
-  vatChoices: { value: VatStatus; label: string; hint: string }[] | null;
+  vatChoices: VatChoice[] | null;
   currencySymbol: string;
   numberStyle: NumberStyle;
   money: (cents: number) => string;

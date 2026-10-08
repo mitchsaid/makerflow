@@ -1,4 +1,4 @@
-import { moneyToInput, type NumberStyle } from "@/lib/money";
+import { moneyToInput, type NumberStyle, type VatStatus } from "@/lib/money";
 import type { Product, ProductKind } from "@/lib/products";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
@@ -11,9 +11,11 @@ export type ProductFormValues = {
   description: string;
   /** The photo's id (an uploaded picture), or "". Products only. */
   photoImageId: string;
+  /** How VAT treats it. Only shown, and sent, for a VAT-registered business. */
+  vatStatus: VatStatus;
 };
 
-export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", unit: "", description: "", photoImageId: "" };
+export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", unit: "", description: "", photoImageId: "", vatStatus: "standard" };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
   return { ...EMPTY_PRODUCT, kind };
@@ -38,6 +40,7 @@ export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormVa
     unit: p.unit ?? "",
     description: p.description ?? "",
     photoImageId: p.photoImageId ?? "",
+    vatStatus: p.vatStatus ?? "standard",
   };
 }
 

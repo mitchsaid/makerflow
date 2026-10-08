@@ -1,6 +1,6 @@
 import { optionalMultiline, optionalText } from "../form-values";
 import { isImageId } from "../images";
-import { parseMoney, type Cents } from "../money";
+import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
 
 /**
@@ -29,11 +29,16 @@ export type ProductFields = {
    * product did not carry one (an older app): the photo is left as it is.
    */
   photoImageId?: string | null;
+  /**
+   * How VAT treats it: a quote item made from it starts with this. Undefined when the form that saved the
+   * product did not carry one (a business that is not VAT registered never sees the choice): it is left as it is.
+   */
+  vatStatus?: VatStatus;
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
 
-export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "unit" | "photo";
+export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "unit" | "photo" | "vatStatus";
 export type ProductFieldErrors = Partial<Record<ProductFieldName, string>>;
 
 export type ParsedProductForm =
@@ -75,6 +80,16 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     else errors.photo = "That photo could not be used. Choose it again.";
   }
 
+  // VAT treatment: only a VAT-registered business's form carries it.
+  let vatStatus: VatStatus | undefined;
+  const vatRaw = form.get("vatStatus");
+  if (vatRaw !== null) {
+    // The picker's first entry (standard-rated) is an empty value.
+    if (vatRaw === "" || vatRaw === "standard") vatStatus = "standard";
+    else if (vatRaw === "zero" || vatRaw === "exempt") vatStatus = vatRaw;
+    else errors.vatStatus = "Choose how VAT applies to this.";
+  }
+
   const priceRaw = form.get("unitPrice");
   const priceText = typeof priceRaw === "string" ? priceRaw : "";
   const price = parseMoney(priceText);
@@ -94,6 +109,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
       unitPriceCents: price.value,
       unit: unit.value,
       photoImageId,
+      vatStatus,
     },
   };
 }
@@ -110,6 +126,8 @@ export type ProductSummary = {
   archived: boolean;
   /** The photo's id, or null. Shown small in lists, and on quotes. */
   photoImageId: string | null;
+  /** How VAT treats it; a quote item made from it starts with this. */
+  vatStatus: VatStatus;
 };
 
 /** Does a list row match what the person typed in the search box? */
