@@ -383,9 +383,12 @@ function ConfigureView({
   const [, startTransition] = useTransition();
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const removeQuestion = useRef<HTMLDivElement>(null);
-  // The question opens at the foot of a long form, beside the sticky Save bar: bring it into view.
+  // The question opens at the foot of a long form, beside the sticky Save bar: bring it into view and
+  // take focus there (its first button), so keyboard and screen-reader users land on it.
   useEffect(() => {
-    if (confirmingRemove) removeQuestion.current?.scrollIntoView({ block: "center" });
+    if (!confirmingRemove) return;
+    removeQuestion.current?.scrollIntoView({ block: "center" });
+    removeQuestion.current?.querySelector("button")?.focus({ preventScroll: true });
   }, [confirmingRemove]);
   const id = (field: string) => `line-sheet-${field}`;
   const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) =>
@@ -548,17 +551,25 @@ function ConfigureView({
       {onRemove && (
         <section className="space-y-3" aria-label="Remove this item">
           {!confirmingRemove ? (
-            <Button type="button" variant="ghost" className="text-destructive" onClick={() => setConfirmingRemove(true)}>
+            <Button id="remove-item" type="button" variant="ghost" className="text-destructive" onClick={() => setConfirmingRemove(true)}>
               Remove this item
             </Button>
           ) : (
-            <div ref={removeQuestion} className="space-y-3 rounded-xl bg-destructive/5 p-3 scroll-mb-28" role="alertdialog" aria-label="Remove this item?">
+            <div ref={removeQuestion} className="space-y-3 rounded-xl border border-destructive/50 p-3 scroll-mb-28" role="alertdialog" aria-label="Remove this item?">
               <p className="text-base">Take {line.name.trim() || "this item"} off the quote?</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="destructive" onClick={onRemove}>
                   Yes, remove it
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setConfirmingRemove(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setConfirmingRemove(false);
+                    // Back to the button that asked.
+                    setTimeout(() => document.getElementById("remove-item")?.focus(), 0);
+                  }}
+                >
                   Keep it
                 </Button>
               </div>

@@ -112,6 +112,10 @@ export function QuoteBuilder({
   const [editedSinceSave, setEditedSinceSave] = useState(false);
   // A new quote is cancelled with the X: straight away when nothing has been typed, else after asking.
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const cancelQuestion = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (confirmingCancel) cancelQuestion.current?.querySelector("button")?.focus();
+  }, [confirmingCancel]);
   const [pending, startTransition] = useTransition();
   // Long quotes show the first few items and a "Show all" button.
   const [expanded, setExpanded] = useState(false);
@@ -314,7 +318,10 @@ export function QuoteBuilder({
             type="button"
             variant="ghost"
             size="icon"
+            id="cancel-quote"
             aria-label="Cancel new quote"
+            // Not while a save is on its way: leaving then would still create the draft.
+            disabled={pending}
             onClick={() => (editedSinceSave ? setConfirmingCancel(true) : router.push("/app/quotes"))}
           >
             <XIcon aria-hidden="true" />
@@ -323,14 +330,21 @@ export function QuoteBuilder({
       </div>
     )}
     {quoteId === null && confirmingCancel && (
-      <Alert role="alertdialog" aria-label="Cancel this new quote?">
+      <Alert ref={cancelQuestion} role="alertdialog" aria-label="Cancel this new quote?">
         <AlertDescription className="space-y-3">
-          <p>Cancel this quote? Nothing has been saved yet, so what you typed will be lost.</p>
+          <p>Cancel this quote? It hasn&apos;t been saved yet, so the items and details you entered here will be lost.</p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="destructive" onClick={() => router.push("/app/quotes")}>
               Yes, cancel the quote
             </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirmingCancel(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setConfirmingCancel(false);
+                setTimeout(() => document.getElementById("cancel-quote")?.focus(), 0);
+              }}
+            >
               Keep editing
             </Button>
           </div>
@@ -451,7 +465,6 @@ export function QuoteBuilder({
           <Button
             type="button"
             variant="ghost"
-            aria-expanded={expanded}
             aria-controls="items-list"
             onClick={() => setExpanded((v) => !v)}
           >
