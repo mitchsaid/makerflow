@@ -158,8 +158,8 @@ describe("the quote snapshot", () => {
     expect(JSON.stringify(s)).not.toContain("private note");
   });
 
-  it("records the design it was drawn with, so a later design never changes it", () => {
-    expect(snapshotFor(INCLUSIVE).design).toBe("classic");
+  it("records the finished theme it was drawn with, so a later change to a theme never changes it", () => {
+    expect(snapshotFor(INCLUSIVE).theme?.name).toBe("Classic");
   });
 
   it("carries the units and the quote's own wording, so a sent version keeps them", () => {

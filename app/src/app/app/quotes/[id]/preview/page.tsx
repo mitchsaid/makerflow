@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote } from "@/lib/quotes/data";
-import { DEFAULT_DESIGN, themeFor } from "@/lib/quotes/designs";
+import { canEditBusinessProfile } from "@/lib/business-profile";
+import { getThemes } from "@/lib/quotes/theme-data";
 import { prepareQuote } from "@/lib/quotes/prepare";
 import { getLocalePack } from "@/lib/locale";
 import { DraftPreview } from "../../design-section";
@@ -18,7 +19,7 @@ import { PreviewBar } from "./preview-bar";
  */
 export default async function QuotePreviewPage({ params }: PageProps<"/app/quotes/[id]/preview">) {
   const { id } = await params;
-  const [quote, workspace] = await Promise.all([getStoredQuote(id), requireOrganisation()]);
+  const [quote, workspace, saved] = await Promise.all([getStoredQuote(id), requireOrganisation(), getThemes()]);
   if (quote.organisationId !== workspace.organisation.id) notFound();
   // Only a draft is previewed; a sent quote opens as its document.
   if (quote.status !== "draft") redirect(`/app/quotes/${id}`);
@@ -55,16 +56,15 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
         <QuoteDocumentView snapshot={snapshot} />
       </section>
 
-      {/* The document is drawn in the browser from this snapshot and the design chosen below, so a choice shows at once. */}
+      {/* The document is drawn in the browser from this snapshot and the theme chosen below, so a choice shows at once. */}
       <DraftPreview
         snapshot={snapshot}
         quoteId={id}
         label={`Quote ${quote.number}`}
-        initialDesign={themeFor(snapshot).key}
-        initialOptions={quote.designOptions ?? (quote.design === null ? workspace.profile.defaultDesignOptions : {})}
-        brandColor={workspace.profile.brandColor}
-        initialFollowing={quote.design === null}
-        usual={{ design: workspace.profile.defaultDesign ?? DEFAULT_DESIGN, options: workspace.profile.defaultDesignOptions }}
+        saved={saved}
+        initialOwn={{ id: quote.themeId, starter: quote.themeStarter }}
+        usual={{ id: workspace.profile.defaultThemeId, starter: workspace.profile.defaultThemeStarter }}
+        canEdit={canEditBusinessProfile(workspace.role)}
       />
       <PreviewBar quoteId={id} />
     </main>

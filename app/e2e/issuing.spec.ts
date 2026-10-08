@@ -52,9 +52,9 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   expect(inked).toBeGreaterThan(500);
   // The text version of the same document is there for screen readers.
   await expect(page.getByRole("region", { name: "The quote as text" })).toContainText("Wedding cake");
-  // The design: the business's usual look (Classic), changeable from here.
+  // The theme: the business's usual (Classic), changeable from here among the five starters.
   await expect(page.getByTestId("current-design")).toHaveText("Classic");
-  await expect(page.getByRole("group", { name: "Design" }).getByRole("button")).toHaveCount(5);
+  await expect(page.getByRole("group", { name: "Theme" }).getByRole("button")).toHaveCount(5);
   // Download is a plain link to the PDF.
   expect(await page.getByRole("link", { name: "Download" }).getAttribute("href")).toBe(`${new URL(quoteUrl).pathname}/pdf?download=1`);
   // Pressing it really downloads (it first waits for any design choice still being saved).

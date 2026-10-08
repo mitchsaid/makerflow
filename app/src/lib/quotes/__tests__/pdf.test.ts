@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
 import { parseQuote, type QuoteFormValues } from "../index";
-import { DESIGNS, resolveTheme } from "../designs";
+import { BLANK_SPEC, HEADERS, LAYOUTS, LOGO_MODES, ROWS, STARTERS, TABLE_HEADS, TOTALS, resolveTheme, themeFromStored, type ThemeSpec } from "../themes";
 import { renderQuotePdf } from "../pdf/render";
 import { buildQuoteSnapshot } from "../snapshot";
 
@@ -182,49 +182,116 @@ describe("policies on the document", () => {
   });
 });
 
-describe("designs", () => {
-  it("draws a version sent before designs existed, and one naming an unknown design, in the classic design", async () => {
+describe("themes", () => {
+  const withTheme = (spec: Partial<ThemeSpec>, name = "Mine") => ({
+    ...snapshot(vats.inclusive),
+    theme: resolveTheme({ ...BLANK_SPEC, ...spec }, name),
+  });
+  const textOf = async (pdf: Buffer) => (await pageTexts(pdf)).flat().join(" ");
+  /** The table's headings are drawn in capitals (a style, not the words); other text may say "prices", so match the capitals. */
+  const hasWord = (text: string, word: string) => new RegExp(`\\b${word.toUpperCase().replace(".", "\\.")}(?![a-z])`).test(text);
+
+  it("draws a version sent before themes existed, and one naming an unknown design, as Classic", async () => {
     const old = { ...snapshot(vats.inclusive) } as Record<string, unknown>;
-    delete old.design;
-    const withoutDesign = await renderQuotePdf(old as unknown as ReturnType<typeof snapshot>);
-    const unknown = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "future" as never });
+    delete old.theme;
+    const withoutTheme = await renderQuotePdf(old as unknown as ReturnType<typeof snapshot>);
+    const unknown = await renderQuotePdf({ ...(old as unknown as ReturnType<typeof snapshot>), design: "future" });
     const classic = await renderQuotePdf(snapshot(vats.inclusive));
-    for (const pdf of [withoutDesign, unknown, classic]) {
-      expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
-    }
-    expect(Math.abs(withoutDesign.length - classic.length)).toBeLessThan(200);
+    for (const pdf of [withoutTheme, unknown, classic]) expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(Math.abs(withoutTheme.length - classic.length)).toBeLessThan(200);
   });
 
-  it("draws every design with all of its text, the page numbers included", async () => {
-    for (const { key } of DESIGNS) {
-      const theme = resolveTheme(key, {}, "#7e22ce");
-      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: key, theme });
-      const text = (await pageTexts(pdf)).flat().join(" ");
-      expect(text, key).toContain("Page 1 of");
-      expect(text, key).toContain("Total including VAT");
-    }
- }, 30000);
+  it("draws a version sent with the first designs (their older theme shape) as it was", async () => {
+    const first = {
+      key: "bold", headingFont: "sans", header: "band", tableHead: "filled", rows: "zebra", totals: "solid", radius: 0,
+      paper: "#ffffff", ink: "#1a1a1a", muted: "#666666", line: "#dddddd", accent: "#1e3a8a", onAccent: "#ffffff",
+      accentInk: "#1e3a8a", tint: "#e8ebf3", tintStrong: "#f1f3f8",
+    };
+    const upgraded = themeFromStored({ theme: first });
+    expect(upgraded.header).toBe("band");
+    expect(upgraded.layout).toBe("table");
+    expect(upgraded.muted).toBe("#666666");
+    expect(upgraded.name).toBe("Bold");
+    const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: first as never });
+    expect(await textOf(pdf)).toContain("Page 1 of");
+  });
 
-  it("marks a draft in every design, the band included", async () => {
-    for (const { key } of DESIGNS) {
-      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: key, theme: resolveTheme(key) }, { draft: true });
-      const text = (await pageTexts(pdf)).flat().join(" ");
-      expect(text, key).toContain("DRAFT PREVIEW");
+  it("draws every starter with all of its text, the page numbers included", async () => {
+    for (const s of STARTERS) {
+      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: resolveTheme(s.spec, s.name) });
+      const text = await textOf(pdf);
+      expect(text, s.key).toContain("Page 1 of");
+      expect(text, s.key).toContain("Total including VAT");
     }
- }, 30000);
+  }, 30000);
 
-  it("draws a sent version from its frozen theme, whatever the design or brand colour is now", async () => {
-    const frozen = resolveTheme("bold", {}, "#7e22ce");
-    const a = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: frozen });
-    // The same snapshot read again later draws identically: nothing is looked up from the business.
-    const b = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: frozen });
+  it("marks a draft in every header style, the band included", async () => {
+    for (const header of HEADERS) {
+      const pdf = await renderQuotePdf(withTheme({ header }), { draft: true });
+      expect(await textOf(pdf), header).toContain("DRAFT PREVIEW");
+    }
+  }, 30000);
+
+  it("draws every way of showing the items with every option, and the item text is there", async () => {
+    const sharp = (await import("sharp")).default;
+    const photo = await sharp({ create: { width: 80, height: 80, channels: 3, background: "#ccaa88" } }).jpeg().toBuffer();
+    const base = snapshot(vats.inclusive);
+    const withPhoto = { ...base, lines: base.lines.map((l) => ({ ...l, photoImageId: "p1" })) };
+    const images = new Map([["p1", { contentType: "image/jpeg", bytes: photo }]]);
+    // Every layout with every row style, and every table heading on the table.
+    const combos = [
+      ...LAYOUTS.flatMap((layout) => ROWS.map((rows) => ({ layout, rows, tableHead: "line" as const }))),
+      ...TABLE_HEADS.map((tableHead) => ({ layout: "table" as const, rows: "lines" as const, tableHead })),
+    ];
+    for (const { layout, rows, tableHead } of combos) {
+      const pdf = await renderQuotePdf(
+        { ...withPhoto, theme: resolveTheme({ ...BLANK_SPEC, layout, rows, tableHead, photo: "large", photoShape: "round", numbered: true, density: "airy" }, "x") },
+        { images },
+      );
+      const text = await textOf(pdf);
+      expect(text, `${layout} ${rows} ${tableHead}`).toContain("Wedding cake");
+      expect(text, `${layout} ${rows} ${tableHead}`).toContain("Page 1 of");
+    }
+  }, 120000);
+
+  it("leaves out what the theme turns off: quantity, price, descriptions, and shows the numbers", async () => {
+    const all = await textOf(await renderQuotePdf(withTheme({ numbered: true })));
+    expect(hasWord(all, "Qty")).toBe(true);
+    expect(hasWord(all, "Price")).toBe(true);
+    expect(all).toContain("Three tiers, vanilla");
+    expect(hasWord(all, "No.")).toBe(true);
+    const lean = await textOf(await renderQuotePdf(withTheme({ showQty: false, showUnitPrice: false, descriptions: false })));
+    expect(hasWord(lean, "Qty")).toBe(false);
+    expect(hasWord(lean, "Price")).toBe(false);
+    expect(lean).not.toContain("Three tiers, vanilla");
+    expect(lean).toContain("Wedding cake");
+    const list = await textOf(await renderQuotePdf(withTheme({ layout: "list", showQty: true, showUnitPrice: true })));
+    expect(list).toContain("×");
+  }, 30000);
+
+  it("draws the centred header, the logo choices, the serif body and every totals style", async () => {
+    const sharp = (await import("sharp")).default;
+    const logo = { contentType: "image/png", bytes: await sharp({ create: { width: 60, height: 20, channels: 3, background: "#aa5522" } }).png().toBuffer() };
+    for (const headerLogo of LOGO_MODES) {
+      const pdf = await renderQuotePdf(withTheme({ headerAlign: "center", headerLogo, bodyFont: "serif", header: "boxed" }), { logo });
+      expect(await textOf(pdf), headerLogo).toContain("Page 1 of");
+    }
+    for (const totals of TOTALS) {
+      expect(await textOf(await renderQuotePdf(withTheme({ totals }))), totals).toContain("Total including VAT");
+    }
+  }, 60000);
+
+  it("draws a sent version from its frozen theme, whatever the theme is now", async () => {
+    const frozen = resolveTheme({ ...BLANK_SPEC, accent: "#7e22ce", header: "band" }, "Mine");
+    const a = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: frozen });
+    const b = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: frozen });
     expect(a.length).toBe(b.length);
-    const other = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "bold", theme: resolveTheme("bold", {}, "#0f766e") });
+    const other = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: resolveTheme({ ...BLANK_SPEC, accent: "#0f766e", header: "band" }, "Mine") });
     expect(Buffer.compare(a, other)).not.toBe(0);
   });
 
-  it("falls back to the design's own look when a stored theme is damaged", async () => {
-    const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), design: "warm", theme: { key: "warm" } as never });
+  it("falls back to Classic when a stored theme is damaged", async () => {
+    const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: { key: "warm", accent: 5 } as never });
     expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
 });

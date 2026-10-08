@@ -1,0 +1,154 @@
+import { describe, expect, it } from "vitest";
+import {
+  BLANK_SPEC,
+  CHOICES,
+  STARTERS,
+  chooseTheme,
+  contrast,
+  isStarterKey,
+  isTheme,
+  normaliseColour,
+  onColour,
+  parseSpec,
+  readableOn,
+  resolveTheme,
+  sameSpec,
+  specOf,
+  themeFromStored,
+  type SavedTheme,
+} from "../themes";
+
+describe("normaliseColour", () => {
+  it("accepts #rrggbb and shorthand in any case, and nothing else", () => {
+    expect(normaliseColour("#0F766E")).toBe("#0f766e");
+    expect(normaliseColour(" abc ")).toBe("#aabbcc");
+    for (const bad of ["red", "#12345", "#gggggg", "#1234567", "url(x)", "", null, undefined, 5]) {
+      expect(normaliseColour(bad)).toBeNull();
+    }
+  });
+});
+
+describe("parseSpec", () => {
+  it("keeps only the choices we know and fills the rest from the base", () => {
+    const spec = parseSpec({ accent: "#ABCDEF", header: "band", totals: "huge", layout: "cards", evil: "x", showQty: false, numbered: "yes" });
+    expect(spec).toMatchObject({ accent: "#abcdef", header: "band", layout: "cards", showQty: false, numbered: false, totals: BLANK_SPEC.totals });
+    expect(Object.keys(spec).sort()).toEqual(Object.keys(BLANK_SPEC).sort());
+  });
+  it("turns anything that is not an object into the base", () => {
+    for (const bad of [null, undefined, "x", 3, [], [{ header: "band" }]]) expect(parseSpec(bad)).toEqual(BLANK_SPEC);
+  });
+  it("never lets a colour carry anything but #rrggbb", () => {
+    expect(parseSpec({ accent: "red; background:url(x)", paper: "#fff; x" })).toMatchObject({ accent: BLANK_SPEC.accent, paper: BLANK_SPEC.paper });
+  });
+  it("knows whether two specs are the same look", () => {
+    expect(sameSpec(BLANK_SPEC, { ...BLANK_SPEC })).toBe(true);
+    expect(sameSpec(BLANK_SPEC, { ...BLANK_SPEC, rows: "zebra" })).toBe(false);
+  });
+});
+
+describe("the starters", () => {
+  it("are five whole themes with names, and each choice they use is one the studio offers", () => {
+    expect(STARTERS).toHaveLength(5);
+    for (const s of STARTERS) {
+      expect(s.name.length).toBeGreaterThan(0);
+      expect(sameSpec(parseSpec(s.spec), s.spec), s.key).toBe(true);
+      for (const [name, group] of Object.entries(CHOICES)) {
+        expect(group.options.map(([v]) => v), `${s.key} ${name}`).toContain((s.spec as Record<string, unknown>)[name]);
+      }
+    }
+    expect(isStarterKey("soft")).toBe(true);
+    expect(isStarterKey("nope")).toBe(false);
+  });
+});
+
+describe("resolveTheme", () => {
+  it("carries the parts and works out the colours", () => {
+    const t = resolveTheme({ ...BLANK_SPEC, accent: "#0f766e", header: "band", corners: "round", layout: "cards" }, "Teal");
+    expect([t.name, t.header, t.radius, t.layout]).toEqual(["Teal", "band", 10, "cards"]);
+    expect(t.onAccent).toBe("#ffffff");
+  });
+  it("keeps text readable for any accent and paper", () => {
+    for (const accent of ["#ffffff", "#ffff00", "#000000", "#fde68a", "#1e3a8a", "#ff00ff", "#ff0000"]) {
+      for (const paper of ["#ffffff", "#fbf7f0", "#fdf5f8", "#1f2937", "#000000", "#9ca3af", "#a0a0a0", "#808080", "#c7c7c7"]) {
+        const t = resolveTheme({ ...BLANK_SPEC, accent, paper }, "x");
+        expect(contrast(t.onAccent, t.accent), `${accent} text`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(t.accentInk, t.paper), `${accent} on ${paper}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(t.accentInk, t.tint), `${accent} on its tint over ${paper}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(t.ink, t.paper), `ink on ${paper}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(t.muted, t.paper), `muted on ${paper}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+  it("draws an accent that would vanish into the paper in the text colour instead", () => {
+    const t = resolveTheme({ ...BLANK_SPEC, paper: "#1f2937" }, "x");
+    expect(contrast(t.accent, t.paper)).toBeGreaterThanOrEqual(7);
+    // An accent that shows is left alone.
+    expect(resolveTheme({ ...BLANK_SPEC, accent: "#fbbf24", paper: "#1f2937" }, "x").accent).toBe("#fbbf24");
+  });
+  it("turns the text light on a dark paper", () => {
+    expect(resolveTheme({ ...BLANK_SPEC, paper: "#111827" }, "x").ink).toBe("#f5f5f5");
+    expect(resolveTheme(BLANK_SPEC, "x").ink).toBe("#1a1a1a");
+  });
+  it("round-trips through specOf", () => {
+    for (const s of STARTERS) expect(sameSpec(specOf(resolveTheme(s.spec, s.name)), s.spec), s.key).toBe(true);
+  });
+  it("is accepted by isTheme, and damaged themes are not", () => {
+    for (const s of STARTERS) expect(isTheme(resolveTheme(s.spec, s.name))).toBe(true);
+    const t = resolveTheme(BLANK_SPEC, "x");
+    expect(isTheme({ ...t, accent: "red" })).toBe(false);
+    expect(isTheme({ ...t, layout: "sparkly" })).toBe(false);
+    expect(isTheme({ ...t, showQty: "yes" })).toBe(false);
+    expect(isTheme(null)).toBe(false);
+    expect(isTheme("warm")).toBe(false);
+  });
+});
+
+describe("themeFromStored", () => {
+  it("uses a finished theme as it is, Classic for nothing, and a named starter for an old design name", () => {
+    const t = resolveTheme({ ...BLANK_SPEC, accent: "#123456" }, "Mine");
+    expect(themeFromStored({ theme: t })).toBe(t);
+    expect(themeFromStored(undefined).name).toBe("Classic");
+    expect(themeFromStored({ design: "warm" }).name).toBe("Warm");
+    expect(themeFromStored({ design: "future" }).name).toBe("Classic");
+    expect(themeFromStored({ theme: { key: "warm" } }).name).toBe("Classic");
+  });
+  it("upgrades the first designs' theme shape, keeping its colours", () => {
+    const first = {
+      key: "warm", headingFont: "serif", header: "bar", tableHead: "tint", rows: "lines", totals: "tint", radius: 4,
+      paper: "#fbf7f0", ink: "#1a1a1a", muted: "#666666", line: "#e5e1da", accent: "#b45309", onAccent: "#ffffff",
+      accentInk: "#b45309", tint: "#f3e8dc", tintStrong: "#f6eee4",
+    };
+    const t = themeFromStored({ theme: first });
+    expect(t).toMatchObject({ name: "Warm", header: "bar", headingFont: "serif", layout: "table", muted: "#666666", line: "#e5e1da", tint: "#f3e8dc", showQty: true });
+    expect(isTheme(t)).toBe(true);
+  });
+});
+
+describe("colour helpers", () => {
+  it("picks white or dark text for a background, and darkens (or lightens) a colour until it reads", () => {
+    expect(onColour("#1e3a8a")).toBe("#ffffff");
+    expect(onColour("#fde68a")).toBe("#000000");
+    expect(contrast(readableOn("#ffffff", "#fde68a"), "#ffffff")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(readableOn("#111111", "#222266"), "#111111")).toBeGreaterThanOrEqual(4.5);
+    expect(readableOn("#ffffff", "#1e3a8a")).toBe("#1e3a8a");
+  });
+});
+
+describe("chooseTheme", () => {
+  const saved: SavedTheme[] = [{ id: "t1", name: "Stall", spec: { ...BLANK_SPEC, accent: "#b45309" } }];
+  const none = { id: null, starter: null };
+  it("uses the quote's own pick first", () => {
+    const c = chooseTheme({ id: "t1", starter: null }, { id: null, starter: "bold" }, saved);
+    expect([c.name, c.following]).toEqual(["Stall", false]);
+    expect(chooseTheme({ id: null, starter: "soft" }, none, saved).name).toBe("Soft");
+  });
+  it("follows the business's default when the quote has no pick, and Classic when there is none", () => {
+    expect(chooseTheme(none, { id: "t1", starter: null }, saved)).toMatchObject({ name: "Stall", following: true });
+    expect(chooseTheme(none, { id: null, starter: "bold" }, saved)).toMatchObject({ name: "Bold", following: true });
+    expect(chooseTheme(none, none, saved)).toMatchObject({ name: "Classic", following: true });
+  });
+  it("treats a pick that no longer exists as not chosen", () => {
+    expect(chooseTheme({ id: "gone", starter: null }, { id: null, starter: "warm" }, saved)).toMatchObject({ name: "Warm", following: true });
+    expect(chooseTheme(none, { id: "gone", starter: null }, [])).toMatchObject({ name: "Classic", following: true });
+  });
+});

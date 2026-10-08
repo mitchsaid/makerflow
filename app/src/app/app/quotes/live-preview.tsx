@@ -88,13 +88,25 @@ async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map
  * drops a drawing that has been overtaken, and leaves the old pages up until the new ones are ready.
  * It is the same document code the server uses for the PDF that is downloaded and sent.
  */
-export function LivePdfPreview({ snapshot, draft, label }: { snapshot: QuoteSnapshot; draft: boolean; label: string }) {
+export function LivePdfPreview({
+  snapshot,
+  draft,
+  label,
+  firstPageOnly = false,
+}: {
+  snapshot: QuoteSnapshot;
+  draft: boolean;
+  label: string;
+  /** Draw only the first page (the studio keeps it small and pinned). */
+  firstPageOnly?: boolean;
+}) {
   const container = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [pages, setPages] = useState(0);
   const [stamp, setStamp] = useState("");
   // What the document is drawn from, as one string, so a change is noticed whatever caused it.
-  const input = JSON.stringify(snapshot);
+  // The theme's name is never drawn, so renaming one (a keystroke at a time in the studio) draws nothing again.
+  const input = JSON.stringify(snapshot.theme ? { ...snapshot, theme: { ...snapshot.theme, name: "" } } : snapshot);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,7 +128,7 @@ export function LivePdfPreview({ snapshot, draft, label }: { snapshot: QuoteSnap
         });
         const data = await drawDocument(current, draft, images, logo);
         if (cancelled || data === null) return;
-        const count = await drawPdfPages(host, { data }, label, () => cancelled, () => setStatus("ready"));
+        const count = await drawPdfPages(host, { data }, label, () => cancelled, () => setStatus("ready"), firstPageOnly ? 1 : Infinity);
         if (count !== null) {
           setPages(count);
           setStatus("ready");
@@ -132,7 +144,7 @@ export function LivePdfPreview({ snapshot, draft, label }: { snapshot: QuoteSnap
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [input, draft, label]);
+  }, [input, draft, label, firstPageOnly]);
 
   return (
     <div className="space-y-3" aria-busy={status === "loading"}>

@@ -179,10 +179,9 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Preview", exact: true }).click();
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "quote preview");
-      await page.getByRole("button", { name: "Make it yours" }).click();
-      // Scroll the options to the middle of the screen, clear of the bar that stays above the tab bar.
-      await page.getByRole("button", { name: "Teal", exact: true }).evaluate((el) => el.scrollIntoView({ block: "center" }));
-      await expectNoViolations(page, "quote preview, design details open");
+      // The strip of themes, scrolled to the middle of the screen, clear of the bar that stays above the tab bar.
+      await page.getByTestId("theme-option").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await expectNoViolations(page, "quote preview, themes");
       await page.getByRole("button", { name: "Send", exact: true }).click();
       await expect(page.getByRole("dialog", { name: "Before you can send this quote" })).toBeVisible();
       await expectNoViolations(page, "send sheet, something missing");
@@ -286,8 +285,21 @@ for (const scheme of ["light", "dark"] as const) {
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices");
-      await page.locator("#look").getByRole("button", { name: "Make it yours" }).click();
-      await expectNoViolations(page, "quotes and invoices, look details open");
+      // Themes: the library, then the studio (each part), then saved.
+      await page.getByRole("link", { name: "Manage themes" }).click();
+      await expect(page.getByRole("heading", { name: "Themes", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "themes library");
+      await page.getByRole("link", { name: "Remix Warm" }).click();
+      await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+      for (const tab of ["Colour", "Type", "Top", "Items", "Totals", "Finish"]) {
+        await page.getByRole("tab", { name: tab }).click();
+        // Scroll the choices to the middle of the screen, clear of the pinned preview and the bar below.
+        await page.getByTestId("studio-panel").evaluate((el) => el.scrollIntoView({ block: "center" }));
+        await expectNoViolations(page, `theme studio, ${tab}`);
+      }
+      await page.getByRole("button", { name: "Save theme" }).click();
+      await expect(page.getByTestId("theme-save-status")).toHaveText("Saved.");
+      await openDocuments(page);
       // The logo: chosen, then saved.
       const logo = await sharp({ create: { width: 400, height: 150, channels: 3, background: "#1e3a8a" } }).png().toBuffer();
       await page.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: logo });

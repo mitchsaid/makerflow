@@ -6,7 +6,7 @@ import type { BusinessProfile } from "@/lib/business-profile";
 import { businessTypesFromRow } from "@/lib/business-types";
 import { bankFromRow, type BankDetails, type BankRow } from "@/lib/bank";
 import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
-import { isDesignKey, normaliseColour, parseDesignOptions } from "@/lib/quotes/designs";
+import { isStarterKey } from "@/lib/quotes/themes";
 
 /**
  * Data access layer: who is signed in, and which business they are working in.
@@ -88,9 +88,8 @@ type ProfileRow = {
   default_terms: string | null;
   payment_instructions: string | null;
   logo_image_id: string | null;
-  brand_color: string | null;
-  default_design: string | null;
-  default_design_options: unknown;
+  default_theme_id: string | null;
+  default_theme_starter: string | null;
 };
 type OrganisationRow = {
   id: string;
@@ -126,7 +125,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            vat_registered, vat_number, prices_include_vat,
            default_sign_off, default_terms, payment_instructions, business_types,
            default_deposit_kind, default_deposit_value, logo_image_id,
-           brand_color, default_design, default_design_options
+           default_theme_id, default_theme_starter
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
@@ -177,9 +176,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
       logoImageId: p?.logo_image_id ?? null,
-      brandColor: normaliseColour(p?.brand_color),
-      defaultDesign: isDesignKey(p?.default_design) ? p.default_design : null,
-      defaultDesignOptions: parseDesignOptions(p?.default_design_options),
+      defaultThemeId: p?.default_theme_id ?? null,
+      defaultThemeStarter: isStarterKey(p?.default_theme_starter) ? p.default_theme_starter : null,
     },
     bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
     dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),

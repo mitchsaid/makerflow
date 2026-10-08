@@ -4,7 +4,8 @@ import { getLocalePack, vatSettingsFor } from "../locale";
 import { createClient } from "../supabase/server";
 import { parseQuote, type ParsedQuote } from "./index";
 import { todayIn } from "./dates";
-import { DEFAULT_DESIGN, type DesignKey, type DesignOptions } from "./designs";
+import { getThemes } from "./theme-data";
+import { chooseTheme, resolveTheme } from "./themes";
 import { findStoredQuote, type StoredQuote } from "./data";
 import { depositAmounts } from "./deposit";
 import { toFormValues } from "./form-values";
@@ -64,13 +65,13 @@ export async function prepareQuote(
     }
   }
 
-  // The design: the quote's own pick, else the business's default (with the options made for it).
-  const followsDefault = stored.design === null;
-  const look: { design: DesignKey; options: DesignOptions; brandColor: string | null } = {
-    design: followsDefault ? (profile.defaultDesign ?? DEFAULT_DESIGN) : stored.design!,
-    options: stored.designOptions ?? (followsDefault ? profile.defaultDesignOptions : {}),
-    brandColor: profile.brandColor,
-  };
+  // The theme: the quote's own pick, else the business's default, else Classic (the themes are read once per request, shared with the page).
+  const saved = await getThemes();
+  const chosen = chooseTheme(
+    { id: stored.themeId, starter: stored.themeStarter },
+    { id: profile.defaultThemeId, starter: profile.defaultThemeStarter },
+    saved,
+  );
 
   const snapshot = buildQuoteSnapshot({
     quote: parsed.quote,
@@ -84,7 +85,7 @@ export async function prepareQuote(
     locale,
     bank: workspace.bankDetails,
     productPhotos,
-    look,
+    theme: resolveTheme(chosen.spec, chosen.name),
   });
   const depositNow = parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit) : null;
   const problems = sendProblems({
