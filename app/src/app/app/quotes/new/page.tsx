@@ -28,15 +28,17 @@ export default async function NewQuotePage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
-          Quotes
-        </Link>
-        <h1 className="text-xl font-semibold">New quote</h1>
-        <p className="text-sm text-muted-foreground">It gets its number the first time you save it.</p>
-      </div>
       <QuoteBuilder
         quoteId={null}
+        header={
+        <div className="space-y-1">
+          <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
+            Quotes
+          </Link>
+          <h1 className="text-xl font-semibold">New quote</h1>
+          <p className="text-sm text-muted-foreground">It gets its number the first time you save it.</p>
+        </div>
+        }
         initial={{
           customerId: "",
           issueDate: today,

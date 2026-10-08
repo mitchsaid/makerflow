@@ -53,8 +53,15 @@ test("build a quote: a new customer on the spot, two items, delivery; it saves a
   await expect(page.getByLabel("Delivery fee")).toHaveValue("50");
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("1 036"));
 
-  // Edit: remove the cupcakes and save again.
-  await item(page, 2).getByRole("button", { name: /Remove/ }).click();
+  // Edit: remove the cupcakes from inside its sheet (it asks first; "Keep it" changes nothing) and save again.
+  await expect(item(page, 2).getByRole("button", { name: /Remove/ })).toHaveCount(0);
+  await item(page, 2).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("button", { name: "Remove this item" }).click();
+  await sheet(page).getByRole("button", { name: "Keep it" }).click();
+  await expect(sheet(page).getByRole("button", { name: "Remove this item" })).toBeVisible();
+  await sheet(page).getByRole("button", { name: "Remove this item" }).click();
+  await sheet(page).getByRole("button", { name: "Yes, remove it" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("850"));
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();
@@ -399,4 +406,62 @@ test("the quotes page links to the quote settings", async ({ page }) => {
   await page.getByRole("link", { name: "Quote settings" }).click();
   await expect(page).toHaveURL(/\/app\/documents$/);
   await expect(page.getByRole("heading", { name: "Quotes and invoices", level: 1 })).toBeVisible();
+});
+
+test("a long quote shows its first five items and a Show all button; a new item is never hidden", async ({ page }) => {
+  await signUpAndOnboard(page, "q-long", "Long Co");
+  await page.goto("/app/quotes/new");
+  for (let n = 1; n <= 6; n++) await fillItem(page, n, `Item ${n}`, "1", "10");
+  // Six items still show in full.
+  await expect(page.getByTestId("quote-line")).toHaveCount(6);
+  await expect(page.getByRole("button", { name: /^Show all/ })).toHaveCount(0);
+
+  // The seventh is added and is visible at once, with the list open.
+  await fillItem(page, 7, "Item 7", "1", "10");
+  await expect(page.getByTestId("quote-line")).toHaveCount(7);
+  const toggle = page.getByRole("button", { name: "Show fewer items" });
+  await expect(toggle).toBeVisible();
+
+  // Collapsed: the first five and a button saying how many there are. The total still counts all seven.
+  await toggle.click();
+  await expect(page.getByTestId("quote-line")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: "Show all 7 items" })).toBeVisible();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("70"));
+  await page.getByRole("button", { name: "Show all 7 items" }).click();
+  await expect(page.getByTestId("quote-line")).toHaveCount(7);
+
+  // Removing one from its sheet takes the list back to six, which needs no button.
+  await item(page, 7).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("button", { name: "Remove this item" }).click();
+  await sheet(page).getByRole("button", { name: "Yes, remove it" }).click();
+  await expect(page.getByTestId("quote-line")).toHaveCount(6);
+  await expect(page.getByRole("button", { name: /^Show (all|fewer)/ })).toHaveCount(0);
+});
+
+test("the X cancels a new quote: at once when nothing is typed, after asking when something is", async ({ page }) => {
+  await signUpAndOnboard(page, "q-cancel", "Cancel Co");
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Cancel new quote" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes$/);
+
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await page.getByRole("button", { name: "Cancel new quote" }).click();
+  await expect(page.getByRole("alertdialog", { name: "Cancel this new quote?" })).toBeVisible();
+  // Keeping on changes nothing: the item is still there.
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  await expect(item(page, 1)).toContainText("Wedding cake");
+  // Cancelling for real leaves, and nothing was saved.
+  await page.getByRole("button", { name: "Cancel new quote" }).click();
+  await page.getByRole("button", { name: "Yes, cancel the quote" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes$/);
+  await expect(page.getByText("No quotes yet")).toBeVisible();
+
+  // A saved draft is a quote, not a new one: no X there.
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await expect(page.getByRole("button", { name: "Cancel new quote" })).toHaveCount(0);
 });
