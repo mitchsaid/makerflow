@@ -21,8 +21,10 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
           href={`/app/quotes/${quoteId}/pdf?download=1`}
           onClick={async (event) => {
             event.preventDefault();
+            // Read it now: the event is cleared once this handler's first step is over.
+            const href = event.currentTarget.href;
             await waitForDesignSave();
-            window.location.assign(event.currentTarget.href);
+            window.location.assign(href);
           }}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >

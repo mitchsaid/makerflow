@@ -18,12 +18,18 @@ function picture(id: string, size: "thumb" | "display"): Promise<PdfImage | null
   let found = pictures.get(key);
   if (!found) {
     found = fetch(`/app/images/${id}?size=${size}`)
-      .then(async (response) =>
-        response.ok
-          ? { contentType: response.headers.get("content-type") ?? "image/jpeg", bytes: new Uint8Array(await response.arrayBuffer()) }
-          : null,
-      )
-      .catch(() => null);
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type") ?? "";
+        // Only pictures the document can draw (the server leaves out anything else).
+        if (!response.ok || !/^image\/(jpeg|png)$/.test(contentType)) return null;
+        return { contentType, bytes: new Uint8Array(await response.arrayBuffer()) };
+      })
+      .catch(() => null)
+      // A miss is not remembered: the next drawing tries again.
+      .then((result) => {
+        if (result === null) pictures.delete(key);
+        return result;
+      });
     pictures.set(key, found);
   }
   return found;
@@ -33,10 +39,10 @@ function picture(id: string, size: "thumb" | "display"): Promise<PdfImage | null
 let worker: Worker | null = null;
 let failed = false;
 let nextId = 0;
-const waiting = new Map<number, { resolve: (data: Uint8Array) => void; reject: (error: Error) => void }>();
+const waiting = new Map<number, { resolve: (data: Uint8Array | null) => void; reject: (error: Error) => void }>();
 
 /** Draws the document in the worker; falls back to the main thread where a worker can't be had. */
-async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map<string, PdfImage>, logo: PdfImage | null): Promise<Uint8Array> {
+async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map<string, PdfImage>, logo: PdfImage | null): Promise<Uint8Array | null> {
   if (!worker && !failed && typeof Worker !== "undefined") {
     try {
       const made = new Worker(new URL("../../../lib/quotes/pdf/worker.ts", import.meta.url), { type: "module" });
@@ -45,6 +51,7 @@ async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map
         waiting.delete(event.data.id);
         if (!entry) return;
         if ("error" in event.data) entry.reject(new Error(event.data.error));
+        else if ("skipped" in event.data) entry.resolve(null);
         else entry.resolve(event.data.data);
       };
       made.onerror = () => {
@@ -63,7 +70,7 @@ async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map
     const id = ++nextId;
     const request: PdfWorkerRequest = { id, snapshot, draft, images: [...images], logo };
     try {
-      return await new Promise<Uint8Array>((resolve, reject) => {
+      return await new Promise<Uint8Array | null>((resolve, reject) => {
         waiting.set(id, { resolve, reject });
         worker!.postMessage(request);
       });
@@ -108,7 +115,7 @@ export function LivePdfPreview({ snapshot, draft, label }: { snapshot: QuoteSnap
           if (found) images.set(id, found);
         });
         const data = await drawDocument(current, draft, images, logo);
-        if (cancelled) return;
+        if (cancelled || data === null) return;
         const count = await drawPdfPages(host, { data }, label, () => cancelled, () => setStatus("ready"));
         if (count !== null) {
           setPages(count);
@@ -139,7 +146,7 @@ export function LivePdfPreview({ snapshot, draft, label }: { snapshot: QuoteSnap
           </AlertDescription>
         </Alert>
       )}
-      <div ref={container} data-pages={pages} data-url={stamp} data-testid="pdf-pages" className={status === "error" ? "hidden" : ""} />
+      <div ref={container} data-pages={pages} data-url={stamp} data-testid="pdf-pages" />
     </div>
   );
 }

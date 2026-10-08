@@ -59,7 +59,7 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
           </AlertDescription>
         </Alert>
       )}
-      <div ref={container} data-pages={pages} data-url={url} data-testid="pdf-pages" className={status === "error" ? "hidden" : ""} />
+      <div ref={container} data-pages={pages} data-url={url} data-testid="pdf-pages" />
     </div>
   );
 }

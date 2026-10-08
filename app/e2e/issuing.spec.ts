@@ -57,6 +57,9 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   await expect(page.getByRole("group", { name: "Design" }).getByRole("button")).toHaveCount(5);
   // Download is a plain link to the PDF.
   expect(await page.getByRole("link", { name: "Download" }).getAttribute("href")).toBe(`${new URL(quoteUrl).pathname}/pdf?download=1`);
+  // Pressing it really downloads (it first waits for any design choice still being saved).
+  const [pressed] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download" }).click()]);
+  expect(pressed.suggestedFilename()).toBe("QT-0001-draft.pdf");
   const download = await page.request.get(`${quoteUrl}/pdf?download=1`);
   expect(download.status()).toBe(200);
   expect(download.headers()["content-disposition"]).toContain("attachment");

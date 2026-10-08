@@ -79,17 +79,19 @@ export function DraftPreview({
     setMessage(null);
     setState("saving");
     const ticket = ++latest.current;
-    scheduleDesignSave(async () => {
+    scheduleDesignSave(quoteId, async () => {
       try {
         const result = await saveQuoteDesign(quoteId, nextDesign, nextOptions);
-        if (result.status === "error") return revert(result.message);
+        // A newer tap carries the whole state, so only the latest tap may put the screen back.
+        if (result.status === "error") return ticket === latest.current ? revert(result.message) : undefined;
+        if (ticket === latest.current) setMessage(null);
         saved.current = {
           design: nextDesign ?? usual.design,
           options: nextDesign === null ? usual.options : nextOptions,
           following: nextDesign === null,
         };
       } catch {
-        revert("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
+        if (ticket === latest.current) revert("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
       } finally {
         if (ticket === latest.current) setState("saved");
       }
