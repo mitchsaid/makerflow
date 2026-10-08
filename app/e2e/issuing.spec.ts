@@ -316,7 +316,7 @@ test("a revision can be discarded after asking: the quote goes back to the versi
 
   // It asks first, and "Keep editing" changes nothing.
   await page.getByRole("button", { name: "Discard this revision" }).click();
-  const question = page.getByRole("group", { name: "Discard this revision?" });
+  const question = page.getByRole("alertdialog", { name: "Discard this revision?" });
   await expect(question).toContainText("goes back to version 1");
   await question.getByRole("button", { name: "Keep editing" }).click();
   await expect(question).toHaveCount(0);

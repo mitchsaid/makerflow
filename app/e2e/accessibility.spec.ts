@@ -232,7 +232,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("revising-note")).toBeVisible();
       await expectNoViolations(page, "quote being revised");
       await page.getByRole("button", { name: "Discard this revision" }).click();
-      await expect(page.getByRole("group", { name: "Discard this revision?" })).toBeVisible();
+      await expect(page.getByRole("alertdialog", { name: "Discard this revision?" })).toBeVisible();
       await expectNoViolations(page, "discard this revision question");
       await page.getByRole("button", { name: "Keep editing" }).click();
       await page.getByRole("link", { name: "View version 1" }).click();

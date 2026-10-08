@@ -230,6 +230,10 @@ export async function discardRevision(quoteId: string): Promise<{ status: "error
     lines: base.lines.map((l) => (l.productId && !products.has(l.productId) ? { ...l, productId: "", kind: "custom" as const } : l)),
   };
 
+  // The server key first: nothing is put back unless the move back can follow.
+  const admin = serverClient();
+  if (!admin) return { status: "error", message: NOT_SET_UP };
+
   const saved = await saveQuoteDraft(quoteId, restored);
   if (saved.status !== "saved") {
     if (saved.status === "error" && saved.errors) console.error("could not restore a sent version:", JSON.stringify(saved.errors));
@@ -239,14 +243,19 @@ export async function discardRevision(quoteId: string): Promise<{ status: "error
     };
   }
 
-  const admin = serverClient();
-  if (!admin) return { status: "error", message: NOT_SET_UP };
+  // The draft as it stands right after the restore; the move back only happens if nobody saved it since.
+  const after = await findStoredQuote(quoteId);
+  if (!after) return { status: "error", message: GENERIC_ERROR };
   const { error } = await admin.rpc("discard_quote_revision", {
     p_org: workspace.organisation.id,
     p_quote_id: quoteId,
     p_actor: workspace.user.id,
+    p_expected_updated_at: after.updatedAt,
   });
   if (error) {
+    if (error.code === "40001") {
+      return { status: "error", message: "This quote was changed while it was being discarded. Check it and try again." };
+    }
     if (error.code === "P0002") return { status: "error", message: "This quote has no revision that can be discarded." };
     console.error("could not discard revision:", error.code, error.message);
     return { status: "error", message: GENERIC_ERROR };

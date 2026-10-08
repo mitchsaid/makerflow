@@ -352,7 +352,10 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     canDiscardRevision:
       row.status === "draft" &&
       row.version > 1 &&
-      row.quote_events.some((e) => e.kind === "revised" && e.version === row.version && e.has_base) &&
+      // The latest "revised" entry of this version (a version can be started again after a discard).
+      [...row.quote_events]
+        .filter((e) => e.kind === "revised" && e.version === row.version)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.has_base === true &&
       row.quote_versions.some((v) => v.version === row.version - 1),
     events: [...row.quote_events]
       .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.version - b.version)

@@ -14,6 +14,7 @@ export function DiscardRevisionButton({ quoteId, sentVersion }: { quoteId: strin
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const question = useRef<HTMLDivElement>(null);
+  const problem = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
 
   // Bring the question into view and read it out; give focus back to the button if it is dismissed.
@@ -23,6 +24,11 @@ export function DiscardRevisionButton({ quoteId, sentVersion }: { quoteId: strin
       question.current?.focus({ preventScroll: true });
     }
   }, [confirming]);
+
+  // After a failure, take the person to what went wrong.
+  useEffect(() => {
+    if (message) problem.current?.focus();
+  }, [message]);
 
   if (!confirming) {
     return (
@@ -41,16 +47,17 @@ export function DiscardRevisionButton({ quoteId, sentVersion }: { quoteId: strin
       ref={question}
       tabIndex={-1}
       className="space-y-3 outline-none"
-      role="group"
+      role="alertdialog"
       aria-label="Discard this revision?"
+      aria-describedby="discard-revision-detail"
     >
       <p className="text-base font-medium">Discard this revision?</p>
-      <p className="text-base">
+      <p id="discard-revision-detail" className="text-base">
         Everything you&apos;ve changed since version {sentVersion} was sent is dropped, and this goes back to version{" "}
         {sentVersion}. This can&apos;t be undone.
       </p>
       {message && (
-        <Alert variant="destructive">
+        <Alert ref={problem} tabIndex={-1} variant="destructive" className="outline-none">
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}

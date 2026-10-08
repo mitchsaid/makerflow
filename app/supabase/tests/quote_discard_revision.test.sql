@@ -80,7 +80,7 @@ begin
   ----------------------------------------------------------------------
   set local role authenticated;
   begin
-    perform public.discard_quote_revision(org_a, q1, a);
+    perform public.discard_quote_revision(org_a, q1, a, now());
     raise exception 'FAIL: a signed-in user called discard_quote_revision';
   exception when insufficient_privilege then null;
   end;
@@ -98,7 +98,7 @@ begin
   reset role;
   set local role anon;
   begin
-    perform public.discard_quote_revision(org_a, q1, a);
+    perform public.discard_quote_revision(org_a, q1, a, now());
     raise exception 'FAIL: anon called discard_quote_revision';
   exception when insufficient_privilege then null;
   end;
@@ -109,12 +109,12 @@ begin
   ----------------------------------------------------------------------
   set local role service_role;
   begin
-    perform public.discard_quote_revision(org_a, q1, a);
+    perform public.discard_quote_revision(org_a, q1, a, now());
     raise exception 'FAIL: a sent quote was discarded';
   exception when no_data_found then null;
   end;
   begin
-    perform public.discard_quote_revision(org_a, qdraft, a);
+    perform public.discard_quote_revision(org_a, qdraft, a, now());
     raise exception 'FAIL: a first draft was discarded';
   exception when no_data_found then null;
   end;
@@ -136,12 +136,18 @@ begin
   -- Another business cannot discard it.
   set local role service_role;
   begin
-    perform public.discard_quote_revision(org_b, q1, b);
+    perform public.discard_quote_revision(org_b, q1, b, now());
     raise exception 'FAIL: another business discarded a revision';
   exception when no_data_found then null;
   end;
 
-  assert public.discard_quote_revision(org_a, q1, a) = 1, 'discard did not go back to version 1';
+  -- A draft saved after the restore (by another tab) blocks it.
+  begin
+    perform public.discard_quote_revision(org_a, q1, a, now() - interval '1 day');
+    raise exception 'FAIL: discarded although the draft had changed';
+  exception when serialization_failure then null;
+  end;
+  assert public.discard_quote_revision(org_a, q1, a, (select updated_at from public.quotes where id = q1)) = 1, 'discard did not go back to version 1';
   reset role;
 
   assert (select status from public.quotes where id = q1) = 'sent', 'the quote is not sent again';
@@ -153,7 +159,7 @@ begin
   -- Gone for good: it can't be discarded twice, and the next revision is version 2 again.
   set local role service_role;
   begin
-    perform public.discard_quote_revision(org_a, q1, a);
+    perform public.discard_quote_revision(org_a, q1, a, now());
     raise exception 'FAIL: a sent quote was discarded twice';
   exception when no_data_found then null;
   end;
@@ -168,12 +174,16 @@ begin
   exception when check_violation then null;
   end;
 
-  -- A revision with no stored copy (begun before this existed) can still be moved back by the
-  -- database function, but the screen does not offer it: has_base is false.
+  -- A revision with no stored copy (begun before this existed) cannot be discarded at all.
   set local role service_role;
   perform public.revise_quote(org_a, q2, a);
-  reset role;
   assert not (select has_base from public.quote_events where quote_id = q2 and kind = 'revised'), 'a missing copy shows as kept';
+  begin
+    perform public.discard_quote_revision(org_a, q2, a, (select updated_at from public.quotes where id = q2));
+    raise exception 'FAIL: discarded a revision that kept no copy';
+  exception when no_data_found then null;
+  end;
+  reset role;
 
   -- Members read the log; other businesses do not.
   perform pg_temp.as_user(b);

@@ -16,6 +16,8 @@
 --   own session has already proved the quote is theirs.
 -- * The sent versions in quote_versions are never touched. Version numbers are reused: the next
 --   revision is version N again, and no sent version N exists.
+-- * Re-pricing: the restored draft is priced by the ordinary save, under the business's settings today
+--   (as any save of a draft is). The sent version itself, which is what the customer has, is frozen.
 -- * Revisions started before this migration have no stored copy (has_base is false); they cannot be
 --   discarded, and the screen does not offer it.
 
@@ -68,11 +70,13 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- discard_quote_revision: a revising draft goes back to the version that was sent. SERVER ONLY.
--- The server has already saved the stored copy over the draft. Returns the version it went back to.
--- Errors: P0002 the quote is not a revision, or has no sent version to go back to.
+-- The server has already saved the stored copy over the draft and passes the draft's updated_at from
+-- right after that save. Returns the version it went back to.
+-- Errors: P0002 the quote is not a revision, kept no copy, or has no sent version to go back to;
+-- 40001 the draft was saved by someone else in between.
 -- ---------------------------------------------------------------------------
 
-create function public.discard_quote_revision(p_org uuid, p_quote_id uuid, p_actor uuid)
+create function public.discard_quote_revision(p_org uuid, p_quote_id uuid, p_actor uuid, p_expected_updated_at timestamptz)
 returns integer
 language plpgsql
 security definer
@@ -86,6 +90,18 @@ begin
      for update;
   if not found then
     raise exception 'revising quote not found' using errcode = 'P0002';
+  end if;
+  -- The draft was saved over with the kept copy just before this; if anything saved it since (another
+  -- tab), the restore is no longer what is on the quote and nothing is moved.
+  if q.updated_at is distinct from p_expected_updated_at then
+    raise exception 'the quote changed while it was being discarded' using errcode = '40001';
+  end if;
+  -- Only a revision that kept the copy it began from can go back: its rows were restored from that copy.
+  if not exists (
+    select 1 from public.quote_events e
+     where e.quote_id = q.id and e.organisation_id = p_org and e.kind = 'revised' and e.version = q.version and e.has_base
+  ) then
+    raise exception 'this revision kept no copy to go back to' using errcode = 'P0002';
   end if;
   if not exists (
     select 1 from public.quote_versions v
@@ -106,9 +122,9 @@ $$;
 
 revoke execute on function
   public.revise_quote(uuid, uuid, uuid, jsonb),
-  public.discard_quote_revision(uuid, uuid, uuid)
+  public.discard_quote_revision(uuid, uuid, uuid, timestamptz)
   from public, anon, authenticated;
 grant execute on function
   public.revise_quote(uuid, uuid, uuid, jsonb),
-  public.discard_quote_revision(uuid, uuid, uuid)
+  public.discard_quote_revision(uuid, uuid, uuid, timestamptz)
   to service_role;
