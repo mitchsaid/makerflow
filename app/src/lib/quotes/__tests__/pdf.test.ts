@@ -293,6 +293,26 @@ describe("themes", () => {
     }
   }, 120000);
 
+  it("draws top to bottom straight down and corner to corner across, and keeps the letters a font can draw", async () => {
+    const coords = (pdf: Buffer) => [...pdf.toString("latin1").matchAll(/\/Coords \[([^\]]+)\]/g)].map((m) => m[1].split(/\s+/).map(Number));
+    const gradient = (gradientDirection: "down" | "diagonal") =>
+      renderQuotePdf({ ...snapshot(vats.inclusive), theme: resolveTheme({ ...BLANK_SPEC, background: "gradient", paper: "#fbf7f0", gradientTo: "#fde9d9", gradientDirection }, "x") });
+    const [down] = coords(await gradient("down"));
+    const [diagonal] = coords(await gradient("diagonal"));
+    // x1 and x2 are the same straight down, and different corner to corner.
+    expect(down[0]).toBe(down[2]);
+    expect(diagonal[0]).not.toBe(diagonal[2]);
+  }, 30000);
+
+  it("leaves out letters the chosen font has no shape for, and keeps the rest (Š is in every font)", async () => {
+    for (const { id, label } of FONT_LIST) {
+      const kept = drawable("Šoane Mokoena", [id]);
+      expect(kept, label).toContain("Š");
+      const pdf = await renderQuotePdf({ ...snapshot(vats.inclusive), theme: resolveTheme({ ...BLANK_SPEC, headingFont: id, bodyFont: id }, "x"), customer: { name: "Šoane Mokoena", contactPerson: null, phone: null, email: null, addressLines: [], vatNumber: null, companyRegistrationNumber: null } });
+      expect(await textOf(pdf), label).toContain("Šoane");
+    }
+  }, 120000);
+
   it("draws a gradient and a picture behind every page, on every page of a long quote", async () => {
     const sharp = (await import("sharp")).default;
     const picture = await sharp({ create: { width: 200, height: 280, channels: 3, background: "#d9c7a8" } }).jpeg().toBuffer();

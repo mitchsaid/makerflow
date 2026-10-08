@@ -7,6 +7,7 @@ import {
   STARTERS,
   chooseTheme,
   contrast,
+  fitGradientEnd,
   isStarterKey,
   isTheme,
   normaliseColour,
@@ -187,6 +188,15 @@ describe("backgrounds", () => {
       for (const end of [from, to]) expect(contrast(t.ink, end), `${from} to ${to}`).toBeGreaterThanOrEqual(4.5);
       expect(contrast(t.accentInk, t.tint)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+  it("eases a gradient whose ends are too far apart for any text colour, and leaves a soft one alone", () => {
+    const harsh = resolveTheme({ ...BLANK_SPEC, background: "gradient", paper: "#ffffff", gradientTo: "#1f2937" }, "x");
+    expect(harsh.gradientTo).not.toBe("#1f2937");
+    for (const end of ["#ffffff", harsh.gradientTo]) expect(contrast(harsh.ink, end)).toBeGreaterThanOrEqual(4.5);
+    const reverse = resolveTheme({ ...BLANK_SPEC, background: "gradient", paper: "#1f2937", gradientTo: "#ffffff" }, "x");
+    for (const end of ["#1f2937", reverse.gradientTo]) expect(contrast(reverse.ink, end)).toBeGreaterThanOrEqual(4.5);
+    expect(resolveTheme({ ...BLANK_SPEC, background: "gradient", paper: "#fbf7f0", gradientTo: "#fde9d9" }, "x").gradientTo).toBe("#fde9d9");
+    expect(fitGradientEnd("#ffffff", "#e8eef6")).toBe("#e8eef6");
   });
   it("carries the background through resolveTheme, isTheme and specOf", () => {
     const spec = { ...BLANK_SPEC, background: "image" as const, backgroundImageId: png, imageStrength: "medium" as const };

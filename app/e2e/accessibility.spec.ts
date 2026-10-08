@@ -307,8 +307,10 @@ for (const scheme of ["light", "dark"] as const) {
         }
         if (tab === "Background") {
           await page.getByTestId("choice-background-gradient").click();
+          await page.getByTestId("studio-panel").evaluate((el) => el.scrollIntoView({ block: "center" }));
           await expectNoViolations(page, "theme studio, gradient background");
           await page.getByTestId("choice-background-image").click();
+          await page.getByTestId("studio-panel").evaluate((el) => el.scrollIntoView({ block: "center" }));
           await expectNoViolations(page, "theme studio, picture background");
           await page.getByTestId("choice-background-paper").click();
         }

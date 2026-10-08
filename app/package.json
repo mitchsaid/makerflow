@@ -21,7 +21,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "env:local": "bash scripts/write-env-local.sh",
     "local": "pnpm stack:start && pnpm env:local && next dev",
-    "fonts:build": "node scripts/fonts/build.mjs"
+    "fonts:build": "python3 scripts/fonts/merge.py && node scripts/fonts/build.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -110,7 +110,9 @@ export function DraftPreview({
   useEffect(() => {
     const pressed = strip.current?.querySelector('[aria-pressed="true"]');
     if (pressed instanceof HTMLElement && strip.current) {
-      strip.current.scrollLeft = Math.max(0, pressed.offsetLeft - 16);
+      // Where the chosen card is within the strip (not within the page), minus the strip's own padding.
+      const left = pressed.getBoundingClientRect().left - strip.current.getBoundingClientRect().left + strip.current.scrollLeft;
+      strip.current.scrollLeft = Math.max(0, left - 16);
     }
   }, []);
 

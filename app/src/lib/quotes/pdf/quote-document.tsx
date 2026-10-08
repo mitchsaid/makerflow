@@ -123,7 +123,14 @@ export function QuoteDocument({
         {theme.background === "gradient" ? (
           <Svg fixed style={{ position: "absolute", top: 0, left: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT }}>
             <Defs>
-              <LinearGradient id="page-gradient" x1="0" y1="0" x2={theme.gradientDirection === "diagonal" ? "1" : "0"} y2="1">
+              {/* Top to bottom runs down the middle (x 0.5 to 0.5): react-pdf reads an end of "0" as "1", which would tilt it. */}
+              <LinearGradient
+                id="page-gradient"
+                x1={theme.gradientDirection === "diagonal" ? "0" : "0.5"}
+                y1="0"
+                x2={theme.gradientDirection === "diagonal" ? "1" : "0.5"}
+                y2="1"
+              >
                 <Stop offset="0" stopColor={theme.paper} />
                 <Stop offset="1" stopColor={theme.gradientTo} />
               </LinearGradient>

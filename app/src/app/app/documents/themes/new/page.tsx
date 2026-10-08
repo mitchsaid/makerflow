@@ -18,7 +18,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export default async function NewThemePage({ searchParams }: PageProps<"/app/documents/themes/new">) {
   const query = await searchParams;
-  const [workspace, saved, products] = await Promise.all([requireOrganisation(), getThemes(), getProducts()]);
+  // The products are only needed to draw the studio's sample quote, not to choose where to start.
+  const [workspace, saved, products] = await Promise.all([requireOrganisation(), getThemes(), typeof query.from === "string" ? getProducts() : Promise.resolve([])]);
   if (!canEditBusinessProfile(workspace.role)) redirect("/app/documents/themes");
 
   const quoteParam = typeof query.quote === "string" && UUID.test(query.quote) ? `&quote=${query.quote}` : "";

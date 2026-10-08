@@ -333,11 +333,29 @@ export type Theme = Omit<ThemeSpec, "accent" | "paper" | "corners"> & {
 
 const RADIUS: Record<Corners, number> = { square: 0, soft: 4, round: 10 };
 
+/**
+ * The colour a gradient really ends in: the one chosen, or, when the two ends are too different for any
+ * one text colour to read on both (white to charcoal), a gentler one, made by easing it towards the start
+ * until text reads across the whole page.
+ */
+export function fitGradientEnd(paper: string, to: string): string {
+  let end = to;
+  for (let step = 0; step < 20; step++) {
+    const tone = mix(end, paper, 0.5);
+    const ink = onColour(tone) === WHITE ? "#f5f5f5" : INK;
+    if (contrast(ink, paper) >= 4.5 && contrast(ink, end) >= 4.5) return end;
+    end = mix(paper, end, 0.15);
+  }
+  return paper;
+}
+
 /** A spec as the plain values the document is drawn from. */
 export function resolveTheme(spec: ThemeSpec, name = ""): Theme {
   const { accent, paper, corners, ...parts } = spec;
+  // The gradient, eased if its ends are too far apart for text to read on both.
+  const gradientTo = spec.background === "gradient" ? fitGradientEnd(paper, spec.gradientTo) : spec.gradientTo;
   // What text sits on: the paper, or the middle of a gradient (soft colours read best across both ends).
-  const tone = spec.background === "gradient" ? mix(spec.gradientTo, paper, 0.5) : paper;
+  const tone = spec.background === "gradient" ? mix(gradientTo, paper, 0.5) : paper;
   const lightText = onColour(tone) === WHITE;
   // Near-black, or near-white on a dark paper; pushed further if a mid-tone paper needs it to read.
   const ink = readableOn(tone, lightText ? "#f5f5f5" : INK, 4.5, lightText);
@@ -354,6 +372,7 @@ export function resolveTheme(spec: ThemeSpec, name = ""): Theme {
   }
   return {
     ...parts,
+    gradientTo,
     name,
     radius: RADIUS[corners],
     paper,

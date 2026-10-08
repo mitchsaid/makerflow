@@ -6,6 +6,7 @@ import { NOTO_SERIF_BOLD } from "./fonts/noto-serif-bold";
 import { NOTO_SERIF_REGULAR } from "./fonts/noto-serif-regular";
 
 import { isFontId } from "../font-list";
+import { MISSING_LETTERS } from "./fonts/missing";
 
 export const PDF_FONT = "Noto Sans";
 /** The serif face some designs use for headings. Same letters covered as the sans (see the font files). */
@@ -96,12 +97,12 @@ export async function ensureFonts(ids: readonly string[]): Promise<void> {
 /** The ids that can be loaded here (a test checks every font in the list is one of them). */
 export const LOADABLE_FONTS: readonly string[] = ["sans", "serif", ...Object.keys(LOADERS)];
 
-function canDraw(codePoint: number): boolean {
+function inRanges(ranges: readonly (readonly [number, number])[], codePoint: number): boolean {
   let low = 0;
-  let high = NOTO_SANS_RANGES.length - 1;
+  let high = ranges.length - 1;
   while (low <= high) {
     const mid = (low + high) >> 1;
-    const [from, to] = NOTO_SANS_RANGES[mid];
+    const [from, to] = ranges[mid];
     if (codePoint < from) high = mid - 1;
     else if (codePoint > to) low = mid + 1;
     else return true;
@@ -109,17 +110,21 @@ function canDraw(codePoint: number): boolean {
   return false;
 }
 
+const canDraw = (codePoint: number) => inRanges(NOTO_SANS_RANGES, codePoint);
+
 /**
  * Removes the characters the embedded font has no shape for (emoji and symbols, mostly): the
  * PDF would otherwise print a wrong glyph or a box. Letters of every South African language,
  * punctuation and currency signs are kept. New lines are kept; runs of spaces left behind
  * are tidied.
  */
-export function drawable(text: string): string {
+export function drawable(text: string, fonts: readonly string[] = []): string {
+  // Letters Noto Sans can draw but a chosen font cannot are left out too (see fonts/missing.ts).
+  const gaps = fonts.flatMap((id) => (MISSING_LETTERS[id] ? [MISSING_LETTERS[id]] : []));
   let out = "";
   for (const ch of text) {
     const cp = ch.codePointAt(0)!;
-    if (ch === "\n" || canDraw(cp)) out += ch;
+    if (ch === "\n" || (canDraw(cp) && !gaps.some((g) => inRanges(g, cp)))) out += ch;
   }
   return out.replace(/[ \t]{2,}/g, " ").replace(/ +\n/g, "\n").trim();
 }
