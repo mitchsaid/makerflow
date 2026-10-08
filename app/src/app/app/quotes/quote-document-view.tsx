@@ -3,6 +3,7 @@ import { formatMoney, formatPercent } from "@/lib/money";
 import { quantityText } from "@/lib/quotes/units";
 import { formatDay } from "@/lib/quotes/dates";
 import type { QuoteSnapshot, SnapshotParty } from "@/lib/quotes/snapshot";
+import { vatView } from "@/lib/quotes/vat-view";
 
 /**
  * A sent quote on screen, drawn from its frozen snapshot only (the same data the PDF uses), so
@@ -13,6 +14,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
   const day = (iso: string) => formatDay(iso, s.dateLocale);
   const lineTotal = s.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
   const exclusive = s.vat.registered && s.vat.entry === "exclusive";
+  const vat = vatView(s);
   const rate = s.vat.rateBp !== null ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : "";
 
   return (
@@ -87,6 +89,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
                   }`}
               </p>
               {l.description && <p className="whitespace-pre-line text-sm text-muted-foreground">{l.description}</p>}
+              {vat.lineLabel(l) && <p className="text-sm text-muted-foreground">{vat.lineLabel(l)}</p>}
             </li>
           ))}
         </ul>
@@ -117,15 +120,23 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           {exclusive && s.quoteDiscount && (
             <Row label={`Total excluding ${s.vat.taxName}`} value={money(s.totals.netCents)} />
           )}
-          {exclusive && <Row label={`${s.vat.taxName}${rate}`} value={money(s.totals.vatCents)} />}
+          {exclusive && <Row label={`${s.vat.taxName}${vat.showRate ? rate : ""}`} value={money(s.totals.vatCents)} />}
           <Row
             label={s.vat.registered ? `Total including ${s.vat.taxName}` : "Total"}
             value={money(s.totals.grossCents)}
             strong
           />
           {s.vat.registered && !exclusive && (
-            <Row label={`Includes ${s.vat.taxName}${rate}`} value={money(s.totals.vatCents)} muted />
+            <Row label={`Includes ${s.vat.taxName}${vat.showRate ? rate : ""}`} value={money(s.totals.vatCents)} muted />
           )}
+          {vat.breakdown.map((b) => (
+            <Row
+              key={b.label}
+              label={`${b.label}${b.vatCents > 0 ? `, ${s.vat.taxName} ${money(b.vatCents)}` : `, no ${s.vat.taxName}`}`}
+              value={money(b.amountCents)}
+              muted
+            />
+          ))}
         </dl>
 
         {s.deposit && (

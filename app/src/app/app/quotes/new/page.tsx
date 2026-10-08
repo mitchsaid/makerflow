@@ -86,6 +86,7 @@ export default async function NewQuotePage() {
         countryCode={profile.countryCode}
         numberStyle={locale.numberStyle}
         taxName={locale.tax.name}
+          vatStatuses={locale.tax.statuses}
         justSaved={false}
       />
     </main>

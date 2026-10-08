@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openBusinessProfile, openDocuments, signUpAndOnboard } from "./helpers";
-import { addCustomerInSheet, fillItem, nav, openQuotes, rand, startSend } from "./quote-helpers";
+import { addCustomerInSheet, fillItem, item, nav, openQuotes, rand, startSend } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
 
@@ -338,6 +338,82 @@ test("a revision can be discarded after asking: the quote goes back to the versi
   await expect(page.getByRole("button", { name: "Discard this revision" })).toBeVisible();
   await page.goto(quoteUrl);
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
+});
+
+test("items can be zero-rated or exempt: the totals, the preview and the sent quote follow", async ({ page }) => {
+  await signUpAndOnboard(page, "iss-vat", "Vat Items Co");
+  await addBusinessPhone(page);
+
+  // Not registered: the choice is not offered.
+  await openQuotes(page);
+  await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /One-off item/ }).click();
+  await expect(sheet(page).getByLabel("Name", { exact: true })).toBeVisible();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await openBusinessProfile(page);
+  await page.getByRole("checkbox", { name: "I'm registered for VAT" }).check();
+  await page.getByLabel("VAT number").fill("4123456789");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+
+  await openQuotes(page);
+  await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
+  await addCustomerInSheet(page, "Thandi Nkosi");
+  await fillItem(page, 1, "Wedding cake", "1", "115");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /One-off item/ }).click();
+  // Standard-rated until said otherwise, and the choice explains itself.
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("");
+  await expect(sheet(page)).toContainText("most things you make");
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Brown bread");
+  await sheet(page).getByLabel("Quantity").fill("2");
+  await sheet(page).getByLabel(/^Price/).fill("50");
+  await sheet(page).getByLabel("VAT on this item").selectOption("zero");
+  await expect(sheet(page)).toContainText("VAT at 0%");
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveAccessibleDescription(/VAT at 0%/);
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(item(page, 2)).toContainText("Zero-rated");
+  await expect(item(page, 1)).not.toContainText("Zero-rated");
+  // 115 + 100: the VAT is on the cake only (15 of the 115).
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("215"));
+  await expect(page.getByTestId("totals")).toContainText("Includes VAT (15%)");
+  await expect(page.getByTestId("totals")).toContainText(/R\s?15,00/);
+
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  const quoteUrl = page.url().split("?")[0];
+
+  // It was saved: the item comes back zero-rated, and can be changed to exempt.
+  await page.reload();
+  await expect(item(page, 2)).toContainText("Zero-rated");
+  await item(page, 2).getByRole("button", { name: /Edit/ }).click();
+  await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("zero");
+  await sheet(page).getByLabel("VAT on this item").selectOption("exempt");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(item(page, 2)).toContainText("Exempt");
+  await item(page, 2).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByLabel("VAT on this item").selectOption("zero");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText("Saved.").first()).toBeVisible();
+
+  // The preview names the treatments and says what the prices include.
+  await page.goto(`${quoteUrl}/preview`);
+  const text = page.getByRole("region", { name: "The quote as text" });
+  await expect(text).toContainText("Prices include VAT at 15% on standard-rated items. Zero-rated items carry no VAT.");
+  await expect(text).toContainText("Zero-rated");
+  await expect(text).toContainText("Standard-rated");
+
+  // Sent, it is frozen that way.
+  await page.goto(quoteUrl);
+  await startSend(page);
+  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await expect(page.getByTestId("sent-banner")).toBeVisible();
+  await expect(page.getByTestId("quote-document")).toContainText("Zero-rated");
+  await expect(page.getByTestId("quote-document")).toContainText(/R\s?215,00/);
 });
 
 test("quote numbers can be set to continue from another system, and never go backwards", async ({ page }) => {

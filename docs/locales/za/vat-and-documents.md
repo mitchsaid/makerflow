@@ -87,3 +87,14 @@ These are my answers, reached by reading the primary texts, not hand-offs. Each 
 - Below R5 000: an **abridged** tax invoice (title; supplier name, address and VAT number; serial number and date; description; price and VAT by one of the three methods). At R5 000 and above: a **full** tax invoice adding the **recipient's name, address and VAT number (if a vendor)** and the **quantity**. (The guide says "R5 000 or more" for full; the older checklist says "exceeds"; we treat R5 000 as full.) The threshold sits in the locale configuration.
 - Issue within **21 days** of the supply. Credit notes carry the words "credit note", the supplier's name, address and VAT number, the recipient's name and address (unless the invoice was abridged), the date, the amount by which value and VAT changed, a brief explanation, and the original invoice's number and date (guide 13.8.3).
 - Keep records for **at least five years**.
+
+## Line VAT: zero-rated and exempt items (2026-10-08)
+
+What the app does (plan: `docs/plans/quote-line-vat.md`). These are my readings of the sources above, not professional advice; the wording is in `app/src/lib/locale/za.ts` (`tax.statuses`, `tax.mixedInclusiveStatement`) so an accountant's correction is one file.
+
+- A VAT-registered maker can mark an item **standard-rated** (15%, the default), **zero-rated** (0%) or **exempt**. A maker who is not registered cannot, and no document shows VAT.
+- The hints name the usual examples only so the choice is not a blank: zero-rated, the basic foods listed in section 11 of the VAT Act (for example brown bread, eggs, fresh fruit and vegetables, rice, dried beans) and goods exported; exempt, supplies such as residential rent and some education. **To confirm with the accountant:** the exact list, and that makers of crafts will almost always be standard-rated.
+- Zero-rated and exempt are both "no VAT charged" on the document, and differ in the maker's own VAT return (zero-rated supplies allow input tax to be claimed, exempt ones do not). The app does not do the return; it only keeps the two apart and labels them.
+- A document that mixes treatments names the treatment on each item and breaks the totals down by treatment (guide 13.6). The statement under inclusive prices changes with the mix (section 65 still needs it to say what the prices include).
+- Delivery is a separate standard-rated item (answer 2 above), whatever the goods are rated. **To confirm with the accountant:** delivery that is incidental to an export may itself be zero-rated; today the maker cannot change the rating of the delivery line. A free delivery or collection, or an item discounted to nothing, is not counted when the document decides what it must say.
+- Not built: a default treatment per product, and any VAT return or reporting.

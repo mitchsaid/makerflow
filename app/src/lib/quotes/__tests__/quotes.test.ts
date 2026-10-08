@@ -430,3 +430,69 @@ describe("the photos switch", () => {
     expect(isQuoteFormValues({ ...quote(), showPhotos: "yes" })).toBe(false);
   });
 });
+
+describe("VAT treatment on items", () => {
+  const stored = {
+    customerId: null, issueDate: "2026-10-02", validUntil: "2026-10-16", neededBy: null, deliveryAddress: null,
+    discountKind: "none" as const, discountValue: 0, notes: null, title: null, description: null, signOff: null,
+    terms: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const,
+    depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
+  };
+  const lines = [line({ key: "a", unitPrice: "115" }), line({ key: "b", name: "Bread", unitPrice: "100", vatStatus: "zero" })];
+
+  it("charges VAT on the standard-rated items only", () => {
+    const p = parsed(quote({ lines }), INCLUSIVE);
+    expect(p.totals.vatCents).toBe(1500);
+    expect(p.totals.grossCents).toBe(21_500);
+    expect(p.lines.map((l) => l.vatStatus)).toEqual(["standard", "zero"]);
+  });
+
+  it("adds VAT on top for the standard-rated items when prices are entered without it", () => {
+    const p = parsed(quote({ lines }), EXCLUSIVE);
+    expect(p.totals.vatCents).toBe(1725);
+    expect(p.totals.grossCents).toBe(11_500 + 10_000 + 1725);
+  });
+
+  it("treats everything as standard when the business is not VAT registered", () => {
+    const p = parsed(quote({ lines }), NOT_REGISTERED);
+    expect(p.lines.map((l) => l.vatStatus)).toEqual(["standard", "standard"]);
+    expect(p.totals.vatCents).toBe(0);
+  });
+
+  it("treats a missing treatment (an older app) as standard, and refuses an unknown one", () => {
+    const old = line({ key: "a" }) as Record<string, unknown>;
+    delete old.vatStatus;
+    expect(isQuoteFormValues(quote({ lines: [old as LineFormValues] }))).toBe(true);
+    expect(parsed(quote({ lines: [old as LineFormValues] }), INCLUSIVE).lines[0].vatStatus).toBe("standard");
+    expect(isQuoteFormValues(quote({ lines: [line({ vatStatus: "reduced" as never })] }))).toBe(false);
+  });
+
+  it("shares a quote discount across the treatments in proportion", () => {
+    const p = parsed(quote({ lines, discountKind: "percent", discountValue: "10" }), INCLUSIVE);
+    // 215 less 10% = 193,50; the standard part is 103,50 and holds 13,50 of VAT.
+    expect(p.totals.grossCents).toBe(19_350);
+    expect(p.totals.vatCents).toBe(1350);
+  });
+
+  it("is saved with each line and comes back into the form", () => {
+    const p = parsed(quote({ lines }), INCLUSIVE);
+    const payload = toDatabasePayload(p, { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.lines.map((l) => l.vat_status)).toEqual(["standard", "zero"]);
+    const back = toFormValues(
+      {
+        ...stored,
+        lines: payload.lines.map((l, i) => ({
+          id: `l${i}`, sortOrder: i, kind: l.kind, productId: null, name: l.name, description: null,
+          quantityMilli: l.quantity_milli, unit: null, unitPriceCents: l.unit_price_cents,
+          discountKind: "none" as const, discountValue: 0, vatStatus: l.vat_status as "standard" | "zero",
+        })),
+      },
+      ZA_LOCALE.numberStyle,
+    );
+    expect(back.lines.map((l) => l.vatStatus)).toEqual(["standard", "zero"]);
+  });
+
+  it("shows in the live total", () => {
+    expect(previewTotals(quote({ lines }), INCLUSIVE)?.vatCents).toBe(1500);
+  });
+});

@@ -284,6 +284,33 @@ export const ZA_LOCALE: LocalePack = {
     fullInvoiceThresholdCents: 500_000,
     // VAT Act section 65: a quoted price must say it includes VAT (or show both prices).
     inclusiveStatement: (rateBp) => `All prices include VAT at ${formatPercent(rateBp, ZA_NUMBER_STYLE)}.`,
+    // VAT 404 guide, 13.6: a document that mixes standard-rated, zero-rated and exempt supplies must
+    // distinguish them. Examples are from the guide's lists (docs/locales/za/vat-and-documents.md).
+    statuses: {
+      standard: { label: "Standard-rated", hint: "VAT at the standard rate. This is right for most things you make and sell." },
+      zero: {
+        label: "Zero-rated",
+        hint: "VAT at 0%, for example basic foods like brown bread, eggs and fresh vegetables, and goods you export.",
+      },
+      exempt: {
+        label: "Exempt",
+        hint: "No VAT, for example residential rent and some education. Most makers won't need this.",
+      },
+    },
+    mixedInclusiveStatement: (rateBp, present) => {
+      const rate = formatPercent(rateBp, ZA_NUMBER_STYLE);
+      const zero = present.includes("zero");
+      const exempt = present.includes("exempt");
+      const others = zero && exempt ? "Zero-rated and exempt items" : zero ? "Zero-rated items" : "Exempt items";
+      if (!present.includes("standard")) {
+        return zero && exempt
+          ? "No VAT is charged: the items are zero-rated or exempt."
+          : zero
+            ? "No VAT is charged: all items are zero-rated."
+            : "No VAT is charged: all items are exempt.";
+      }
+      return `Prices include VAT at ${rate} on standard-rated items. ${others} carry no VAT.`;
+    },
   },
   payment: {
     bankFields: ZA_BANK_FIELDS,

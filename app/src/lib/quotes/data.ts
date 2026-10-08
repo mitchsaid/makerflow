@@ -2,6 +2,7 @@ import "server-only";
 import type { BalanceDue, DepositKind } from "./deposit";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
+import type { VatStatus } from "../money";
 import type { DiscountKind } from "./index";
 import type { Customer, CustomerKind } from "../customers";
 import { isStarterKey, type StarterKey } from "./themes";
@@ -85,6 +86,7 @@ type LineRow = {
   unit_price_cents: number;
   discount_kind: DiscountKind;
   discount_value: number;
+  vat_status: VatStatus;
 };
 
 type VersionRow = {
@@ -212,6 +214,7 @@ export type StoredQuote = {
     unitPriceCents: number;
     discountKind: DiscountKind;
     discountValue: number;
+    vatStatus: VatStatus;
   }[];
   /** The customer as they are now (a draft shows live details; a sent version has its own copy). */
   customer: Customer | null;
@@ -265,7 +268,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
        deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
-         discount_kind, discount_value
+         discount_kind, discount_value, vat_status
        ),
        customers (
          id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
@@ -321,6 +324,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       unitPriceCents: Number(l.unit_price_cents),
       discountKind: l.discount_kind,
       discountValue: Number(l.discount_value),
+      vatStatus: l.vat_status,
     })),
     customer: (() => {
       const c = Array.isArray(row.customers) ? row.customers[0] : row.customers;

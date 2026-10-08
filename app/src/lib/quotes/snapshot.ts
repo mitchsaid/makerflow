@@ -4,7 +4,7 @@ import { depositAmounts } from "./deposit";
 import { formatDay } from "./dates";
 import type { Customer } from "../customers";
 import type { LocalePack } from "../locale";
-import type { NumberStyle, VatGroup, VatSettings } from "../money";
+import type { NumberStyle, VatGroup, VatSettings, VatStatus } from "../money";
 import { resolveTheme, starter, type Theme } from "./themes";
 import type { ParsedQuote } from "./index";
 
@@ -53,6 +53,11 @@ export type SnapshotLine = {
    * and when the quote left photos off.
    */
   photoImageId?: string | null;
+  /**
+   * How VAT treats the item, written only when the business was VAT registered. Absent on versions sent before
+   * it existed (every item was standard-rated then).
+   */
+  vatStatus?: VatStatus;
 };
 
 export type QuoteSnapshot = {
@@ -137,6 +142,11 @@ export type QuoteSnapshot = {
     notATaxInvoice: string;
     /** "All prices include VAT at 15%." when prices include the tax, else null. */
     inclusiveStatement: string | null;
+    /**
+     * The country's words for each VAT treatment, frozen with the document. Written when the business was VAT
+     * registered; absent before line treatments existed.
+     */
+    vatStatusLabels?: Record<VatStatus, string>;
   };
 };
 
@@ -217,6 +227,10 @@ export function buildQuoteSnapshot(input: {
     totals.lines.map((l) => [l.id, l.amountBeforeDiscountCents - l.lineDiscountCents]),
   );
   const rateBp = vat.registered ? vat.standardRateBp : null;
+  // The treatments that have an amount on the quote. A free delivery, a collection line or an item discounted
+  // to nothing says nothing about VAT, so it does not count.
+  const priced = new Set(totals.lines.filter((l) => l.amountCents > 0).map((l) => l.id));
+  const present = [...new Set(quote.lines.filter((l) => priced.has(l.key)).map((l) => l.vatStatus))];
 
   return {
     schema: SNAPSHOT_SCHEMA,
@@ -271,6 +285,7 @@ export function buildQuoteSnapshot(input: {
       lineTotalCents: totalOf.get(l.key) ?? 0,
       // Photos only when the quote shows them, and only for lines that come from a product that has one.
       photoImageId: quote.showPhotos !== false && l.productId ? (input.productPhotos?.get(l.productId) ?? null) : null,
+      ...(vat.registered ? { vatStatus: l.vatStatus } : {}),
     })),
     quoteDiscount: quote.quoteDiscount
       ? quote.quoteDiscount.kind === "percent"
@@ -299,7 +314,20 @@ export function buildQuoteSnapshot(input: {
       title: locale.documents.quoteTitle,
       notATaxInvoice: locale.documents.quoteNotATaxInvoice,
       inclusiveStatement:
-        vat.registered && vat.entry === "inclusive" ? locale.tax.inclusiveStatement(vat.standardRateBp) : null,
+        vat.registered && vat.entry === "inclusive"
+          ? present.some((status) => status !== "standard")
+            ? locale.tax.mixedInclusiveStatement(vat.standardRateBp, present)
+            : locale.tax.inclusiveStatement(vat.standardRateBp)
+          : null,
+      ...(vat.registered
+        ? {
+            vatStatusLabels: {
+              standard: locale.tax.statuses.standard.label,
+              zero: locale.tax.statuses.zero.label,
+              exempt: locale.tax.statuses.exempt.label,
+            },
+          }
+        : {}),
     },
   };
 }
