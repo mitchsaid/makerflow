@@ -298,6 +298,48 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
   await expect(page.getByRole("link", { name: /Thandi Nkosi/ })).toContainText("QT-0001 · v2");
 });
 
+test("a revision can be discarded after asking: the quote goes back to the version that was sent", async ({ page }) => {
+  await signUpAndOnboard(page, "iss-discard", "Discard Co");
+  await addBusinessPhone(page);
+  await saveQuote(page, "Thandi Nkosi", "800");
+  await startSend(page);
+  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await expect(page.getByTestId("sent-banner")).toBeVisible();
+  const quoteUrl = page.url().split("?")[0];
+
+  await page.getByRole("button", { name: "Revise this quote" }).click();
+  await expect(page.getByTestId("revising-note")).toBeVisible();
+  await page.getByTestId("quote-line").getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByLabel(/^Price/).fill("950");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("950"));
+
+  // It asks first, and "Keep editing" changes nothing.
+  await page.getByRole("button", { name: "Discard this revision" }).click();
+  const question = page.getByRole("alertdialog", { name: "Discard this revision?" });
+  await expect(question).toContainText("goes back to version 1");
+  await question.getByRole("button", { name: "Keep editing" }).click();
+  await expect(question).toHaveCount(0);
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("950"));
+
+  await page.getByRole("button", { name: "Discard this revision" }).click();
+  await page.getByRole("button", { name: "Yes, discard the changes" }).click();
+
+  // Back to the sent version, as it was sent, and open to revise again.
+  await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("quote-document")).toContainText(/R\s?800,00/);
+  await expect(page.getByTestId("activity")).toContainText("Revision discarded: back to version 1");
+  await expect(page.getByRole("link", { name: "Version 2" })).toHaveCount(0);
+
+  // Revising again starts from what was sent, not from the dropped changes.
+  await page.getByRole("button", { name: "Revise this quote" }).click();
+  await expect(page.getByRole("heading", { name: /^Quote QT-0001 Revising$/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
+  await expect(page.getByRole("button", { name: "Discard this revision" })).toBeVisible();
+  await page.goto(quoteUrl);
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
+});
+
 test("quote numbers can be set to continue from another system, and never go backwards", async ({ page }) => {
   await signUpAndOnboard(page, "iss-numbering", "Numbering Co");
   await openDocuments(page);

@@ -6,12 +6,17 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile, missingForQuote } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
+import { getProducts } from "@/lib/products/data";
+import { isQuoteFormValues } from "@/lib/quotes";
+import { findStoredQuote } from "@/lib/quotes/data";
+import { toFormValues } from "@/lib/quotes/form-values";
 import { prepareQuote } from "@/lib/quotes/prepare";
 import type { SendProblem } from "@/lib/quotes/send-checks";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { optionalValidated } from "@/lib/form-values";
 import { validateEmail, validatePhone } from "@/lib/validation";
+import { saveQuoteDraft } from "./actions";
 
 /**
  * Sending and revising quotes. Sending runs ONLY here, on the server: the database function
@@ -149,20 +154,21 @@ export async function sendQuote(quoteId: string, via: "shared" | "marked"): Prom
   return { status: "sent", number: stored.number, version: stored.version };
 }
 
-/** Turns a sent quote back into an editable draft: the next version, the same number. */
+/**
+ * Turns a sent quote back into an editable draft: the next version, the same number. The quote as it
+ * was sent is kept with the "revised" entry in the activity log, so the revision can be discarded.
+ */
 export async function reviseQuote(quoteId: string): Promise<{ status: "error"; message: string }> {
   const workspace = await requireOrganisation();
   if (!UUID.test(quoteId)) return { status: "error", message: GENERIC_ERROR };
 
   // Reading it under the person's own access proves it is a quote of theirs.
-  const supabase = await createClient();
-  const { data: own } = await supabase
-    .from("quotes")
-    .select("id")
-    .eq("id", quoteId)
-    .eq("organisation_id", workspace.organisation.id)
-    .maybeSingle();
-  if (!own) return { status: "error", message: "That quote could not be found." };
+  const own = await findStoredQuote(quoteId);
+  if (!own || own.organisationId !== workspace.organisation.id) {
+    return { status: "error", message: "That quote could not be found." };
+  }
+  // A sent quote's rows are exactly what was sent, so this is the copy to go back to.
+  const base = own.status === "sent" ? toFormValues(own, getLocalePack(workspace.profile.countryCode).numberStyle) : null;
 
   const admin = serverClient();
   if (!admin) return { status: "error", message: NOT_SET_UP };
@@ -170,6 +176,7 @@ export async function reviseQuote(quoteId: string): Promise<{ status: "error"; m
     p_org: workspace.organisation.id,
     p_quote_id: quoteId,
     p_actor: workspace.user.id,
+    p_base: base,
   });
   if (error) {
     if (error.code === "P0002") {
@@ -180,6 +187,82 @@ export async function reviseQuote(quoteId: string): Promise<{ status: "error"; m
   }
 
   revalidatePath("/app/quotes");
+  redirect(`/app/quotes/${quoteId}`);
+}
+
+/**
+ * Drops a revision: the draft is put back exactly as the sent version was (saved the ordinary way,
+ * so it is checked and priced like any save), then the quote returns to Sent at that version. The
+ * sent versions are never touched.
+ */
+export async function discardRevision(quoteId: string): Promise<{ status: "error"; message: string }> {
+  const workspace = await requireOrganisation();
+  if (!UUID.test(quoteId)) return { status: "error", message: GENERIC_ERROR };
+
+  const quote = await findStoredQuote(quoteId);
+  if (!quote || quote.organisationId !== workspace.organisation.id) {
+    return { status: "error", message: "That quote could not be found." };
+  }
+  if (quote.status !== "draft" || quote.version < 2 || !quote.canDiscardRevision) {
+    return { status: "error", message: "This quote has no revision that can be discarded." };
+  }
+
+  // The latest copy kept when this version was started.
+  const supabase = await createClient();
+  const { data: started } = await supabase
+    .from("quote_events")
+    .select("base")
+    .eq("quote_id", quoteId)
+    .eq("organisation_id", workspace.organisation.id)
+    .eq("kind", "revised")
+    .eq("version", quote.version)
+    .not("base", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const base = started?.base as unknown;
+  if (!isQuoteFormValues(base)) return { status: "error", message: "This revision can't be discarded." };
+
+  // An item from a product that has since been removed stays as a one-off item.
+  const products = new Set((await getProducts()).filter((p) => p.organisationId === workspace.organisation.id).map((p) => p.id));
+  const restored = {
+    ...base,
+    lines: base.lines.map((l) => (l.productId && !products.has(l.productId) ? { ...l, productId: "", kind: "custom" as const } : l)),
+  };
+
+  // The server key first: nothing is put back unless the move back can follow.
+  const admin = serverClient();
+  if (!admin) return { status: "error", message: NOT_SET_UP };
+
+  const saved = await saveQuoteDraft(quoteId, restored);
+  if (saved.status !== "saved") {
+    if (saved.status === "error" && saved.errors) console.error("could not restore a sent version:", JSON.stringify(saved.errors));
+    return {
+      status: "error",
+      message: "Couldn't put version " + (quote.version - 1) + " back, so nothing was discarded. Your revision is still here.",
+    };
+  }
+
+  // The draft as it stands right after the restore; the move back only happens if nobody saved it since.
+  const after = await findStoredQuote(quoteId);
+  if (!after) return { status: "error", message: GENERIC_ERROR };
+  const { error } = await admin.rpc("discard_quote_revision", {
+    p_org: workspace.organisation.id,
+    p_quote_id: quoteId,
+    p_actor: workspace.user.id,
+    p_expected_updated_at: after.updatedAt,
+  });
+  if (error) {
+    if (error.code === "40001") {
+      return { status: "error", message: "This quote was changed while it was being discarded. Check it and try again." };
+    }
+    if (error.code === "P0002") return { status: "error", message: "This quote has no revision that can be discarded." };
+    console.error("could not discard revision:", error.code, error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/quotes");
+  revalidatePath(`/app/quotes/${quoteId}`);
   redirect(`/app/quotes/${quoteId}`);
 }
 

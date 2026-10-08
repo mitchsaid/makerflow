@@ -12,7 +12,7 @@ After a quote is sent, the maker can write down what happened to it, in a few ta
 - **Quote again** (on the latest sent version of a quote, in any status but draft): a new draft for the same customer with the same items, wording, policies and deposit. It gets a new number and fresh dates (dates that have already passed, such as a needed-by date or a balance due by a date, are dropped). The old quote is untouched.
 - **Revise** stays what it was: only on a Sent quote. An accepted quote is changed by first choosing "Change the answer".
 
-Not built, still shown as "coming soon": **Create a job** (on an accepted quote), emailing the quote, the online accept link. Not built, not shown: discarding a revision (it needs a draft rebuilt from a frozen version; the founder can ask for it).
+Not built, still shown as "coming soon": **Create a job** (on an accepted quote), emailing the quote, the online accept link. Discarding a revision was built afterwards (`quote-discard-revision.md`).
 
 ## Design decisions
 1. **The answer lives in the activity log, not on the quote.** Each answer is an event (`accepted`, `declined`, `withdrawn`, `reopened`) carrying the day, how, and the note. The quote only has its status. What the banner shows is the latest event, so there is one source of truth and nothing to keep in step.

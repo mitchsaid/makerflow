@@ -5,7 +5,7 @@ import { formatDay, isIsoDay } from "./dates";
  * withdrew it. The answer is kept in the activity log (see docs/plans/quote-outcomes.md).
  */
 
-export type QuoteEventKind = "created" | "sent" | "revised" | "accepted" | "declined" | "withdrawn" | "reopened";
+export type QuoteEventKind = "created" | "sent" | "revised" | "accepted" | "declined" | "withdrawn" | "reopened" | "discarded";
 export type AnswerKind = "accepted" | "declined";
 export type OutcomeKind = AnswerKind | "withdrawn";
 
