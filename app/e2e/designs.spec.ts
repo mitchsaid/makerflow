@@ -3,6 +3,7 @@ import { openBusinessProfile, openDocuments, signUpAndOnboard } from "./helpers"
 import { addCustomerInSheet, fillItem, openQuotes } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
+const saved = (page: Page) => expect(page.getByTestId("design-save-status")).toHaveText("");
 const pdfUrl = (page: Page) => page.getByTestId("pdf-pages").getAttribute("data-url");
 
 /** A PDF as text without the moment it was made, which differs on every drawing. */
@@ -18,6 +19,8 @@ async function saveQuote(page: Page, customer: string) {
 }
 
 test("a design is chosen and made yours on the preview, the usual look is set, and a sent quote never changes", async ({ page }) => {
+  // A long walk: two quotes, a send and the usual look.
+  test.setTimeout(120_000);
   await signUpAndOnboard(page, "design-flow", "Look Co");
   await openBusinessProfile(page);
   await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
@@ -33,11 +36,15 @@ test("a design is chosen and made yours on the preview, the usual look is set, a
 
   // Choosing a design redraws the preview (the picture's address carries a stamp of what it says).
   const classicUrl = await pdfUrl(page);
+  const tapped = Date.now();
   await designs.getByRole("button", { name: /^Bold/ }).click();
   await expect(designs.getByRole("button", { name: /^Bold/ })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => pdfUrl(page)).not.toBe(classicUrl);
   await expect(page.getByTestId("current-design")).toHaveText("Bold");
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+  // The preview is drawn in the browser: a tap shows at once (no save or server trip first).
+  await expect.poll(() => pdfUrl(page)).not.toBe(classicUrl);
+  expect(Date.now() - tapped).toBeLessThan(2500);
 
   // Make it yours: a colour, and one part changed. It redraws again, and stays after a reload.
   const boldUrl = await pdfUrl(page);
@@ -47,6 +54,7 @@ test("a design is chosen and made yours on the preview, the usual look is set, a
   const tealUrl = await pdfUrl(page);
   await page.getByRole("group", { name: "Total", exact: true }).getByRole("button").first().click();
   await expect.poll(() => pdfUrl(page)).not.toBe(tealUrl);
+  await saved(page);
   await page.reload();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(designs.getByRole("button", { name: /^Bold/ })).toHaveAttribute("aria-pressed", "true");
@@ -93,6 +101,7 @@ test("a design is chosen and made yours on the preview, the usual look is set, a
   await expect(page.getByTestId("current-design")).toHaveText("Soft");
   // Saved, not just shown: the preview is redrawn from what was stored, and a reload agrees.
   await expect.poll(() => pdfUrl(page)).not.toBe(modernUrl);
+  await saved(page);
   await page.reload();
   await expect(page.getByTestId("current-design")).toHaveText("Soft");
 });

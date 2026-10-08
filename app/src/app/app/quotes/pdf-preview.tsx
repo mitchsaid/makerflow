@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { drawPdfPages } from "./pdf-draw";
 
 type Status = "loading" | "ready" | "error";
 
@@ -20,53 +21,15 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    let destroy: (() => void) | null = null;
 
     async function draw() {
       try {
-        // The legacy build runs on older phones too.
-        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        if (cancelled) return;
-        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-          "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-          import.meta.url,
-        ).toString();
-        const task = pdfjs.getDocument({ url });
-        destroy = () => void task.destroy();
-        const pdf = await task.promise;
-        if (cancelled) {
-          void task.destroy();
-          return;
-        }
         const host = container.current;
         if (!host) return;
-        host.replaceChildren();
-        setPages(pdf.numPages);
-
-        const width = host.clientWidth || 360;
-        // Sharp on dense screens, but never more pixels per page than a phone can hold.
-        const ratio = Math.min(window.devicePixelRatio || 1, 2.5, 1800 / width);
-        for (let n = 1; n <= pdf.numPages; n++) {
-          const page = await pdf.getPage(n);
-          if (cancelled) return;
-          const base = page.getViewport({ scale: 1 });
-          const viewport = page.getViewport({ scale: (width / base.width) * ratio });
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.floor(viewport.width);
-          canvas.height = Math.floor(viewport.height);
-          canvas.className = "block w-full rounded-md bg-white shadow-sm ring-1 ring-foreground/15";
-          canvas.setAttribute("role", "img");
-          canvas.setAttribute("aria-label", `${label}, page ${n} of ${pdf.numPages}`);
-          canvas.dataset.testid = "pdf-page";
-          const wrapper = document.createElement("div");
-          wrapper.className = "mb-3";
-          wrapper.appendChild(canvas);
-          host.appendChild(wrapper);
-          const context = canvas.getContext("2d");
-          if (!context) throw new Error("no canvas");
-          await page.render({ canvasContext: context, canvas, viewport }).promise;
-          // The first page is enough to replace the placeholder; the rest follow below it.
-          if (n === 1 && !cancelled) setStatus("ready");
+        const count = await drawPdfPages(host, { url }, label, () => cancelled, () => setStatus("ready"));
+        if (count !== null) {
+          setPages(count);
+          setStatus("ready");
         }
       } catch (error) {
         if (cancelled) return;
@@ -77,7 +40,6 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
     void draw();
     return () => {
       cancelled = true;
-      destroy?.();
     };
   }, [url, label]);
 
@@ -97,7 +59,7 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
           </AlertDescription>
         </Alert>
       )}
-      <div ref={container} data-pages={pages} data-url={url} data-testid="pdf-pages" className={status === "error" ? "hidden" : ""} />
+      <div ref={container} data-pages={pages} data-url={url} data-testid="pdf-pages" />
     </div>
   );
 }
