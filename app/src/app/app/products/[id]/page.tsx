@@ -6,6 +6,7 @@ import { currencySymbol } from "@/lib/money";
 import { getLocalePack, priceEntryLabel, vatSettingsFor } from "@/lib/locale";
 import { getProduct } from "@/lib/products/data";
 import { updateProduct } from "../actions";
+import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import { ProductForm } from "../product-form";
 import { listHref, valuesFromProduct } from "../product-values";
 import { ProductArchiveButton } from "./archive-button";
@@ -39,6 +40,7 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
         action={updateProduct.bind(null, product.id)}
         initial={valuesFromProduct(product, locale.numberStyle)}
         priceLabel={priceEntryLabel(vatSettingsFor(profile, locale), locale.tax.name)}
+        vatChoices={vatChoicesFor(vatSettingsFor(profile, locale), locale.tax.statuses, locale.numberStyle)}
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
       />
       <ProductArchiveButton id={product.id} archived={product.archived} kind={product.kind} />

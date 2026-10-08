@@ -322,6 +322,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("dialog").getByLabel("VAT on this item")).toHaveAccessibleDescription(/VAT at 0%/);
       await expectNoViolations(page, "item sheet, VAT choice");
       await page.keyboard.press("Escape");
+      await page.goto("/app/products/new");
+      await page.getByLabel("VAT on this").selectOption("zero");
+      await expectNoViolations(page, "add product, VAT choice");
 
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);

@@ -53,6 +53,17 @@ begin
   insert into public.products (organisation_id, kind, name, description, unit_price_cents)
   values (org_a, 'service', 'Cake tasting', 'An hour at the studio', 0);
 
+  -- VAT treatment: standard unless said, one of three values, changeable by a member of the business.
+  assert (select vat_status from public.products where id = prod_a) = 'standard', 'a new product should be standard-rated';
+  update public.products set vat_status = 'zero' where id = prod_a;
+  assert (select vat_status from public.products where id = prod_a) = 'zero', 'could not set the VAT treatment';
+  begin
+    update public.products set vat_status = 'reduced' where id = prod_a;
+    raise exception 'FAIL: an unknown VAT treatment was accepted';
+  exception when check_violation then null;
+  end;
+  update public.products set vat_status = 'standard' where id = prod_a;
+
   -- Shape rules.
   begin
     insert into public.products (organisation_id, name, unit_price_cents) values (org_a, '', 100);

@@ -30,11 +30,13 @@ function toRow(p: ProductFields) {
     unit: p.unit,
     // Only when the form carried a photo field: otherwise the saved photo is left alone.
     ...(p.photoImageId === undefined ? {} : { photo_image_id: p.photoImageId }),
+    // Only when the form carried a VAT choice (a VAT-registered business): otherwise it is left alone.
+    ...(p.vatStatus === undefined ? {} : { vat_status: p.vatStatus }),
   };
 }
 
 function summaryFor(id: string, organisationId: string, p: ProductFields): ProductSummary {
-  return { id, organisationId, archived: false, ...p, photoImageId: p.photoImageId ?? null };
+  return { id, organisationId, archived: false, ...p, photoImageId: p.photoImageId ?? null, vatStatus: p.vatStatus ?? "standard" };
 }
 
 async function insertProduct(

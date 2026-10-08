@@ -31,6 +31,7 @@ import {
 import type { ProductSummary } from "@/lib/products";
 import { getLocalePack, priceEntryLabel, type LocalePack } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
+import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import {
   previewTotals,
   type DiscountKind,
@@ -499,18 +500,7 @@ export function QuoteBuilder({
           numberStyle={numberStyle}
           currencyCode={currencyCode}
           priceLabel={priceLabel}
-          vatChoices={
-            vat.registered
-              ? (["standard", "zero", "exempt"] as const).map((value) => ({
-                  value,
-                  label:
-                    value === "standard"
-                      ? `${vatStatuses.standard.label} (${formatPercent(vat.standardRateBp, numberStyle)})`
-                      : vatStatuses[value].label,
-                  hint: vatStatuses[value].hint,
-                }))
-              : null
-          }
+          vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
           newKey={newKey}
           onView={openSheet}
           onClose={closeSheet}
