@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ThemeThumbnail } from "@/components/theme-thumbnail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -52,7 +52,6 @@ export function DraftPreview({
   label,
   saved,
   initialOwn,
-  usual,
   canEdit,
 }: {
   snapshot: QuoteSnapshot;
@@ -60,10 +59,8 @@ export function DraftPreview({
   label: string;
   /** The business's own themes. */
   saved: readonly SavedTheme[];
-  /** This quote's own pick, if it has one. */
+  /** This quote's theme (one is chosen for it when it is made; an old quote may have none). */
   initialOwn: ThemeRef;
-  /** The business's usual theme. */
-  usual: ThemeRef;
   /** Owners and admins can edit and remix themes. */
   canEdit: boolean;
 }) {
@@ -74,7 +71,7 @@ export function DraftPreview({
   // What the server last accepted, so a failed save puts the choice back to what is really stored.
   const stored = useRef(initialOwn);
 
-  const chosen = chooseTheme(own, usual, saved);
+  const chosen = chooseTheme(own, saved);
   const theme = resolveTheme(chosen.spec, chosen.name);
   const shown: QuoteSnapshot = { ...snapshot, theme };
 
@@ -108,6 +105,15 @@ export function DraftPreview({
     });
   }
 
+  // The chosen card is brought into view when the strip opens, so it is never off to the side.
+  const strip = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const pressed = strip.current?.querySelector('[aria-pressed="true"]');
+    if (pressed instanceof HTMLElement && strip.current) {
+      strip.current.scrollLeft = Math.max(0, pressed.offsetLeft - 16);
+    }
+  }, []);
+
   const ownTheme = chosen.ref.id !== null;
   const from = ownTheme ? `theme:${chosen.ref.id}` : `starter:${chosen.ref.starter}`;
 
@@ -119,7 +125,7 @@ export function DraftPreview({
           Theme
         </h2>
         <p className="text-base text-muted-foreground">
-          {chosen.following ? "This quote follows your usual theme. Picking one here changes this quote only." : "Picked for this quote only."}
+          Pick a theme for this quote. The next quote you start begins with the one you pick last.
         </p>
         {message && (
           <Alert variant="destructive" role="alert">
@@ -129,7 +135,8 @@ export function DraftPreview({
         <p className="sr-only" role="status" data-testid="current-design">
           {chosen.name}
         </p>
-        <div role="group" aria-label="Theme" className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
+        {/* Room round the cards so the chosen one's outline is never cut off by the scrolling strip. */}
+        <div ref={strip} role="group" aria-label="Theme" className="-mx-4 flex scroll-px-4 snap-x gap-3 overflow-x-auto px-4 py-2">
           {entries.map((e) => {
             const pressed = sameRef(chosen.ref, e.ref);
             return (
@@ -147,16 +154,22 @@ export function DraftPreview({
               </Button>
             );
           })}
+          {canEdit && (
+            <Link
+              href={`/app/documents/themes/new?quote=${quoteId}`}
+              className="flex w-28 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl p-1.5 text-center text-sm ring-1 ring-foreground/15 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <span aria-hidden="true" className="text-2xl leading-none">
+                +
+              </span>
+              Create new theme
+            </Link>
+          )}
         </div>
         <p className="text-sm text-muted-foreground" role="status" data-testid="design-save-status">
           {state === "saving" ? "Saving…" : ""}
         </p>
         <div className="flex flex-wrap gap-2">
-          {!chosen.following && (
-            <Button type="button" variant="outline" onClick={() => pick({ id: null, starter: null })}>
-              Use my usual theme
-            </Button>
-          )}
           {canEdit && ownTheme && (
             <Link href={`/app/documents/themes/${chosen.ref.id}?quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
               Edit this theme

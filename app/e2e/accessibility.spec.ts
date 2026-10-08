@@ -289,13 +289,29 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: "Manage themes" }).click();
       await expect(page.getByRole("heading", { name: "Themes", level: 1 })).toBeVisible();
       await expectNoViolations(page, "themes library");
-      await page.getByRole("link", { name: "Remix Warm" }).click();
+      await page.getByRole("link", { name: "Create new theme" }).click();
+      await expect(page.getByRole("heading", { name: "Create a new theme", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "create a new theme, where to start");
+      await page.getByRole("region", { name: "Remix a starter" }).getByRole("link", { name: /^Warm/ }).click();
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
-      for (const tab of ["Colour", "Type", "Top", "Items", "Totals", "Finish"]) {
+      for (const tab of ["Colour", "Type", "Background", "Top", "Items", "Totals", "Finish"]) {
         await page.getByRole("tab", { name: tab }).click();
         // Scroll the choices to the middle of the screen, clear of the pinned preview and the bar below.
         await page.getByTestId("studio-panel").evaluate((el) => el.scrollIntoView({ block: "center" }));
         await expectNoViolations(page, `theme studio, ${tab}`);
+        if (tab === "Type") {
+          await page.getByRole("button", { name: /^Headings/ }).click();
+          await expect(page.getByTestId("font-playfair")).toBeVisible();
+          await expectNoViolations(page, "theme studio, font list");
+          await page.getByTestId("font-playfair").click();
+        }
+        if (tab === "Background") {
+          await page.getByTestId("choice-background-gradient").click();
+          await expectNoViolations(page, "theme studio, gradient background");
+          await page.getByTestId("choice-background-image").click();
+          await expectNoViolations(page, "theme studio, picture background");
+          await page.getByTestId("choice-background-paper").click();
+        }
       }
       await page.getByRole("button", { name: "Save theme" }).click();
       await expect(page.getByTestId("theme-save-status")).toHaveText("Saved.");

@@ -29,8 +29,14 @@ declare
   org_a uuid;
   org_b uuid;
   t uuid;
+  t2 uuid;
   tb uuid;
   q uuid;
+  q2 uuid;
+  q3 uuid;
+  q4 uuid;
+  q5 uuid;
+  q6 uuid;
   n integer;
 begin
   insert into auth.users (id, email) values (a, 'ta@example.test'), (s, 'ts@example.test'), (b, 'tb@example.test');
@@ -166,32 +172,60 @@ begin
   reset role;
 
   ----------------------------------------------------------------------
-  -- The business default: owners and admins; deleting a theme clears what points at it
+  -- Deleting a theme clears what points at it; a new quote starts with the last theme chosen
   ----------------------------------------------------------------------
   perform pg_temp.as_user(a);
   set local role authenticated;
-  update public.business_profiles set default_theme_id = t where organisation_id = org_a;
-  assert (select default_theme_id = t from public.business_profiles where organisation_id = org_a), 'default not saved';
-  begin
-    update public.business_profiles set default_theme_starter = 'soft' where organisation_id = org_a;
-    raise exception 'FAIL: a default theme and a default starter were both accepted';
-  exception when check_violation then null;
-  end;
-  begin
-    update public.business_profiles set default_theme_id = tb where organisation_id = org_a;
-    raise exception 'FAIL: another business''s theme became the default';
-  exception when foreign_key_violation then null;
-  end;
+  -- q (above) now has theme t, chosen by the staff member: it is the latest pick in the business.
   delete from public.quote_themes where id = t;
-  assert (select default_theme_id is null from public.business_profiles where organisation_id = org_a), 'the default still points at a deleted theme';
   assert (select theme_id is null and organisation_id = org_a from public.quotes where id = q), 'a quote still points at a deleted theme (or lost its business)';
   reset role;
 
+  -- No pick is left (the only theme was deleted): a new quote follows nothing.
   perform pg_temp.as_user(s);
   set local role authenticated;
-  update public.business_profiles set default_theme_starter = 'bold' where organisation_id = org_a;
-  get diagnostics n = row_count;
-  assert n = 0, 'staff changed the default theme';
+  q2 := public.save_quote_draft(org_a, null, pg_temp.quote_json(), '[]'::jsonb);
+  assert (select theme_id is null and theme_starter is null and theme_picked_at is null from public.quotes where id = q2), 'a new quote took a theme with nothing chosen';
+
+  -- Choosing a starter on it counts as the latest pick; the next new quote starts with it.
+  update public.quotes set theme_starter = 'warm' where id = q2;
+  assert (select theme_picked_at is not null from public.quotes where id = q2), 'a pick was not stamped';
+  q3 := public.save_quote_draft(org_a, null, pg_temp.quote_json(), '[]'::jsonb);
+  assert (select theme_starter = 'warm' and theme_picked_at is null from public.quotes where id = q3), 'a new quote did not start with the last chosen theme';
+
+  -- The latest pick wins, whichever quote it was on; taking a theme at creation is not a pick.
+  update public.quotes set theme_starter = 'bold' where id = q3;
+  q4 := public.save_quote_draft(org_a, null, pg_temp.quote_json(), '[]'::jsonb);
+  assert (select theme_starter = 'bold' from public.quotes where id = q4), 'the latest pick did not win';
+  -- A theme of the business's own can be the last chosen too (an owner makes it, anyone picks it).
+  reset role;
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  insert into public.quote_themes (organisation_id, name, spec) values (org_a, 'Mine', '{}') returning id into t2;
+  reset role;
+  perform pg_temp.as_user(s);
+  set local role authenticated;
+  update public.quotes set theme_starter = null, theme_id = t2 where id = q2;
+  assert (select theme_id = t2 and theme_picked_at is not null from public.quotes where id = q2), 'own theme not stamped';
+  q4 := public.save_quote_draft(org_a, null, pg_temp.quote_json(), '[]'::jsonb);
+  assert (select theme_id = t2 from public.quotes where id = q4), 'a new quote did not start with the last chosen own theme';
+  reset role;
+  -- Deleting that theme: new quotes take the next most recent pick (never a dangling id).
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  delete from public.quote_themes where id = t2;
+  reset role;
+  perform pg_temp.as_user(s);
+  set local role authenticated;
+  q5 := public.save_quote_draft(org_a, null, pg_temp.quote_json(), '[]'::jsonb);
+  assert (select theme_id is null and theme_starter = 'bold' from public.quotes where id = q5), 'a new quote points at a deleted theme, or missed the next pick';
+  reset role;
+
+  -- Another business's picks never reach this one.
+  perform pg_temp.as_user(b);
+  set local role authenticated;
+  q6 := public.save_quote_draft(org_b, null, pg_temp.quote_json(), '[]'::jsonb);
+  assert (select theme_id is null and theme_starter is null from public.quotes where id = q6), 'another business''s theme was inherited';
   reset role;
 
   raise notice 'quote themes tests passed';

@@ -6,6 +6,7 @@ vi.mock("server-only", () => ({}));
 import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
 import { parseQuote, type QuoteFormValues } from "../index";
+import { FONT_LIST } from "../font-list";
 import { BLANK_SPEC, HEADERS, LAYOUTS, LOGO_MODES, ROWS, STARTERS, TABLE_HEADS, TOTALS, resolveTheme, themeFromStored, type ThemeSpec } from "../themes";
 import { renderQuotePdf } from "../pdf/render";
 import { buildQuoteSnapshot } from "../snapshot";
@@ -279,6 +280,42 @@ describe("themes", () => {
     for (const totals of TOTALS) {
       expect(await textOf(await renderQuotePdf(withTheme({ totals }))), totals).toContain("Total including VAT");
     }
+  }, 60000);
+
+  it("draws every font in the list, as headings and as text, with the quote's words in it", async () => {
+    const plain = await renderQuotePdf(withTheme({}));
+    for (const { id, label } of FONT_LIST) {
+      const pdf = await renderQuotePdf(withTheme({ headingFont: id, bodyFont: id }));
+      const text = await textOf(pdf);
+      expect(text, label).toContain("Wedding cake");
+      expect(text, label).toContain("Page 1 of");
+      if (id !== "sans") expect(Buffer.compare(pdf, plain), `${label} differs from Noto Sans`).not.toBe(0);
+    }
+  }, 120000);
+
+  it("draws a gradient and a picture behind every page, on every page of a long quote", async () => {
+    const sharp = (await import("sharp")).default;
+    const picture = await sharp({ create: { width: 200, height: 280, channels: 3, background: "#d9c7a8" } }).jpeg().toBuffer();
+    const bgId = "3f2a1b2c-0000-4000-8000-000000000001";
+    const base = snapshot(vats.inclusive);
+    const countImages = (pdf: Buffer) => (pdf.toString("latin1").match(/\/Subtype \/Image/g) ?? []).length;
+
+    const plain = await renderQuotePdf({ ...base, theme: resolveTheme(BLANK_SPEC, "x") });
+    const gradient = await renderQuotePdf({ ...base, theme: resolveTheme({ ...BLANK_SPEC, background: "gradient", paper: "#fbf7f0", gradientTo: "#fde9d9", gradientDirection: "diagonal" }, "x") });
+    expect(await textOf(gradient)).toContain("Page 1 of");
+    expect(Buffer.compare(gradient, plain)).not.toBe(0);
+
+    const theme = resolveTheme({ ...BLANK_SPEC, background: "image", backgroundImageId: bgId, imageStrength: "soft" }, "x");
+    const withPicture = await renderQuotePdf({ ...base, theme }, { background: { contentType: "image/jpeg", bytes: picture } });
+    expect(countImages(withPicture)).toBeGreaterThan(countImages(plain));
+    // A picture that could not be loaded is simply left out.
+    const without = await renderQuotePdf({ ...base, theme });
+    expect(countImages(without)).toBe(countImages(plain));
+    // A picture behind a quote that runs onto a second page is on both pages.
+    const long = await renderQuotePdf({ ...snapshot(vats.inclusive, { lines: manyLines(40) }), theme }, { background: { contentType: "image/jpeg", bytes: picture } });
+    const pages = await pageTexts(long);
+    expect(pages.length).toBeGreaterThan(1);
+    expect(await textOf(long)).toContain("Page 2 of");
   }, 60000);
 
   it("draws a sent version from its frozen theme, whatever the theme is now", async () => {

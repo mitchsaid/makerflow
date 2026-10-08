@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FontPicker } from "@/components/font-picker";
+import { ImageField } from "@/components/image-field";
 import { ChoiceCards } from "@/components/theme-choices";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -29,16 +31,21 @@ const ACCENTS: readonly (readonly [string, string])[] = [
   ["#475569", "Slate"],
 ];
 
+/** Colours for paper and for the end of a gradient: soft ones read best behind text, and charcoal is there for a dark page. */
 const PAPERS: readonly (readonly [string, string])[] = [
   ["#ffffff", "White"],
   ["#fbf7f0", "Cream"],
   ["#fdf5f8", "Blush"],
+  ["#fde9d9", "Peach"],
+  ["#e6f2ea", "Mint"],
   ["#f3f6fb", "Mist"],
+  ["#e8eef6", "Sky"],
+  ["#e9e3f5", "Lilac"],
   ["#f1efe9", "Stone"],
   ["#1f2937", "Charcoal"],
 ];
 
-const TABS = ["Colour", "Type", "Top", "Items", "Totals", "Finish"] as const;
+const TABS = ["Colour", "Type", "Background", "Top", "Items", "Totals", "Finish"] as const;
 type Tab = (typeof TABS)[number];
 
 const SWITCHES: readonly { name: (typeof BOOLEAN_PARTS)[number]; label: string }[] = [
@@ -82,6 +89,7 @@ export function ThemeStudio({
   const [fullOpen, setFullOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [justSaved, setJustSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const theme = useMemo(() => resolveTheme(spec, name.trim() || "Untitled"), [spec, name]);
   const shown: QuoteSnapshot = useMemo(() => ({ ...snapshot, theme }), [snapshot, theme]);
@@ -100,7 +108,7 @@ export function ThemeStudio({
     setSpec((s) => ({ ...s, [part]: value }));
   }
 
-  function setColour(part: "accent" | "paper", value: string) {
+  function setColour(part: "accent" | "paper" | "gradientTo", value: string) {
     const colour = normaliseColour(value);
     if (!colour) return;
     setJustSaved(false);
@@ -115,6 +123,10 @@ export function ThemeStudio({
       return;
     }
     setNameError(null);
+    if (uploading) {
+      setError("Wait for the picture to finish uploading, then save.");
+      return;
+    }
     startTransition(async () => {
       try {
         const result = id === null ? await createTheme(name, spec) : await saveTheme(id, name, spec);
@@ -143,7 +155,7 @@ export function ThemeStudio({
   };
   const backHref = quoteId ? `/app/quotes/${quoteId}/preview` : "/app/documents/themes";
 
-  const colourRow = (part: "accent" | "paper", label: string, options: readonly (readonly [string, string])[]) => (
+  const colourRow = (part: "accent" | "paper" | "gradientTo", label: string, options: readonly (readonly [string, string])[]) => (
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">{label}</legend>
       <div className="flex flex-wrap items-center gap-2">
@@ -255,13 +267,65 @@ export function ThemeStudio({
         )}
 
         <section id="studio-panel" data-testid="studio-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="space-y-5">
-          {tab === "Colour" && (
+          {tab === "Colour" && colourRow("accent", "Your colour", ACCENTS)}
+          {tab === "Type" && (
             <>
-              {colourRow("accent", "Your colour", ACCENTS)}
-              {colourRow("paper", "Paper", PAPERS)}
+              <FontPicker
+                id="heading-font"
+                label="Headings"
+                value={spec.headingFont}
+                sample="Quotation for Sarah and Thabo"
+                onChange={(font) => {
+                  setJustSaved(false);
+                  setSpec((x) => ({ ...x, headingFont: font }));
+                }}
+              />
+              <FontPicker
+                id="body-font"
+                label="Text"
+                value={spec.bodyFont}
+                sample="Vanilla sponge, raspberry jam, R 1 250,00"
+                onChange={(font) => {
+                  setJustSaved(false);
+                  setSpec((x) => ({ ...x, bodyFont: font }));
+                }}
+              />
             </>
           )}
-          {tab === "Type" && cards("headingFont", "bodyFont")}
+          {tab === "Background" && (
+            <>
+              {cards("background")}
+              {spec.background === "paper" && colourRow("paper", "Paper colour", PAPERS)}
+              {spec.background === "gradient" && (
+                <>
+                  {colourRow("paper", "Starts with", PAPERS)}
+                  {colourRow("gradientTo", "Ends with", PAPERS)}
+                  {cards("gradientDirection")}
+                  <p className="text-sm text-muted-foreground">Soft colours read best behind text.</p>
+                </>
+              )}
+              {spec.background === "image" && (
+                <>
+                  <ImageField
+                    id="backgroundImage"
+                    label="Background picture"
+                    kind="background"
+                    shape="free"
+                    value={spec.backgroundImageId ?? ""}
+                    alt="The background picture"
+                    hint="A soft, light picture works best. It is faded behind your text so the quote stays easy to read."
+                    onChange={(imageId) => {
+                      setJustSaved(false);
+                      setSpec((x) => ({ ...x, backgroundImageId: imageId === "" ? null : imageId }));
+                    }}
+                    onPendingChange={setUploading}
+                  />
+                  {cards("imageStrength")}
+                  {colourRow("paper", "Colour under the picture", PAPERS)}
+                </>
+              )}
+            </>
+          )}
           {tab === "Top" && cards("header", "headerLogo", "headerAlign")}
           {tab === "Items" && (
             <>

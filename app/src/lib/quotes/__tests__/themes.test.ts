@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { FONT_IDS, FONT_LIST, isFontId } from "../font-list";
+import { LOADABLE_FONTS } from "../pdf/fonts";
 import {
   BLANK_SPEC,
   CHOICES,
@@ -137,18 +139,75 @@ describe("colour helpers", () => {
 describe("chooseTheme", () => {
   const saved: SavedTheme[] = [{ id: "t1", name: "Stall", spec: { ...BLANK_SPEC, accent: "#b45309" } }];
   const none = { id: null, starter: null };
-  it("uses the quote's own pick first", () => {
-    const c = chooseTheme({ id: "t1", starter: null }, { id: null, starter: "bold" }, saved);
-    expect([c.name, c.following]).toEqual(["Stall", false]);
-    expect(chooseTheme({ id: null, starter: "soft" }, none, saved).name).toBe("Soft");
+  it("uses the quote's own pick", () => {
+    expect(chooseTheme({ id: "t1", starter: null }, saved).name).toBe("Stall");
+    expect(chooseTheme({ id: null, starter: "soft" }, saved).name).toBe("Soft");
   });
-  it("follows the business's default when the quote has no pick, and Classic when there is none", () => {
-    expect(chooseTheme(none, { id: "t1", starter: null }, saved)).toMatchObject({ name: "Stall", following: true });
-    expect(chooseTheme(none, { id: null, starter: "bold" }, saved)).toMatchObject({ name: "Bold", following: true });
-    expect(chooseTheme(none, none, saved)).toMatchObject({ name: "Classic", following: true });
+  it("is Classic when the quote has no pick, or its theme no longer exists", () => {
+    expect(chooseTheme(none, saved).name).toBe("Classic");
+    expect(chooseTheme({ id: "gone", starter: null }, saved).name).toBe("Classic");
+    expect(chooseTheme({ id: "t1", starter: null }, []).name).toBe("Classic");
   });
-  it("treats a pick that no longer exists as not chosen", () => {
-    expect(chooseTheme({ id: "gone", starter: null }, { id: null, starter: "warm" }, saved)).toMatchObject({ name: "Warm", following: true });
-    expect(chooseTheme(none, { id: "gone", starter: null }, [])).toMatchObject({ name: "Classic", following: true });
+});
+
+describe("fonts", () => {
+  it("accepts the fonts in the list (the two Noto fonts keep their old names) and drops anything else", () => {
+    expect(parseSpec({ headingFont: "playfair", bodyFont: "serif" })).toMatchObject({ headingFont: "playfair", bodyFont: "serif" });
+    expect(parseSpec({ headingFont: "Comic Sans", bodyFont: "x; y" })).toMatchObject({ headingFont: "sans", bodyFont: "sans" });
+    expect(FONT_LIST.length).toBeGreaterThanOrEqual(20);
+    expect(new Set(FONT_IDS).size).toBe(FONT_IDS.length);
+    expect(isFontId("inter")).toBe(true);
+    expect(isFontId("nope")).toBe(false);
+  });
+  it("has a loader for every font that is not one of the two always there", () => {
+    for (const id of FONT_IDS) expect(LOADABLE_FONTS, id).toContain(id);
+  });
+});
+
+describe("rows", () => {
+  it("turns the first release's full grid into the spreadsheet (a table) or boxed rows (anything else)", () => {
+    expect(parseSpec({ rows: "grid", layout: "table" }).rows).toBe("sheet");
+    expect(parseSpec({ rows: "grid", layout: "cards" }).rows).toBe("boxed");
+    expect(parseSpec({ rows: "sheet" }).rows).toBe("sheet");
+    expect(parseSpec({ rows: "boxed" }).rows).toBe("boxed");
+  });
+});
+
+describe("backgrounds", () => {
+  const png = "3f2a1b2c-0000-4000-8000-000000000001";
+  it("keeps a gradient's colour and direction and a picture's id, and drops what isn't one", () => {
+    expect(parseSpec({ background: "gradient", gradientTo: "#E8EEF6", gradientDirection: "diagonal" })).toMatchObject({ background: "gradient", gradientTo: "#e8eef6", gradientDirection: "diagonal" });
+    expect(parseSpec({ background: "image", backgroundImageId: png, imageStrength: "faint" })).toMatchObject({ background: "image", backgroundImageId: png, imageStrength: "faint" });
+    expect(parseSpec({ backgroundImageId: "../../etc/passwd" }).backgroundImageId).toBeNull();
+    expect(parseSpec({ background: "video", gradientTo: "red" })).toMatchObject({ background: "paper", gradientTo: BLANK_SPEC.gradientTo });
+  });
+  it("reads text against the middle of a gradient, so soft gradients stay readable and the ends are close to it", () => {
+    for (const [from, to] of [["#ffffff", "#e8eef6"], ["#fbf7f0", "#fde9d9"], ["#1f2937", "#111827"], ["#fdf5f8", "#e9e3f5"]]) {
+      const t = resolveTheme({ ...BLANK_SPEC, background: "gradient", paper: from, gradientTo: to }, "x");
+      for (const end of [from, to]) expect(contrast(t.ink, end), `${from} to ${to}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(t.accentInk, t.tint)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+  it("carries the background through resolveTheme, isTheme and specOf", () => {
+    const spec = { ...BLANK_SPEC, background: "image" as const, backgroundImageId: png, imageStrength: "medium" as const };
+    const t = resolveTheme(spec, "x");
+    expect(isTheme(t)).toBe(true);
+    expect(sameSpec(specOf(t), spec)).toBe(true);
+    expect(isTheme({ ...t, backgroundImageId: "nope" })).toBe(false);
+    expect(isTheme({ ...t, background: "video" })).toBe(false);
+  });
+});
+
+describe("a theme from the first release", () => {
+  it("is upgraded: no background, fonts keep their names, grid rows become the spreadsheet or boxed rows", () => {
+    const first = {
+      ...resolveTheme({ ...BLANK_SPEC, accent: "#0f766e", headingFont: "serif" }, "Mine"),
+      rows: "grid",
+    } as Record<string, unknown>;
+    for (const key of ["background", "gradientTo", "gradientDirection", "backgroundImageId", "imageStrength"]) delete first[key];
+    const t = themeFromStored({ theme: first });
+    expect(t).toMatchObject({ name: "Mine", background: "paper", headingFont: "serif", rows: "sheet", accent: "#0f766e" });
+    expect(isTheme(t)).toBe(true);
+    expect(themeFromStored({ theme: { ...first, layout: "cards" } }).rows).toBe("boxed");
   });
 });

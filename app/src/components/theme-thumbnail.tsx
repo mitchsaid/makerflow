@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import type { Theme } from "@/lib/quotes/themes";
+import { imageUrl } from "@/lib/images";
+import { IMAGE_OPACITY, type Theme } from "@/lib/quotes/themes";
 
 /**
  * Miniatures of a quote drawn in plain boxes from the same resolved theme the PDF uses, so what the
@@ -16,6 +17,22 @@ const bar = (width: string | number, height: number, colour: string, opacity = 1
   borderRadius: radius,
   flexShrink: 0,
 });
+
+/**
+ * Borders for one box: all four sides, or only the bottom, or none. Always the four sides written out
+ * (never the "border" shorthand for some boxes and a single side for others), because React warns when a
+ * box that changes between the two is redrawn.
+ */
+function edges(kind: "box" | "under" | "none", colour: string): CSSProperties {
+  const line = `1px solid ${colour}`;
+  const off = "0 solid transparent";
+  return {
+    borderTop: kind === "box" ? line : off,
+    borderRight: kind === "box" ? line : off,
+    borderBottom: kind === "none" ? off : line,
+    borderLeft: kind === "box" ? line : off,
+  };
+}
 
 const PHOTO = { small: 9, large: 15 } as const;
 
@@ -68,7 +85,9 @@ export function MiniHeader({ theme }: { theme: Theme }) {
 export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }) {
   const r = Math.min(theme.radius, 6) / 2;
   const row = { compact: 7, comfortable: 9, airy: 13 }[theme.density];
-  const inset = theme.tableHead === "tint" || theme.tableHead === "filled" || theme.rows === "zebra" || theme.rows === "grid" ? 3 : 0;
+  const boxedRows = theme.rows === "boxed" || (theme.rows === "sheet" && theme.layout !== "table");
+  const sheet = theme.layout === "table" && theme.rows === "sheet";
+  const inset = theme.tableHead === "tint" || theme.tableHead === "filled" || theme.rows === "zebra" || theme.rows === "boxed" || theme.rows === "sheet" ? 3 : 0;
   const photo = theme.photo === "none" ? 0 : PHOTO[theme.photo];
   const items = Array.from({ length: count }, (_, i) => i);
   const cols = (strong = false) => (
@@ -81,7 +100,7 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
 
   if (theme.layout === "table") {
     return (
-      <div style={{ border: theme.rows === "grid" ? `1px solid ${theme.line}` : undefined, borderRadius: theme.rows === "grid" ? r : 0, display: "flex", flexDirection: "column" }}>
+      <div style={{ border: sheet ? `1px solid ${theme.line}` : undefined, borderRadius: sheet ? r : 0, display: "flex", flexDirection: "column", gap: theme.rows === "boxed" ? 1.5 : 0 }}>
         {theme.tableHead !== "none" && (
           <div
             style={{
@@ -108,9 +127,9 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
               alignItems: "center",
               justifyContent: "space-between",
               gap: 2,
-              borderBottom: theme.rows === "lines" || theme.rows === "grid" ? `1px solid ${theme.line}` : undefined,
+              ...edges(theme.rows === "boxed" ? "box" : theme.rows === "lines" || sheet ? "under" : "none", theme.line),
               background: theme.rows === "zebra" && i % 2 === 1 ? theme.tintStrong : undefined,
-              borderRadius: theme.rows === "zebra" ? r : 0,
+              borderRadius: theme.rows === "zebra" || theme.rows === "boxed" ? r : 0,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
@@ -118,7 +137,12 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
               {photo > 0 && <Photo theme={theme} size={Math.min(photo, row - 2)} />}
               <div style={bar("46%", 2, theme.ink, 0.75)} />
             </div>
-            {cols()}
+            {sheet ? (
+              // The spreadsheet's lines between the columns.
+              <div style={{ display: "flex", alignSelf: "stretch", alignItems: "center", gap: 2, borderLeft: `1px solid ${theme.line}`, paddingLeft: 2 }}>{cols()}</div>
+            ) : (
+              cols()
+            )}
           </div>
         ))}
       </div>
@@ -127,7 +151,7 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
 
   if (theme.layout === "list") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: theme.rows === "grid" ? 2 : 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: boxedRows ? 2 : 0 }}>
         {items.map((i) => (
           <div
             key={i}
@@ -137,9 +161,9 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
               gap: 3,
               padding: `${row / 4}px ${inset}px`,
               // Never both the shorthand and a single side: React warns when one is removed on a redraw.
-              ...(theme.rows === "grid" ? { border: `1px solid ${theme.line}` } : { borderBottom: theme.rows === "lines" ? `1px solid ${theme.line}` : "0 solid transparent" }),
+              ...edges(boxedRows ? "box" : theme.rows === "lines" ? "under" : "none", theme.line),
               background: theme.rows === "zebra" && i % 2 === 1 ? theme.tintStrong : undefined,
-              borderRadius: theme.rows === "zebra" || theme.rows === "grid" ? r : 0,
+              borderRadius: theme.rows === "zebra" || boxedRows ? r : 0,
             }}
           >
             {photo > 0 && <Photo theme={theme} size={photo} />}
@@ -186,7 +210,7 @@ export function MiniItems({ theme, count = 3 }: { theme: Theme; count?: number }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: row / 3 + 1 }}>
       {items.slice(0, 2).map((i) => (
-        <div key={i} style={{ display: "flex", gap: 3, paddingBottom: 2, borderBottom: theme.rows === "lines" || theme.rows === "grid" ? `1px solid ${theme.line}` : undefined }}>
+        <div key={i} style={{ display: "flex", gap: 3, paddingBottom: 2, borderBottom: theme.rows === "lines" || boxedRows ? `1px solid ${theme.line}` : undefined }}>
           {theme.photo !== "none" && <Photo theme={theme} size={theme.photo === "large" ? 22 : 16} />}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1.5, justifyContent: "center" }}>
             <div style={bar("52%", 3, theme.ink, 0.9, theme.headingFont === "serif" ? 0 : 1)} />
@@ -227,6 +251,14 @@ export function MiniTotals({ theme }: { theme: Theme }) {
   );
 }
 
+/** What is behind the page, as CSS: the paper, or a gradient from it. (A picture is drawn by `BackgroundPicture`.) */
+export function pageBackground(theme: Theme): string {
+  if (theme.background === "gradient") {
+    return `linear-gradient(${theme.gradientDirection === "diagonal" ? "135deg" : "180deg"}, ${theme.paper}, ${theme.gradientTo})`;
+  }
+  return theme.paper;
+}
+
 /** A whole page in miniature. */
 export function ThemeThumbnail({ theme }: { theme: Theme }) {
   const band = theme.header === "band";
@@ -237,7 +269,7 @@ export function ThemeThumbnail({ theme }: { theme: Theme }) {
         position: "relative",
         width: "100%",
         aspectRatio: "3 / 4",
-        background: theme.paper,
+        background: pageBackground(theme),
         border: `1px solid ${theme.line}`,
         borderRadius: 4,
         overflow: "hidden",
@@ -247,8 +279,16 @@ export function ThemeThumbnail({ theme }: { theme: Theme }) {
         padding: band ? 0 : 7,
       }}
     >
+      {theme.background === "image" && theme.backgroundImageId && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl(theme.backgroundImageId, "thumb")}
+          alt=""
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: IMAGE_OPACITY[theme.imageStrength] }}
+        />
+      )}
       <MiniHeader theme={theme} />
-      <div style={{ padding: band ? "0 7px" : 0, display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+      <div style={{ padding: band ? "0 7px" : 0, display: "flex", flexDirection: "column", gap: 6, flex: 1, position: "relative" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <div style={bar("22%", 2, theme.accentInk, 0.8)} />
           <div style={bar("45%", 2, theme.ink, 0.6)} />

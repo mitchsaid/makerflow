@@ -63,7 +63,6 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
         label={`Quote ${quote.number}`}
         saved={saved}
         initialOwn={{ id: quote.themeId, starter: quote.themeStarter }}
-        usual={{ id: workspace.profile.defaultThemeId, starter: workspace.profile.defaultThemeStarter }}
         canEdit={canEditBusinessProfile(workspace.role)}
       />
       <PreviewBar quoteId={id} />

@@ -1,9 +1,9 @@
-import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import { Defs, Document, Image, LinearGradient, Page, Rect, Stop, Svg, Text, View } from "@react-pdf/renderer";
 import type { BankLine } from "../../bank";
 import { formatMoney, formatPercent } from "../../money";
 import { formatDay } from "../dates";
 import { quantityText } from "../units";
-import { themeFromStored } from "../themes";
+import { IMAGE_OPACITY, themeFromStored } from "../themes";
 import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 
@@ -52,6 +52,10 @@ function PartyLines({ party, centred = false }: { party: QuoteSnapshot["business
   );
 }
 
+/** A4 in points, for what must fill the whole page. */
+const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 841.89;
+
 /** A picture's bytes, loaded by the caller (the document itself never reads the database). */
 export type PdfImage = { contentType: string; bytes: Uint8Array };
 
@@ -72,6 +76,7 @@ export function QuoteDocument({
   draft = false,
   images,
   logo,
+  background,
 }: {
   snapshot: QuoteSnapshot;
   draft?: boolean;
@@ -79,9 +84,12 @@ export function QuoteDocument({
   images?: ReadonlyMap<string, PdfImage>;
   /** The business's logo, if the snapshot names one and it could be loaded. */
   logo?: PdfImage | null;
+  /** The picture behind every page, if the theme has one and it could be loaded. */
+  background?: PdfImage | null;
 }) {
   const theme = themeFromStored(s);
   const styles = makeStyles(theme);
+  const headCell = theme.layout === "table" && theme.rows === "sheet" ? styles.cellGrid : undefined;
   const draftBanner = <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>;
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
@@ -111,6 +119,23 @@ export function QuoteDocument({
   return (
     <Document title={`${s.wording.title} ${s.number}`} author={s.business.name} creator="MakerFlow" producer="MakerFlow">
       <Page size="A4" style={styles.page}>
+        {/* Behind everything, on every page: a gradient over the paper colour, or a picture faded into it. */}
+        {theme.background === "gradient" ? (
+          <Svg fixed style={{ position: "absolute", top: 0, left: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT }}>
+            <Defs>
+              <LinearGradient id="page-gradient" x1="0" y1="0" x2={theme.gradientDirection === "diagonal" ? "1" : "0"} y2="1">
+                <Stop offset="0" stopColor={theme.paper} />
+                <Stop offset="1" stopColor={theme.gradientTo} />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width={PAGE_WIDTH} height={PAGE_HEIGHT} fill="url(#page-gradient)" />
+          </Svg>
+        ) : null}
+        {theme.background === "image" && background ? (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image src={pdfSource(background)} fixed style={{ position: "absolute", top: 0, left: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, objectFit: "cover", opacity: IMAGE_OPACITY[theme.imageStrength] }} />
+        ) : null}
+
         {/* Fixed to the foot of every page. */}
         <View style={styles.footer} fixed>
           <Text>
@@ -227,15 +252,15 @@ export function QuoteDocument({
               {/* Fixed inside the table: it repeats at the top of each page the table runs onto. */}
               {theme.tableHead !== "none" ? (
                 <View style={styles.tableHead} fixed>
-                  {theme.numbered ? <Text style={[styles.colNo, styles.tableHeadText]}>No.</Text> : null}
-                  <Text style={[styles.tableHeadText, styles.colName]}>Item</Text>
-                  {theme.showQty ? <Text style={[styles.tableHeadText, styles.colQty]}>Qty</Text> : null}
-                  {theme.showUnitPrice ? <Text style={[styles.tableHeadText, styles.colPrice]}>Price</Text> : null}
+                  {theme.numbered ? <Text style={[styles.colNo, styles.tableHeadText, ...(headCell ? [headCell] : [])]}>No.</Text> : null}
+                  <Text style={[styles.tableHeadText, styles.colName, ...(headCell ? [headCell] : [])]}>Item</Text>
+                  {theme.showQty ? <Text style={[styles.tableHeadText, styles.colQty, ...(headCell ? [headCell] : [])]}>Qty</Text> : null}
+                  {theme.showUnitPrice ? <Text style={[styles.tableHeadText, styles.colPrice, ...(headCell ? [headCell] : [])]}>Price</Text> : null}
                   <Text style={[styles.tableHeadText, styles.colAmount]}>Amount</Text>
                 </View>
               ) : null}
               {s.lines.map((l, i) => {
-                const cell = theme.rows === "grid" ? styles.cellGrid : undefined;
+                const cell = theme.layout === "table" && theme.rows === "sheet" ? styles.cellGrid : undefined;
                 return (
                   <View key={i} wrap={false}>
                     <View style={[styles.row, ...(theme.rows === "zebra" && i % 2 === 1 ? [styles.rowShaded] : []), ...(i === 0 ? [styles.rowFirst] : [])]}>

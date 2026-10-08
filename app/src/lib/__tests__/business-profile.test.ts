@@ -142,8 +142,6 @@ const emptyProfile: BusinessProfile = {
       defaultDepositKind: "none",
       defaultDepositValue: 0,
       logoImageId: null,
-      defaultThemeId: null,
-      defaultThemeStarter: null,
 };
 
 describe("what is missing before documents (South African rules, via the locale pack)", () => {
