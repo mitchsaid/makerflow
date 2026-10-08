@@ -3,7 +3,8 @@ import type { ReactElement } from "react";
 import type { DocumentProps } from "@react-pdf/renderer";
 import type { QuoteSnapshot } from "../snapshot";
 import { forPdf } from "./clean";
-import { registerPdfFonts } from "./fonts";
+import { ensureFonts } from "./fonts";
+import { themeFromStored } from "../themes";
 import { QuoteDocument, type PdfImage } from "./quote-document";
 
 /**
@@ -14,10 +15,11 @@ import { QuoteDocument, type PdfImage } from "./quote-document";
  */
 export async function renderQuotePdfInBrowser(
   snapshot: QuoteSnapshot,
-  options: { draft?: boolean; images?: ReadonlyMap<string, PdfImage>; logo?: PdfImage | null } = {},
+  options: { draft?: boolean; images?: ReadonlyMap<string, PdfImage>; logo?: PdfImage | null; background?: PdfImage | null } = {},
 ): Promise<Uint8Array> {
-  registerPdfFonts();
-  const document = QuoteDocument({ snapshot: forPdf(snapshot), draft: options.draft ?? false, images: options.images, logo: options.logo });
+  const theme = themeFromStored(snapshot);
+  await ensureFonts([theme.headingFont, theme.bodyFont]);
+  const document = QuoteDocument({ snapshot: forPdf(snapshot), draft: options.draft ?? false, images: options.images, logo: options.logo, background: options.background });
   const blob = await pdf(document as ReactElement<DocumentProps>).toBlob();
   return new Uint8Array(await blob.arrayBuffer());
 }

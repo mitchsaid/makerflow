@@ -1,9 +1,9 @@
 import type { QuoteSnapshot, SnapshotParty } from "../snapshot";
-import { drawable } from "./fonts";
+import { themeFromStored } from "../themes";
+import { drawable as drawableIn } from "./fonts";
 
-const clean = (value: string | null) => (value === null ? null : drawable(value));
-
-function cleanParty<T extends SnapshotParty>(party: T): T {
+function cleanParty<T extends SnapshotParty>(party: T, drawable: (text: string) => string): T {
+  const clean = (value: string | null) => (value === null ? null : drawable(value));
   return {
     ...party,
     name: drawable(party.name),
@@ -21,10 +21,14 @@ function cleanParty<T extends SnapshotParty>(party: T): T {
  * wording and number styles from the locale pack are left exactly as they are.
  */
 export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
+  // Letters the theme's fonts have no shape for are left out along with the emoji.
+  const theme = themeFromStored(snapshot);
+  const drawable = (text: string) => drawableIn(text, [theme.headingFont, theme.bodyFont]);
+  const clean = (value: string | null) => (value === null ? null : drawable(value));
   return {
     ...snapshot,
-    business: cleanParty(snapshot.business),
-    customer: snapshot.customer ? cleanParty(snapshot.customer) : null,
+    business: cleanParty(snapshot.business, drawable),
+    customer: snapshot.customer ? cleanParty(snapshot.customer, drawable) : null,
     lines: snapshot.lines.map((l) => ({
       ...l,
       name: drawable(l.name),

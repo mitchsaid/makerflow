@@ -65,13 +65,9 @@ export async function prepareQuote(
     }
   }
 
-  // The theme: the quote's own pick, else the business's default, else Classic (the themes are read once per request, shared with the page).
+  // The theme: the quote's own pick, else Classic (the themes are read once per request, shared with the page).
   const saved = await getThemes();
-  const chosen = chooseTheme(
-    { id: stored.themeId, starter: stored.themeStarter },
-    { id: profile.defaultThemeId, starter: profile.defaultThemeStarter },
-    saved,
-  );
+  const chosen = chooseTheme({ id: stored.themeId, starter: stored.themeStarter }, saved);
 
   const snapshot = buildQuoteSnapshot({
     quote: parsed.quote,

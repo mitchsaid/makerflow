@@ -3,6 +3,9 @@ import sharp, { type OutputInfo } from "sharp";
 import {
   DISPLAY_MAX_BYTES,
   IMAGE_ERRORS,
+  BACKGROUND_DISPLAY_HEIGHT_PX,
+  BACKGROUND_DISPLAY_WIDTH_PX,
+  BACKGROUND_THUMB_PX,
   INPUT_MAX_BYTES,
   LOGO_DISPLAY_PX,
   LOGO_THUMB_PX,
@@ -85,6 +88,28 @@ export async function processImage(
 
     // A product photo: white behind anything see-through, JPEG at the best quality that fits.
     const flat = () => base().rotate().flatten({ background: "#ffffff" });
+
+    if (kind === "background") {
+      // Fills a page, so it keeps its own shape (fitted inside an A4 page's size); the thumbnail is the whole picture, small.
+      let page: { data: Buffer; info: OutputInfo } | null = null;
+      for (const quality of [78, 70, 60, 50]) {
+        page = await flat()
+          .resize({ width: BACKGROUND_DISPLAY_WIDTH_PX, height: BACKGROUND_DISPLAY_HEIGHT_PX, fit: "inside", withoutEnlargement: true })
+          .jpeg({ quality, mozjpeg: true })
+          .toBuffer({ resolveWithObject: true });
+        if (page.data.length <= DISPLAY_MAX_BYTES) break;
+      }
+      if (!page || page.data.length > DISPLAY_MAX_BYTES) return { ok: false, error: IMAGE_ERRORS.tooBig };
+      const small = await flat()
+        .resize({ width: BACKGROUND_THUMB_PX, height: BACKGROUND_THUMB_PX, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer();
+      if (small.length > THUMB_MAX_BYTES) return { ok: false, error: IMAGE_ERRORS.tooBig };
+      return {
+        ok: true,
+        value: { contentType: "image/jpeg", width: page.info.width, height: page.info.height, display: page.data, thumb: small },
+      };
+    }
     let display: { data: Buffer; info: OutputInfo } | null = null;
     for (const quality of [85, 78, 70, 60]) {
       display = await flat()

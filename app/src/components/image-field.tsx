@@ -72,13 +72,13 @@ export function ImageField({
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={imageUrl(value, shape === "square" ? "thumb" : "display")}
+            src={imageUrl(value, shape === "square" || kind === "background" ? "thumb" : "display")}
             alt={alt}
             data-testid={`${id}-preview`}
             className={
               shape === "square"
                 ? "size-24 shrink-0 rounded-lg object-cover ring-1 ring-foreground/10"
-                : "max-h-20 max-w-48 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10"
+                : kind === "background" ? "max-h-28 max-w-32 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10" : "max-h-20 max-w-48 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10"
             }
           />
         ) : (

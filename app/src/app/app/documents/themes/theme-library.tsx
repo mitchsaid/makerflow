@@ -6,20 +6,20 @@ import { useRouter } from "next/navigation";
 import { ThemeThumbnail } from "@/components/theme-thumbnail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { STARTERS, resolveTheme, sameRef, type SavedTheme, type ThemeRef, type ThemeSpec } from "@/lib/quotes/themes";
-import { deleteTheme, setDefaultTheme } from "../theme-actions";
+import { STARTERS, resolveTheme, type SavedTheme, type ThemeSpec } from "@/lib/quotes/themes";
+import { deleteTheme } from "../theme-actions";
 
-type Entry = { key: string; ref: ThemeRef; name: string; description?: string; spec: ThemeSpec; own: boolean };
+type Entry = { key: string; name: string; description?: string; spec: ThemeSpec; own: boolean };
 
 /** The starters and the business's own themes as cards: a picture of each, and what can be done with it. */
-export function ThemeLibrary({ saved, usual, canEdit }: { saved: readonly SavedTheme[]; usual: ThemeRef; canEdit: boolean }) {
+export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[]; canEdit: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const mine: Entry[] = saved.map((t) => ({ key: t.id, ref: { id: t.id, starter: null }, name: t.name, spec: t.spec, own: true }));
-  const starters: Entry[] = STARTERS.map((s) => ({ key: s.key, ref: { id: null, starter: s.key }, name: s.name, description: s.description, spec: s.spec, own: false }));
+  const mine: Entry[] = saved.map((t) => ({ key: t.id, name: t.name, spec: t.spec, own: true }));
+  const starters: Entry[] = STARTERS.map((s) => ({ key: s.key, name: s.name, description: s.description, spec: s.spec, own: false }));
 
   function run(action: () => Promise<{ status: "saved" } | { status: "error"; message: string }>) {
     setError(null);
@@ -35,7 +35,6 @@ export function ThemeLibrary({ saved, usual, canEdit }: { saved: readonly SavedT
   }
 
   const card = (e: Entry) => {
-    const isUsual = sameRef(e.ref, usual);
     const from = e.own ? `theme:${e.key}` : `starter:${e.key}`;
     return (
       <li key={e.key} className="space-y-2 rounded-xl bg-card p-3 ring-1 ring-foreground/10" data-testid="theme-card">
@@ -46,7 +45,6 @@ export function ThemeLibrary({ saved, usual, canEdit }: { saved: readonly SavedT
           <div className="min-w-0 flex-1 space-y-1">
             <p className="flex flex-wrap items-center gap-2 text-base font-medium">
               <span>{e.name}</span>
-              {isUsual && <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">Your usual theme</span>}
             </p>
             {e.description && <p className="text-sm text-muted-foreground">{e.description}</p>}
             {!e.own && <p className="text-sm text-muted-foreground">Starter theme</p>}
@@ -54,11 +52,6 @@ export function ThemeLibrary({ saved, usual, canEdit }: { saved: readonly SavedT
         </div>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
-            {!isUsual && (
-              <Button type="button" variant="outline" disabled={pending} onClick={() => run(() => setDefaultTheme(e.ref))}>
-                Use for new quotes<span className="sr-only"> ({e.name})</span>
-              </Button>
-            )}
             {e.own && (
               <Link href={`/app/documents/themes/${e.key}`} className={buttonVariants({ variant: "outline" })}>
                 Edit<span className="sr-only"> {e.name}</span>
@@ -110,7 +103,7 @@ export function ThemeLibrary({ saved, usual, canEdit }: { saved: readonly SavedT
         {mine.length === 0 ? (
           <p className="text-base text-muted-foreground">
             {canEdit
-              ? "You haven't made a theme yet. Remix one of the starters below, or start from scratch."
+              ? "You haven't made a theme yet. Create one, or remix one of the starters below."
               : "No themes have been made yet. An owner or admin can make them."}
           </p>
         ) : (

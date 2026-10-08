@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MiniHeader, MiniItems, MiniTotals } from "@/components/theme-thumbnail";
+import { MiniHeader, MiniItems, MiniTotals, pageBackground } from "@/components/theme-thumbnail";
 import { Button } from "@/components/ui/button";
-import { CHOICES, resolveTheme, type ChoiceName, type ThemeSpec } from "@/lib/quotes/themes";
+import { imageUrl } from "@/lib/images";
+import { CHOICES, IMAGE_OPACITY, resolveTheme, type ChoiceName, type ThemeSpec } from "@/lib/quotes/themes";
 
 /**
  * One part of a theme as a row of picture cards: each card shows what the choice does, drawn from the
@@ -12,9 +13,10 @@ import { CHOICES, resolveTheme, type ChoiceName, type ThemeSpec } from "@/lib/qu
  */
 
 /** Which little drawing shows a choice. */
-const VISUAL: Record<ChoiceName, "header" | "items" | "totals" | "font" | "corners" | "logo" | "align" | "shape"> = {
-  headingFont: "font",
-  bodyFont: "font",
+const VISUAL: Record<ChoiceName, "header" | "items" | "totals" | "corners" | "logo" | "align" | "shape" | "background"> = {
+  background: "background",
+  gradientDirection: "background",
+  imageStrength: "background",
   header: "header",
   headerLogo: "logo",
   headerAlign: "align",
@@ -59,14 +61,23 @@ function Drawing({ name, value, spec }: { name: ChoiceName; value: string; spec:
           <div style={{ width: "80%", height: 12, background: theme.tint, border: `1px solid ${theme.accentInk}`, borderRadius: Math.min(theme.radius, 10) }} />
         </div>,
       );
-    case "font":
-      return frame(
-        <p
-          className={value === "serif" ? "font-serif" : "font-sans"}
-          style={{ color: theme.ink, fontSize: 26, lineHeight: 1, fontWeight: 700, textAlign: "center" }}
-        >
-          Aa
-        </p>,
+    case "background":
+      return (
+        <div aria-hidden="true" className="relative flex h-[68px] w-full flex-col justify-center gap-1.5 overflow-hidden rounded-md p-2 ring-1 ring-foreground/15" style={{ background: pageBackground(theme) }}>
+          {theme.background === "image" && (
+            theme.backgroundImageId ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl(theme.backgroundImageId, "thumb")} alt="" className="absolute inset-0 size-full object-cover" style={{ opacity: IMAGE_OPACITY[theme.imageStrength] }} />
+            ) : (
+              <div className="absolute inset-0" style={{ background: `repeating-linear-gradient(45deg, ${theme.accent}, ${theme.accent} 4px, transparent 4px, transparent 9px)`, opacity: IMAGE_OPACITY[theme.imageStrength] }} />
+            )
+          )}
+          <div className="relative flex flex-col gap-1.5">
+            <div style={{ width: "50%", height: 4, background: theme.ink, borderRadius: 1 }} />
+            <div style={{ width: "75%", height: 2, background: theme.ink, opacity: 0.5, borderRadius: 1 }} />
+            <div style={{ width: "60%", height: 2, background: theme.ink, opacity: 0.5, borderRadius: 1 }} />
+          </div>
+        </div>
       );
   }
 }

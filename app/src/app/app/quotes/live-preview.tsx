@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { PdfWorkerRequest, PdfWorkerResponse } from "@/lib/quotes/pdf/worker";
 import type { PdfImage } from "@/lib/quotes/pdf/quote-document";
 import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
+import { themeFromStored } from "@/lib/quotes/themes";
 import { drawPdfPages } from "./pdf-draw";
 
 type Status = "loading" | "ready" | "error";
@@ -42,7 +43,13 @@ let nextId = 0;
 const waiting = new Map<number, { resolve: (data: Uint8Array | null) => void; reject: (error: Error) => void }>();
 
 /** Draws the document in the worker; falls back to the main thread where a worker can't be had. */
-async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map<string, PdfImage>, logo: PdfImage | null): Promise<Uint8Array | null> {
+async function drawDocument(
+  snapshot: QuoteSnapshot,
+  draft: boolean,
+  images: Map<string, PdfImage>,
+  logo: PdfImage | null,
+  background: PdfImage | null,
+): Promise<Uint8Array | null> {
   if (!worker && !failed && typeof Worker !== "undefined") {
     try {
       const made = new Worker(new URL("../../../lib/quotes/pdf/worker.ts", import.meta.url), { type: "module" });
@@ -68,7 +75,7 @@ async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map
   }
   if (worker && !failed) {
     const id = ++nextId;
-    const request: PdfWorkerRequest = { id, snapshot, draft, images: [...images], logo };
+    const request: PdfWorkerRequest = { id, snapshot, draft, images: [...images], logo, background };
     try {
       return await new Promise<Uint8Array | null>((resolve, reject) => {
         waiting.set(id, { resolve, reject });
@@ -79,7 +86,7 @@ async function drawDocument(snapshot: QuoteSnapshot, draft: boolean, images: Map
     }
   }
   const { renderQuotePdfInBrowser } = await import("@/lib/quotes/pdf/browser");
-  return renderQuotePdfInBrowser(snapshot, { draft, images, logo });
+  return renderQuotePdfInBrowser(snapshot, { draft, images, logo, background });
 }
 
 /**
@@ -116,8 +123,10 @@ export function LivePdfPreview({
         if (!host) return;
         const current: QuoteSnapshot = JSON.parse(input);
         const photoIds = [...new Set(current.lines.flatMap((l) => (l.photoImageId ? [l.photoImageId] : [])))];
-        const [logo, ...photos] = await Promise.all([
+        const theme = themeFromStored(current);
+        const [logo, background, ...photos] = await Promise.all([
           current.logoImageId ? picture(current.logoImageId, "display") : Promise.resolve(null),
+          theme.background === "image" && theme.backgroundImageId ? picture(theme.backgroundImageId, "display") : Promise.resolve(null),
           ...photoIds.map((id) => picture(id, "thumb")),
         ]);
         if (cancelled) return;
@@ -126,7 +135,7 @@ export function LivePdfPreview({
           const found = photos[i];
           if (found) images.set(id, found);
         });
-        const data = await drawDocument(current, draft, images, logo);
+        const data = await drawDocument(current, draft, images, logo, background);
         if (cancelled || data === null) return;
         const count = await drawPdfPages(host, { data }, label, () => cancelled, () => setStatus("ready"), firstPageOnly ? 1 : Infinity);
         if (count !== null) {

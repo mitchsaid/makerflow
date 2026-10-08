@@ -4,6 +4,7 @@ import { getRenditions } from "@/lib/images/data";
 import { findStoredQuote } from "@/lib/quotes/data";
 import { renderQuotePdf } from "@/lib/quotes/pdf/render";
 import { prepareQuote } from "@/lib/quotes/prepare";
+import { themeFromStored } from "@/lib/quotes/themes";
 
 /**
  * The quote as a PDF. A draft gives a preview of what is saved, marked as a draft. A sent
@@ -39,15 +40,19 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
 
   // The pictures the snapshot names (the product photos' small copies, and the logo).
   const photoIds = snapshot.lines.flatMap((l) => (l.photoImageId ? [l.photoImageId] : []));
-  const [photos, logos] = await Promise.all([
+  const theme = themeFromStored(snapshot);
+  const backgroundId = theme.background === "image" ? theme.backgroundImageId : null;
+  const [photos, logos, backgrounds] = await Promise.all([
     getRenditions(photoIds, "thumb"),
     getRenditions(snapshot.logoImageId ? [snapshot.logoImageId] : [], "display"),
+    getRenditions(backgroundId ? [backgroundId] : [], "display"),
   ]);
   const logo = snapshot.logoImageId ? (logos.get(snapshot.logoImageId) ?? null) : null;
+  const background = backgroundId ? (backgrounds.get(backgroundId) ?? null) : null;
 
   let pdf: Buffer;
   try {
-    pdf = await renderQuotePdf(snapshot, { draft, images: photos, logo });
+    pdf = await renderQuotePdf(snapshot, { draft, images: photos, logo, background });
   } catch (error) {
     // The preview shows its own message; nothing about the quote is lost.
     console.error("could not draw the quote PDF:", error);

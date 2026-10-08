@@ -1,0 +1,110 @@
+[
+  {
+    "id": "inter",
+    "pkg": "inter",
+    "name": "Inter",
+    "bold": true
+  },
+  {
+    "id": "poppins",
+    "pkg": "poppins",
+    "name": "Poppins",
+    "bold": true
+  },
+  {
+    "id": "montserrat",
+    "pkg": "montserrat",
+    "name": "Montserrat",
+    "bold": true
+  },
+  {
+    "id": "lato",
+    "pkg": "lato",
+    "name": "Lato",
+    "bold": true
+  },
+  {
+    "id": "raleway",
+    "pkg": "raleway",
+    "name": "Raleway",
+    "bold": true
+  },
+  {
+    "id": "nunito",
+    "pkg": "nunito",
+    "name": "Nunito",
+    "bold": true
+  },
+  {
+    "id": "dm-sans",
+    "pkg": "dm-sans",
+    "name": "DM Sans",
+    "bold": true
+  },
+  {
+    "id": "work-sans",
+    "pkg": "work-sans",
+    "name": "Work Sans",
+    "bold": true
+  },
+  {
+    "id": "playfair",
+    "pkg": "playfair-display",
+    "name": "Playfair Display",
+    "bold": true
+  },
+  {
+    "id": "lora",
+    "pkg": "lora",
+    "name": "Lora",
+    "bold": true
+  },
+  {
+    "id": "merriweather",
+    "pkg": "merriweather",
+    "name": "Merriweather",
+    "bold": true
+  },
+  {
+    "id": "cormorant",
+    "pkg": "cormorant-garamond",
+    "name": "Cormorant Garamond",
+    "bold": true
+  },
+  {
+    "id": "libre-baskerville",
+    "pkg": "libre-baskerville",
+    "name": "Libre Baskerville",
+    "bold": true
+  },
+  {
+    "id": "roboto-slab",
+    "pkg": "roboto-slab",
+    "name": "Roboto Slab",
+    "bold": true
+  },
+  {
+    "id": "dm-serif",
+    "pkg": "dm-serif-display",
+    "name": "DM Serif Display",
+    "bold": false
+  },
+  {
+    "id": "oswald",
+    "pkg": "oswald",
+    "name": "Oswald",
+    "bold": true
+  },
+  {
+    "id": "dancing-script",
+    "pkg": "dancing-script",
+    "name": "Dancing Script",
+    "bold": true
+  },
+  {
+    "id": "pacifico",
+    "pkg": "pacifico",
+    "name": "Pacifico",
+    "bold": false
+  }
+]

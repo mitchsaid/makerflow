@@ -1,6 +1,7 @@
 import { StyleSheet } from "@react-pdf/renderer";
 import type { Theme } from "../themes";
-import { PDF_FONT, PDF_FONT_SERIF } from "./fonts";
+import { fontEntry } from "../font-list";
+import { pdfFamily } from "./fonts";
 
 /**
  * The look of a quote document, drawn from a resolved theme (see ../designs.ts): the design the
@@ -28,14 +29,19 @@ const COL_AMOUNT = "20%";
 const TOTALS_WIDTH = "40%";
 
 export function makeStyles(theme: Theme) {
-  const heading = theme.headingFont === "serif" ? PDF_FONT_SERIF : PDF_FONT;
-  const body = theme.bodyFont === "serif" ? PDF_FONT_SERIF : PDF_FONT;
+  const heading = pdfFamily(theme.headingFont);
+  const body = pdfFamily(theme.bodyFont);
+  // Amounts are never drawn in a script font: its commas and zeros can be mistaken for each other.
+  const totalFont = fontEntry(theme.headingFont).category === "script" ? body : heading;
   const centred = theme.headerAlign === "center";
   /** Space above and below an item, by how airy the theme is. */
   const pad = { compact: 3.5, comfortable: theme.rows === "none" ? 8 : 6, airy: 10 }[theme.density];
   const cardGap = { compact: 5, comfortable: 8, airy: 12 }[theme.density];
-  const grid = theme.layout === "table" && theme.rows === "grid";
+  // A spreadsheet: every cell outlined (a table only); in other layouts it is the same as boxed rows.
+  const sheet = theme.layout === "table" && theme.rows === "sheet";
+  const boxed = theme.rows === "boxed" || (theme.rows === "sheet" && theme.layout !== "table");
   const noHead = theme.tableHead === "none";
+  const sheetCell = { paddingVertical: sheet ? pad : 0, paddingHorizontal: 6 };
   const neutral = theme.accent === theme.ink || theme.accent === "#1a1a1a";
   /** The colour of small section labels and the rules that carry the accent. */
   const labelColour = neutral ? theme.muted : theme.accentInk;
@@ -43,7 +49,7 @@ export function makeStyles(theme: Theme) {
   // Shaded or filled blocks need their text pulled in from the edge, and everything in the table and
   // the totals shares the same inset so that columns and amounts still line up.
   const inset =
-    theme.tableHead === "tint" || theme.tableHead === "filled" || theme.rows === "zebra" || theme.rows === "grid" || theme.totals !== "rule" ? 10 : 0;
+    theme.tableHead === "tint" || theme.tableHead === "filled" || theme.rows === "zebra" || theme.rows === "boxed" || theme.rows === "sheet" || theme.totals !== "rule" ? 10 : 0;
   const onBand = theme.header === "band";
   const band = onBand ? theme.onAccent : theme.ink;
 
@@ -118,13 +124,13 @@ export function makeStyles(theme: Theme) {
 
     table: {
       marginTop: 16,
-      ...(grid ? { borderWidth: 0.5, borderColor: theme.line, borderRadius: theme.radius } : {}),
+      ...(sheet ? { borderWidth: 0.5, borderColor: theme.line, borderRadius: theme.radius } : {}),
     },
     tableHead: {
       flexDirection: "row",
-      paddingHorizontal: inset,
-      paddingTop: headFilled || headTint ? 6 : 0,
-      paddingBottom: headFilled || headTint ? 6 : 5,
+      paddingHorizontal: sheet ? 0 : inset,
+      paddingTop: sheet ? 0 : headFilled || headTint ? 6 : 0,
+      paddingBottom: sheet ? 0 : headFilled || headTint ? 6 : 5,
       borderBottomWidth: headFilled || headTint ? 0 : 1,
       borderBottomColor: ruleColour,
       backgroundColor: headFilled ? theme.accent : headTint ? theme.tint : undefined,
@@ -133,21 +139,24 @@ export function makeStyles(theme: Theme) {
     tableHeadText: { fontSize: 8, color: headText, textTransform: "uppercase", letterSpacing: 0.6, fontWeight: headFilled ? 700 : 400 },
     row: {
       flexDirection: "row",
-      paddingVertical: pad,
-      paddingHorizontal: inset,
-      borderBottomWidth: theme.rows === "lines" || theme.rows === "grid" ? 0.5 : 0,
+      // In a spreadsheet the cells carry the padding, so the lines between columns run the full height.
+      paddingVertical: sheet ? 0 : pad,
+      paddingHorizontal: sheet ? 0 : inset,
+      borderBottomWidth: theme.rows === "lines" || sheet ? 0.5 : 0,
       borderBottomColor: theme.line,
-      borderRadius: theme.rows === "zebra" ? theme.radius : 0,
+      // Boxed rows: each row in its own outline, with a little room between.
+      ...(boxed && theme.layout === "table" ? { borderWidth: 0.5, borderColor: theme.line, marginBottom: 3 } : {}),
+      borderRadius: theme.rows === "zebra" || boxed ? theme.radius : 0,
     },
     rowShaded: { backgroundColor: theme.tintStrong },
     // Without a heading, a table with only space or shade between rows still wants a line to start from.
-    rowFirst: noHead && theme.rows !== "grid" ? { borderTopWidth: 0.5, borderTopColor: theme.line } : {},
-    colNo: { width: 20, paddingRight: 6, color: theme.muted },
-    colName: { flex: 1, paddingRight: 10 },
-    colQty: { width: COL_QTY, textAlign: "right", paddingRight: 10 },
-    colPrice: { width: COL_PRICE, textAlign: "right", paddingRight: 10 },
-    colAmount: { width: COL_AMOUNT, textAlign: "right" },
-    // The full grid draws a line between the columns too.
+    rowFirst: noHead && !sheet && !boxed ? { borderTopWidth: 0.5, borderTopColor: theme.line } : {},
+    colNo: { width: sheet ? 28 : 20, paddingRight: 6, color: theme.muted, ...(sheet ? sheetCell : {}) },
+    colName: { flex: 1, paddingRight: 10, ...(sheet ? sheetCell : {}) },
+    colQty: { width: COL_QTY, textAlign: "right", paddingRight: 10, ...(sheet ? sheetCell : {}) },
+    colPrice: { width: COL_PRICE, textAlign: "right", paddingRight: 10, ...(sheet ? sheetCell : {}) },
+    colAmount: { width: COL_AMOUNT, textAlign: "right", ...(sheet ? sheetCell : {}) },
+    // The spreadsheet draws a line between the columns too.
     cellGrid: { borderRightWidth: 0.5, borderRightColor: theme.line },
     nameRow: { flexDirection: "row" },
     nameText: { flex: 1 },
@@ -161,8 +170,8 @@ export function makeStyles(theme: Theme) {
       paddingHorizontal: inset,
       borderBottomWidth: theme.rows === "lines" ? 0.5 : 0,
       borderBottomColor: theme.line,
-      ...(theme.rows === "grid" ? { borderWidth: 0.5, borderColor: theme.line, borderRadius: theme.radius, marginBottom: cardGap / 2 } : {}),
-      borderRadius: theme.rows === "zebra" || theme.rows === "grid" ? theme.radius : 0,
+      ...(boxed ? { borderWidth: 0.5, borderColor: theme.line, borderRadius: theme.radius, marginBottom: cardGap / 2 } : {}),
+      borderRadius: theme.rows === "zebra" || boxed ? theme.radius : 0,
     },
     listAmount: { fontWeight: 700, textAlign: "right", paddingLeft: 10 },
     itemMeta: { color: theme.muted, fontSize: 9, marginTop: 2 },
@@ -185,7 +194,7 @@ export function makeStyles(theme: Theme) {
       flexDirection: "row",
       paddingBottom: cardGap + 4,
       marginBottom: cardGap + 4,
-      borderBottomWidth: theme.rows === "lines" || theme.rows === "grid" ? 0.5 : 0,
+      borderBottomWidth: theme.rows === "lines" || boxed ? 0.5 : 0,
       borderBottomColor: theme.line,
     },
     showcaseName: { fontSize: 12, fontWeight: 700, fontFamily: heading },
@@ -208,7 +217,7 @@ export function makeStyles(theme: Theme) {
       color: theme.totals === "solid" || theme.totals === "pill" ? theme.onAccent : theme.totals === "tint" ? theme.accentInk : theme.ink,
       fontWeight: 700,
       fontSize: 12,
-      fontFamily: heading,
+      fontFamily: totalFont,
     },
     depositBlock: {
       marginTop: 12,

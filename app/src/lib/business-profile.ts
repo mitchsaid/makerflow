@@ -1,5 +1,4 @@
 import type { BusinessType } from "./business-types";
-import type { StarterKey } from "./quotes/themes";
 import { optionalChoice, optionalText, optionalValidated } from "./form-values";
 import type { ContactFacts, LocalePack } from "./locale";
 import {
@@ -35,13 +34,10 @@ export type BusinessProfile = {
   paymentInstructions: string | null;
   /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set under Quotes and invoices. */
   logoImageId: string | null;
-  /** The theme a quote follows unless it picks one: one of the business's own (an id) or a starter; neither means Classic. */
-  defaultThemeId: string | null;
-  defaultThemeStarter: StarterKey | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "logoImageId" | "defaultThemeId" | "defaultThemeStarter">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "logoImageId">;
 
 export type FieldName =
   | "name"

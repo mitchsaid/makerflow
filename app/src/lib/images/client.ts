@@ -2,6 +2,7 @@
 
 import {
   ACCEPTED_TYPES,
+  CLIENT_BACKGROUND_PX,
   CLIENT_LOGO_PX,
   CLIENT_PRODUCT_PX,
   IMAGE_ERRORS,
@@ -40,7 +41,7 @@ async function decode(file: File): Promise<{ source: CanvasImageSource; width: n
 }
 
 async function shrink(file: File, kind: ImageKind): Promise<Blob> {
-  const max = kind === "logo" ? CLIENT_LOGO_PX : CLIENT_PRODUCT_PX;
+  const max = kind === "logo" ? CLIENT_LOGO_PX : kind === "background" ? CLIENT_BACKGROUND_PX : CLIENT_PRODUCT_PX;
   const decoded = await decode(file);
   if (!decoded) {
     // This browser can't read it (or it isn't a picture): send it as it is and let the server say.

@@ -8,24 +8,31 @@
  * Plain data and small functions, safe for the browser (the studio draws the same choices).
  */
 
+import { isFontId } from "./font-list";
+import { isImageId } from "../images";
+
 // ---------------------------------------------------------------------------
 // The parts, and the choices each one has
 // ---------------------------------------------------------------------------
 
-export const FONTS = ["sans", "serif"] as const;
 export const HEADERS = ["plain", "bar", "band", "boxed"] as const;
 export const LOGO_MODES = ["both", "logo", "name"] as const;
 export const ALIGNS = ["left", "center"] as const;
 export const LAYOUTS = ["table", "list", "cards", "showcase"] as const;
 export const TABLE_HEADS = ["line", "tint", "filled", "none"] as const;
-export const ROWS = ["lines", "zebra", "grid", "none"] as const;
+export const ROWS = ["lines", "zebra", "boxed", "sheet", "none"] as const;
 export const DENSITIES = ["compact", "comfortable", "airy"] as const;
 export const PHOTOS = ["none", "small", "large"] as const;
 export const PHOTO_SHAPES = ["square", "rounded", "round"] as const;
 export const TOTALS = ["rule", "tint", "solid", "pill"] as const;
 export const CORNERS = ["square", "soft", "round"] as const;
+export const BACKGROUNDS = ["paper", "gradient", "image"] as const;
+export const GRADIENT_DIRECTIONS = ["down", "diagonal"] as const;
+export const IMAGE_STRENGTHS = ["faint", "soft", "medium"] as const;
 
-export type Font = (typeof FONTS)[number];
+/** How much of a background picture shows through over the paper (so text stays easy to read). */
+export const IMAGE_OPACITY: Record<(typeof IMAGE_STRENGTHS)[number], number> = { faint: 0.12, soft: 0.25, medium: 0.4 };
+
 export type HeaderStyle = (typeof HEADERS)[number];
 export type LogoMode = (typeof LOGO_MODES)[number];
 export type Align = (typeof ALIGNS)[number];
@@ -37,15 +44,27 @@ export type PhotoSize = (typeof PHOTOS)[number];
 export type PhotoShape = (typeof PHOTO_SHAPES)[number];
 export type TotalsStyle = (typeof TOTALS)[number];
 export type Corners = (typeof CORNERS)[number];
+export type Background = (typeof BACKGROUNDS)[number];
+export type GradientDirection = (typeof GRADIENT_DIRECTIONS)[number];
+export type ImageStrength = (typeof IMAGE_STRENGTHS)[number];
 
 /** Every part of a theme. All present, always: a theme is whole. */
 export type ThemeSpec = {
   /** "#rrggbb". */
   accent: string;
-  /** The paper's colour, "#rrggbb" (text turns white on a dark one). */
+  /** The paper's colour, "#rrggbb" (text turns white on a dark one); also what a gradient starts from and a picture lies on. */
   paper: string;
-  headingFont: Font;
-  bodyFont: Font;
+  /** What is behind the page: the plain paper colour, a gradient from the paper colour to `gradientTo`, or a picture over the paper. */
+  background: Background;
+  /** The colour a gradient ends in, "#rrggbb". */
+  gradientTo: string;
+  gradientDirection: GradientDirection;
+  /** The picture behind the page (an id from lib/images, kind "background"), if there is one. */
+  backgroundImageId: string | null;
+  imageStrength: ImageStrength;
+  /** A font id from font-list.ts. */
+  headingFont: string;
+  bodyFont: string;
   header: HeaderStyle;
   headerLogo: LogoMode;
   headerAlign: Align;
@@ -68,14 +87,15 @@ export const BOOLEAN_PARTS = ["showQty", "showUnitPrice", "numbered", "descripti
 
 /** The words the studio uses for each choice, in the order shown. */
 export const CHOICES = {
-  headingFont: { label: "Headings", options: [["sans", "Clean"], ["serif", "Serif"]] },
-  bodyFont: { label: "Text", options: [["sans", "Clean"], ["serif", "Serif"]] },
+  background: { label: "Background", options: [["paper", "Paper"], ["gradient", "Gradient"], ["image", "Image"]] },
+  gradientDirection: { label: "Gradient direction", options: [["down", "Top to bottom"], ["diagonal", "Corner to corner"]] },
+  imageStrength: { label: "Picture strength", options: [["faint", "Faint"], ["soft", "Soft"], ["medium", "Medium"]] },
   header: { label: "Top of the page", options: [["plain", "Plain"], ["bar", "Line of colour"], ["band", "Band of colour"], ["boxed", "Boxed"]] },
   headerLogo: { label: "Logo", options: [["both", "Logo and name"], ["logo", "Logo only"], ["name", "Name only"]] },
   headerAlign: { label: "Alignment", options: [["left", "Left"], ["center", "Centred"]] },
   layout: { label: "How items are shown", options: [["table", "Table"], ["list", "List"], ["cards", "Cards"], ["showcase", "Showcase"]] },
   tableHead: { label: "Table heading", options: [["line", "A line"], ["tint", "Light colour"], ["filled", "Solid colour"], ["none", "None"]] },
-  rows: { label: "Table rows", options: [["lines", "Lines between"], ["zebra", "Alternating shade"], ["grid", "Full grid"], ["none", "Just space"]] },
+  rows: { label: "Row style", options: [["lines", "Lines between"], ["zebra", "Alternating shade"], ["boxed", "Boxed rows"], ["sheet", "Spreadsheet"], ["none", "Just space"]] },
   density: { label: "Spacing", options: [["compact", "Compact"], ["comfortable", "Comfortable"], ["airy", "Airy"]] },
   photo: { label: "Product photos", options: [["none", "None"], ["small", "Small"], ["large", "Large"]] },
   photoShape: { label: "Photo shape", options: [["square", "Square"], ["rounded", "Rounded"], ["round", "Round"]] },
@@ -86,8 +106,9 @@ export const CHOICES = {
 export type ChoiceName = keyof typeof CHOICES;
 
 const LISTS: Record<ChoiceName, readonly string[]> = {
-  headingFont: FONTS,
-  bodyFont: FONTS,
+  background: BACKGROUNDS,
+  gradientDirection: GRADIENT_DIRECTIONS,
+  imageStrength: IMAGE_STRENGTHS,
   header: HEADERS,
   headerLogo: LOGO_MODES,
   headerAlign: ALIGNS,
@@ -182,6 +203,11 @@ export function readableOn(background: string | readonly string[], colour: strin
 export const BLANK_SPEC: ThemeSpec = {
   accent: "#1a1a1a",
   paper: "#ffffff",
+  background: "paper",
+  gradientTo: "#e8eef6",
+  gradientDirection: "down",
+  backgroundImageId: null,
+  imageStrength: "soft",
   headingFont: "sans",
   bodyFont: "sans",
   header: "plain",
@@ -254,17 +280,25 @@ export function starter(key: StarterKey | string | null | undefined): Starter {
 export function parseSpec(raw: unknown, base: ThemeSpec = BLANK_SPEC): ThemeSpec {
   const r = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const out: Record<string, unknown> = { ...base };
-  const accent = normaliseColour(r.accent);
-  if (accent) out.accent = accent;
-  const paper = normaliseColour(r.paper);
-  if (paper) out.paper = paper;
+  for (const name of ["accent", "paper", "gradientTo"] as const) {
+    const colour = normaliseColour(r[name]);
+    if (colour) out[name] = colour;
+  }
   for (const name of Object.keys(LISTS) as ChoiceName[]) {
     const value = r[name];
     if (typeof value === "string" && LISTS[name].includes(value)) out[name] = value;
   }
+  for (const name of ["headingFont", "bodyFont"] as const) {
+    if (isFontId(r[name])) out[name] = r[name];
+  }
   for (const name of BOOLEAN_PARTS) {
     if (typeof r[name] === "boolean") out[name] = r[name];
   }
+  if (r.backgroundImageId === null) out.backgroundImageId = null;
+  else if (isImageId(r.backgroundImageId)) out.backgroundImageId = r.backgroundImageId.toLowerCase();
+  // The first themes called the boxed-in table "grid": a table with every cell outlined is the spreadsheet,
+  // anything else with outlined rows is the boxed rows.
+  if (r.rows === "grid") out.rows = out.layout === "table" ? "sheet" : "boxed";
   return out as ThemeSpec;
 }
 
@@ -299,45 +333,67 @@ export type Theme = Omit<ThemeSpec, "accent" | "paper" | "corners"> & {
 
 const RADIUS: Record<Corners, number> = { square: 0, soft: 4, round: 10 };
 
+/**
+ * The colour a gradient really ends in: the one chosen, or, when the two ends are too different for any
+ * one text colour to read on both (white to charcoal), a gentler one, made by easing it towards the start
+ * until text reads across the whole page.
+ */
+export function fitGradientEnd(paper: string, to: string): string {
+  let end = to;
+  for (let step = 0; step < 20; step++) {
+    const tone = mix(end, paper, 0.5);
+    const ink = onColour(tone) === WHITE ? "#f5f5f5" : INK;
+    if (contrast(ink, paper) >= 4.5 && contrast(ink, end) >= 4.5) return end;
+    end = mix(paper, end, 0.15);
+  }
+  return paper;
+}
+
 /** A spec as the plain values the document is drawn from. */
 export function resolveTheme(spec: ThemeSpec, name = ""): Theme {
   const { accent, paper, corners, ...parts } = spec;
+  // The gradient, eased if its ends are too far apart for text to read on both.
+  const gradientTo = spec.background === "gradient" ? fitGradientEnd(paper, spec.gradientTo) : spec.gradientTo;
+  // What text sits on: the paper, or the middle of a gradient (soft colours read best across both ends).
+  const tone = spec.background === "gradient" ? mix(gradientTo, paper, 0.5) : paper;
+  const lightText = onColour(tone) === WHITE;
   // Near-black, or near-white on a dark paper; pushed further if a mid-tone paper needs it to read.
-  const ink = readableOn(paper, onColour(paper) === WHITE ? "#f5f5f5" : INK, 4.5, onColour(paper) === WHITE);
+  const ink = readableOn(tone, lightText ? "#f5f5f5" : INK, 4.5, lightText);
   const neutral = accent === INK && paper === WHITE;
   // An accent that all but disappears into the paper (black on a dark paper) is drawn in the text colour instead.
-  const fill = contrast(accent, paper) < 1.8 ? ink : accent;
+  const fill = contrast(accent, tone) < 1.8 ? ink : accent;
   // A light wash of the accent over the paper; on a mid-tone paper it is made fainter until text still reads on it.
   let wash = neutral ? 0.05 : 0.1;
-  let tint = mix(fill, paper, wash);
-  const strongest = onColour(paper) === WHITE ? "#ffffff" : "#000000";
+  let tint = mix(fill, tone, wash);
+  const strongest = lightText ? "#ffffff" : "#000000";
   while (wash > 0 && contrast(strongest, tint) < 4.5) {
     wash = Math.max(0, wash - 0.01);
-    tint = mix(fill, paper, wash);
+    tint = mix(fill, tone, wash);
   }
   return {
     ...parts,
+    gradientTo,
     name,
     radius: RADIUS[corners],
     paper,
     ink,
     // Softer than the text, but never so soft it stops reading on a mid-tone paper.
-    muted: readableOn(paper, mix(ink, paper, 0.67), 4.5, onColour(paper) === WHITE),
-    line: mix(ink, paper, 0.16),
+    muted: readableOn(tone, mix(ink, tone, 0.67), 4.5, lightText),
+    line: mix(ink, tone, 0.16),
     accent: fill,
     onAccent: onColour(fill),
     // Dark enough (or light enough, on dark paper) to read on the tint too.
-    accentInk: readableOn([paper, tint], fill, 4.5, onColour(paper) === WHITE),
+    accentInk: readableOn([tone, tint], fill, 4.5, lightText),
     tint,
-    tintStrong: mix(fill, paper, 0.06),
+    tintStrong: mix(fill, tone, 0.06),
   };
 }
 
 /** The spec a resolved theme was made from (for editing a copy of a version's look). */
 export function specOf(theme: Theme): ThemeSpec {
   const corners = (Object.entries(RADIUS).find(([, r]) => r === theme.radius)?.[0] ?? "soft") as Corners;
-  const { accent, paper, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, totals } = theme;
-  return { accent, paper, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, totals, corners };
+  const { accent, paper, background, gradientTo, gradientDirection, backgroundImageId, imageStrength, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, totals } = theme;
+  return { accent, paper, background, gradientTo, gradientDirection, backgroundImageId, imageStrength, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, totals, corners };
 }
 
 /** Is this stored value a theme we can draw from? (A snapshot is ours, but never assume.) */
@@ -347,23 +403,42 @@ export function isTheme(value: unknown): value is Theme {
   const hex = (v: unknown) => typeof v === "string" && HEX.test(v);
   return (
     (Object.keys(LISTS) as ChoiceName[]).every((n) => n === "corners" || (typeof t[n] === "string" && LISTS[n].includes(t[n] as string))) &&
+    isFontId(t.headingFont) &&
+    isFontId(t.bodyFont) &&
     BOOLEAN_PARTS.every((n) => typeof t[n] === "boolean") &&
+    (t.backgroundImageId === null || isImageId(t.backgroundImageId)) &&
     typeof t.radius === "number" &&
     typeof t.name === "string" &&
-    [t.paper, t.ink, t.muted, t.line, t.accent, t.onAccent, t.accentInk, t.tint, t.tintStrong].every(hex)
+    [t.paper, t.ink, t.muted, t.line, t.accent, t.onAccent, t.accentInk, t.tint, t.tintStrong, t.gradientTo].every(hex)
   );
 }
 
 /**
- * The theme to draw a stored version with. A version sent with the first designs (a resolved theme with
- * the old parts, or only a design's name) is upgraded: the parts it had are kept and the new ones take
- * the plain values that draw it the same way (its own colours are kept exactly; picture corners can differ by a point or two). Anything unreadable is the Classic starter.
+ * The theme to draw a stored version with. Versions sent before a part existed are upgraded: the parts
+ * they had are kept, with their own colours exactly, and the new parts take the plain values that draw
+ * them the same way (picture corners can differ by a point or two). That covers the themes of the first
+ * release (fonts "sans" and "serif" are still those two fonts, the "grid" rows became the spreadsheet or
+ * the boxed rows, there was no background) and the very first designs (a resolved theme with a design's
+ * key, or only a design's name). Anything unreadable is the Classic starter.
  */
 export function themeFromStored(stored: { theme?: unknown; design?: string } | null | undefined): Theme {
   const t = stored?.theme;
   if (isTheme(t)) return t;
   if (typeof t === "object" && t !== null) {
     const old = t as Record<string, unknown>;
+    // The first release of themes: a whole theme without the background parts, perhaps with "grid" rows.
+    if (typeof old.layout === "string") {
+      const next: Record<string, unknown> = {
+        background: "paper",
+        gradientTo: BLANK_SPEC.gradientTo,
+        gradientDirection: "down",
+        backgroundImageId: null,
+        imageStrength: "soft",
+        ...old,
+      };
+      if (old.rows === "grid") next.rows = old.layout === "table" ? "sheet" : "boxed";
+      if (isTheme(next)) return next;
+    }
     const legacy = LEGACY_STARTERS[String(old.key)];
     if (legacy && [old.accent, old.paper].every((v) => typeof v === "string" && HEX.test(v))) {
       // The first designs' parts, mapped onto the whole spec.
@@ -373,7 +448,7 @@ export function themeFromStored(stored: { theme?: unknown; design?: string } | n
         ...BLANK_SPEC,
         accent: old.accent as string,
         paper: old.paper as string,
-        headingFont: pick(FONTS, old.headingFont, "sans"),
+        headingFont: old.headingFont === "serif" ? "serif" : "sans",
         header: pick(HEADERS, old.header, "plain"),
         tableHead: pick(TABLE_HEADS, old.tableHead, "line"),
         rows: pick(ROWS, old.rows, "lines"),
@@ -414,32 +489,20 @@ export const hasRef = (ref: ThemeRef) => ref.id !== null || ref.starter !== null
 export const sameRef = (a: ThemeRef, b: ThemeRef) => a.id === b.id && a.starter === b.starter;
 
 /**
- * The theme a quote uses: its own pick, else the business's default, else Classic. A pick that no
- * longer exists (its theme was deleted) counts as not chosen. `following` says the quote follows the
- * default (it has no pick of its own).
+ * The theme a quote uses: its own pick, else Classic. (A new quote is given the theme last chosen when it
+ * is created, so a quote without one is an old one.) A pick that no longer exists (its theme was
+ * deleted) counts as not chosen.
  */
-export function chooseTheme(
-  own: ThemeRef,
-  usual: ThemeRef,
-  saved: readonly SavedTheme[],
-): { ref: ThemeRef; name: string; spec: ThemeSpec; following: boolean } {
-  const found = (ref: ThemeRef) => {
-    if (ref.id !== null) {
-      const s = saved.find((t) => t.id === ref.id);
-      return s ? { ref: { id: s.id, starter: null }, name: s.name, spec: s.spec } : null;
-    }
-    if (ref.starter !== null) {
-      const s = starter(ref.starter);
-      return { ref: { id: null, starter: s.key }, name: s.name, spec: s.spec };
-    }
-    return null;
-  };
-  const mine = found(own);
-  if (mine) return { ...mine, following: false };
-  const usually = found(usual);
-  if (usually) return { ...usually, following: true };
+export function chooseTheme(own: ThemeRef, saved: readonly SavedTheme[]): { ref: ThemeRef; name: string; spec: ThemeSpec } {
+  if (own.id !== null) {
+    const s = saved.find((t) => t.id === own.id);
+    if (s) return { ref: { id: s.id, starter: null }, name: s.name, spec: s.spec };
+  } else if (own.starter !== null) {
+    const s = starter(own.starter);
+    return { ref: { id: null, starter: s.key }, name: s.name, spec: s.spec };
+  }
   const classic = starter(DEFAULT_STARTER);
-  return { ref: { id: null, starter: classic.key }, name: classic.name, spec: classic.spec, following: true };
+  return { ref: { id: null, starter: classic.key }, name: classic.name, spec: classic.spec };
 }
 
 export const THEME_NAME_MAX = 40;

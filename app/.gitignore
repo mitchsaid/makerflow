@@ -44,3 +44,6 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# Scratch output of pnpm fonts:build (the joined font files)
+/scripts/fonts/merged/
