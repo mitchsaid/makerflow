@@ -16,6 +16,11 @@ import {
   type OptionValueFormRow,
 } from "@/lib/products/options";
 
+// The two sections share the list of options, and either can remount (the lists move when sizes are added or
+// removed), so new keys come from one counter that is never reset.
+let keyCounter = 0;
+const nextKey = (prefix: string) => `${prefix}-${(keyCounter += 1)}`;
+
 /**
  * The option cards (docs/plans/product-extras.md). "lists" are the lists you pick one from, like Flavour:
  * they live inside the Variations section (`bare`: no section of their own). "extras" are the things people
@@ -54,9 +59,7 @@ export function OptionsSection({
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [choosingKind, setChoosingKind] = useState(false);
   const pendingFocus = useRef<string | null>(null);
-  const counter = useRef(0);
-  // The two sections share the list of options, so their new keys must not collide.
-  const newKey = (prefix: string) => `${show === "lists" ? "list-" : ""}${prefix}-${(counter.current += 1)}`;
+  const newKey = nextKey;
   useEffect(() => {
     if (!pendingFocus.current) return;
     document.getElementById(pendingFocus.current)?.focus();
@@ -343,6 +346,7 @@ export function OptionsSection({
                         onClick={() => {
                           onChange(groups.filter((x) => x.key !== g.key));
                           setOpenKey(null);
+                          setChoosingKind(false);
                           pendingFocus.current = fid(lists ? "add-list" : "add-option");
                         }}
                       >
@@ -356,7 +360,12 @@ export function OptionsSection({
           })}
         </ol>
       )}
-      {errors?.list && <p className="text-sm text-destructive">{errors.list}</p>}
+      {/* About the options as a whole: said once, by the extras (the summary jumps here). */}
+      {!lists && errors?.list && (
+        <p id={fid("options-error")} tabIndex={-1} className="text-sm text-destructive">
+          {errors.list}
+        </p>
+      )}
 
       {lists ? (
         groups.length < OPTIONS_MAX && (

@@ -163,3 +163,31 @@ test("the price typed first moves into the first size, and back when the sizes a
   await expect(page.getByRole("button", { name: "Add variations" })).toBeFocused();
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("400");
 });
+
+test("lists added before and after the sizes stay separate, and save as two lists", async ({ page }) => {
+  await signUpAndOnboard(page, "var-lists", "Lists Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByLabel("Price", { exact: true }).fill("350");
+
+  // A list first, then sizes (the lists move into the sizes' section), then a second list.
+  await page.getByRole("button", { name: "Add a list" }).click();
+  await page.getByLabel("List name").last().fill("Flavour");
+  await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
+  await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Chocolate");
+  await page.getByRole("button", { name: "Add variations" }).click();
+  await fillVariations(page, [["Small", "300"], ["Large", "500"]]);
+  await page.getByRole("button", { name: "Add another list" }).click();
+  await page.getByLabel("List name").last().fill("Filling");
+  await page.getByLabel("Filling: choice 1", { exact: true }).fill("Jam");
+  await page.getByLabel("Filling: choice 2", { exact: true }).fill("Cream");
+  await expect(page.getByRole("button", { name: /^(Edit|Done) (Flavour|Filling)$/ })).toHaveCount(2);
+
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Wedding cake.");
+  await page.getByRole("link", { name: /Wedding cake/ }).click();
+  await page.getByRole("button", { name: "Edit Flavour" }).click();
+  await expect(page.getByLabel("Flavour: choice 2", { exact: true })).toHaveValue("Chocolate");
+  await page.getByRole("button", { name: "Edit Filling" }).click();
+  await expect(page.getByLabel("Filling: choice 1", { exact: true })).toHaveValue("Jam");
+});

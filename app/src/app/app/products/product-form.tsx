@@ -190,7 +190,7 @@ export function ProductForm({
       }
     });
   });
-  if (errors.options?.list) problems.push({ fieldId: fid("add-option"), label: "Extras and lists", message: errors.options.list });
+  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Extras and lists", message: errors.options.list });
 
   const set =
     <K extends keyof ProductFormValues>(key: K) =>
@@ -319,7 +319,12 @@ export function ProductForm({
             ...(change.rows !== undefined
               ? (() => {
                   const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, change.rows);
-                  return { variations: carried.rows, unitPrice: carried.unitPrice };
+                  return {
+                    variations: carried.rows,
+                    unitPrice: carried.unitPrice,
+                    // With no sizes left there is nothing for a price to depend on (and no stale prices to come back).
+                    ...(carried.rows.length === 0 ? { options: v.options.map((g) => ({ ...g, priceByVariation: false })) } : {}),
+                  };
                 })()
               : {}),
           }));
