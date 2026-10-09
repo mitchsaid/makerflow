@@ -97,6 +97,12 @@ describe("the price moving between the product and its variations", () => {
     expect(carryPrice({ unitPrice: "350", rows: [row("a", "400")] }, [])).toEqual({ unitPrice: "400", rows: [] });
     // An empty one leaves the price as it was.
     expect(carryPrice({ unitPrice: "350", rows: [row("a")] }, []).unitPrice).toBe("350");
+    // Removed in any order: the price is the one left last. Adding variations again carries it once more.
+    const before = { unitPrice: "350", rows: [row("a", "400"), row("b", "500")] };
+    const one = carryPrice(before, [row("b", "500")]);
+    const none = carryPrice(one, []);
+    expect(none).toEqual({ unitPrice: "500", rows: [] });
+    expect(carryPrice(none, [row("c"), row("d")]).rows[0].price).toBe("500");
   });
 
   it("leaves everything else alone", () => {

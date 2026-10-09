@@ -112,7 +112,7 @@ export function lowestPrice(variations: readonly { priceCents: Cents }[], ownPri
 /**
  * The price follows the maker between the product's one price and its variations, so nothing typed is lost:
  * adding variations puts the product's price into the first one (if that is still empty), and removing the
- * last variation puts the first one's price back as the product's price.
+ * last variation left puts its price back as the product's price (if it has one).
  */
 export function carryPrice(
   before: { unitPrice: string; rows: readonly VariationFormRow[] },

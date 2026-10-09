@@ -9,8 +9,8 @@ import type { VariationErrors, VariationFormRow } from "@/lib/products/variation
 /**
  * "Variations": versions of the product, each with its own price (docs/plans/product-choices.md). The maker
  * names the list ("Size", "Tiers") from suggestions or their own word. With variations the product's
- * single price goes; each row has its own (the first starts with the product's price, and gives it back
- * when the last variation is removed). One can be the usual one, chosen for you on a quote.
+ * single price goes; each row has its own (the first starts with the product's price, and the last one
+ * left gives its price back when it is removed). One can be the usual one, chosen for you on a quote.
  */
 export function VariationsSection({
   label,
