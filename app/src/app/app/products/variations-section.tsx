@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Section, SelectField, TextField } from "@/components/form-fields";
+import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VariationErrors, VariationFormRow } from "@/lib/products/variations";
 
@@ -104,51 +105,59 @@ export function VariationsSection({
         </div>
       )}
 
-      <ol className="space-y-4">
+      {/* One line each: the name, its price and a remove button, under shared headings. */}
+      <div className="space-y-2">
+        <div aria-hidden="true" className="grid grid-cols-[1fr_7.5rem_2.75rem] items-end gap-2 text-sm font-medium">
+          <span>{word.charAt(0).toUpperCase() + word.slice(1)}</span>
+          <span>{priceLabel}</span>
+          <span />
+        </div>
+        <ol className="space-y-2">
           {rows.map((row, i) => {
             const rowErrors = errors?.rows[row.key];
             const title = row.name.trim() || `${word} ${i + 1}`;
             return (
-              <li key={row.key} className="space-y-3 rounded-xl border border-border p-3">
-                <div className="grid grid-cols-[1fr_8rem] gap-3">
-                  <TextField
-                    id={fid(`variation-${row.key}-name`)}
-                    label={`${word} ${i + 1}`}
-                    autoComplete="off"
-                    maxLength={80}
-                    value={row.name}
-                    error={rowErrors?.name}
-                    onChange={(v) => setRow(row.key, { name: v })}
-                  />
-                  <TextField
-                    id={fid(`variation-${row.key}-price`)}
-                    label={priceLabel.replace(/^Price/, `${word} ${i + 1} price`)}
-                    startText={currencySymbol}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    value={row.price}
-                    error={rowErrors?.price}
-                    onChange={(v) => setRow(row.key, { price: v })}
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => {
-                      const next = rows.filter((r) => r.key !== row.key);
-                      onChange({ rows: next });
-                      setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("add-variations"));
-                    }}
-                  >
-                    Remove<span className="sr-only"> {title}</span>
-                  </Button>
-                </div>
+              <li key={row.key} className="grid grid-cols-[1fr_7.5rem_2.75rem] items-start gap-2">
+                <TextField
+                  id={fid(`variation-${row.key}-name`)}
+                  label={`${word} ${i + 1}`}
+                  labelHidden
+                  autoComplete="off"
+                  maxLength={80}
+                  value={row.name}
+                  error={rowErrors?.name}
+                  onChange={(v) => setRow(row.key, { name: v })}
+                />
+                <TextField
+                  id={fid(`variation-${row.key}-price`)}
+                  label={priceLabel.replace(/^Price/, `${word} ${i + 1} price`)}
+                  labelHidden
+                  startText={currencySymbol}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={row.price}
+                  error={rowErrors?.price}
+                  onChange={(v) => setRow(row.key, { price: v })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  aria-label={`Remove ${title}`}
+                  onClick={() => {
+                    const next = rows.filter((r) => r.key !== row.key);
+                    onChange({ rows: next });
+                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("add-variations"));
+                  }}
+                >
+                  <Trash2Icon aria-hidden="true" />
+                </Button>
               </li>
             );
           })}
-      </ol>
+        </ol>
+      </div>
 
       <SelectField
         id={fid("variationUsual")}

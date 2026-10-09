@@ -47,6 +47,7 @@ export function TextField({
   onChange,
   startText,
   hint,
+  labelHidden = false,
   ...props
 }: ExtraInputProps & {
   id: string;
@@ -60,6 +61,8 @@ export function TextField({
   startText?: string;
   /** Help under the field, tied to it for screen readers. */
   hint?: string;
+  /** The label is read out but not shown (for rows under shared column headings). */
+  labelHidden?: boolean;
 }) {
   const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
   const input = (
@@ -77,7 +80,9 @@ export function TextField({
   );
   return (
     <Field data-invalid={!!error}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>
+        {label}
+      </FieldLabel>
       {startText ? (
         <InputGroup>
           <InputGroupText>{startText}</InputGroupText>
