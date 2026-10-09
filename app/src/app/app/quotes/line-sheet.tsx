@@ -30,7 +30,7 @@ import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
 import { VariationChoice } from "./variation-choice";
 import { missingOptions, OptionChoices, optionValueAmount, repriceOptions } from "./option-choices";
-import { optionAmounts, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
+import { optionsPerItem, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
@@ -80,7 +80,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     options: product.options.flatMap((g) => {
       const v = g.kind === "one" ? g.values.find((x) => x.usual) : undefined;
       return v
-        ? [{ groupId: g.id, group: g.name, kind: g.kind, charge: g.charge, valueId: v.id, value: v.name, text: "", amountCents: optionValueAmount(g, v, usual?.id) }]
+        ? [{ groupId: g.id, group: g.name, kind: g.kind, valueId: v.id, value: v.name, text: "", amountCents: optionValueAmount(g, v, usual?.id) }]
         : [];
     }),
   };
@@ -293,18 +293,18 @@ function followOptions(chosen: readonly LineOption[], after: ProductSummary, var
     const g = after.options.find((x) => x.id === o.groupId);
     if (!g || g.kind !== o.kind) continue;
     if (g.kind === "text") {
-      next.push({ ...o, group: g.name, charge: g.charge, amountCents: g.textPriceCents });
+      next.push({ ...o, group: g.name, amountCents: g.textPriceCents });
       continue;
     }
     const v = g.values.find((x) => x.id === o.valueId);
     if (!v) continue;
     if (g.kind === "one" && next.some((x) => x.groupId === g.id)) continue;
-    next.push({ ...o, group: g.name, charge: g.charge, value: v.name, amountCents: optionValueAmount(g, v, variationId) });
+    next.push({ ...o, group: g.name, value: v.name, amountCents: optionValueAmount(g, v, variationId) });
   }
   for (const g of after.options) {
     if (g.kind !== "one" || next.some((x) => x.groupId === g.id)) continue;
     const usual = g.values.find((x) => x.usual);
-    if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", charge: g.charge, valueId: usual.id, value: usual.name, text: "", amountCents: optionValueAmount(g, usual, variationId) });
+    if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", valueId: usual.id, value: usual.name, text: "", amountCents: optionValueAmount(g, usual, variationId) });
   }
   return next;
 }
@@ -478,7 +478,7 @@ function ConfigureView({
   // The product's options and extras, and what they add to this item.
   const optionGroups = product?.options ?? [];
   const showOptions = optionGroups.length > 0 || (line.options ?? []).length > 0;
-  const extras = optionAmounts(line.options ?? []);
+  const extrasEach = optionsPerItem(line.options ?? []);
 
   // The product's variations, and the one this item has kept if the product no longer lists it.
   const variations = product?.variations ?? [];
@@ -549,14 +549,14 @@ function ConfigureView({
     if (optionErrors[g.id]) problems.push({ fieldId: id(`option-${g.id}`), label: g.name, message: optionErrors[g.id] });
   }
 
-  // "12 × R17 + R30 once = R234": the line as it will add up, once something is chosen that costs.
+  // "12 × R17 = R204": the line as it will add up, once something is chosen that costs.
   const quantity = parseQuantity(line.quantity);
   const sum =
-    (extras.perItem > 0 || extras.once > 0) && typedPrice.ok && quantity.ok
+    extrasEach > 0 && typedPrice.ok && quantity.ok
       ? (() => {
-          const each = typedPrice.value + extras.perItem;
-          const total = Math.round((quantity.value * each) / 1000) + extras.once;
-          return `${line.quantity} × ${money(each)}${extras.once > 0 ? ` + ${money(extras.once)} once` : ""} = ${money(total)}`;
+          const each = typedPrice.value + extrasEach;
+          const total = Math.round((quantity.value * each) / 1000);
+          return `${line.quantity} × ${money(each)} = ${money(total)}`;
         })()
       : null;
 

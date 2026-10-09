@@ -33,7 +33,7 @@ import { addDays } from "@/lib/quotes/dates";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import {
-  optionAmounts,
+  optionsPerItem,
   previewTotals,
   type DiscountKind,
   type LineFormValues,
@@ -770,7 +770,7 @@ function LineRow({
             </span>
             <span className="block truncate text-sm text-muted-foreground">
               {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} ×{" "}
-              {price.ok ? money(price.value + optionAmounts(line.options ?? []).perItem) : "?"}
+              {price.ok ? money(price.value + optionsPerItem(line.options ?? [])) : "?"}
               {line.variationName && ` · ${line.variationName}`}
               {(line.options?.length ?? 0) > 0 && ` · ${line.options!.length} ${line.options!.length === 1 ? "option" : "options"}`}
               {line.discountKind !== "none" && " · discount"}

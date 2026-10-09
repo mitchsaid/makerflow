@@ -9,7 +9,8 @@ export function itemName(line: { name: string; variation?: { name: string } | nu
 type OptionLike = {
   group: string;
   kind: "one" | "any" | "text";
-  charge: "item" | "line";
+  /** Only "line" on versions sent before options were simplified (charged once for the line). */
+  charge?: "item" | "line";
   value: string | null;
   text: string | null;
   amountCents: number;
@@ -17,8 +18,8 @@ type OptionLike = {
 
 /**
  * The options chosen, folded into one line under the item (decision 8): "Flavour: Vanilla · Extras: Gold leaf,
- * Gift box (+R30 once) · Message: “Happy 40th”". Amounts charged per item are already in the price each, so
- * only those charged once are shown, so the sums add up.
+ * Gift box · Message: “Happy 40th”". The amounts are already in the price each. Versions sent before options
+ * were simplified could charge an extra once for the line: those show "(+R30 once)", so the sums add up.
  */
 export function optionsText(options: readonly OptionLike[] | undefined, money: (cents: number) => string): string | null {
   if (!options || options.length === 0) return null;
@@ -48,7 +49,7 @@ export function extrasView(
   if (!separate || !options.some((o) => o.amountCents > 0)) {
     return { priceEachCents: line.unitPriceCents, folded: optionsText(options, money), priced: [] };
   }
-  const perItem = options.reduce((sum, o) => sum + (o.charge === "item" ? o.amountCents : 0), 0);
+  const perItem = options.reduce((sum, o) => sum + (o.charge !== "line" ? o.amountCents : 0), 0);
   const label = (o: OptionLike) => `${o.group}: ${o.kind === "text" ? `“${o.text ?? ""}”` : (o.value ?? "")}`;
   return {
     priceEachCents: line.unitPriceCents - perItem,

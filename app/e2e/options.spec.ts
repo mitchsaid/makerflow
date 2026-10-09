@@ -19,7 +19,7 @@ async function addOption(page: Page, kind: "Choose one" | "Choose any" | "Type s
   await page.getByLabel("Option name").last().fill(name);
 }
 
-test("options and extras: chosen on a quote, charged per item or once, and printed under the item", async ({ page }) => {
+test("options and extras: chosen on a quote, added to each item, and printed under the item", async ({ page }) => {
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "opt-extras", "Extras Co");
 
@@ -29,6 +29,11 @@ test("options and extras: chosen on a quote, charged per item or once, and print
 
   // Choose one: Flavour, Vanilla usual, Red velvet +R5 each.
   await addOption(page, "Choose one", "Flavour");
+  // Asked once: the kind is not asked again, a choice is always needed, and the price is always for each item.
+  await expect(page.getByLabel("Kind", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("How is the price added?")).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "One must be chosen" })).toHaveCount(0);
+  await expect(page.getByText("One is always chosen. To make it optional, add a choice like “None”.")).toBeVisible();
   await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
   await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Red velvet");
   await page.getByLabel("Flavour: choice 2 adds", { exact: true }).fill("5");
@@ -44,18 +49,18 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await tap(page.getByRole("button", { name: "Remove Toppings: choice 2" }));
   await page.getByRole("button", { name: "Done Toppings" }).click();
 
-  // Choose any, once per line: Packaging, gift box +R30.
+  // Choose any: Packaging, gift box +R3 each.
   await addOption(page, "Choose any", "Packaging");
-  await page.getByLabel("How is the price added?").last().selectOption("line");
   await page.getByLabel("Packaging: choice 1", { exact: true }).fill("Gift box");
-  await page.getByLabel("Packaging: choice 1 adds", { exact: true }).fill("30");
+  await page.getByLabel("Packaging: choice 1 adds", { exact: true }).fill("3");
   await tap(page.getByRole("button", { name: "Remove Packaging: choice 2" }));
   await page.getByRole("button", { name: "Done Packaging" }).click();
 
-  // Type something, once per line, +R25.
+  // Type something, +R2 each; how long it can be is only filled in when it matters.
   await addOption(page, "Type something", "Message");
-  await page.getByLabel("How is the price added?").last().selectOption("line");
-  await page.getByLabel(/^Price when typed/).fill("25");
+  await expect(page.getByLabel("Longest (optional)")).toHaveValue("");
+  await expect(page.getByRole("checkbox", { name: "Something must be typed" })).toBeVisible();
+  await page.getByLabel(/^Price when typed/).fill("2");
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toHaveText("Added Cupcakes.");
 
@@ -69,11 +74,11 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await sheet(page).getByRole("checkbox", { name: /Gold sprinkles/ }).check();
   await sheet(page).getByRole("checkbox", { name: /Gift box/ }).check();
   await sheet(page).getByLabel(/^Message/).fill("Happy 40th Thandi");
-  // 12 × (R15 + R5 + R2) = R264, plus R30 and R25 once = R319.
-  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/12 × R\s?22,00 \+ R\s?55,00 once = R\s?319,00/);
+  // 12 × (R15 + R5 + R2 + R3 + R2) = R324.
+  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/12 × R\s?27,00 = R\s?324,00/);
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(item(page, 1)).toContainText("4 options");
-  await expect(page.getByTestId("sticky-total")).toHaveText(rand("319"));
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("324"));
 
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
@@ -81,19 +86,20 @@ test("options and extras: chosen on a quote, charged per item or once, and print
 
   // Saved and read back the same, then printed under the item.
   await page.reload();
-  await expect(page.getByTestId("sticky-total")).toHaveText(rand("319"));
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("324"));
   await page.goto(`${quoteUrl}/preview`);
   const text = page.getByRole("region", { name: "The quote as text" });
   await expect(text).toContainText("Flavour: Red velvet");
   await expect(text).toContainText("Toppings: Gold sprinkles");
-  await expect(text).toContainText(/Packaging: Gift box \(\+R\s?30,00 once\)/);
-  await expect(text).toContainText(/Message: “Happy 40th Thandi” \(\+R\s?25,00 once\)/);
+  await expect(text).toContainText("Packaging: Gift box");
+  await expect(text).toContainText("Message: “Happy 40th Thandi”");
+  await expect(text).not.toContainText("once");
 
   // A required option with no usual one must be answered; a removed choice is kept on the item until removed.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Cupcakes/ }).click();
   await page.getByRole("button", { name: "Edit Flavour" }).click();
-  await page.getByLabel("Usual flavour").selectOption({ label: "None" });
+  await page.getByLabel("Usual flavour").selectOption({ label: "No usual one" });
   await page.getByRole("button", { name: "Edit Toppings" }).click();
   await tap(page.getByRole("button", { name: "Remove Gold sprinkles" }));
   await page.getByRole("button", { name: "Add a choice to Toppings" }).click();
@@ -106,9 +112,9 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await expect(sheet(page).getByText("Kept as they were")).toBeVisible();
   await expect(sheet(page).getByText(/Toppings: Gold sprinkles/)).toBeVisible();
   await tap(sheet(page).getByRole("button", { name: "Remove Gold sprinkles" }));
-  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/12 × R\s?20,00 \+ R\s?55,00 once = R\s?295,00/);
+  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/12 × R\s?25,00 = R\s?300,00/);
   await sheet(page).getByRole("button", { name: "Save item" }).click();
-  await expect(page.getByTestId("sticky-total")).toHaveText(rand("295"));
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("300"));
 
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();

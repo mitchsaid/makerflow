@@ -252,15 +252,14 @@ function storedOptions(value: unknown): LineOption[] {
     if (typeof o !== "object" || o === null) return [];
     const r = o as Record<string, unknown>;
     const kind = r.kind === "one" || r.kind === "any" || r.kind === "text" ? r.kind : null;
-    const charge = r.charge === "item" || r.charge === "line" ? r.charge : null;
+    // Every option's amount is added to each item (a stored "charge" from before is ignored).
     const amount = Number(r.amount_cents);
-    if (!kind || !charge || typeof r.group !== "string" || !Number.isSafeInteger(amount)) return [];
+    if (!kind || typeof r.group !== "string" || !Number.isSafeInteger(amount)) return [];
     return [
       {
         groupId: typeof r.group_id === "string" ? r.group_id : "",
         group: r.group,
         kind,
-        charge,
         valueId: typeof r.value_id === "string" ? r.value_id : "",
         value: typeof r.value === "string" ? r.value : "",
         text: typeof r.text === "string" ? r.text : "",

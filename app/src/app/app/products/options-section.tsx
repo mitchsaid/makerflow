@@ -64,9 +64,8 @@ export function OptionsSection({
       name: "",
       kind,
       required: kind === "one",
-      charge: "item",
       textPrice: "",
-      textMax: String(OPTION_TEXT_DEFAULT),
+      textMax: "",
       values: kind === "text" ? [] : [blankValue(), blankValue()],
     };
     onChange([...groups, group]);
@@ -88,7 +87,7 @@ export function OptionsSection({
             const open = openKey === g.key || e !== undefined;
             const byVariation = g.kind !== "text" && g.priceByVariation === true && variations.length > 0;
             const title = g.name.trim() || `Option ${gi + 1}`;
-            const summary = `${OPTION_KIND_WORDS[g.kind].title}${g.kind === "text" ? "" : ` · ${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}`}${g.charge === "line" ? " · once per line" : ""}`;
+            const summary = `${OPTION_KIND_WORDS[g.kind].title}${g.kind === "text" ? "" : ` · ${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}`}`;
             return (
               <li key={g.key} className="rounded-xl border border-border p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -119,23 +118,6 @@ export function OptionsSection({
                       error={e?.name}
                       onChange={(v) => setGroup(g.key, { name: v })}
                     />
-                    <SelectField
-                      id={fid(`option-${g.key}-kind`)}
-                      label="Kind"
-                      value={g.kind === "one" ? "" : g.kind}
-                      placeholder={OPTION_KIND_WORDS.one.title}
-                      options={["any", "text"]}
-                      optionLabels={{ any: OPTION_KIND_WORDS.any.title, text: OPTION_KIND_WORDS.text.title }}
-                      hint={OPTION_KIND_WORDS[g.kind].hint}
-                      onChange={(v) => {
-                        const kind: OptionKind = v === "any" ? "any" : v === "text" ? "text" : "one";
-                        setGroup(g.key, {
-                          kind,
-                          required: kind === "any" ? false : g.required,
-                          values: kind === "text" ? [] : g.values.length > 0 ? g.values : [blankValue(), blankValue()],
-                        });
-                      }}
-                    />
                     {g.kind !== "text" && variations.length > 0 && (
                       <Field orientation="horizontal" className="items-start py-1">
                         <Checkbox
@@ -162,7 +144,8 @@ export function OptionsSection({
                         </FieldLabel>
                       </Field>
                     )}
-                    {g.kind !== "any" && (
+                    {/* "Choose one" always needs a choice ("None" makes it optional); "choose any" never does. */}
+                    {g.kind === "text" && (
                       <Field orientation="horizontal" className="items-start py-1">
                         <Checkbox
                           id={fid(`option-${g.key}-required`)}
@@ -170,19 +153,10 @@ export function OptionsSection({
                           onCheckedChange={(checked) => setGroup(g.key, { required: checked === true })}
                         />
                         <FieldLabel htmlFor={fid(`option-${g.key}-required`)} className="text-base">
-                          {g.kind === "text" ? "Something must be typed" : "One must be chosen"}
+                          Something must be typed
                         </FieldLabel>
                       </Field>
                     )}
-                    <SelectField
-                      id={fid(`option-${g.key}-charge`)}
-                      label="How is the price added?"
-                      value={g.charge === "item" ? "" : "line"}
-                      placeholder="To each item (12 cupcakes: 12 times)"
-                      options={["line"]}
-                      optionLabels={{ line: "Once for the item line (12 cupcakes: once)" }}
-                      onChange={(v) => setGroup(g.key, { charge: v === "line" ? "line" : "item" })}
-                    />
 
                     {g.kind === "text" ? (
                       <div className="grid grid-cols-2 gap-3">
@@ -199,7 +173,8 @@ export function OptionsSection({
                         />
                         <TextField
                           id={fid(`option-${g.key}-textMax`)}
-                          label="Longest (characters)"
+                          label="Longest (optional)"
+                          hint={`Leave empty for up to ${OPTION_TEXT_DEFAULT} characters.`}
                           inputMode="numeric"
                           autoComplete="off"
                           value={g.textMax}
@@ -309,6 +284,11 @@ export function OptionsSection({
                           </ol>
                         </div>
                         {e?.values && <p className="text-sm text-destructive">{e.values}</p>}
+                        {g.kind === "one" && (
+                          <p className="text-sm text-muted-foreground">
+                            One is always chosen. To make it optional, add a choice like “None”.
+                          </p>
+                        )}
                         <Button
                           id={fid(`option-${g.key}-add-value`)}
                           type="button"
@@ -326,9 +306,9 @@ export function OptionsSection({
                           <SelectField
                             id={fid(`option-${g.key}-usual`)}
                             label={`Usual ${title.toLowerCase()}`}
-                            hint="Chosen for you on a quote. With none, it's chosen each time."
+                            hint="Chosen for you on a quote. Without one, it's chosen each time."
                             value={g.values.find((x) => x.usual && x.name.trim() !== "")?.key ?? ""}
-                            placeholder="None"
+                            placeholder="No usual one"
                             options={g.values.filter((x) => x.name.trim() !== "").map((x) => x.key)}
                             optionLabels={Object.fromEntries(g.values.map((x) => [x.key, x.name.trim()]))}
                             onChange={(key) => setGroup(g.key, { values: g.values.map((x) => ({ ...x, usual: x.key === key })) })}

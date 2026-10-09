@@ -3,7 +3,8 @@ import { parseMoney, type Cents } from "../money";
 /**
  * Options and extras (docs/plans/product-choices.md): things that specify or add to the chosen product.
  * "Choose one" (Flavour), "choose any" (Extras) or "type something" (Message on the cake). Each value adds an
- * amount (often R0), charged for each item or once for the item line.
+ * amount (often R0) to each item. A charge for the whole order (a setup fee, a box) is its own item on the
+ * quote. "Choose one" always needs a choice; an optional one has a choice like "None".
  */
 
 export const OPTION_NAME_MAX = 80;
@@ -13,7 +14,6 @@ export const OPTION_TEXT_MAX = 500;
 export const OPTION_TEXT_DEFAULT = 100;
 
 export type OptionKind = "one" | "any" | "text";
-export type OptionCharge = "item" | "line";
 
 /** `prices`: by variation id, when the option's price depends on the variation (else empty). */
 export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean; prices: Record<string, Cents> };
@@ -21,8 +21,8 @@ export type OptionGroup = {
   id: string;
   name: string;
   kind: OptionKind;
+  /** Always true for "choose one", never for "choose any"; the maker decides for "type something". */
   required: boolean;
-  charge: OptionCharge;
   /** "Type something": what it costs when something is typed, and how long it can be. */
   textPriceCents: Cents;
   textMax: number;
@@ -40,7 +40,6 @@ export type OptionGroupFormRow = {
   name: string;
   kind: OptionKind;
   required: boolean;
-  charge: OptionCharge;
   textPrice: string;
   textMax: string;
   priceByVariation?: boolean;
@@ -64,7 +63,6 @@ export type OptionErrors = { list?: string; groups: Record<string, OptionGroupEr
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const KINDS: readonly unknown[] = ["one", "any", "text"];
-const CHARGES: readonly unknown[] = ["item", "line"];
 
 export const OPTION_KIND_WORDS: Record<OptionKind, { title: string; hint: string }> = {
   one: { title: "Choose one", hint: "Like a flavour: one is chosen." },
@@ -90,7 +88,6 @@ function isGroupRow(value: unknown): value is OptionGroupFormRow {
     typeof v.name === "string" &&
     KINDS.includes(v.kind) &&
     typeof v.required === "boolean" &&
-    CHARGES.includes(v.charge) &&
     typeof v.textPrice === "string" &&
     typeof v.textMax === "string" &&
     (v.priceByVariation === undefined || typeof v.priceByVariation === "boolean") &&
@@ -135,7 +132,7 @@ export function parseOptionGroups(
         else e.textPrice = price.error;
       }
       const max = Number(row.textMax.trim() === "" ? OPTION_TEXT_DEFAULT : row.textMax.trim());
-      if (!Number.isInteger(max) || max < 1 || max > OPTION_TEXT_MAX) e.textMax = `Choose a length from 1 to ${OPTION_TEXT_MAX} characters.`;
+      if (!Number.isInteger(max) || max < 1 || max > OPTION_TEXT_MAX) e.textMax = `Choose a length from 1 to ${OPTION_TEXT_MAX} characters, or leave it empty for ${OPTION_TEXT_DEFAULT}.`;
       else textMax = max;
     } else {
       if (row.values.length === 0) e.values = "Add at least one choice.";
@@ -189,9 +186,8 @@ export function parseOptionGroups(
         id: UUID.test(row.id) ? row.id : null,
         name,
         kind: row.kind,
-        // "Choose any" can always be left empty.
-        required: row.kind === "any" ? false : row.required,
-        charge: row.charge,
+        // "Choose one" always needs a choice; "choose any" can always be left empty.
+        required: row.kind === "one" ? true : row.kind === "any" ? false : row.required,
         textPriceCents,
         textMax,
         priceByVariation: row.kind !== "text" && row.priceByVariation === true && variationKeys.length > 0,
@@ -210,7 +206,6 @@ export function optionsPayload(groups: readonly ParsedOptionGroup[]) {
     name: g.name,
     kind: g.kind,
     required: g.required,
-    charge: g.charge,
     text_price_cents: g.kind === "text" ? g.textPriceCents : 0,
     text_max: g.textMax,
     price_by_variation: g.priceByVariation,

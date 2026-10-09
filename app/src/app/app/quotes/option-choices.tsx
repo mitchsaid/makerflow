@@ -33,8 +33,7 @@ export function OptionChoices({
   onChange: (options: LineOption[]) => void;
 }) {
   const id = (part: string) => `${idPrefix}${part}`;
-  const plus = (cents: number, charge: "item" | "line", from = false) =>
-    cents > 0 ? `${from ? "from " : ""}+${money(cents)}${charge === "line" ? " once" : " each"}` : "";
+  const plus = (cents: number, from = false) => (cents > 0 ? `${from ? "from " : ""}+${money(cents)} each` : "");
   // What each option shows as chosen: entries of its current kind that it still offers ("choose one": the
   // first only). Anything else on the item is shown under "Kept as they were", and is never hidden.
   const shownIn = (g: OptionGroup): LineOption[] => {
@@ -55,7 +54,6 @@ export function OptionChoices({
     groupId: g.id,
     group: g.name,
     kind: g.kind,
-    charge: g.charge,
     valueId: v.id,
     value: v.name,
     text: "",
@@ -91,37 +89,37 @@ export function OptionChoices({
                     ...others(g),
                     ...(next.trim() === ""
                       ? []
-                      : [{ groupId: g.id, group: g.name, kind: "text" as const, charge: g.charge, valueId: "", value: "", text: next, amountCents: g.textPriceCents }]),
+                      : [{ groupId: g.id, group: g.name, kind: "text" as const, valueId: "", value: "", text: next, amountCents: g.textPriceCents }]),
                   ]);
                 }}
               />
               <FieldDescription id={id(`option-${g.id}-hint`)}>
                 {`${text.length} of ${g.textMax} characters`}
-                {g.textPriceCents > 0 ? ` · ${plus(g.textPriceCents, g.charge)}` : ""}
+                {g.textPriceCents > 0 ? ` · ${plus(g.textPriceCents)}` : ""}
               </FieldDescription>
               {error && <FieldError id={id(`option-${g.id}-error`)}>{error}</FieldError>}
             </Field>
           );
         }
         if (g.kind === "one") {
+          // "Choose one" always needs a choice: an optional one has a choice like "None" of its own.
           const value = mine[0]?.valueId ?? "";
           return (
             <FieldSet key={g.id} data-invalid={!!error}>
               <FieldLegend variant="label" className="text-base">
                 {g.name}
-                {g.required ? "" : " (optional)"}
               </FieldLegend>
               <RadioGroup
                 aria-describedby={describedBy}
                 aria-invalid={!!error}
-                value={value || (g.required ? "" : "none")}
+                value={value}
                 onValueChange={(key) => {
                   const v = g.values.find((x) => x.id === key);
                   onChange([...others(g), ...(v ? [copyOf(g, v)] : [])]);
                 }}
                 className="gap-2"
               >
-                {[...g.values, ...(g.required ? [] : [{ id: "none", name: "None", priceCents: 0, usual: false, prices: {} }])].map((v, i) => (
+                {g.values.map((v, i) => (
                   <Field
                     key={v.id}
                     orientation="horizontal"
@@ -130,7 +128,7 @@ export function OptionChoices({
                     <RadioGroupItem id={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} value={v.id} />
                     <FieldLabel htmlFor={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{v.name}</span>
-                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge, g.priceByVariation && !variationId)}</span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.priceByVariation && !variationId)}</span>
                     </FieldLabel>
                   </Field>
                 ))}
@@ -167,7 +165,7 @@ export function OptionChoices({
                     />
                     <FieldLabel htmlFor={fieldId} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{v.name}</span>
-                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge, g.priceByVariation && !variationId)}</span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.priceByVariation && !variationId)}</span>
                     </FieldLabel>
                   </Field>
                 );
@@ -188,7 +186,7 @@ export function OptionChoices({
               <li key={`${o.groupId}-${o.valueId}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
                 <span className="text-base">
                   {o.group}: {o.kind === "text" ? `“${o.text}”` : o.value}
-                  {o.amountCents > 0 && <span className="block text-sm text-muted-foreground">{plus(o.amountCents, o.charge)}</span>}
+                  {o.amountCents > 0 && <span className="block text-sm text-muted-foreground">{plus(o.amountCents)}</span>}
                 </span>
                 <Button type="button" variant="ghost" className="text-destructive" onClick={() => onChange(chosen.filter((x) => x !== o))}>
                   Remove<span className="sr-only"> {o.kind === "text" ? o.group : o.value}</span>

@@ -529,25 +529,32 @@ describe("a variation on an item", () => {
 describe("options and extras on an item", () => {
   const PRODUCT = "22222222-2222-4222-8222-222222222222";
   const opt = (over: Partial<LineOption> = {}): LineOption => ({
-    groupId: "", group: "Extras", kind: "any", charge: "item", valueId: "", value: "Gold sprinkles", text: "", amountCents: 200, ...over,
+    groupId: "", group: "Extras", kind: "any", valueId: "", value: "Gold sprinkles", text: "", amountCents: 200, ...over,
   });
   const cupcakes = (options: LineOption[]) =>
     line({ kind: "product", productId: PRODUCT, name: "Cupcakes", quantity: "12", unitPrice: "15", options });
 
-  it("adds per-item amounts to the price each and once-per-line amounts to the line", () => {
-    const p = parsed(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", charge: "line", amountCents: 3000 })])] }));
-    expect(p.lines[0]).toMatchObject({ extrasPerItemCents: 200, extrasOnceCents: 3000, unitPriceCents: 1500 });
-    // 12 × R17 + R30 = R234.
-    expect(p.totals.grossCents).toBe(23400);
-    expect(previewTotals(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", charge: "line", amountCents: 3000 })])] }), NOT_REGISTERED)?.grossCents).toBe(23400);
+  it("adds every option's amount to the price each", () => {
+    const p = parsed(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", amountCents: 300 })])] }));
+    expect(p.lines[0]).toMatchObject({ extrasPerItemCents: 500, unitPriceCents: 1500 });
+    // 12 × (R15 + R2 + R3) = R240.
+    expect(p.totals.grossCents).toBe(24000);
+    expect(previewTotals(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", amountCents: 300 })])] }), NOT_REGISTERED)?.grossCents).toBe(24000);
+  });
+
+  it("charges an older app's “once for the line” option for each item too", () => {
+    const older = { ...opt({ value: "Gift box", amountCents: 300 }), charge: "line" } as LineOption;
+    const p = parsed(quote({ lines: [cupcakes([older])] }));
+    expect(p.lines[0].extrasPerItemCents).toBe(300);
+    expect(p.totals.grossCents).toBe(12 * 1800);
   });
 
   it("keeps typed text, and is saved with the item", () => {
-    const p = parsed(quote({ lines: [cupcakes([opt({ group: "Message", kind: "text", value: "", text: " Happy 40th ", charge: "line", amountCents: 2500 })])] }));
+    const p = parsed(quote({ lines: [cupcakes([opt({ group: "Message", kind: "text", value: "", text: " Happy 40th ", amountCents: 2500 })])] }));
     expect(p.lines[0].options[0]).toMatchObject({ text: "Happy 40th", value: null, amountCents: 2500 });
     const payload = toDatabasePayload(p, { countryCode: "ZA", currencyCode: "ZAR" });
     expect(payload.lines[0].options).toEqual([
-      { group_id: null, group: "Message", kind: "text", charge: "line", value_id: null, value: null, text: "Happy 40th", amount_cents: 2500 },
+      { group_id: null, group: "Message", kind: "text", value_id: null, value: null, text: "Happy 40th", amount_cents: 2500 },
     ]);
   });
 

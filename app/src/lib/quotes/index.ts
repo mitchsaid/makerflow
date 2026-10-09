@@ -16,7 +16,7 @@ import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
 import { VARIATION_LABEL_MAX, VARIATION_NAME_MAX } from "../products/variations";
-import { OPTION_NAME_MAX, OPTION_TEXT_MAX, type OptionCharge, type OptionKind } from "../products/options";
+import { OPTION_NAME_MAX, OPTION_TEXT_MAX, type OptionKind } from "../products/options";
 import { depositColumns, isDepositKind, parseDeposit, type DepositFormValues, type ParsedDeposit } from "./deposit";
 
 /**
@@ -77,14 +77,13 @@ export type LineFormValues = {
 
 /**
  * One option chosen on an item: where it came from (ids, "" when unknown), the item's own copy of the words,
- * and the amount it adds (cents, in the price-entry mode), charged for each item or once for the line.
+ * and the amount it adds to each item (cents, in the price-entry mode).
  * For "type something" the typed text is kept and `value` is "".
  */
 export type LineOption = {
   groupId: string;
   group: string;
   kind: OptionKind;
-  charge: OptionCharge;
   valueId: string;
   value: string;
   text: string;
@@ -172,17 +171,15 @@ export type ParsedLine = {
   vatStatus: VatStatus;
   /** The variation chosen (a copy of its words), or null. */
   variation: { id: string | null; label: string; name: string } | null;
-  /** The options chosen (copies), and what they add: to each item's price, and once to the line. */
+  /** The options chosen (copies), and what they add to each item's price. */
   options: ParsedLineOption[];
   extrasPerItemCents: Cents;
-  extrasOnceCents: Cents;
 };
 
 export type ParsedLineOption = {
   groupId: string | null;
   group: string;
   kind: OptionKind;
-  charge: OptionCharge;
   valueId: string | null;
   value: string | null;
   text: string | null;
@@ -300,7 +297,6 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
 
 const MAX_LINE_OPTIONS = 100;
 const OPTION_KINDS: readonly unknown[] = ["one", "any", "text"];
-const OPTION_CHARGES: readonly unknown[] = ["item", "line"];
 
 function isLineOption(value: unknown): value is LineOption {
   if (typeof value !== "object" || value === null) return false;
@@ -308,7 +304,6 @@ function isLineOption(value: unknown): value is LineOption {
   return (
     ["groupId", "group", "valueId", "value", "text"].every((key) => typeof o[key] === "string") &&
     OPTION_KINDS.includes(o.kind) &&
-    OPTION_CHARGES.includes(o.charge) &&
     typeof o.amountCents === "number"
   );
 }
@@ -331,7 +326,6 @@ function parseLineOptions(options: readonly LineOption[]): { ok: true; options: 
       groupId: o.groupId || null,
       group,
       kind: o.kind,
-      charge: o.charge,
       valueId: o.valueId || null,
       value: o.kind === "text" ? null : value,
       text: o.kind === "text" ? text : null,
@@ -341,15 +335,9 @@ function parseLineOptions(options: readonly LineOption[]): { ok: true; options: 
   return { ok: true, options: parsed };
 }
 
-/** What the options add: to each item's price, and once to the line. */
-export function optionAmounts(options: readonly { charge: OptionCharge; amountCents: number }[]): { perItem: Cents; once: Cents } {
-  let perItem = 0;
-  let once = 0;
-  for (const o of options) {
-    if (o.charge === "line") once += o.amountCents;
-    else perItem += o.amountCents;
-  }
-  return { perItem, once };
+/** What the options add to each item's price. */
+export function optionsPerItem(options: readonly { amountCents: number }[]): Cents {
+  return options.reduce((sum, o) => sum + o.amountCents, 0);
 }
 
 /** An empty item row, as a new quote starts with. */
@@ -474,8 +462,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       vatStatus: line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
       variation,
       options,
-      extrasPerItemCents: optionAmounts(options).perItem,
-      extrasOnceCents: optionAmounts(options).once,
+      extrasPerItemCents: optionsPerItem(options),
     },
   };
 }
@@ -484,9 +471,8 @@ function toInputs(lines: readonly ParsedLine[]): LineInput[] {
   return lines.map((l) => ({
     id: l.key,
     quantityMilli: l.quantityMilli,
-    // The price each, with the options charged per item; those charged once go on the line.
+    // The price each, with what the options add to each item.
     unitPriceCents: l.unitPriceCents + l.extrasPerItemCents,
-    onceCents: l.extrasOnceCents,
     discount: l.discount,
     vatStatus: l.vatStatus,
   }));
@@ -500,14 +486,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasOnceCents: 0 },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0 },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasOnceCents: 0 },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0 },
   };
 }
 
@@ -684,7 +670,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       ...(() => {
         const r = line.productId ? parseLineOptions(line.options ?? []) : ({ ok: false } as const);
         const options = r.ok ? r.options : [];
-        return { options, extrasPerItemCents: optionAmounts(options).perItem, extrasOnceCents: optionAmounts(options).once };
+        return { options, extrasPerItemCents: optionsPerItem(options) };
       })(),
     });
   }
@@ -758,7 +744,6 @@ export function toDatabasePayload(
         group_id: o.groupId,
         group: o.group,
         kind: o.kind,
-        charge: o.charge,
         value_id: o.valueId,
         value: o.value,
         text: o.text,

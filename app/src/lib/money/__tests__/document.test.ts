@@ -74,26 +74,6 @@ describe("lines and discounts", () => {
   });
 });
 
-describe("amounts charged once for a line", () => {
-  it("adds them after quantity x price, before the line's discount, and VAT is on the whole", () => {
-    // 12 cupcakes at R17 (R15 plus R2 of sprinkles each) and a R30 gift box once: R234.
-    const t = calculateDocument({ lines: [line("a", 12, 1700, { onceCents: 3000 })], vat: NOT_REGISTERED });
-    expect(t.lines[0].amountBeforeDiscountCents).toBe(23400);
-    const d = calculateDocument({
-      lines: [line("a", 12, 1700, { onceCents: 3000, discount: { kind: "percent", basisPoints: 1000 } })],
-      vat: INCLUSIVE,
-    });
-    expect(d.lines[0].lineDiscountCents).toBe(2340);
-    expect(d.grossCents).toBe(21060);
-    expect(d.vatCents).toBe(Math.round((21060 * 15) / 115));
-  });
-
-  it("refuses a negative or fractional one", () => {
-    expect(() => calculateDocument({ lines: [line("a", 1, 100, { onceCents: -1 })], vat: NOT_REGISTERED })).toThrow();
-    expect(() => calculateDocument({ lines: [line("a", 1, 100, { onceCents: 1.5 })], vat: NOT_REGISTERED })).toThrow();
-  });
-});
-
 describe("VAT", () => {
   it("not registered: no VAT at all", () => {
     const t = calculateDocument({ lines: [line("a", 1, 115_000)], vat: NOT_REGISTERED });

@@ -62,8 +62,8 @@ function buildSample(workspace: Workspace, products: readonly ProductSummary[]):
       options:
         i === 0
           ? [
-              { groupId: "", group: "Extras", kind: "any" as const, charge: "item" as const, valueId: "", value: "Hand finishing", text: "", amountCents: 5000 },
-              { groupId: "", group: "Extras", kind: "any" as const, charge: "line" as const, valueId: "", value: "Gift wrap", text: "", amountCents: 2500 },
+              { groupId: "", group: "Extras", kind: "any" as const, valueId: "", value: "Hand finishing", text: "", amountCents: 5000 },
+              { groupId: "", group: "Extras", kind: "any" as const, valueId: "", value: "Gift wrap", text: "", amountCents: 2500 },
             ]
           : [],
       name: l.name,
