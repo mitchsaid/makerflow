@@ -31,9 +31,9 @@ test("choose a saved product, configure it for this quote, and edit the line lat
   await expect(sheet(page).getByTestId("configure-name")).toHaveText("Wedding cake");
   await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("800");
   await expect(sheet(page).getByLabel("Description (optional)")).toHaveValue("Three tiers");
-  // Variations and extras: shown where they will go, not working yet.
+  // Options and extras: shown where they will go, not working yet.
   const placeholder = sheet(page).getByTestId("coming-soon");
-  await expect(placeholder).toContainText("Variations and extras");
+  await expect(placeholder).toContainText("Options and extras");
   await expect(placeholder.locator("input, select, textarea, button")).toHaveCount(0);
   await sheet(page).getByLabel("Quantity").fill("2");
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();

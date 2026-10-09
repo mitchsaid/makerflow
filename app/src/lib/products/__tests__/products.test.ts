@@ -72,6 +72,8 @@ describe("productMatchesSearch", () => {
     archived: false,
     photoImageId: null,
     vatStatus: "standard",
+    variationLabel: null,
+    variations: [],
   };
   it("searches the name and description without caring about case", () => {
     expect(productMatchesSearch(p, "WEDDING")).toBe(true);

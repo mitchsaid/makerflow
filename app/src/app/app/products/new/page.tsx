@@ -4,6 +4,7 @@ import { currencySymbol } from "@/lib/money";
 import { getLocalePack, priceEntryLabel, vatSettingsFor } from "@/lib/locale";
 import { createProduct } from "../actions";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
+import { variationSuggestions } from "@/lib/products/variations";
 import { ProductForm } from "../product-form";
 import { emptyOfKind, KIND_WORDS, listHref } from "../product-values";
 import type { ProductKind } from "@/lib/products";
@@ -27,6 +28,7 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
         action={createProduct}
         initial={emptyOfKind(kind)}
         priceLabel={priceEntryLabel(vatSettingsFor(profile, locale), locale.tax.name)}
+        variationSuggestions={variationSuggestions(profile.businessTypes, kind)}
         vatChoices={vatChoicesFor(vatSettingsFor(profile, locale), locale.tax.statuses, locale.numberStyle)}
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
       />

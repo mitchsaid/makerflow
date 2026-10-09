@@ -93,6 +93,7 @@ export default async function QuotePage({
           numberStyle={locale.numberStyle}
           taxName={locale.tax.name}
           vatStatuses={locale.tax.statuses}
+          businessTypes={profile.businessTypes}
           justSaved={query.saved === "1"}
           focusOnLoad={typeof query.focus === "string" ? query.focus : undefined}
           policyLibrary={forOrganisation(allPolicies, organisation.id)}

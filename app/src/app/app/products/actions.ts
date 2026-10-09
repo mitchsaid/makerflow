@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
-import type { VatStatus } from "@/lib/money";
 import {
   parseProductForm,
   type ProductFieldErrors,
   type ProductFields,
   type ProductSummary,
 } from "@/lib/products";
+import { findProduct } from "@/lib/products/data";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProductSaveState =
@@ -22,48 +22,65 @@ export type ProductSaveState =
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
 
-function toRow(p: ProductFields) {
+/** What save_product takes: the product, and its variations when the form carried them (null leaves them alone). */
+function toPayload(p: ProductFields) {
   return {
-    kind: p.kind,
-    name: p.name,
-    description: p.description,
-    unit_price_cents: p.unitPriceCents,
-    unit: p.unit,
-    // Only when the form carried a photo field: otherwise the saved photo is left alone.
-    ...(p.photoImageId === undefined ? {} : { photo_image_id: p.photoImageId }),
-    // Only when the form carried a VAT choice (a VAT-registered business): otherwise it is left alone.
-    ...(p.vatStatus === undefined ? {} : { vat_status: p.vatStatus }),
+    product: {
+      kind: p.kind,
+      name: p.name,
+      description: p.description ?? "",
+      unit_price_cents: p.unitPriceCents,
+      unit: p.unit ?? "",
+      variation_label: p.variationLabel ?? "",
+      // Only when the form carried a photo field: otherwise the saved photo is left alone.
+      ...(p.photoImageId === undefined ? {} : { photo_image_id: p.photoImageId ?? "" }),
+      // Only when the form carried a VAT choice (a VAT-registered business): otherwise it is left alone.
+      ...(p.vatStatus === undefined ? {} : { vat_status: p.vatStatus }),
+    },
+    variations:
+      p.variations === undefined
+        ? null
+        : p.variations.map((v) => ({ ...(v.id ? { id: v.id } : {}), name: v.name, price_cents: v.priceCents, usual: v.usual })),
   };
 }
 
-function summaryFor(id: string, organisationId: string, p: ProductFields, stored?: VatStatus | null): ProductSummary {
-  // What the database holds wins: a form without the VAT choice leaves it as it was.
-  return { id, organisationId, archived: false, ...p, photoImageId: p.photoImageId ?? null, vatStatus: stored ?? p.vatStatus ?? "standard" };
-}
-
-async function insertProduct(
+/**
+ * Saves a product and its variations in one go (save_product, under the person's own access), then reads
+ * it back: the result carries the ids of new variations, and whatever the form left alone.
+ */
+async function saveProduct(
+  id: string | null,
   formData: FormData,
 ): Promise<{ ok: true; product: ProductSummary } | { ok: false; state: ProductSaveState }> {
   const { organisation } = await requireOrganisation();
   const parsed = parseProductForm(formData);
   if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 
+  const payload = toPayload(parsed.value);
   const supabase = await createClient();
-  const { data: created, error } = await supabase
-    .from("products")
-    .insert({ organisation_id: organisation.id, ...toRow(parsed.value) })
-    .select("id")
-    .single();
+  const { data: savedId, error } = await supabase.rpc("save_product", {
+    p_org: organisation.id,
+    p_product_id: id,
+    p_product: payload.product,
+    p_variations: payload.variations,
+  });
   if (error?.code === "23503") {
     return { ok: false, state: { status: "error", errors: { photo: "That photo could not be used. Choose it again." } } };
   }
-  if (error || !created) {
-    console.error("could not add product:", error?.message);
+  if (error?.code === "P0002") {
+    return { ok: false, state: { status: "error", message: "This product could not be found. Go back to your products and open it again." } };
+  }
+  if (error || typeof savedId !== "string") {
+    console.error("could not save product:", error?.code, error?.message);
     return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
   }
 
   revalidatePath("/app/products");
-  return { ok: true, product: summaryFor(created.id, organisation.id, parsed.value) };
+  const product = await findProduct(savedId);
+  if (!product || product.organisationId !== organisation.id) {
+    return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
+  }
+  return { ok: true, product };
 }
 
 /** Adds a product from the Products screen, then shows the list. Any member can. */
@@ -71,7 +88,7 @@ export async function createProduct(
   _previous: ProductSaveState,
   formData: FormData,
 ): Promise<ProductSaveState> {
-  const result = await insertProduct(formData);
+  const result = await saveProduct(null, formData);
   if (!result.ok) return result.state;
   const view = result.product.kind === "service" ? "&view=services" : "";
   redirect(`/app/products?added=${result.product.id}${view}`);
@@ -82,7 +99,7 @@ export async function createProductInQuote(
   _previous: ProductSaveState,
   formData: FormData,
 ): Promise<ProductSaveState> {
-  const result = await insertProduct(formData);
+  const result = await saveProduct(null, formData);
   return result.ok ? { status: "created", product: result.product } : result.state;
 }
 
@@ -92,28 +109,9 @@ export async function updateProduct(
   _previous: ProductSaveState,
   formData: FormData,
 ): Promise<ProductSaveState> {
-  const { organisation } = await requireOrganisation();
   if (!UUID.test(id)) return { status: "error", message: GENERIC_ERROR };
-  const parsed = parseProductForm(formData);
-  if (!parsed.ok) return { status: "error", errors: parsed.errors };
-
-  const supabase = await createClient();
-  const { data: saved, error } = await supabase
-    .from("products")
-    .update(toRow(parsed.value))
-    .eq("id", id)
-    .eq("organisation_id", organisation.id)
-    .select("id, vat_status");
-  if (error?.code === "23503") {
-    return { status: "error", errors: { photo: "That photo could not be used. Choose it again." } };
-  }
-  if (error || !saved || saved.length !== 1) {
-    console.error("could not save product:", error?.message);
-    return { status: "error", message: GENERIC_ERROR };
-  }
-
-  revalidatePath("/app/products");
-  return { status: "saved", product: summaryFor(id, organisation.id, parsed.value, saved[0].vat_status as VatStatus) };
+  const result = await saveProduct(id, formData);
+  return result.ok ? { status: "saved", product: result.product } : result.state;
 }
 
 export type ProductArchiveState = { status: "idle" } | { status: "error"; message: string };

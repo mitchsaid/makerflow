@@ -496,3 +496,32 @@ describe("VAT treatment on items", () => {
     expect(previewTotals(quote({ lines }), INCLUSIVE)?.vatCents).toBe(1500);
   });
 });
+
+describe("a variation on an item", () => {
+  const PRODUCT = "22222222-2222-4222-8222-222222222222";
+  const VARIATION = "33333333-3333-4333-8333-333333333333";
+  const fromProduct = (over: Partial<LineFormValues> = {}) =>
+    line({ kind: "product", productId: PRODUCT, variationId: VARIATION, variationLabel: "Size", variationName: "Large", unitPrice: "600", ...over });
+
+  it("keeps its own copy of the words and is saved with the item", () => {
+    const p = parsed(quote({ lines: [fromProduct()] }));
+    expect(p.lines[0].variation).toEqual({ id: VARIATION, label: "Size", name: "Large" });
+    const payload = toDatabasePayload(p, { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.lines[0]).toMatchObject({ variation_id: VARIATION, variation_label: "Size", variation_name: "Large" });
+  });
+
+  it("keeps the words when the product's variation has gone (no id)", () => {
+    expect(parsed(quote({ lines: [fromProduct({ variationId: "" })] })).lines[0].variation).toEqual({ id: null, label: "Size", name: "Large" });
+  });
+
+  it("refuses a variation on a one-off item, or one it can't read", () => {
+    expect(errorsOf(quote({ lines: [line({ variationLabel: "Size", variationName: "Large" })] })).lines.k1.variation).toBeTruthy();
+    expect(errorsOf(quote({ lines: [fromProduct({ variationId: "nope" })] })).lines.k1.variation).toBeTruthy();
+    expect(errorsOf(quote({ lines: [fromProduct({ variationLabel: "" })] })).lines.k1.variation).toBeTruthy();
+    expect(isQuoteFormValues(quote({ lines: [fromProduct({ variationName: 3 as never })] }))).toBe(false);
+  });
+
+  it("an item without one has none, and an older app's item still reads", () => {
+    expect(parsed(quote()).lines[0].variation).toBeNull();
+  });
+});

@@ -4,6 +4,7 @@ import { quantityText } from "@/lib/quotes/units";
 import { formatDay } from "@/lib/quotes/dates";
 import type { QuoteSnapshot, SnapshotParty } from "@/lib/quotes/snapshot";
 import { vatView } from "@/lib/quotes/vat-view";
+import { itemName } from "@/lib/quotes/line-text";
 
 /**
  * A sent quote on screen, drawn from its frozen snapshot only (the same data the PDF uses), so
@@ -76,7 +77,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           {s.lines.map((l, i) => (
             <li key={i} className="space-y-0.5 py-3">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="min-w-0 text-base font-medium">{l.name}</p>
+                <p className="min-w-0 text-base font-medium">{itemName(l)}</p>
                 <p className="shrink-0 text-base font-medium">{money(l.lineTotalCents)}</p>
               </div>
               <p className="text-sm text-muted-foreground">

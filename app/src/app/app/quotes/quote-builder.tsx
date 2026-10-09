@@ -32,6 +32,7 @@ import type { ProductSummary } from "@/lib/products";
 import { getLocalePack, priceEntryLabel, type LocalePack } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
+import type { BusinessType } from "@/lib/business-types";
 import {
   previewTotals,
   type DiscountKind,
@@ -63,6 +64,7 @@ export function QuoteBuilder({
   numberStyle,
   taxName,
   vatStatuses,
+  businessTypes,
   justSaved,
   focusOnLoad,
   policyLibrary: initialPolicyLibrary,
@@ -87,6 +89,8 @@ export function QuoteBuilder({
   taxName: string;
   /** The country's names and hints for each VAT treatment (from the locale pack). */
   vatStatuses: LocalePack["tax"]["statuses"];
+  /** What the business makes (suggestions for a new product's variations). */
+  businessTypes: BusinessType[] | null;
   /** A new draft has just been saved and this page opened on it. */
   justSaved: boolean;
   /** The field to land on (the preview sends people back to fix something). */
@@ -451,7 +455,7 @@ export function QuoteBuilder({
                   number={index + 1}
                   error={(() => {
                     const e = errors.lines[line.key];
-                    return e ? (e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
+                    return e ? (e.name ?? e.variation ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
                   })()}
                   money={money}
                   lineTotal={(() => {
@@ -501,6 +505,7 @@ export function QuoteBuilder({
           currencyCode={currencyCode}
           priceLabel={priceLabel}
           vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
+          businessTypes={businessTypes}
           newKey={newKey}
           onView={openSheet}
           onClose={closeSheet}
@@ -776,6 +781,7 @@ function LineRow({
             </span>
             <span className="block truncate text-sm text-muted-foreground">
               {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}
+              {line.variationName && ` · ${line.variationName}`}
               {line.discountKind !== "none" && " · discount"}
               {vatLabel && ` · ${vatLabel}`}
               {!line.productId && " · one-off item"}

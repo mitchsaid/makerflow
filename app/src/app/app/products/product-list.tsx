@@ -125,7 +125,7 @@ export function ProductList({
                       </span>
                     )}
                   </span>
-                  <span className="shrink-0 text-base">{formatMoney(p.unitPriceCents, currencyCode, numberStyle)}</span>
+                  <span className="shrink-0 text-base">{p.variations.length > 0 ? "from " : ""}{formatMoney(p.unitPriceCents, currencyCode, numberStyle)}</span>
                 </span>
                 {p.description && (
                   <span className="mt-0.5 block truncate text-sm text-muted-foreground">{p.description}</span>

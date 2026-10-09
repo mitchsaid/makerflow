@@ -285,6 +285,26 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: /Axe product/ }).click();
       await expect(page.getByRole("heading", { name: "Axe product", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit product");
+      // Variations on the product, with a problem, then saved and chosen on a quote.
+      await page.getByRole("button", { name: "Add variations" }).click();
+      await page.getByRole("textbox", { name: "Size 1", exact: true }).fill("Small");
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "product variations, with problems");
+      const rows = page.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: /^Size \d$/ }) });
+      await rows.nth(0).getByLabel("Size 1 price", { exact: true }).fill("100");
+      await page.getByRole("textbox", { name: "Size 2", exact: true }).fill("Large");
+      await rows.nth(1).getByLabel("Size 2 price", { exact: true }).fill("200");
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
+      await expectNoViolations(page, "product variations, saved");
+      await page.goto("/app/quotes/new");
+      await page.getByRole("button", { name: "Add item" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /Axe product/ }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toContainText("Choose a size");
+      await expectNoViolations(page, "item sheet, choose a size with an error");
+      await page.keyboard.press("Escape");
 
       await openBusinessProfile(page);
       await expectNoViolations(page, "business profile");

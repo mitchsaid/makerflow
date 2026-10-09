@@ -13,6 +13,7 @@ import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/prod
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
+import { VariationsSection } from "./variations-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 
 /**
@@ -21,7 +22,7 @@ import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
  */
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
-    ["Variations and extras", "Choices like size or flavour, and optional add-ons, each with its own price."],
+    ["Options and extras", "Choices like flavour, add-ons like gold leaf or a gift box, and text like a message on the cake."],
     ["Costs and margin", "What it costs to make (materials, your time, other costs), so you can see your profit."],
     ["Quantity prices", "Lower prices when someone orders more."],
     ["Production steps", "The steps to make it, so you can track each job."],
@@ -29,7 +30,7 @@ const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> =
   ],
   // Services (founder, 2026-10-03): no photo or stock; costs are mostly your time.
   service: [
-    ["Variations and extras", "Options like a rush job or working on site, each with its own price."],
+    ["Options and extras", "Options like a rush job or working on site, each with its own price."],
     ["Costs and margin", "Your time at an hourly rate and any other costs, so you can see your profit."],
     ["Quantity prices", "Lower rates for larger amounts."],
     ["Steps", "The steps of the service, so you can track each job."],
@@ -73,6 +74,7 @@ export function ProductForm({
   mode,
   priceLabel,
   vatChoices,
+  variationSuggestions,
   currencySymbol,
   idPrefix = "",
   embedded,
@@ -84,6 +86,8 @@ export function ProductForm({
   priceLabel: string;
   /** How VAT can treat it, in the country's words; null when the business is not VAT registered (no choice shown). */
   vatChoices: VatChoice[] | null;
+  /** Names to suggest for the variations list ("Size", "Tiers"), by the business type. */
+  variationSuggestions: string[];
   /** "R": shown before the price. */
   currencySymbol: string;
   /** In front of every field id, for when the form shares a page with other fields. */
@@ -110,6 +114,19 @@ export function ProductForm({
   }, [pending, uploading]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
+  // After a save, new variations take the ids the database gave them, so saving again keeps them (and the
+  // quote items that point at them) instead of replacing them.
+  // The rows as they were sent, in order: the saved product lists its variations in the same order.
+  const [sentKeys, setSentKeys] = useState<string[]>([]);
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "saved" || state.status === "created") {
+      const saved = state.product.variations;
+      const idOf = new Map(saved.length === sentKeys.length ? sentKeys.map((key, i) => [key, saved[i].id]) : []);
+      setValues((v) => ({ ...v, variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })) }));
+    }
+  }
   const [editedSinceSave, setEditedSinceSave] = useState(false);
   const fid = (key: string) => `${idPrefix}${key}`;
   const errors: ProductFieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
@@ -127,6 +144,15 @@ export function ProductForm({
     const message = errors[field];
     return message ? [{ fieldId: fid(field), label, message }] : [];
   });
+  // The variations' problems, in the order they appear on the screen.
+  const variationWord = values.variationLabel.trim() || "Variation";
+  if (errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
+  values.variations.forEach((row, i) => {
+    const e = errors.variations?.rows[row.key];
+    if (e?.name) problems.push({ fieldId: fid(`variation-${row.key}-name`), label: `${variationWord} ${i + 1}`, message: e.name });
+    if (e?.price) problems.push({ fieldId: fid(`variation-${row.key}-price`), label: `${variationWord} ${i + 1} price`, message: e.price });
+  });
+  if (errors.variations?.list) problems.push({ fieldId: fid("variations"), label: "Variations", message: errors.variations.list });
 
   const set =
     <K extends keyof ProductFormValues>(key: K) =>
@@ -144,6 +170,7 @@ export function ProductForm({
       return;
     }
     const formData = new FormData(event.currentTarget);
+    setSentKeys(values.variations.map((r) => r.key));
     setEditedSinceSave(false);
     startTransition(() => formAction(formData));
   }
@@ -163,17 +190,24 @@ export function ProductForm({
         />
         {/* The kind is decided by where the form was opened ("Add new service" and so on). */}
         <input type="hidden" name="kind" value={values.kind} />
-        <TextField
-          id={fid("unitPrice")}
-          name="unitPrice"
-          label={priceLabel}
-          startText={currencySymbol}
-          inputMode="decimal"
-          autoComplete="off"
-          value={values.unitPrice}
-          error={errors.unitPrice}
-          onChange={set("unitPrice")}
-        />
+        {/* With variations each has its own price (below), so the single price goes. */}
+        {values.variations.length === 0 ? (
+          <TextField
+            id={fid("unitPrice")}
+            name="unitPrice"
+            label={priceLabel}
+            startText={currencySymbol}
+            inputMode="decimal"
+            autoComplete="off"
+            value={values.unitPrice}
+            error={errors.unitPrice}
+            onChange={set("unitPrice")}
+          />
+        ) : (
+          <p className="text-base text-muted-foreground" data-testid="price-by-variation">
+            Each {values.variationLabel.trim().toLowerCase() || "variation"} has its own price, below.
+          </p>
+        )}
         <UnitField
           id={fid("unit")}
           name="unit"
@@ -228,6 +262,27 @@ export function ProductForm({
           />
         </Section>
       )}
+
+      <VariationsSection
+        label={values.variationLabel}
+        rows={values.variations}
+        suggestions={variationSuggestions}
+        errors={errors.variations}
+        priceLabel={priceLabel}
+        currencySymbol={currencySymbol}
+        fid={fid}
+        onChange={(change) => {
+          setEditedSinceSave(true);
+          setValues((v) => ({
+            ...v,
+            ...(change.label !== undefined ? { variationLabel: change.label } : {}),
+            ...(change.rows !== undefined ? { variations: change.rows } : {}),
+          }));
+        }}
+      />
+      {/* Sent as one field: the rows as a list, read and checked by the server. */}
+      <input type="hidden" name="variationLabel" value={values.variationLabel} />
+      <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 
       {COMING_SOON[values.kind].map(([title, description]) => (
         <ComingSoonSection key={title} title={title} description={description} />

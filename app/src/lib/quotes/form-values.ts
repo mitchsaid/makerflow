@@ -38,6 +38,9 @@ export type StoredQuoteFields = {
     discountKind: DiscountKind;
     discountValue: number;
     vatStatus?: VatStatus;
+    variationId?: string | null;
+    variationLabel?: string | null;
+    variationName?: string | null;
   }[];
 };
 
@@ -67,6 +70,9 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
       discountKind: l.discountKind,
       discountValue: discountText(l.discountKind, l.discountValue, style),
       vatStatus: l.vatStatus ?? "standard",
+      variationId: l.variationId ?? "",
+      variationLabel: l.variationLabel ?? "",
+      variationName: l.variationName ?? "",
     }));
   const fulfilmentLine = sorted.find((l) => l.kind === "delivery" || l.kind === "collection");
   const fulfilment: Fulfilment = fulfilmentLine ? (fulfilmentLine.kind as Fulfilment) : "none";

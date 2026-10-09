@@ -43,12 +43,23 @@ export async function saveQuoteDraft(
   const parsed = parseQuote(values, vatSettingsFor(profile, locale));
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
 
+  // A variation removed from its product since this draft was opened (another tab, or a revision being
+  // discarded): the item keeps its words, only the link goes.
+  const supabase = await createClient();
+  const variationIds = parsed.quote.lines.flatMap((l) => (l.variation?.id ? [l.variation.id] : []));
+  if (variationIds.length > 0) {
+    const { data: found } = await supabase.from("product_variations").select("id, product_id").in("id", variationIds);
+    const productOf = new Map((found ?? []).map((v: { id: string; product_id: string }) => [v.id, v.product_id]));
+    parsed.quote.lines = parsed.quote.lines.map((l) =>
+      l.variation?.id && productOf.get(l.variation.id) !== l.productId ? { ...l, variation: { ...l.variation, id: null } } : l,
+    );
+  }
+
   const payload = toDatabasePayload(parsed.quote, {
     countryCode: profile.countryCode,
     currencyCode: profile.currencyCode,
   });
 
-  const supabase = await createClient();
   const { data: id, error } = await supabase.rpc("save_quote_draft", {
     p_org: organisation.id,
     p_quote_id: quoteId,
@@ -60,6 +71,15 @@ export async function saveQuoteDraft(
       return {
         status: "error",
         message: "This quote can't be changed any more. Go back to your quotes and open it again.",
+      };
+    }
+    if (error?.code === "23503" && error.message.includes("quote_lines_variation_same_product")) {
+      return {
+        status: "error",
+        errors: {
+          fields: { lines: "One of the items has a choice that was just removed from its product. Open the item and choose again." },
+          lines: {},
+        },
       };
     }
     if (error?.code === "23503" && error.message.includes("quote_lines_product_same_org")) {

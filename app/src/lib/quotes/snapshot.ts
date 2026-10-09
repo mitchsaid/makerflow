@@ -58,6 +58,11 @@ export type SnapshotLine = {
    * it existed (every item was standard-rated then).
    */
   vatStatus?: VatStatus;
+  /**
+   * The variation chosen, as the item kept it: the product's word for the list and the variation's name.
+   * Absent on items without one, and on versions sent before variations existed.
+   */
+  variation?: { label: string; name: string } | null;
 };
 
 export type QuoteSnapshot = {
@@ -286,6 +291,7 @@ export function buildQuoteSnapshot(input: {
       // Photos only when the quote shows them, and only for lines that come from a product that has one.
       photoImageId: quote.showPhotos !== false && l.productId ? (input.productPhotos?.get(l.productId) ?? null) : null,
       ...(vat.registered ? { vatStatus: l.vatStatus } : {}),
+      ...(l.variation ? { variation: { label: l.variation.label, name: l.variation.name } } : {}),
     })),
     quoteDiscount: quote.quoteDiscount
       ? quote.quoteDiscount.kind === "percent"

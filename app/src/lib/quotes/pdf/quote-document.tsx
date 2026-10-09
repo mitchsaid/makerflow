@@ -7,6 +7,7 @@ import { IMAGE_OPACITY, themeFromStored } from "../themes";
 import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 import { vatView } from "../vat-view";
+import { itemName } from "../line-text";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -285,7 +286,7 @@ export function QuoteDocument({
                             )
                           ) : null}
                           <View style={styles.nameText}>
-                            <Text>{l.name}</Text>
+                            <Text>{itemName(l)}</Text>
                             {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                             {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
                             {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
@@ -307,7 +308,7 @@ export function QuoteDocument({
                 const photo = theme.photo !== "none" ? photoOf(l) : null;
                 const size = theme.layout === "cards" ? cardPhoto : theme.layout === "showcase" ? showcasePhoto : tablePhoto;
                 const shaded = theme.rows === "zebra" && i % 2 === 1;
-                const label = `${theme.numbered ? `${i + 1}. ` : ""}${l.name}`;
+                const label = `${theme.numbered ? `${i + 1}. ` : ""}${itemName(l)}`;
                 const meta = [theme.showQty ? quantityText(l.quantityMilli, l.unit, s.numberStyle, " ") : null, theme.showUnitPrice ? `${money(l.unitPriceCents)}${theme.showQty ? "" : " each"}` : null]
                   .filter(Boolean)
                   .join(theme.showQty && theme.showUnitPrice ? " × " : "");

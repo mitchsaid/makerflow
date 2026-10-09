@@ -2,7 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
-import type { Product, ProductKind, ProductSummary } from "./index";
+import type { ProductKind, ProductSummary } from "./index";
 
 /**
  * Product reads. Row-level security limits every query to businesses the signed-in person
@@ -22,9 +22,11 @@ type Row = {
   archived_at: string | null;
   photo_image_id: string | null;
   vat_status: VatStatus;
+  variation_label: string | null;
+  product_variations: { id: string; name: string; price_cents: number | string; usual: boolean; sort_order: number }[] | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -38,6 +40,10 @@ function fromRow(row: Row): ProductSummary {
     archived: row.archived_at !== null,
     photoImageId: row.photo_image_id,
     vatStatus: row.vat_status,
+    variationLabel: row.variation_label,
+    variations: [...(row.product_variations ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((v) => ({ id: v.id, name: v.name, priceCents: Number(v.price_cents), usual: v.usual })),
   };
 }
 
@@ -54,7 +60,7 @@ export async function getProducts(): Promise<ProductSummary[]> {
 }
 
 /** One product, or null for a bad id or one this person cannot see. */
-export async function findProduct(id: string): Promise<Product | null> {
+export async function findProduct(id: string): Promise<ProductSummary | null> {
   if (!UUID.test(id)) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.from("products").select(COLUMNS).eq("id", id).maybeSingle();
@@ -63,7 +69,7 @@ export async function findProduct(id: string): Promise<Product | null> {
 }
 
 /** One product. Shows the "not found" page for a bad or foreign id. */
-export async function getProduct(id: string): Promise<Product> {
+export async function getProduct(id: string): Promise<ProductSummary> {
   const product = await findProduct(id);
   if (!product) notFound();
   return product;
