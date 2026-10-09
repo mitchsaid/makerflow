@@ -27,8 +27,7 @@ export type OptionGroup = {
   values: OptionValue[];
 };
 
-/** One option on the form while it is being filled in. Ids are "" for new ones. */
-/** `prices`: by the variation row's key, when the option's price depends on the variation. */
+/** One list on the form while it is being filled in. Ids are "" for new ones. `prices`: by the variation row's key, when the choice's price depends on the variation. */
 export type OptionValueFormRow = { key: string; id: string; name: string; price: string; usual: boolean; prices?: Record<string, string> };
 export type OptionGroupFormRow = {
   key: string;

@@ -70,7 +70,7 @@ async function saveProduct(
     p_options: payload.options,
     p_extras: payload.extras,
   });
-  if (error?.code === "23505") {
+  if (error?.code === "23505" && error.message.includes("extras_shared_name_unique")) {
     return {
       ok: false,
       state: {

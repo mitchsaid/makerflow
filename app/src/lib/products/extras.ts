@@ -46,6 +46,12 @@ export type ExtraFormRow = {
   shared: boolean;
   /** Products that have it as saved (for "Used on 3 products"); 0 for a new one. */
   usedOn: number;
+  /**
+   * Changed on this form since it was opened or saved. A shared extra that was not changed is left as it is
+   * when the product is saved, so a form that is out of date never puts an old price back on every product.
+   * Absent (an older form): changed.
+   */
+  edited?: boolean;
   priceByVariation?: boolean;
   /** By the variation row's key, when `priceByVariation`. */
   prices?: Record<string, string>;
@@ -60,6 +66,8 @@ export type ParsedExtra = {
   shared: boolean;
   priceByVariation: boolean;
   prices: { variationIndex: number; priceCents: Cents }[];
+  /** False: a shared extra left as it is. */
+  changed: boolean;
 };
 
 export type ExtraRowErrors = { name?: string; price?: string; textMax?: string; prices?: Record<string, string> };
@@ -82,6 +90,7 @@ function isExtraRow(value: unknown): value is ExtraFormRow {
     typeof v.textMax === "string" &&
     typeof v.shared === "boolean" &&
     typeof v.usedOn === "number" &&
+    (v.edited === undefined || typeof v.edited === "boolean") &&
     (v.priceByVariation === undefined || typeof v.priceByVariation === "boolean") &&
     pricesOk
   );
@@ -158,6 +167,7 @@ export function parseExtras(
         shared: row.shared,
         priceByVariation: byVariation,
         prices,
+        changed: row.edited !== false,
       });
     }
   }
@@ -174,6 +184,7 @@ export function extrasPayload(extras: readonly ParsedExtra[]) {
     asks_for_wording: x.asksForWording,
     text_max: x.textMax,
     shared: x.shared,
+    changed: x.changed,
     price_by_variation: x.priceByVariation,
     ...(x.priceByVariation ? { prices: x.prices.map((p) => ({ variation_index: p.variationIndex, price_cents: p.priceCents })) } : {}),
   }));

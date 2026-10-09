@@ -92,6 +92,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       textMax: x.textMax === EXTRA_TEXT_DEFAULT ? "" : String(x.textMax),
       shared: x.shared,
       usedOn: x.usedOn,
+      edited: false,
       priceByVariation: x.priceByVariation,
       prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
     })),

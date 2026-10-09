@@ -79,6 +79,12 @@ begin
   assert (select price_cents from public.extras where id = wrap) = 3500, 'the shared price did not change';
   assert (select count(*) from public.product_extras where product_id = cake and extra_id = wrap) = 1, 'the cake lost the shared extra';
 
+  -- A shared extra the form did not change is left as it is: an old form must not put an old price back everywhere.
+  perform public.save_product(org_a, cupcakes, pg_temp.product('Cupcakes'), null, null,
+    jsonb_build_array(jsonb_build_object('id', wrap, 'name', 'Gift wrap', 'price_cents', 100, 'shared', true, 'changed', false)));
+  assert (select price_cents from public.extras where id = wrap) = 3500, 'an unchanged shared extra was overwritten';
+  assert exists (select 1 from public.product_extras where product_id = cupcakes and extra_id = wrap), 'its place on the product was lost';
+
   -- A shared name is used once; a different case counts as the same.
   begin
     perform public.save_product(org_a, cupcakes, pg_temp.product('Cupcakes'), null, null,
@@ -205,6 +211,14 @@ begin
     raise exception 'FAIL: extras that are not a list were accepted';
   exception when invalid_parameter_value then null;
   end;
+  -- A product with the most it can have still saves again (the limit counts new rows only).
+  perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, null,
+    (select jsonb_agg(jsonb_build_object('name', 'F' || i, 'price_cents', 1, 'shared', false)) from generate_series(1, 40) i));
+  perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, null,
+    (select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'price_cents', 2, 'shared', false) order by pe.sort_order)
+       from public.product_extras pe join public.extras e on e.id = pe.extra_id where pe.product_id = cake));
+  assert (select count(*) from public.product_extras where product_id = cake) = 40, 'a full product lost extras on a second save';
+  assert (select bool_and(price_cents = 2) from public.extras e join public.product_extras pe on pe.extra_id = e.id where pe.product_id = cake), 'a full product did not save its changes';
   begin
     perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, null,
       (select jsonb_agg(jsonb_build_object('name', 'E' || i, 'price_cents', 1, 'shared', false)) from generate_series(1, 41) i));

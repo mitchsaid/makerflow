@@ -76,7 +76,9 @@ export function OptionChoices({
   });
   // What is on the item but not shown by the product's lists and extras as they are now.
   const kept = chosen.filter((o) => !shown.has(o));
+  // Changing an entry keeps its place (typing in an extra's box must not move it to the end of what prints).
   const replace = (from: LineOption | undefined, to: LineOption | null) => {
+    if (from && to) return onChange(chosen.map((o) => (o === from ? to : o)));
     const rest = chosen.filter((o) => o !== from);
     onChange(to ? [...rest, to] : rest);
   };
@@ -100,7 +102,9 @@ export function OptionChoices({
               value={value}
               onValueChange={(key) => {
                 const v = g.values.find((x) => x.id === key);
-                onChange([...others(g), ...(v ? [copyOf(g, v)] : [])]);
+                const had = mine[0];
+                if (v && had) onChange(chosen.map((o) => (o === had ? copyOf(g, v) : o)));
+                else onChange([...others(g), ...(v ? [copyOf(g, v)] : [])]);
               }}
               className="gap-2"
             >

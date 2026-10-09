@@ -222,6 +222,10 @@ create policy session_required on public.extra_variation_prices
 -- The new extra keeps the id of the value (or option) it comes from, so quote items that chose it still match.
 -- ---------------------------------------------------------------------------
 
+-- The old limits (20 options of 50 values) allow more extras than a product can be given now; the conversion
+-- loses none of them. Such a product can be saved again once it has 40 or fewer.
+alter table public.product_extras disable trigger product_extras_limit;
+
 insert into public.extras (id, organisation_id, product_id, name, price_cents, asks_for_wording, text_max, price_by_variation)
 select v.id, g.organisation_id, g.product_id, v.name, v.price_cents, false, 100, g.price_by_variation
   from public.product_option_values v
@@ -245,6 +249,8 @@ select organisation_id, product_id, extra_id, least(1000, (row_number() over (pa
       from public.product_option_groups g where g.kind = 'text'
   ) x;
 
+alter table public.product_extras enable trigger product_extras_limit;
+
 insert into public.extra_variation_prices (organisation_id, extra_id, variation_id, price_cents)
 select p.organisation_id, p.value_id, p.variation_id, p.price_cents
   from public.product_option_value_prices p
@@ -266,6 +272,7 @@ update public.quote_lines l
  where l.options @> '[{"kind": "text"}]';
 
 delete from public.product_option_groups where kind in ('any', 'text');
+alter table public.product_option_groups drop constraint product_option_groups_kind_check;
 alter table public.product_option_groups
   add constraint product_option_groups_kind_one check (kind = 'one');
 
@@ -276,6 +283,8 @@ alter table public.product_option_groups
 --   * a shared extra is updated in place (that is the "changes everywhere" the form announces);
 --   * a shared extra turned into "this product only" while other products have it is copied for this one;
 --   * a product-only extra turned shared becomes shared;
+--   * a shared extra the form did not change ("changed": false) is left as it is, so an old form never puts an
+--     old price back on every product;
 --   * an extra no longer listed is taken off the product (a product-only one is deleted, and a shared one
 --     that no product has any more is deleted).
 -- ---------------------------------------------------------------------------
@@ -303,7 +312,7 @@ declare
   x record;
   xid uuid;
   found_product uuid;
-  found boolean;
+  x_found boolean;
   want_shared boolean;
   detached uuid[];
   label text := nullif(btrim(p_product ->> 'variation_label'), '');
@@ -514,23 +523,26 @@ begin
     loop
       want_shared := coalesce((x.body ->> 'shared')::boolean, true);
       xid := null;
-      found := false;
+      x_found := false;
       found_product := null;
       -- An extra this business has, shared or for this product.
       select e.id, e.product_id into xid, found_product
         from public.extras e
        where e.id::text = x.body ->> 'id' and e.organisation_id = p_org and (e.product_id is null or e.product_id = pid);
-      found := xid is not null;
+      x_found := xid is not null;
 
-      if found and found_product is null and not want_shared
+      if x_found and found_product is null and not want_shared
          and exists (select 1 from public.product_extras pe where pe.extra_id = xid and pe.product_id <> pid) then
         -- Shared, used on other products, and now "this product only": this product gets its own copy.
         delete from public.product_extras where product_id = pid and extra_id = xid;
         xid := null;
-        found := false;
+        x_found := false;
       end if;
 
-      if found then
+      if x_found and found_product is null and want_shared and not coalesce((x.body ->> 'changed')::boolean, true) then
+        -- A shared extra left as it was: nothing to save but its place on this product.
+        null;
+      elsif x_found then
         update public.extras set
           name = x.body ->> 'name',
           price_cents = coalesce((x.body ->> 'price_cents')::bigint, 0),
@@ -551,9 +563,12 @@ begin
         returning id into xid;
       end if;
 
-      insert into public.product_extras (organisation_id, product_id, extra_id, sort_order)
-      values (p_org, pid, xid, x.ord - 1)
-      on conflict (product_id, extra_id) do update set sort_order = excluded.sort_order;
+      -- Its place on this product. (An update first: the limit of 40 counts new rows only.)
+      update public.product_extras set sort_order = x.ord - 1 where product_id = pid and extra_id = xid;
+      if not found then
+        insert into public.product_extras (organisation_id, product_id, extra_id, sort_order)
+        values (p_org, pid, xid, x.ord - 1);
+      end if;
 
       -- Prices by variation (product-only extras), by the variation's place in the product's list.
       delete from public.extra_variation_prices where extra_id = xid and organisation_id = p_org;

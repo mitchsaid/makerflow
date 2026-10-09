@@ -99,7 +99,12 @@ describe("extra amounts and words", () => {
   it("becomes what save_product takes, with ids kept", () => {
     const r = parseExtras([row({ id: ID, asksForWording: true, textMax: "40" })]);
     expect(r.ok && extrasPayload(r.extras)).toEqual([
-      { id: ID, name: "Gift wrap", price_cents: 3000, asks_for_wording: true, text_max: 40, shared: true, price_by_variation: false },
+      { id: ID, name: "Gift wrap", price_cents: 3000, asks_for_wording: true, text_max: 40, shared: true, changed: true, price_by_variation: false },
     ]);
+  });
+
+  it("says whether an extra was changed on the form, so an old form leaves a shared extra alone", () => {
+    const r = parseExtras([row({ id: ID, edited: false }), row({ key: "x2", name: "Box", edited: true }), row({ key: "x3", name: "Card" })]);
+    expect(r.ok && r.extras.map((x) => x.changed)).toEqual([false, true, true]);
   });
 });

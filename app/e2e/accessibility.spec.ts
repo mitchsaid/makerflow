@@ -320,6 +320,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "product extras, priced by size");
       await page.getByLabel("Engraving adds for Small", { exact: true }).fill("5");
       await page.getByLabel("Engraving adds for Large", { exact: true }).fill("9");
+      // Saved first: a card that has a problem stays open until the next save.
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
       await page.getByRole("button", { name: "Done Engraving" }).click();
       await page.getByRole("button", { name: "Add an extra" }).click();
       await expect(page.getByLabel("Extra name")).toBeFocused();

@@ -52,6 +52,9 @@ Unit: variation list parsing and the form; extras parsing (wording, shared or pr
 - A shared extra shows "Also on 2 other products. Changing it changes it there too." Removing a shared extra takes it off this product only; one that no product has any more is deleted. A new shared extra whose name another has is refused ("You already have a saved extra with that name").
 - The item sheet: lists as rows to pick one from, extras as ticks. A ticked extra has "how many (optional)" (whole numbers; empty: one for each item) and, when it asks for wording, "what should it say?" (needed). The sum reads "12 × R24,00 + R30,00 = R318,00".
 - Money: `extraCents` on a line (`lib/money/document.ts`) is the extras for a fixed count; extras for each item stay in the price each. The snapshot's option has an optional `quantityMilli`; "once for the line" from before reads as a count of one.
+- A shared extra is saved once for every product, so a product's form only sends a shared extra it changed ("changed": false leaves it as it is): an old form never puts an old price back on every product. If two people change the same shared extra, the last save wins.
+- A shared extra turned "this product only" while other products have it gives this product a new copy (a new id); quote items that ticked the old one keep their copy ("Kept as they were"), and a new item's sheet drops it if the product is edited from the sheet.
+- The 40-extras limit counts new rows only, so a full product can still be saved; the conversion of old options is not limited (an old product could have up to 1000), and such a product is asked to come down to 40 the next time it is saved.
 - A zero price by size is kept as "0" when a product is opened again (it used to come back empty and ask again).
 
 ## Not built

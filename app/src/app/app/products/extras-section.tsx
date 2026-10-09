@@ -52,10 +52,12 @@ export function ExtrasSection({
     pendingFocus.current = null;
   });
 
-  const setRow = (key: string, change: Partial<ExtraFormRow>) => onChange(rows.map((r) => (r.key === key ? { ...r, ...change } : r)));
+  // Any change marks the extra as edited: a shared extra the person did not touch is left as it is on save.
+  const setRow = (key: string, change: Partial<ExtraFormRow>) =>
+    onChange(rows.map((r) => (r.key === key ? { ...r, ...change, edited: true } : r)));
 
   function addNew() {
-    const row: ExtraFormRow = { key: nextKey(), id: "", name: "", price: "", asksForWording: false, textMax: "", shared: true, usedOn: 0 };
+    const row: ExtraFormRow = { key: nextKey(), id: "", name: "", price: "", asksForWording: false, textMax: "", shared: true, usedOn: 0, edited: true };
     onChange([...rows, row]);
     setPicker(null);
     setOpenKey(row.key);
@@ -73,10 +75,12 @@ export function ExtrasSection({
       shared: true,
       // The products that have it now, and this one.
       usedOn: x.usedOn + 1,
+      // As saved: taking it onto this product does not change it.
+      edited: false,
     };
     onChange([...rows, row]);
     setPicker(null);
-    pendingFocus.current = fid("add-extra");
+    pendingFocus.current = fid(`extra-${row.key}-toggle`);
   }
 
   async function startAdding() {
@@ -92,7 +96,10 @@ export function ExtrasSection({
       const onThis = new Set(rows.map((r) => r.id).filter(Boolean));
       const offer = result.extras.filter((x) => !onThis.has(x.id));
       if (offer.length === 0) addNew();
-      else setPicker(offer);
+      else {
+        setPicker(offer);
+        pendingFocus.current = fid("extras-picker");
+      }
     } catch {
       setMessage("Couldn't reach the server. Check your connection and try again.");
     } finally {
@@ -124,6 +131,7 @@ export function ExtrasSection({
                     <p className="text-sm text-muted-foreground">{summary}</p>
                   </div>
                   <Button
+                    id={fid(`extra-${x.key}-toggle`)}
                     type="button"
                     variant="outline"
                     aria-expanded={open}
@@ -281,7 +289,9 @@ export function ExtrasSection({
 
       {picker ? (
         <div role="group" aria-label="Add an extra" className="space-y-2">
-          <p className="text-base font-medium">One you already have, or a new one?</p>
+          <p id={fid("extras-picker")} tabIndex={-1} className="text-base font-medium outline-none">
+            One you already have, or a new one?
+          </p>
           <ul className="space-y-2">
             {picker.map((x) => (
               <li key={x.id}>
@@ -304,7 +314,14 @@ export function ExtrasSection({
             <Button type="button" variant="outline" onClick={addNew}>
               Make a new extra
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setPicker(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setPicker(null);
+                pendingFocus.current = fid("add-extra");
+              }}
+            >
               Cancel
             </Button>
           </div>

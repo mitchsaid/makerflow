@@ -144,7 +144,7 @@ export function ProductForm({
         ...v,
         extras:
           savedExtras.length === sentExtras && v.extras.length === sentExtras
-            ? v.extras.map((r, i) => ({ ...r, id: savedExtras[i].id, shared: savedExtras[i].shared, usedOn: savedExtras[i].usedOn }))
+            ? v.extras.map((r, i) => ({ ...r, id: savedExtras[i].id, shared: savedExtras[i].shared, usedOn: savedExtras[i].usedOn, edited: false }))
             : v.extras,
         variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })),
         options: v.options.map((g) => ({
