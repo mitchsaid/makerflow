@@ -1,5 +1,6 @@
 import { moneyToInput, type NumberStyle, type VatStatus } from "@/lib/money";
-import type { Product, ProductKind } from "@/lib/products";
+import type { ProductKind, ProductSummary } from "@/lib/products";
+import type { VariationFormRow } from "@/lib/products/variations";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
 export type ProductFormValues = {
@@ -13,9 +14,22 @@ export type ProductFormValues = {
   photoImageId: string;
   /** How VAT treats it. Only shown, and sent, for a VAT-registered business. */
   vatStatus: VatStatus;
+  /** The maker's word for the variations ("Size"), and the rows. No rows: one price. */
+  variationLabel: string;
+  variations: VariationFormRow[];
 };
 
-export const EMPTY_PRODUCT: ProductFormValues = { kind: "product", name: "", unitPrice: "", unit: "", description: "", photoImageId: "", vatStatus: "standard" };
+export const EMPTY_PRODUCT: ProductFormValues = {
+  kind: "product",
+  name: "",
+  unitPrice: "",
+  unit: "",
+  description: "",
+  photoImageId: "",
+  vatStatus: "standard",
+  variationLabel: "",
+  variations: [],
+};
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
   return { ...EMPTY_PRODUCT, kind };
@@ -32,7 +46,7 @@ export function listHref(kind: ProductKind): string {
   return kind === "service" ? "/app/products?view=services" : "/app/products";
 }
 
-export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormValues {
+export function valuesFromProduct(p: ProductSummary, style: NumberStyle): ProductFormValues {
   return {
     kind: p.kind,
     name: p.name,
@@ -41,6 +55,8 @@ export function valuesFromProduct(p: Product, style: NumberStyle): ProductFormVa
     description: p.description ?? "",
     photoImageId: p.photoImageId ?? "",
     vatStatus: p.vatStatus ?? "standard",
+    variationLabel: p.variationLabel ?? "",
+    variations: p.variations.map((x) => ({ key: x.id, id: x.id, name: x.name, price: moneyToInput(x.priceCents, style), usual: x.usual })),
   };
 }
 

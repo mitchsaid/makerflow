@@ -15,6 +15,7 @@ import {
 import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
+import { VARIATION_LABEL_MAX, VARIATION_NAME_MAX } from "../products/variations";
 import { depositColumns, isDepositKind, parseDeposit, type DepositFormValues, type ParsedDeposit } from "./deposit";
 
 /**
@@ -64,6 +65,13 @@ export type LineFormValues = {
   discountValue: string;
   /** How VAT treats this item. Only a VAT-registered business sees it; everything else is standard. */
   vatStatus?: VatStatus;
+  /**
+   * The product's variation chosen for this item ("" for none): its id, and this item's own copy of the
+   * product's word for the list ("Size") and the variation's name ("Large"). Absent from an older app.
+   */
+  variationId?: string;
+  variationLabel?: string;
+  variationName?: string;
 };
 
 export type QuoteFormValues = {
@@ -105,7 +113,7 @@ export type QuoteFormValues = {
 };
 
 export type LineErrors = Partial<
-  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue", string>
+  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue" | "variation", string>
 >;
 
 export type QuoteErrors = {
@@ -148,6 +156,8 @@ export type ParsedLine = {
   unitPriceCents: Cents;
   discount?: Discount;
   vatStatus: VatStatus;
+  /** The variation chosen (a copy of its words), or null. */
+  variation: { id: string | null; label: string; name: string } | null;
 };
 
 export type ParsedQuote = {
@@ -250,7 +260,9 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
       DISCOUNT_KINDS.includes(l.discountKind) &&
       ITEM_KINDS.includes(l.kind) &&
       // An older app does not send it: that means standard-rated.
-      (l.vatStatus === undefined || VAT_STATUSES.includes(l.vatStatus as VatStatus))
+      (l.vatStatus === undefined || VAT_STATUSES.includes(l.vatStatus as VatStatus)) &&
+      // Nor the variation: that means none.
+      ["variationId", "variationLabel", "variationName"].every((key) => l[key] === undefined || typeof l[key] === "string")
     );
   });
 }
@@ -336,6 +348,21 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   const discount = discountFrom(line.discountKind, line.discountValue);
   if (!discount.ok) errors.discountValue = discount.error;
 
+  // The variation: its own copy of the words; a link only to a product's variation.
+  const variationName = (line.variationName ?? "").trim();
+  const variationLabel = (line.variationLabel ?? "").trim();
+  const variationId = line.variationId ?? "";
+  let variation: ParsedLine["variation"] = null;
+  if (variationName !== "" || variationId !== "") {
+    if (!fromProduct || variationName === "" || variationLabel === "" || (variationId !== "" && !UUID.test(variationId))) {
+      errors.variation = "This item's choice could not be read. Choose it again.";
+    } else if (variationName.length > VARIATION_NAME_MAX || variationLabel.length > VARIATION_LABEL_MAX) {
+      errors.variation = "This item's choice has too long a name. Shorten it on the product.";
+    } else {
+      variation = { id: variationId || null, label: variationLabel, name: variationName };
+    }
+  }
+
   if (Object.keys(errors).length > 0 || !name.ok || !description.ok || !quantity.ok || !unit.ok || !price.ok || !discount.ok) {
     return { ok: false, errors };
   }
@@ -352,6 +379,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       unitPriceCents: price.value,
       discount: discount.value,
       vatStatus: line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
+      variation,
     },
   };
 }
@@ -374,14 +402,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard" },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard" },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null },
   };
 }
 
@@ -551,6 +579,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       unitPriceCents: price.value,
       discount: discount.ok ? discount.value : undefined,
       vatStatus: vat.registered && line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
+      variation: null,
     });
   }
   const fulfilment = fulfilmentLine(values);
@@ -617,6 +646,9 @@ export function toDatabasePayload(
           : l.discount.cents
         : 0,
       vat_status: l.vatStatus,
+      variation_id: l.variation?.id ?? null,
+      variation_label: l.variation?.label ?? null,
+      variation_name: l.variation?.name ?? null,
     })),
   };
 }

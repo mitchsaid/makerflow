@@ -1,6 +1,6 @@
 # Plan: product variations, and options and extras
 
-Status: **decisions made with the founder 2026-10-09; building in three slices.** Replaces the "Variations and extras" placeholder on products and in the item sheet. Migrations and the change to how a line's amount is worked out need human review (money).
+Status: **decisions made with the founder 2026-10-09; building in three slices. Slice 1 (variations) built 2026-10-09** (migration `20261020100000_product_variations.sql`, needs human review). Replaces the "Variations and extras" placeholder on products and in the item sheet. Migrations and the change to how a line's amount is worked out need human review (money).
 
 ## Decisions (founder, 2026-10-09)
 1. **Two concepts, not one** (after comparing Shopify, Square and WooCommerce, below):

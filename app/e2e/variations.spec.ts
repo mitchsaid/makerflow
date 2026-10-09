@@ -1,0 +1,103 @@
+import { expect, test, type Page } from "@playwright/test";
+import { signUpAndOnboard } from "./helpers";
+import { item, rand, sheet } from "./quote-helpers";
+
+/** Fills the variation rows on the product form, in order. */
+async function fillVariations(page: Page, rows: [string, string][]) {
+  for (const [i, [name, price]] of rows.entries()) {
+    const row = page.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }) });
+    await row.getByLabel(`Size ${i + 1}`, { exact: true }).fill(name);
+    await row.getByLabel("Price", { exact: true }).fill(price);
+  }
+}
+
+test("a product with sizes: each has its price, the usual one comes first, and the quote and document say which", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "var-sizes", "Sizes Co");
+
+  // The product: two rows to start, the list called "Size" (a suggestion), a third added.
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByRole("button", { name: "Add variations" }).click();
+  await expect(page.getByLabel("What do you call them?")).toHaveValue("Size");
+  await expect(page.getByLabel("Price", { exact: true })).toHaveCount(2);
+  await expect(page.getByTestId("price-by-variation")).toBeVisible();
+  await fillVariations(page, [["Small", "300"], ["Small", ""]]);
+
+  // Problems are shown at their rows and in the summary, and nothing typed is lost.
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("form-summary")).toBeVisible();
+  await expect(page.getByTestId("form-summary")).toContainText("Two have this name");
+  await expect(page.getByTestId("form-summary")).toContainText("Enter a price");
+  await expect(page.getByLabel("Size 1", { exact: true })).toHaveValue("Small");
+
+  await fillVariations(page, [["Small", "300"], ["Medium", "450"]]);
+  await page.getByRole("button", { name: "Add another" }).click();
+  await expect(page.getByRole("textbox", { name: "Size 3", exact: true })).toBeFocused();
+  await fillVariations(page, [["Small", "300"], ["Medium", "450"], ["Large", "600"]]);
+  await page.getByLabel("Usual size").selectOption({ label: "Medium" });
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Wedding cake.");
+  await expect(page.getByRole("link", { name: /Wedding cake/ })).toContainText(/from R\s?300,00/);
+
+  // On a quote: the usual one is chosen, with its price; another can be chosen and the price follows.
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await expect(sheet(page).getByRole("button", { name: /Wedding cake/ })).toContainText(/from R\s?300,00/);
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  const choose = sheet(page).getByRole("group", { name: "Choose a size" });
+  await expect(choose.getByRole("radio", { name: /Medium/ })).toBeChecked();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("450");
+  await choose.getByRole("radio", { name: /Large/ }).check();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("600");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(item(page, 1)).toContainText("Large");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("600"));
+
+  // A price changed by hand for this quote stays when the size changes.
+  await item(page, 1).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByLabel(/^Price/).fill("650");
+  await sheet(page).getByRole("group", { name: "Choose a size" }).getByRole("radio", { name: /Small/ }).check();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("650");
+  await expect(sheet(page).getByTestId("product-price-hint")).toContainText(/price for Small is R\s?300,00/);
+  await sheet(page).getByTestId("product-price-hint").getByRole("button").click();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("300");
+  await sheet(page).getByRole("group", { name: "Choose a size" }).getByRole("radio", { name: /Large/ }).check();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("600");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  const quoteUrl = page.url().split("?")[0];
+  await page.goto(`${quoteUrl}/preview`);
+  await expect(page.getByRole("region", { name: "The quote as text" })).toContainText("Wedding cake, Large");
+
+  // Without a usual one, a size must be chosen before the item can be added.
+  await page.goto("/app/products");
+  await page.getByRole("link", { name: /Wedding cake/ }).click();
+  await page.getByLabel("Usual size").selectOption({ label: "None: I choose each time" });
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  await expect(sheet(page).getByRole("group", { name: "Choose a size" }).getByRole("radio", { checked: true })).toHaveCount(0);
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page).getByTestId("form-summary")).toContainText("Choose a size.");
+  await sheet(page).getByRole("group", { name: "Choose a size" }).getByRole("radio", { name: /Small/ }).check();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("300");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(item(page, 1)).toContainText("Small");
+
+  // Removing a size from the product leaves the saved quote's item as it was.
+  await page.goto("/app/products");
+  await page.getByRole("link", { name: /Wedding cake/ }).click();
+  await page.getByRole("button", { name: "Remove Large" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.goto(quoteUrl);
+  await expect(item(page, 1)).toContainText("Large");
+  await item(page, 1).getByRole("button", { name: /Edit/ }).click();
+  await expect(sheet(page).getByRole("radio", { name: /Large/ })).toBeChecked();
+  await expect(sheet(page).getByRole("group", { name: "Choose a size" })).toContainText("No longer on the product");
+});

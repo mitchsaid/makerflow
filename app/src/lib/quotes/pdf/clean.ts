@@ -34,6 +34,7 @@ export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
       name: drawable(l.name),
       description: clean(l.description),
       unit: clean(l.unit ?? null),
+      ...(l.variation ? { variation: { label: drawable(l.variation.label), name: drawable(l.variation.name) } } : {}),
     })),
     notes: clean(snapshot.notes),
     deliveryAddress: clean(snapshot.deliveryAddress ?? null),

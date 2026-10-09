@@ -25,10 +25,13 @@ import { UnitField } from "@/components/unit-field";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
 import type { VatStatus } from "@/lib/money";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
+import type { BusinessType } from "@/lib/business-types";
+import { variationSuggestions } from "@/lib/products/variations";
+import { VariationChoice } from "./variation-choice";
 import { parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
-import { emptyOfKind, KIND_WORDS, type ProductFormValues } from "../products/product-values";
+import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 
 /**
  * Where the item sheet is: choosing what to add, configuring one line, or the product form
@@ -51,6 +54,10 @@ export type LineSheetView =
 const SEARCH_LIMIT = 30;
 
 export function lineFromProduct(product: ProductSummary, key: string, style: NumberStyle): LineFormValues {
+  // A product with variations starts with its usual one, or none (then one must be chosen, and the price
+  // comes with it).
+  const usual = product.variations.find((v) => v.usual);
+  const hasVariations = product.variations.length > 0;
   return {
     key,
     kind: product.kind,
@@ -59,11 +66,14 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     description: product.description ?? "",
     quantity: "1",
     unit: product.unit ?? "",
-    unitPrice: moneyToInput(product.unitPriceCents, style),
+    unitPrice: hasVariations ? (usual ? moneyToInput(usual.priceCents, style) : "") : moneyToInput(product.unitPriceCents, style),
     discountKind: "none",
     discountValue: "",
     // The product's usual treatment (the item keeps its own copy and can be changed).
     vatStatus: product.vatStatus,
+    variationId: usual?.id ?? "",
+    variationLabel: usual ? (product.variationLabel ?? "") : "",
+    variationName: usual?.name ?? "",
   };
 }
 
@@ -75,6 +85,7 @@ export function LineSheet({
   currencyCode,
   priceLabel,
   vatChoices,
+  businessTypes,
   newKey,
   onView,
   onClose,
@@ -92,6 +103,8 @@ export function LineSheet({
   priceLabel: string;
   /** How VAT can treat an item, in the country's words; null when the business is not VAT registered. */
   vatChoices: VatChoice[] | null;
+  /** What the business makes, to suggest names for a new product's variations. */
+  businessTypes: BusinessType[] | null;
   /** A fresh key for a line that is about to be added. */
   newKey: () => string;
   onView: (view: LineSheetView) => void;
@@ -197,9 +210,10 @@ export function LineSheet({
               key={view.product?.id ?? "add"}
               mode={view.mode}
               action={view.mode === "add" ? createProductInQuote : updateProduct.bind(null, view.product!.id)}
-              initial={view.product ? productValues(view.product, numberStyle) : emptyOfKind(view.productKind ?? "product")}
+              initial={view.product ? valuesFromProduct(view.product, numberStyle) : emptyOfKind(view.productKind ?? "product")}
               priceLabel={priceLabel}
               vatChoices={vatChoices}
+              variationSuggestions={variationSuggestions(businessTypes, view.product?.kind ?? view.productKind ?? "product")}
               currencySymbol={symbol}
               idPrefix="product-sheet-"
               embedded={{
@@ -254,18 +268,20 @@ function followProduct(
         ? moneyToInput(after.unitPriceCents, style)
         : line.unitPrice,
     vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
+    ...followVariation(line, before, after, style),
   };
 }
 
-function productValues(p: ProductSummary, style: NumberStyle): ProductFormValues {
+/** The chosen variation after its product was edited: renamed, repriced or removed. */
+function followVariation(line: LineFormValues, before: ProductSummary, after: ProductSummary, style: NumberStyle): Partial<LineFormValues> {
+  if (!line.variationId) return {};
+  const was = before.variations.find((v) => v.id === line.variationId);
+  const now = after.variations.find((v) => v.id === line.variationId);
+  if (!now) return { variationId: "", variationLabel: "", variationName: "" };
   return {
-    kind: p.kind,
-    name: p.name,
-    unitPrice: moneyToInput(p.unitPriceCents, style),
-    unit: p.unit ?? "",
-    description: p.description ?? "",
-    photoImageId: p.photoImageId ?? "",
-    vatStatus: p.vatStatus,
+    variationLabel: after.variationLabel ?? line.variationLabel,
+    variationName: now.name,
+    ...(was && line.unitPrice === moneyToInput(was.priceCents, style) ? { unitPrice: moneyToInput(now.priceCents, style) } : {}),
   };
 }
 
@@ -323,7 +339,7 @@ function PickView({
                     <span className="flex items-baseline justify-between gap-3">
                       <span className="font-medium">{p.name}</span>
                       <span className="shrink-0">
-                        {money(p.unitPriceCents)}
+                        {p.variations.length > 0 ? "from " : ""}{money(p.unitPriceCents)}
                         {p.unit ? ` / ${p.unit}` : ""}
                       </span>
                     </span>
@@ -408,8 +424,34 @@ function ConfigureView({
   const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) =>
     setLine((l) => ({ ...l, [key]: value }));
 
+  // The product's variations, and the one this item has kept if the product no longer lists it.
+  const variations = product?.variations ?? [];
+  const word = (product?.variationLabel ?? line.variationLabel ?? "").trim() || "Option";
+  const chosen = variations.find((v) => v.id === line.variationId);
+  const keptOwn = !chosen && (line.variationName ?? "") !== "";
+  const showVariations = variations.length > 0 || keptOwn;
+  function chooseVariation(key: string) {
+    if (key === "kept") return;
+    const next = variations.find((v) => v.id === key);
+    if (!next) return;
+    setLine((l) => {
+      const previous = variations.find((v) => v.id === l.variationId);
+      // The price follows the variation, unless it was changed by hand for this quote.
+      const follows = l.unitPrice.trim() === "" || (previous !== undefined && l.unitPrice === moneyToInput(previous.priceCents, numberStyle));
+      return {
+        ...l,
+        variationId: next.id,
+        variationName: next.name,
+        variationLabel: product?.variationLabel ?? l.variationLabel ?? "",
+        unitPrice: follows ? moneyToInput(next.priceCents, numberStyle) : l.unitPrice,
+      };
+    });
+  }
+
   const typedPrice = parseMoney(line.unitPrice);
-  const priceDiffers = product !== undefined && (!typedPrice.ok || typedPrice.value !== product.unitPriceCents);
+  // What the product charges for what is chosen (its variation's price when it has variations).
+  const referencePrice = variations.length > 0 ? chosen?.priceCents : product?.unitPriceCents;
+  const priceDiffers = product !== undefined && referencePrice !== undefined && (!typedPrice.ok || typedPrice.value !== referencePrice);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -417,8 +459,10 @@ function ConfigureView({
     event.stopPropagation();
     const result = parseLine(line);
     setAttempt((n) => n + 1);
-    if (!result.ok) {
-      setErrors(result.errors);
+    // A product with variations needs one chosen (the database cannot know: lines keep their own copy).
+    const mustChoose = variations.length > 0 && !line.variationName ? { variation: `Choose a ${word.toLowerCase()}.` } : {};
+    if (!result.ok || Object.keys(mustChoose).length > 0) {
+      setErrors({ ...(result.ok ? {} : result.errors), ...mustChoose });
       return;
     }
     setErrors({});
@@ -428,6 +472,7 @@ function ConfigureView({
   const problems: FormProblem[] = (
     [
       ["name", "Name"],
+      ["variation", word],
       ["quantity", "Quantity"],
       ["unit", "Unit"],
       ["unitPrice", priceLabel],
@@ -480,6 +525,24 @@ function ConfigureView({
           />
         )}
         {line.productId && errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+        {showVariations && (
+          <VariationChoice
+            id={id("variation")}
+            word={word}
+            value={keptOwn ? "kept" : (chosen?.id ?? "")}
+            error={errors.variation}
+            onChange={(key) => {
+              setErrors((e) => ({ ...e, variation: undefined }));
+              chooseVariation(key);
+            }}
+            options={[
+              ...variations.map((v) => ({ key: v.id, name: v.name, priceText: money(v.priceCents) })),
+              ...(keptOwn
+                ? [{ key: "kept", name: line.variationName ?? "", priceText: "", note: `No longer on the ${product ? KIND_WORDS[product.kind].one : "product"}. Kept as it was.` }]
+                : []),
+            ]}
+          />
+        )}
         <div className="grid grid-cols-2 gap-3">
           <TextField
             id={id("quantity")}
@@ -502,18 +565,20 @@ function ConfigureView({
           error={errors.unitPrice}
           onChange={set("unitPrice")}
         />
-        {product && priceDiffers && (
+        {product && priceDiffers && referencePrice !== undefined && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">
-              The {KIND_WORDS[product.kind].one}&apos;s price is {money(product.unitPriceCents)}.
+              {chosen
+                ? `The ${KIND_WORDS[product.kind].one}'s price for ${chosen.name} is ${money(referencePrice)}.`
+                : `The ${KIND_WORDS[product.kind].one}'s price is ${money(referencePrice)}.`}
             </span>
             <Button
               type="button"
               variant="link"
               className="h-auto p-0"
-              onClick={() => set("unitPrice")(moneyToInput(product.unitPriceCents, numberStyle))}
+              onClick={() => set("unitPrice")(moneyToInput(referencePrice, numberStyle))}
             >
-              Use {money(product.unitPriceCents)}
+              Use {money(referencePrice)}
             </Button>
           </div>
         )}
@@ -568,8 +633,8 @@ function ConfigureView({
       </Section>
 
       <ComingSoonSection
-        title="Variations and extras"
-        description="Choose this item's options, like size or flavour, and any add-ons, each with its own price."
+        title="Options and extras"
+        description="Choose this item's options, like flavour, add-ons like gold leaf or a gift box, and text like a message on the cake."
       />
 
       <FormSummary problems={problems} trigger={attempt} />

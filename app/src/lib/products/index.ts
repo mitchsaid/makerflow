@@ -2,6 +2,7 @@ import { optionalMultiline, optionalText } from "../form-values";
 import { isImageId } from "../images";
 import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
+import { parseVariations, type ParsedVariation, type ProductVariation, type VariationErrors } from "./variations";
 
 /**
  * Products, first layer: what a business sells, with a name, a price, an optional
@@ -34,12 +35,22 @@ export type ProductFields = {
    * product did not carry one (a business that is not VAT registered never sees the choice): it is left as it is.
    */
   vatStatus?: VatStatus;
+  /**
+   * The variations and the maker's word for them. Undefined when the form that saved the product did not
+   * carry them (an older app): they are left as they are. With variations, the product's own price is
+   * the lowest of theirs.
+   */
+  variationLabel?: string | null;
+  variations?: ParsedVariation[];
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
 
 export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "unit" | "photo" | "vatStatus";
-export type ProductFieldErrors = Partial<Record<ProductFieldName, string>>;
+export type ProductFieldErrors = Partial<Record<ProductFieldName, string>> & {
+  /** Problems with the variations: their name, the list, and each row by its key. */
+  variations?: VariationErrors;
+};
 
 export type ParsedProductForm =
   | { ok: true; value: ProductFields }
@@ -90,9 +101,31 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     else errors.vatStatus = "Choose how VAT applies to this.";
   }
 
+  // Variations: only when the form carried them (a JSON list in one field).
+  let variationLabel: string | null | undefined;
+  let variations: ParsedVariation[] | undefined;
+  const variationsRaw = form.get("variations");
+  if (variationsRaw !== null) {
+    let rows: unknown = null;
+    try {
+      rows = JSON.parse(typeof variationsRaw === "string" ? variationsRaw : "");
+    } catch {
+      rows = null;
+    }
+    const parsed = parseVariations(form.get("variationLabel"), rows);
+    if (parsed.ok) {
+      variationLabel = parsed.label;
+      variations = parsed.variations;
+    } else errors.variations = parsed.errors;
+  }
+  const hasVariations = (variations?.length ?? 0) > 0 || (errors.variations !== undefined && variationsRaw !== null && variationsRaw !== "[]");
+
+  // With variations each has its own price, and the product's is the lowest of theirs.
   const priceRaw = form.get("unitPrice");
   const priceText = typeof priceRaw === "string" ? priceRaw : "";
-  const price = parseMoney(priceText);
+  const price = hasVariations
+    ? ({ ok: true, value: variations && variations.length > 0 ? Math.min(...variations.map((v) => v.priceCents)) : 0 } as const)
+    : parseMoney(priceText);
   if (!price.ok) {
     errors.unitPrice = priceText.trim() === "" ? "Enter a price. Use 0 if it is free." : price.error;
   }
@@ -110,6 +143,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
       unit: unit.value,
       photoImageId,
       vatStatus,
+      ...(variations === undefined ? {} : { variationLabel, variations }),
     },
   };
 }
@@ -128,6 +162,10 @@ export type ProductSummary = {
   photoImageId: string | null;
   /** How VAT treats it; a quote item made from it starts with this. */
   vatStatus: VatStatus;
+  /** The maker's word for the variations ("Size"), or null when there are none. */
+  variationLabel: string | null;
+  /** In the maker's order. Empty when the product has a single price. */
+  variations: ProductVariation[];
 };
 
 /** Does a list row match what the person typed in the search box? */

@@ -606,3 +606,19 @@ describe("VAT treatments on items", () => {
     expect(text).toContain("All prices include VAT");
   });
 });
+
+describe("a variation on an item", () => {
+  it("joins the item's name on the document, in every layout, and is frozen with the version", async () => {
+    const s = snapshot(vats.none, {
+      lines: [
+        { key: "a", kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Wedding cake", description: "", quantity: "1", unit: "", unitPrice: "600", discountKind: "none", discountValue: "", variationId: "33333333-3333-4333-8333-333333333333", variationLabel: "Size", variationName: "Large" },
+      ],
+    });
+    expect(s.lines[0].variation).toEqual({ label: "Size", name: "Large" });
+    for (const layout of LAYOUTS) {
+      const themed = { ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout }, "Test") };
+      const text = (await pageTexts(await renderQuotePdf(themed))).flat().join(" ");
+      expect(text, layout).toContain("Wedding cake, Large");
+    }
+  }, 60_000);
+});

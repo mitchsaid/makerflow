@@ -14,7 +14,7 @@ async function addProduct(page: Page, name: string, price: string) {
   await expect(page.getByTestId("product-added")).toHaveText(`Added ${name}.`);
 }
 
-const COMING_SOON = ["Variations and extras", "Costs and margin", "Quantity prices", "Production steps", "Stock"];
+const COMING_SOON = ["Options and extras", "Costs and margin", "Quantity prices", "Production steps", "Stock"];
 
 test("the first product: a name and a price; the later layers are shown but do nothing", async ({ page }) => {
   await signUpAndOnboard(page, "p-first", "Product Co");
@@ -82,7 +82,7 @@ test("services are their own list, with their own form, and save, edit and come 
   // A service's own coming-soon layers: no photo or stock.
   const placeholders = page.getByTestId("coming-soon");
   await expect(placeholders).toHaveCount(4);
-  for (const title of ["Variations and extras", "Costs and margin", "Quantity prices", "Steps"]) {
+  for (const title of ["Options and extras", "Costs and margin", "Quantity prices", "Steps"]) {
     await expect(placeholders.filter({ hasText: title })).toHaveCount(1);
   }
   await expect(page.getByText("Stock")).toHaveCount(0);
