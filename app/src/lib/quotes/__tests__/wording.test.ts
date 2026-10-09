@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
 import { isQuoteFormValues, parseLine, parseQuote, toDatabasePayload, type LineFormValues, type QuoteFormValues } from "../index";
-import { addStarter, TERMS_STARTERS } from "../terms-starters";
 import { quantityText } from "../units";
 
 const NOT_REGISTERED: VatSettings = { registered: false };
@@ -36,7 +35,6 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   title: "",
   description: "",
   signOff: "",
-  terms: "",
   paymentInstructions: "",
   showBankDetails: true, showPhotos: true,
   depositKind: "none",
@@ -82,13 +80,12 @@ describe("units", () => {
 });
 
 describe("quote wording", () => {
-  it("keeps the title, description, sign-off, terms and how to pay, and stores them in the payload", () => {
+  it("keeps the title, description, sign-off and how to pay, and stores them in the payload", () => {
     const r = parseQuote(
       quote({
         title: "  Wedding cake  for Sarah ",
         description: "Thank you for asking.\n\n\n\nThree tiers.",
         signOff: "Yours in sweetness",
-        terms: "Deposit first.",
         paymentInstructions: "EFT to 123\nRef: Sarah",
       }),
       NOT_REGISTERED,
@@ -98,42 +95,53 @@ describe("quote wording", () => {
       title: "Wedding cake for Sarah",
       description: "Thank you for asking.\n\nThree tiers.",
       signOff: "Yours in sweetness",
-      terms: "Deposit first.",
       paymentInstructions: "EFT to 123\nRef: Sarah",
     });
     const payload = toDatabasePayload(r.quote, { countryCode: "ZA", currencyCode: "ZAR" });
     expect(payload.quote).toMatchObject({
       title: "Wedding cake for Sarah",
       sign_off: "Yours in sweetness",
-      terms: "Deposit first.",
       payment_instructions: "EFT to 123\nRef: Sarah",
     });
+    expect(payload.quote).not.toHaveProperty("terms");
     expect(payload.lines[0].unit).toBe("kg");
+  });
+
+  it("turns the old Terms box, sent by an older app still open, into a term at the end", () => {
+    const older = { ...quote({ policies: [{ key: "p", policyId: "", title: "Pick-up", body: "From the studio." }] }), terms: "Deposit first." };
+    expect(isQuoteFormValues(older)).toBe(true);
+    const r = parseQuote(older, NOT_REGISTERED);
+    if (!r.ok) throw new Error("should parse");
+    expect(r.quote.policies).toEqual([
+      { policyId: null, title: "Pick-up", body: "From the studio." },
+      { policyId: null, title: null, body: "Deposit first." },
+    ]);
+    const blankTerms = { ...quote(), terms: "  " };
+    const blank = parseQuote(blankTerms, NOT_REGISTERED);
+    expect(blank.ok && blank.quote.policies).toEqual([]);
+    expect(isQuoteFormValues({ ...quote(), terms: 3 })).toBe(false);
   });
 
   it("is all optional: empty means nothing is stored", () => {
     const r = parseQuote(quote(), NOT_REGISTERED);
     if (!r.ok) throw new Error("should parse");
-    expect([r.quote.title, r.quote.description, r.quote.signOff, r.quote.terms, r.quote.paymentInstructions]).toEqual([
-      null, null, null, null, null,
-    ]);
+    expect([r.quote.title, r.quote.description, r.quote.signOff, r.quote.paymentInstructions]).toEqual([null, null, null, null]);
   });
 
   it("limits the lines too, because a page only holds so many", () => {
     const many = (n: number) => Array.from({ length: n }, (_, i) => `line ${i}`).join("\n");
     const r = parseQuote(
-      quote({ description: many(31), terms: many(81), paymentInstructions: many(21), notes: many(61) }),
+      quote({ description: many(31), paymentInstructions: many(21), notes: many(61) }),
       NOT_REGISTERED,
     );
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.errors.fields.description).toMatch(/up to 30 lines/);
-      expect(r.errors.fields.terms).toMatch(/up to 80 lines/);
       expect(r.errors.fields.paymentInstructions).toMatch(/up to 20 lines/);
       expect(r.errors.fields.notes).toMatch(/up to 60 lines/);
     }
     const fine = parseQuote(
-      quote({ description: many(30), terms: many(80), paymentInstructions: many(20), notes: many(60) }),
+      quote({ description: many(30), paymentInstructions: many(20), notes: many(60) }),
       NOT_REGISTERED,
     );
     expect(fine.ok).toBe(true);
@@ -145,26 +153,16 @@ describe("quote wording", () => {
         title: "t".repeat(121),
         description: "d".repeat(2001),
         signOff: "s".repeat(201),
-        terms: "x".repeat(4001),
         paymentInstructions: "p".repeat(1001),
       }),
       NOT_REGISTERED,
     );
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      for (const field of ["title", "description", "signOff", "terms", "paymentInstructions"] as const) {
+      for (const field of ["title", "description", "signOff", "paymentInstructions"] as const) {
         expect(r.errors.fields[field], field).toMatch(/can be up to/);
       }
     }
-  });
-});
-
-describe("terms starters", () => {
-  it("adds a starting line on its own line, once", () => {
-    const text = TERMS_STARTERS[1].text;
-    expect(addStarter("", text)).toBe(text);
-    expect(addStarter("Existing terms.\n", text)).toBe(`Existing terms.\n${text}`);
-    expect(addStarter(text, text)).toBe(text);
   });
 });
 

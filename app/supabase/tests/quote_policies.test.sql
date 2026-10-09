@@ -58,14 +58,23 @@ begin
   insert into public.policies (organisation_id, title, body, sort_order) values (org_a, 'My own policy', 'In my own words.', 2);
   assert (select kind is null from public.policies where title = 'My own policy'), 'a new policy should have no heading';
 
+  -- A term's title is optional (null), never an empty string; its wording is up to 4000 characters.
+  insert into public.policies (organisation_id, title, body, sort_order) values (org_a, null, 'Please allow 2 weeks.', 3);
+  assert (select count(*) from public.policies where organisation_id = org_a and title is null) = 1, 'an untitled term was not saved';
+  insert into public.policies (organisation_id, title, body) values (org_a, 'Long', repeat('y', 4000));
   begin
     insert into public.policies (organisation_id, title, body) values (org_a, '', 'y');
     raise exception 'FAIL: an empty title was accepted';
   exception when check_violation then null;
   end;
   begin
-    insert into public.policies (organisation_id, title, body) values (org_a, 'x', repeat('y', 2001));
+    insert into public.policies (organisation_id, title, body) values (org_a, 'x', repeat('y', 4001));
     raise exception 'FAIL: an over-long body was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.policies (organisation_id, title, body) values (org_a, null, '');
+    raise exception 'FAIL: a term with no wording was accepted';
   exception when check_violation then null;
   end;
   begin
@@ -83,7 +92,7 @@ begin
   -- Staff can read it but not write it.
   perform pg_temp.as_user(c);
   set local role authenticated;
-  assert (select count(*) from public.policies where organisation_id = org_a) = 2, 'staff cannot read the library';
+  assert (select count(*) from public.policies where organisation_id = org_a) = 4, 'staff cannot read the library';
   begin
     insert into public.policies (organisation_id, kind, title, body) values (org_a, 'changes', 'Mine', 'text');
     raise exception 'FAIL: staff added a policy';
@@ -122,11 +131,16 @@ begin
   assert (select body from public.policies where id = pol) = 'You pay the deposit and the cost of work done.',
     'a quote changed the library';
 
+  -- Up to 20 terms, and a term written just for the quote has no library id and may have no title.
+  perform public.save_quote_draft(org_a, q,
+    pg_temp.quote_json(jsonb_build_object('policies', (select jsonb_agg(jsonb_build_object('policy_id', null, 'title', null, 'body', 'b')) from generate_series(1, 20)))),
+    '[]'::jsonb);
+  assert (select jsonb_array_length(policies) from public.quotes where id = q) = 20, '20 terms were not saved';
   begin
     perform public.save_quote_draft(org_a, q,
-      pg_temp.quote_json(jsonb_build_object('policies', (select jsonb_agg(jsonb_build_object('kind', 'changes', 'title', 't', 'body', 'b')) from generate_series(1, 13)))),
+      pg_temp.quote_json(jsonb_build_object('policies', (select jsonb_agg(jsonb_build_object('kind', 'changes', 'title', 't', 'body', 'b')) from generate_series(1, 21)))),
       '[]'::jsonb);
-    raise exception 'FAIL: 13 policies on a quote were accepted';
+    raise exception 'FAIL: 21 terms on a quote were accepted';
   exception when check_violation then null;
   end;
   begin

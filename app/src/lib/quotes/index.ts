@@ -38,13 +38,11 @@ export const QUOTE_UNIT_MAX = 20;
 export const QUOTE_TITLE_MAX = 120;
 export const QUOTE_DESCRIPTION_MAX = 2000;
 export const QUOTE_SIGN_OFF_MAX = 200;
-export const QUOTE_TERMS_MAX = 4000;
 export const QUOTE_DELIVERY_ADDRESS_MAX = 400;
 export const QUOTE_PAYMENT_MAX = 1000;
 /** A page can only hold so many lines, however few characters they have. */
 export const QUOTE_DESCRIPTION_MAX_LINES = 30;
 export const QUOTE_NOTES_MAX_LINES = 60;
-export const QUOTE_TERMS_MAX_LINES = 80;
 export const QUOTE_PAYMENT_MAX_LINES = 20;
 
 /** A line from a saved product or service, or a one-off item typed for this quote. */
@@ -114,8 +112,6 @@ export type QuoteFormValues = {
   description: string;
   /** "Yours in sweetness": closes the document. Optional. */
   signOff: string;
-  /** Printed small at the end. Optional. */
-  terms: string;
   /** "Other ways to pay" (the country's other methods, or pay on collection). Optional. Prints under the bank details. */
   paymentInstructions: string;
   /** Show the business's bank details on this quote (when it has saved them). */
@@ -127,7 +123,7 @@ export type QuoteFormValues = {
   depositValue: string;
   balanceDue: DepositFormValues["balanceDue"];
   balanceDueDate: string;
-  /** This quote's own copy of each policy it includes (see lib/policies). */
+  /** The quote's terms: its own copy of each library term it includes, and terms written just for it (see lib/policies). */
   policies: QuotePolicyValues[];
 };
 
@@ -150,7 +146,6 @@ export type QuoteErrors = {
       | "title"
       | "description"
       | "signOff"
-      | "terms"
       | "paymentInstructions"
       | "depositValue"
       | "balanceDueDate"
@@ -160,7 +155,7 @@ export type QuoteErrors = {
   >;
   /** By line key. */
   lines: Record<string, LineErrors>;
-  /** By the key of the policy on the quote. */
+  /** By the key of the term on the quote. */
   policies?: Record<string, QuotePolicyError>;
 };
 
@@ -211,14 +206,13 @@ export type ParsedQuote = {
   title: string | null;
   description: string | null;
   signOff: string | null;
-  terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
   /** Show each product's photo beside its item. Undefined when an older app saved the quote: the draft keeps its setting. */
   showPhotos: boolean | undefined;
   /** Null: no deposit. */
   deposit: ParsedDeposit | null;
-  policies: { policyId: string | null; title: string; body: string }[];
+  policies: { policyId: string | null; title: string | null; body: string }[];
   totals: DocumentTotals;
 };
 
@@ -252,10 +246,11 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
     "title",
     "description",
     "signOff",
-    "terms",
     "paymentInstructions",
   ];
   if (!strings.every((key) => typeof v[key] === "string")) return false;
+  // Only an older app, from before the Terms box became a term, sends this (see parseQuote).
+  if (v.terms !== undefined && typeof v.terms !== "string") return false;
   // A phone still running an older version of the app does not send it: that means on.
   if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
   if (v.showPhotos !== undefined && typeof v.showPhotos !== "boolean") return false;
@@ -551,8 +546,6 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   if (!description.ok) errors.fields.description = description.error;
   const signOff = optionalText(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off");
   if (!signOff.ok) errors.fields.signOff = signOff.error;
-  const terms = optionalMultiline(values.terms, QUOTE_TERMS_MAX, "The terms", QUOTE_TERMS_MAX_LINES);
-  if (!terms.ok) errors.fields.terms = terms.error;
   const deliveryAddress = optionalMultiline(
     typeof values.deliveryAddress === "string" ? values.deliveryAddress : "",
     QUOTE_DELIVERY_ADDRESS_MAX,
@@ -567,7 +560,13 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   const deposit = parseDeposit(values, values.issueDate);
   if (!deposit.ok) Object.assign(errors.fields, deposit.errors);
 
-  const policies = parseQuotePolicies(values.policies);
+  // An older app still open on a phone may send the old Terms box: it becomes a term at the end, so nothing typed is lost.
+  const oldTerms = (values as { terms?: unknown }).terms;
+  const policies = parseQuotePolicies(
+    typeof oldTerms === "string" && oldTerms.trim() !== ""
+      ? [...values.policies, { key: "old-terms", policyId: "", title: "", body: oldTerms }]
+      : values.policies,
+  );
   if (!policies.ok) {
     errors.fields.policies = policies.error;
     errors.policies = policies.byKey;
@@ -598,7 +597,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
 
   const hasErrors =
     Object.keys(errors.fields).length > 0 || Object.keys(errors.lines).length > 0;
-  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !terms.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok || !deposit.ok) {
+  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok || !deposit.ok) {
     return { ok: false, errors };
   }
 
@@ -647,7 +646,6 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       title: title.value,
       description: description.value,
       signOff: signOff.value,
-      terms: terms.value,
       paymentInstructions: payment.value,
       showBankDetails: values.showBankDetails !== false,
       showPhotos: typeof values.showPhotos === "boolean" ? values.showPhotos : undefined,
@@ -725,7 +723,6 @@ export function toDatabasePayload(
       title: quote.title,
       description: quote.description,
       sign_off: quote.signOff,
-      terms: quote.terms,
       payment_instructions: quote.paymentInstructions,
       show_bank_details: quote.showBankDetails,
       // Absent (not false) when an older app did not send it, so the draft keeps its setting.

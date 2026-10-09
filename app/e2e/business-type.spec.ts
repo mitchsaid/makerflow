@@ -29,7 +29,7 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   await expect(page).toHaveURL(/\/app$/);
 
   await openDocuments(page);
-  await page.getByRole("link", { name: "Manage quote policies" }).click();
+  await page.getByRole("link", { name: "Manage your terms" }).click();
   await expect(page.getByTestId("showing-types")).toContainText("Showing examples for food and baking and workshops and classes");
   // No prompt: they answered.
   await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
@@ -41,8 +41,8 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   await page.getByTestId("more-examples").locator("summary").click();
   await expect(exampleLinks(page).getByRole("link", { name: "Seasonal substitutions" })).toBeVisible();
 
-  // The new policy form orders them the same way, and the units suggest what fits.
-  await page.getByRole("link", { name: "Add a policy" }).click();
+  // The new term form orders them the same way, and the units suggest what fits.
+  await page.getByRole("link", { name: "Add a term" }).click();
   await expect(page.getByTestId("examples").getByRole("button", { name: "Storage and serving" })).toBeVisible();
   await expect(page.getByTestId("examples").getByRole("button", { name: "Seasonal substitutions" })).toBeHidden();
   await page.goto("/app/products/new");
@@ -51,16 +51,16 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   expect(units.indexOf("dozen")).toBeLessThan(units.indexOf("stem"));
 });
 
-test("skipping asks again once on the policies page, and Not now is remembered; the profile can set it later", async ({ page }) => {
+test("skipping asks again once on the terms page, and Not now is remembered; the profile can set it later", async ({ page }) => {
   await signUpToTypeStep(page, "Skip Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page).toHaveURL(/\/app$/);
 
   await openDocuments(page);
-  await page.getByRole("link", { name: "Manage quote policies" }).click();
+  await page.getByRole("link", { name: "Manage your terms" }).click();
   // No answer: today's list, in its usual order, and a friendly card.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
-  await expect(exampleLinks(page).getByRole("link")).toHaveCount(13);
+  await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
   await expect(page.getByTestId("business-type-prompt")).toBeVisible();
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
@@ -73,16 +73,16 @@ test("skipping asks again once on the policies page, and Not now is remembered; 
   await page.getByRole("button", { name: "Save what you make" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
   await openDocuments(page);
-  await page.getByRole("link", { name: "Manage quote policies" }).click();
+  await page.getByRole("link", { name: "Manage your terms" }).click();
   await expect(page.getByTestId("showing-types")).toContainText("Showing examples for flowers and plants");
   await expect(exampleLinks(page).locator("ul").first().getByRole("link").first()).toContainText(/Seasonal substitutions|Handmade|made to order|Changes after/);
 });
 
-test("the prompt on the policies page saves what they tick, and 'Something else' is not asked again", async ({ page }) => {
+test("the prompt on the terms page saves what they tick, and 'Something else' is not asked again", async ({ page }) => {
   await signUpToTypeStep(page, "Prompt Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
   await openDocuments(page);
-  await page.getByRole("link", { name: "Manage quote policies" }).click();
+  await page.getByRole("link", { name: "Manage your terms" }).click();
   // Pressing the button with nothing ticked says what to do, and saves nothing.
   await page.getByRole("button", { name: "Show examples for me" }).click();
   await expect(page.getByTestId("business-type-prompt").getByRole("alert")).toContainText("Tick what you make or sell, or choose Not now.");
@@ -91,5 +91,5 @@ test("the prompt on the policies page saves what they tick, and 'Something else'
   await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
   // "Something else" says nothing about which examples fit: the usual list, no "showing" line.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
-  await expect(exampleLinks(page).getByRole("link")).toHaveCount(13);
+  await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
 });

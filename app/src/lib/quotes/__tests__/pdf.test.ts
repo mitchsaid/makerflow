@@ -47,7 +47,6 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     title: "",
     description: "",
     signOff: "",
-    terms: "",
     paymentInstructions: "",
     showBankDetails: true, showPhotos: true,
     depositKind: "none",
@@ -170,14 +169,39 @@ describe("long and awkward text on the document", () => {
   });
 });
 
-describe("policies on the document", () => {
-  it("renders each policy under its title, with other terms after them, and an old version without any", async () => {
+describe("terms on the document", () => {
+  it("renders each term under its title or as a plain paragraph, under one Terms heading", async () => {
+    const base = snapshot(vats.inclusive);
+    expect(base.wording.termsHeading).toBe("Terms");
+    const texts = (
+      await pageTexts(
+        await renderQuotePdf({
+          ...base,
+          policies: [
+            { title: "If you cancel", body: "You pay the deposit." },
+            { title: null, body: "Please allow 2 weeks to make your order." },
+          ],
+        }),
+      )
+    ).flat();
+    const all = texts.join(" ");
+    expect(all).toMatch(/TERMS|Terms/);
+    expect(all).not.toMatch(/Terms and policies|TERMS AND POLICIES|Other terms|OTHER TERMS/);
+    expect(all).toContain("If you cancel");
+    expect(all).toContain("Please allow 2 weeks to make your order.");
+  });
+
+  it("draws a version sent before terms and policies were one as it was: policies, then other terms", async () => {
     const base = snapshot(vats.inclusive);
     const policies = Array.from({ length: 5 }, (_, i) => ({
       title: `Policy ${i + 1}`,
       body: "Some wording that explains the policy in plain words. ".repeat(12),
     }));
-    const withPolicies = await renderQuotePdf({ ...base, policies, terms: "Other terms here." });
+    const old = { ...base, wording: { ...base.wording, termsHeading: undefined } };
+    const withPolicies = await renderQuotePdf({ ...old, policies, terms: "Other terms here." });
+    const all = (await pageTexts(withPolicies)).flat().join(" ");
+    expect(all).toMatch(/Terms and policies|TERMS AND POLICIES/);
+    expect(all).toMatch(/Other terms|OTHER TERMS/);
     const without = await renderQuotePdf({ ...base, policies: undefined });
     expect(withPolicies.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     expect(withPolicies.length).toBeGreaterThan(without.length);
@@ -443,7 +467,10 @@ describe("headings and page breaks", () => {
           lines,
           notes: "Thank you for asking. ".repeat(12),
           paymentInstructions: "EFT is fine. SnapScan too.",
-          terms: "Some terms. ".repeat(20),
+          policies: [
+            { key: "t1", policyId: "", title: "If you cancel", body: "Some terms. ".repeat(20) },
+            { key: "t2", policyId: "", title: "", body: "Please allow 2 weeks." },
+          ],
         }),
       );
       const pages = await pageTexts(pdf);

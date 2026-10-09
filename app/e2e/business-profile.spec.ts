@@ -119,7 +119,7 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   await expect(page).toHaveURL(/\/app\/documents$/);
   await expect(nav.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByLabel("Next number", { exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Manage quote policies" }).click();
+  await page.getByRole("link", { name: "Manage your terms" }).click();
   await expect(page).toHaveURL(/\/app\/documents\/policies$/);
   await expect(nav.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
   await openSettings(page);

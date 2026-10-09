@@ -4,7 +4,7 @@ import { createClient } from "../supabase/server";
 import type { PolicySummary } from "./index";
 
 /**
- * Policy reads. Row-level security limits every query to businesses the signed-in person belongs
+ * Term (policy) reads. Row-level security limits every query to businesses the signed-in person belongs
  * to; pages keep only the current business's rows (see lib/scope.ts).
  */
 
@@ -13,7 +13,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type Row = {
   id: string;
   organisation_id: string;
-  title: string;
+  title: string | null;
   body: string;
   include_by_default: boolean;
   sort_order: number;

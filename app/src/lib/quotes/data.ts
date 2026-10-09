@@ -150,7 +150,6 @@ type QuoteRow = {
   title: string | null;
   description: string | null;
   sign_off: string | null;
-  terms: string | null;
   payment_instructions: string | null;
   show_bank_details: boolean;
   show_photos: boolean;
@@ -190,7 +189,6 @@ export type StoredQuote = {
   title: string | null;
   description: string | null;
   signOff: string | null;
-  terms: string | null;
   paymentInstructions: string | null;
   /** Show the business's bank details on this quote. */
   showBankDetails: boolean;
@@ -204,8 +202,8 @@ export type StoredQuote = {
   depositValue: number;
   balanceDue: BalanceDue;
   balanceDueDate: string | null;
-  /** This quote's own copy of the policies it includes. */
-  policies: { policyId: string | null; title: string; body: string }[];
+  /** The quote's terms: its own copy of each library term, and terms written just for it (no policyId). */
+  policies: { policyId: string | null; title: string | null; body: string }[];
   lines: {
     id: string;
     sortOrder: number;
@@ -272,16 +270,16 @@ function storedOptions(value: unknown): LineOption[] {
   });
 }
 
-/** The quote's own policies as stored (a list), ignoring anything that isn't one. */
+/** The quote's own terms as stored (a list), ignoring anything that isn't one. */
 function storedPolicies(value: unknown): StoredQuote["policies"] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
     const x = item as Record<string, unknown> | null;
-    if (!x || typeof x.title !== "string" || typeof x.body !== "string") return [];
+    if (!x || (typeof x.title !== "string" && x.title !== null && x.title !== undefined) || typeof x.body !== "string") return [];
     return [
       {
         policyId: typeof x.policy_id === "string" ? x.policy_id : null,
-        title: x.title,
+        title: typeof x.title === "string" ? x.title : null,
         body: x.body,
       },
     ];
@@ -297,7 +295,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, terms, payment_instructions, show_bank_details, show_photos, theme_id, theme_starter,
+       title, description, sign_off, payment_instructions, show_bank_details, show_photos, theme_id, theme_starter,
        deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
@@ -334,7 +332,6 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     title: row.title,
     description: row.description,
     signOff: row.sign_off,
-    terms: row.terms,
     paymentInstructions: row.payment_instructions,
     showBankDetails: row.show_bank_details,
     showPhotos: row.show_photos,

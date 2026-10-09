@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ZA_LOCALE } from "../locale/za";
 import { UNIT_SUGGESTIONS } from "../quotes/units";
-import { TERMS_STARTERS } from "../quotes/terms-starters";
+import { termExamples } from "../policies";
 import { parsePolicy } from "../policies";
 import {
   businessTypesFromRow,
@@ -84,13 +84,12 @@ describe("tailoring", () => {
 });
 
 describe("what the types tailor", () => {
-  it("every South African example, terms starter and unit keeps a unique key and only known types", () => {
+  it("every South African example, short line and unit keeps a unique key and only known types", () => {
     const known = new Set(["food", "jewellery", "clothing", "flowers", "home_body", "craft", "art", "workshops", "other"]);
-    const examples = ZA_LOCALE.policies.examples;
+    const examples = termExamples(ZA_LOCALE.policies);
     expect(new Set(examples.map((e) => e.key)).size).toBe(examples.length);
-    expect(new Set(TERMS_STARTERS.map((s) => s.key)).size).toBe(TERMS_STARTERS.length);
     expect(new Set(UNIT_SUGGESTIONS.map((u) => u.unit)).size).toBe(UNIT_SUGGESTIONS.length);
-    for (const item of [...examples, ...TERMS_STARTERS, ...UNIT_SUGGESTIONS]) {
+    for (const item of [...examples, ...UNIT_SUGGESTIONS]) {
       for (const t of item.types ?? []) expect(known.has(t), t).toBe(true);
     }
   });

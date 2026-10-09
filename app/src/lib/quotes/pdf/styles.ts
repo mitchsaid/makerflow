@@ -243,7 +243,7 @@ export function makeStyles(theme: Theme) {
     signOff: { marginTop: 20 },
     signOffName: { fontWeight: 700, marginTop: 2, fontFamily: heading },
 
-    // The small print: policies, other terms and the tax statement, all at the same small size.
+    // The small print: the terms (and, on versions sent before they became one, "Other terms") and the tax statement, all at the same small size.
     smallPrint: { fontSize: 9, marginTop: 20 },
     policy: { marginBottom: 8 },
     policyTitle: { fontWeight: 700 },

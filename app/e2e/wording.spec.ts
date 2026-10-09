@@ -16,14 +16,8 @@ test("the business sets its quote wording once, and each new quote starts with i
   await openDocuments(page);
   await page.getByLabel("Sign-off message (optional)").fill("Yours in sweetness");
   await page.getByLabel("Other ways to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
-  // Starting lines are one tap, can be edited, and are not added twice.
-  await page.getByRole("button", { name: "Deposit", exact: true }).click();
-  await expect(page.getByLabel("Small print (optional)")).toHaveValue("A deposit is needed to start work.");
-  await expect(page.getByRole("button", { name: "Deposit", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Lead time" }).click();
-  await expect(page.getByLabel("Small print (optional)")).toHaveValue(
-    "A deposit is needed to start work.\nPlease allow [2 weeks] to make your order.",
-  );
+  // Terms are no longer here: they are the Terms library.
+  await expect(page.getByLabel("Small print (optional)")).toHaveCount(0);
   await page.getByRole("button", { name: "Save quote wording" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 
@@ -32,7 +26,6 @@ test("the business sets its quote wording once, and each new quote starts with i
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByLabel("Message (optional)")).toHaveValue("Yours in sweetness");
   await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Sweet Co, FNB 123456");
-  await expect(page.getByLabel("Small print (optional)")).toHaveValue(/A deposit is needed to start work\./);
   await page.getByLabel("Message (optional)").fill("With love");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();
@@ -83,7 +76,11 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await page.getByLabel("Quote title (optional)").fill("Cupcakes for Sarah's party");
   await page.getByLabel("Description (optional)").fill("Thank you for asking about cupcakes for the party.");
   await page.getByLabel("Other ways to pay (optional)").fill("Pay on collection");
-  await page.getByLabel("Small print (optional)").fill("Orders need two days' notice.");
+  // A term just for this quote, with no title.
+  await page.getByRole("button", { name: "Add a term just for this quote" }).click();
+  const own = page.getByRole("group", { name: "Term just for this quote" });
+  await expect(own.getByLabel("Title (optional)")).toBeFocused();
+  await own.getByLabel("Wording").fill("Orders need two days' notice.");
   await page.getByLabel("Message (optional)").fill("Yours in sweetness");
 
   // The preview shows it all: the picture of the real document, and its text version.
@@ -102,6 +99,7 @@ test("units, a title and a description: set on the quote, shown on the preview",
   // And it all comes back when the draft is opened again.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page.getByLabel("Quote title (optional)")).toHaveValue("Cupcakes for Sarah's party");
+  await expect(page.getByRole("group", { name: "Term just for this quote" }).getByLabel("Wording")).toHaveValue("Orders need two days' notice.");
   await expect(item(page, 1)).toContainText(/2 dozen/);
   await expect(item(page, 2)).toContainText(/2,5 kg/);
 });

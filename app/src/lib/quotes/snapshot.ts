@@ -133,6 +133,7 @@ export type QuoteSnapshot = {
   title?: string | null;
   description?: string | null;
   signOff?: string | null;
+  /** The old free-text Terms box. Only on versions sent before it became a term (docs/plans/terms.md). */
   terms?: string | null;
   paymentInstructions?: string | null;
   /**
@@ -155,8 +156,11 @@ export type QuoteSnapshot = {
     /** "due on collection", "due by 14 Nov 2026". */
     dueText: string;
   } | null;
-  /** The policies the quote included, each under its own title. Absent on versions sent before policies existed. */
-  policies?: { title: string; body: string; /** Sent before policies lost their headings. */ kind?: string }[];
+  /**
+   * The terms the quote included, each under its title, or as a plain paragraph when it has none (title null).
+   * Absent on versions sent before policies existed.
+   */
+  policies?: { title: string | null; body: string; /** Sent before policies lost their headings. */ kind?: string }[];
   wording: {
     title: string;
     notATaxInvoice: string;
@@ -167,6 +171,11 @@ export type QuoteSnapshot = {
      * registered; absent before line treatments existed.
      */
     vatStatusLabels?: Record<VatStatus, string>;
+    /**
+     * The heading over the terms ("Terms"). Absent on versions sent before the Terms box and the policies became one:
+     * those show "Terms and policies", then "Other terms", as they did.
+     */
+    termsHeading?: string;
   };
 };
 
@@ -330,7 +339,6 @@ export function buildQuoteSnapshot(input: {
     title: quote.title,
     description: quote.description,
     signOff: quote.signOff,
-    terms: quote.terms,
     paymentInstructions: quote.paymentInstructions,
     bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
     deposit: depositFor(quote, locale),
@@ -338,6 +346,7 @@ export function buildQuoteSnapshot(input: {
     wording: {
       title: locale.documents.quoteTitle,
       notATaxInvoice: locale.documents.quoteNotATaxInvoice,
+      termsHeading: locale.documents.termsHeading,
       inclusiveStatement:
         vat.registered && vat.entry === "inclusive"
           ? present.some((status) => status !== "standard")

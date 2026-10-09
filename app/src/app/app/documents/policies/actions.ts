@@ -12,7 +12,7 @@ export type PolicySaveState =
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
-const NOT_ALLOWED = "Only owners and admins can change the business's policies. Ask one of them.";
+const NOT_ALLOWED = "Only owners and admins can change the business's saved terms. Ask one of them.";
 
 function isValues(v: unknown): v is PolicyFormValues {
   const x = v as Record<string, unknown> | null;
@@ -25,8 +25,8 @@ function isValues(v: unknown): v is PolicyFormValues {
 }
 
 /**
- * Adds a policy (id null) or saves changes to one. Owners and admins only (the database checks
- * too). Quotes keep their own copy of a policy, so quotes that exist are not changed.
+ * Adds a term to the library (id null) or saves changes to one. Owners and admins only (the database
+ * checks too). Quotes keep their own copy of a term, so quotes that exist are not changed.
  */
 export async function savePolicy(id: string | null, values: PolicyFormValues): Promise<PolicySaveState> {
   const { organisation, role } = await requireOrganisation();
@@ -39,7 +39,7 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
 
   const supabase = await createClient();
   if (id === null) {
-    // New policies go to the end of the list.
+    // New terms go to the end of the list.
     const { data: last } = await supabase
       .from("policies")
       .select("sort_order")
@@ -95,7 +95,7 @@ export async function savePolicy(id: string | null, values: PolicyFormValues): P
 
 export type PolicyArchiveState = { status: "ok" } | { status: "error"; message: string };
 
-/** Archives or restores a policy. Policies are never deleted. */
+/** Archives or restores a term. Terms are never deleted. */
 export async function setPolicyArchived(id: string, archived: boolean): Promise<PolicyArchiveState> {
   const { organisation, role } = await requireOrganisation();
   if (!canEditBusinessProfile(role)) return { status: "error", message: NOT_ALLOWED };

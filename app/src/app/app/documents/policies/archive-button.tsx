@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { setPolicyArchived } from "./actions";
 
-/** Archive or restore a policy. Archived policies are hidden from quotes but kept; quotes that used them are unchanged. */
+/** Archive or restore a term. Archived terms are hidden from quotes but kept; quotes that used them are unchanged. */
 export function PolicyArchiveButton({ id, archived }: { id: string; archived: boolean }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function PolicyArchiveButton({ id, archived }: { id: string; archived: bo
           })
         }
       >
-        {pending ? "Saving…" : archived ? "Restore this policy" : "Archive this policy"}
+        {pending ? "Saving…" : archived ? "Restore this term" : "Archive this term"}
       </Button>
       <p className="text-sm text-muted-foreground">
         {archived

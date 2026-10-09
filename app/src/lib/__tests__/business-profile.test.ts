@@ -137,7 +137,7 @@ const emptyProfile: BusinessProfile = {
   phone: null, email: null, addressLine1: null, addressLine2: null,
   city: null, region: null, postalCode: null, vatRegistered: false, vatNumber: null,
   pricesIncludeVat: true,
-  defaultSignOff: null, defaultTerms: null, paymentInstructions: null,
+  defaultSignOff: null, paymentInstructions: null,
       businessTypes: null,
       defaultDepositKind: "none",
       defaultDepositValue: 0,

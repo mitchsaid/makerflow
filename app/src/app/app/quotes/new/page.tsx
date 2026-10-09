@@ -87,7 +87,6 @@ export default async function NewQuotePage() {
           description: "",
           // A new quote starts with the wording the business has set for all its quotes.
           signOff: profile.defaultSignOff ?? "",
-          terms: profile.defaultTerms ?? "",
           paymentInstructions: profile.paymentInstructions ?? "",
           // Bank details print by default; the switch on the quote turns them off for this one.
           showBankDetails: true,
@@ -103,7 +102,7 @@ export default async function NewQuotePage() {
                 : "",
           balanceDue: "handover",
           balanceDueDate: "",
-          // And the policies the business has marked to include on every new quote.
+          // And the terms the business has marked to include on every new quote.
           policies: defaultQuotePolicies(policyLibrary),
         }}
         policyLibrary={policyLibrary}

@@ -45,20 +45,23 @@ begin
   perform pg_temp.as_user(a);
   set local role authenticated;
   q := public.save_quote_draft(org_a, null,
-    pg_temp.quote_json('{"title":"Wedding cake","description":"Three tiers","sign_off":"Yours in sweetness","terms":"Deposit first","payment_instructions":"EFT to 123"}'),
+    pg_temp.quote_json('{"title":"Wedding cake","description":"Three tiers","sign_off":"Yours in sweetness","terms":"Ignored now","payment_instructions":"EFT to 123"}'),
     jsonb_build_array(pg_temp.line('kg')));
   assert (select title from public.quotes where id = q) = 'Wedding cake', 'title not saved';
   assert (select description from public.quotes where id = q) = 'Three tiers', 'description not saved';
   assert (select sign_off from public.quotes where id = q) = 'Yours in sweetness', 'sign-off not saved';
-  assert (select terms from public.quotes where id = q) = 'Deposit first', 'terms not saved';
+  -- The old Terms box became a term (20261023100000_terms.sql): a payload that still sends it saves without it.
+  assert not exists (select 1 from information_schema.columns
+                      where table_schema = 'public' and table_name = 'quotes' and column_name = 'terms'),
+    'quotes.terms should be gone';
   assert (select payment_instructions from public.quotes where id = q) = 'EFT to 123', 'payment instructions not saved';
   assert (select unit from public.quote_lines where quote_id = q) = 'kg', 'unit not saved';
 
   -- Saving again with empty text clears them to NULL, never ''.
   perform public.save_quote_draft(org_a, q,
-    pg_temp.quote_json('{"title":"","description":"","sign_off":"","terms":"","payment_instructions":""}'),
+    pg_temp.quote_json('{"title":"","description":"","sign_off":"","payment_instructions":""}'),
     jsonb_build_array(pg_temp.line('')));
-  assert (select title is null and description is null and sign_off is null and terms is null
+  assert (select title is null and description is null and sign_off is null
                  and payment_instructions is null from public.quotes where id = q), 'empty wording was not NULL';
   assert (select unit is null from public.quote_lines where quote_id = q), 'empty unit was not NULL';
 
@@ -66,11 +69,6 @@ begin
   begin
     perform public.save_quote_draft(org_a, q, pg_temp.quote_json(jsonb_build_object('title', repeat('x', 121))), '[]'::jsonb);
     raise exception 'FAIL: a 121-character title was accepted';
-  exception when check_violation then null;
-  end;
-  begin
-    perform public.save_quote_draft(org_a, q, pg_temp.quote_json(jsonb_build_object('terms', repeat('x', 4001))), '[]'::jsonb);
-    raise exception 'FAIL: over-long terms were accepted';
   exception when check_violation then null;
   end;
   begin
@@ -99,15 +97,13 @@ begin
   perform pg_temp.as_user(a);
   set local role authenticated;
   update public.business_profiles
-     set default_sign_off = 'Warmly', default_terms = 'Allow two weeks', payment_instructions = 'EFT'
+     set default_sign_off = 'Warmly', payment_instructions = 'EFT'
    where organisation_id = org_a;
   assert (select default_sign_off from public.business_profiles where organisation_id = org_a) = 'Warmly',
     'the owner could not set the default sign-off';
-  begin
-    update public.business_profiles set default_terms = repeat('x', 4001) where organisation_id = org_a;
-    raise exception 'FAIL: over-long default terms were accepted';
-  exception when check_violation then null;
-  end;
+  assert not exists (select 1 from information_schema.columns
+                      where table_schema = 'public' and table_name = 'business_profiles' and column_name = 'default_terms'),
+    'business_profiles.default_terms should be gone: default terms are library terms now';
   reset role;
 
   perform pg_temp.as_user(c);

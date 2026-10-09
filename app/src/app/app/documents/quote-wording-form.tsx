@@ -3,10 +3,9 @@
 import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
-import { TermsStarters } from "@/components/terms-starters";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX, QUOTE_TERMS_MAX } from "@/lib/quotes";
+import { QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
 import { saveQuoteWording, type WordingErrors, type WordingState, type WordingValues } from "./wording-actions";
 
 /**
@@ -25,7 +24,6 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
     [
       ["wordingSignOff", "Sign-off message", errors.signOff],
       ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
-      ["wordingTerms", "Small print", errors.terms],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
 
@@ -86,17 +84,6 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           onChange={set("paymentInstructions")}
           maxLength={QUOTE_PAYMENT_MAX}
         />
-        <TextAreaField
-          id="wordingTerms"
-          name="terms"
-          label="Small print (optional)"
-          hint="Shown in small print at the end of the quote."
-          value={values.terms}
-          error={errors.terms}
-          onChange={set("terms")}
-          maxLength={QUOTE_TERMS_MAX}
-        />
-        <TermsStarters terms={values.terms} onChange={set("terms")} />
       </Section>
       <div className="flex items-center gap-4">
         <Button type="submit" size="lg" disabled={pending}>

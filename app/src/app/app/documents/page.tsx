@@ -14,7 +14,7 @@ import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
 
 /**
- * Quotes and invoices: how documents are numbered and worded, the policies library and what a new
+ * Quotes and invoices: how documents are numbered and worded, the terms library and what a new
  * quote starts with. Facts about the business (name, contact, address, VAT, what you make, bank
  * details) stay on the Business profile; this is the settings for the documents themselves, and
  * invoices will add their own sections here.
@@ -32,15 +32,15 @@ export default async function DocumentSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Quote policies</CardTitle>
+          <CardTitle className="text-lg">Terms</CardTitle>
           <CardDescription className="text-base">
-            Cancellation, changes, aftercare and the rest: write each once, in your own words, and tick them onto your
-            quotes.
+            Lead times, cancellation, changes, aftercare and the rest: write each once, in your own words, and tick them
+            onto your quotes.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Link href="/app/documents/policies" className={buttonVariants({ variant: "outline" })}>
-            Manage quote policies
+            Manage your terms
           </Link>
         </CardContent>
       </Card>
@@ -67,7 +67,6 @@ export default async function DocumentSettingsPage() {
           otherWaysHint={locale.payment.otherWaysHint}
           initial={{
             signOff: profile.defaultSignOff ?? "",
-            terms: profile.defaultTerms ?? "",
             paymentInstructions: profile.paymentInstructions ?? "",
           }}
         />

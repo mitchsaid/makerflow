@@ -56,7 +56,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/documents/policies");
       await expect(page.getByTestId("showing-types")).toBeVisible();
       await page.getByTestId("more-examples").locator("summary").click();
-      await expectNoViolations(page, "quote policies, examples for you with more examples open");
+      await expectNoViolations(page, "terms, examples for you with more examples open");
 
       // The first New quote asks two questions: with an error, then as it is.
       await page.goto("/app/quotes/new");
@@ -144,9 +144,15 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Balance due", { exact: true }).selectOption("date");
       await expectNoViolations(page, "new quote, deposit open");
       await page.getByLabel("Balance due", { exact: true }).selectOption("handover");
-      await page.getByRole("button", { name: "Add a policy" }).click();
-      await expect(page.getByRole("dialog", { name: "Add a policy" })).toBeVisible();
-      await expectNoViolations(page, "new quote, add policy sheet");
+      await page.getByRole("button", { name: "Add a term just for this quote" }).click();
+      await page.getByRole("button", { name: "Add a term just for this quote" }).click();
+      await expect(page.getByRole("group", { name: "Term just for this quote 2" })).toBeVisible();
+      await expectNoViolations(page, "new quote, two terms just for this quote");
+      await page.getByRole("button", { name: "Remove term just for this quote 2" }).click();
+      await page.getByRole("button", { name: "Remove term just for this quote" }).click();
+      await page.getByRole("button", { name: "Save a new term" }).click();
+      await expect(page.getByRole("dialog", { name: "Save a new term" })).toBeVisible();
+      await expectNoViolations(page, "new quote, save a new term sheet");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
@@ -426,23 +432,27 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quotes and invoices, quote numbers with an error");
 
 
-      // Quote policies: the library, the form (with errors and a starter), and the saved list.
-      await page.getByRole("link", { name: "Manage quote policies" }).click();
-      await expect(page.getByRole("heading", { name: "Quote policies", level: 1 })).toBeVisible();
-      await expectNoViolations(page, "quote policies, empty");
-      await page.getByRole("link", { name: "Add a policy" }).click();
-      await expect(page.getByRole("heading", { name: "Add a policy", level: 1 })).toBeVisible();
-      await expectNoViolations(page, "add policy");
-      await page.getByRole("button", { name: "Save policy" }).click();
+      // Terms: the library, the form (with errors and an example), and the saved list with an untitled term.
+      await page.getByRole("link", { name: "Manage your terms" }).click();
+      await expect(page.getByRole("heading", { name: "Terms", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "terms, empty");
+      await page.getByRole("link", { name: "Add a term" }).click();
+      await expect(page.getByRole("heading", { name: "Add a term", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "add term");
+      await page.getByRole("button", { name: "Save term" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
-      await expectNoViolations(page, "add policy with errors");
+      await expectNoViolations(page, "add term with errors");
       await page.getByRole("button", { name: "If you cancel: made to order" }).click();
-      await page.getByRole("button", { name: "Save policy" }).click();
+      await page.getByRole("button", { name: "Save term" }).click();
       await expect(page.getByTestId("policy-saved")).toBeVisible();
-      await expectNoViolations(page, "quote policies, with a policy");
-      await page.getByRole("list", { name: "Your policies" }).getByRole("link", { name: /If you cancel/ }).click();
+      await page.getByRole("link", { name: "Add a term" }).click();
+      await page.getByRole("button", { name: "Lead time" }).click();
+      await page.getByRole("button", { name: "Save term" }).click();
+      await expect(page.getByTestId("policy-saved")).toBeVisible();
+      await expectNoViolations(page, "terms, with a titled and an untitled term");
+      await page.getByRole("list", { name: "Your terms" }).getByRole("link", { name: /If you cancel/ }).click();
       await expect(page.getByRole("heading", { name: "If you cancel: made to order", level: 1 })).toBeVisible();
-      await expectNoViolations(page, "edit policy");
+      await expectNoViolations(page, "edit term");
     });
   });
 }

@@ -116,6 +116,8 @@ export type LocalePack = {
       dueOnDate(dateText: string): string;
     };
     quoteNotATaxInvoice: string;
+    /** The heading over a document's terms ("Terms"). */
+    termsHeading: string;
     /** What the business must still provide before it can send a quote. */
     missingForQuote(facts: ContactFacts): ProfileField[];
     /** What the business must still provide before it can issue an invoice. */

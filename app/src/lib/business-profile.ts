@@ -32,16 +32,15 @@ export type BusinessProfile = {
   vatNumber: string | null;
   /** Does the business type its prices including VAT? Only matters when VAT registered. */
   pricesIncludeVat: boolean;
-  /** What a new quote starts with for its sign-off, terms and "how to pay". Edited under Quote wording. */
+  /** What a new quote starts with for its sign-off and "how to pay". Edited under Quote wording. */
   defaultSignOff: string | null;
-  defaultTerms: string | null;
   paymentInstructions: string | null;
   /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set under Quotes and invoices. */
   logoImageId: string | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultTerms" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
 
 export type FieldName =
   | "name"
