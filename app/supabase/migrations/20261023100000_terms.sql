@@ -1,7 +1,7 @@
 -- One "Terms" (docs/plans/terms.md): the policies library and the free-text Terms box become one.
 --
--- SECURITY-SENSITIVE / DATA: moves data and drops two columns. Needs human review before this is
--- applied to any hosted project.
+-- SECURITY-SENSITIVE / DATA: copies data and retires two columns. Needs human review before this is
+-- applied to any hosted project. Nothing is deleted: the old columns stay, unused, as a backup.
 --
 -- * The library keeps its table (policies) and a quote its column (quotes.policies); only the
 --   words on screen change. A term's title becomes optional; its wording can be up to 4000
@@ -11,8 +11,9 @@
 --   a revision starts from) becomes an untitled term at the end of that quote's terms: a copy of
 --   that library term when it is the same text, else a term just for that quote. Sent
 --   versions (quote_versions snapshots) are frozen and keep what they showed.
--- * Then quotes.terms and business_profiles.default_terms are dropped, and save_quote_draft no
---   longer carries terms.
+-- * Then quotes.terms and business_profiles.default_terms are retired: kept as they are (a backup
+--   of what was copied), no longer written by anyone (the grants go), and save_quote_draft no
+--   longer carries terms. A later clean-up migration drops them once this has been checked.
 
 alter table public.policies alter column title drop not null;
 alter table public.policies drop constraint policies_title_check;
@@ -168,5 +169,10 @@ $$;
 revoke execute on function public.save_quote_draft(uuid, uuid, jsonb, jsonb) from public, anon;
 grant execute on function public.save_quote_draft(uuid, uuid, jsonb, jsonb) to authenticated;
 
-alter table public.quotes drop column terms;
-alter table public.business_profiles drop column default_terms;
+-- Retired, not dropped.
+revoke insert (terms), update (terms) on public.quotes from authenticated;
+revoke update (default_terms) on public.business_profiles from authenticated;
+comment on column public.quotes.terms is
+  'Retired by 20261023100000_terms: copied into policies as an untitled term. Unused; drop in a later clean-up.';
+comment on column public.business_profiles.default_terms is
+  'Retired by 20261023100000_terms: copied into the policies library as an untitled term. Unused; drop in a later clean-up.';

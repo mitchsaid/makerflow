@@ -50,10 +50,14 @@ begin
   assert (select title from public.quotes where id = q) = 'Wedding cake', 'title not saved';
   assert (select description from public.quotes where id = q) = 'Three tiers', 'description not saved';
   assert (select sign_off from public.quotes where id = q) = 'Yours in sweetness', 'sign-off not saved';
-  -- The old Terms box became a term (20261023100000_terms.sql): a payload that still sends it saves without it.
-  assert not exists (select 1 from information_schema.columns
-                      where table_schema = 'public' and table_name = 'quotes' and column_name = 'terms'),
-    'quotes.terms should be gone';
+  -- The old Terms box became a term (20261023100000_terms.sql): a payload that still sends it saves without it,
+  -- and the retired column can no longer be written directly.
+  assert (select terms is null from public.quotes where id = q), 'the retired quotes.terms was written';
+  begin
+    update public.quotes set terms = 'x' where id = q;
+    raise exception 'FAIL: the retired quotes.terms could be written';
+  exception when insufficient_privilege then null;
+  end;
   assert (select payment_instructions from public.quotes where id = q) = 'EFT to 123', 'payment instructions not saved';
   assert (select unit from public.quote_lines where quote_id = q) = 'kg', 'unit not saved';
 
@@ -101,9 +105,12 @@ begin
    where organisation_id = org_a;
   assert (select default_sign_off from public.business_profiles where organisation_id = org_a) = 'Warmly',
     'the owner could not set the default sign-off';
-  assert not exists (select 1 from information_schema.columns
-                      where table_schema = 'public' and table_name = 'business_profiles' and column_name = 'default_terms'),
-    'business_profiles.default_terms should be gone: default terms are library terms now';
+  -- Default terms are library terms now: the retired column can no longer be written.
+  begin
+    update public.business_profiles set default_terms = 'x' where organisation_id = org_a;
+    raise exception 'FAIL: the retired default_terms could be written';
+  exception when insufficient_privilege then null;
+  end;
   reset role;
 
   perform pg_temp.as_user(c);
