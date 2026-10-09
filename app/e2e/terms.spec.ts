@@ -107,6 +107,10 @@ test("terms on a quote: ticked by default, edited for this quote only, one-off t
   await page.getByRole("button", { name: "Add a term just for this quote" }).click();
   const own = page.getByRole("group", { name: "Term just for this quote" });
   await own.getByLabel("Title (optional)").fill("Pick-up");
+  // A second one, removed again: focus goes back to the add button, not the top of the page.
+  await page.getByRole("button", { name: "Add a term just for this quote" }).click();
+  await page.getByRole("button", { name: "Remove term just for this quote 2" }).click();
+  await expect(page.getByRole("button", { name: "Add a term just for this quote" })).toBeFocused();
 
   // Edit the wording for this quote only.
   await page.getByLabel("Wording for this quote: Changes after you say yes").fill("Any change is re-quoted first. Dates move only if you agree.");
@@ -115,7 +119,7 @@ test("terms on a quote: ticked by default, edited for this quote only, one-off t
   await fillItem(page, 1, "Wedding cake", "1", "800");
   await addCustomerInSheet(page, "Sarah");
   await page.getByRole("button", { name: "Save draft" }).click();
-  await expect(page.getByTestId("form-summary")).toContainText("Pick-up: Write what the term says");
+  await expect(page.getByTestId("form-summary")).toContainText("Pick-up: Write what this term says, or remove it.");
   await page.getByTestId("form-summary").getByRole("link", { name: /Terms/ }).click();
   await expect(own.getByLabel("Wording")).toBeFocused();
   await own.getByLabel("Wording").fill("From the studio in Observatory.");

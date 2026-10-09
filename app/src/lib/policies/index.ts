@@ -141,9 +141,13 @@ export function parseQuotePolicies(
     return { ok: false, error: `A quote can have up to ${QUOTE_MAX_POLICIES} terms. Remove one to add another.`, byKey };
   }
   for (const v of values) {
+    // A term added just for this quote and left empty is nothing to keep: it is left out, not an error.
+    if (v.policyId === "" && v.title.trim() === "" && v.body.trim() === "") continue;
     const r = parsePolicy({ title: v.title, body: v.body, includeByDefault: false });
     if (!r.ok) {
-      byKey[v.key] = { title: r.errors.title, body: r.errors.body };
+      // On a quote there are no examples to start from.
+      const body = r.errors.body && v.body.trim() === "" ? "Write what this term says, or remove it." : r.errors.body;
+      byKey[v.key] = { title: r.errors.title, body };
       continue;
     }
     policies.push({

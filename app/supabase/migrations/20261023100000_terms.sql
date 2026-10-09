@@ -8,7 +8,8 @@
 --   characters (the Terms box allowed 4000). A quote can carry up to 20 terms.
 -- * Each business's default terms text becomes an untitled library term, included on new quotes,
 --   last in the list. Each quote's own terms text (drafts and sent rows: a sent row is the copy
---   a revision starts from) becomes an untitled term at the end of that quote's terms. Sent
+--   a revision starts from) becomes an untitled term at the end of that quote's terms: a copy of
+--   that library term when it is the same text, else a term just for that quote. Sent
 --   versions (quote_versions snapshots) are frozen and keep what they showed.
 -- * Then quotes.terms and business_profiles.default_terms are dropped, and save_quote_draft no
 --   longer carries terms.
@@ -31,12 +32,20 @@ select bp.organisation_id, null, bp.default_terms, true,
   from public.business_profiles bp
  where bp.default_terms is not null;
 
+-- A quote's terms text is usually the business's default terms, copied when the quote was made: then
+-- it becomes a copy of that new library term (so the library term shows ticked, not twice). Otherwise
+-- it is a term just for that quote. Untitled library terms can only be the ones made just above.
 -- Moving the text is not an edit by the maker: the quote keeps its "last changed" time (lists are
 -- sorted by it, and sending checks it).
 alter table public.quotes disable trigger quotes_set_updated_at;
-update public.quotes
-   set policies = policies || jsonb_build_array(jsonb_build_object('policy_id', null, 'title', null, 'body', terms))
- where terms is not null;
+update public.quotes q
+   set policies = q.policies || jsonb_build_array(jsonb_build_object(
+         'policy_id', (select p.id from public.policies p
+                        where p.organisation_id = q.organisation_id and p.title is null and p.body = q.terms
+                        limit 1),
+         'title', null,
+         'body', q.terms))
+ where q.terms is not null;
 alter table public.quotes enable trigger quotes_set_updated_at;
 
 -- save_quote_draft without terms (an older app that still sends them has them ignored).

@@ -108,7 +108,7 @@ describe("a quote's own copy of policies", () => {
     });
     const bad = parseQuotePolicies([ok, { ...ok, key: "k2", body: "" }]);
     expect(bad.ok).toBe(false);
-    if (!bad.ok) expect(bad.byKey.k2.body).toMatch(/Write what the term says/);
+    if (!bad.ok) expect(bad.byKey.k2.body).toBe("Write what this term says, or remove it.");
     expect(parseQuotePolicies(Array.from({ length: QUOTE_MAX_POLICIES }, (_, i) => ({ ...ok, key: `k${i}` }))).ok).toBe(true);
     const many = parseQuotePolicies(Array.from({ length: QUOTE_MAX_POLICIES + 1 }, (_, i) => ({ ...ok, key: `k${i}` })));
     expect(!many.ok && many.error).toMatch(/up to 20 terms/);
@@ -125,6 +125,10 @@ describe("a quote's own copy of policies", () => {
       ok: true,
       policies: [{ policyId: null, title: "Pick-up", body: "From the studio." }],
     });
+    // Added and left empty: left out, not an error. With only a title, it needs its wording.
+    expect(parseQuotePolicies([blank])).toEqual({ ok: true, policies: [] });
+    const titleOnly = parseQuotePolicies([{ ...blank, title: "Pick-up" }]);
+    expect(!titleOnly.ok && titleOnly.byKey.k9.body).toBe("Write what this term says, or remove it.");
   });
 
   it("copies an untitled library term with no title", () => {

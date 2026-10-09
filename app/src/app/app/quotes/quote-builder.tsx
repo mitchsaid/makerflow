@@ -296,11 +296,12 @@ export function QuoteBuilder({
   if (f.policies) {
     const first = values.policies.find((c) => errors.policies?.[c.key]);
     const firstError = first ? errors.policies?.[first.key] : undefined;
+    // A term written for this quote has its own title box (checked first); a copied one only its wording.
+    const onTitle = first?.policyId === "" && !!firstError?.title;
     problems.push({
-      // A term written for this quote has its own title box; a copied one only its wording.
-      fieldId: first ? `policy-${first.key}-${first.policyId === "" && firstError?.title ? "title" : "body"}` : "policies-error",
+      fieldId: first ? `policy-${first.key}-${onTitle ? "title" : "body"}` : "policies-error",
       label: "Terms",
-      message: first ? `${termName(first)}: ${firstError?.body ?? firstError?.title}` : f.policies,
+      message: first ? `${termName(first)}: ${onTitle ? firstError?.title : (firstError?.body ?? firstError?.title)}` : f.policies,
     });
   }
   if (f.paymentInstructions) {

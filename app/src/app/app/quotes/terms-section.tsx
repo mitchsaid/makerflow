@@ -53,11 +53,17 @@ export function TermsSection({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const addButton = useRef<HTMLButtonElement>(null);
+  const addOwnButton = useRef<HTMLButtonElement>(null);
   // After "Add a term just for this quote", its first box takes focus.
   const [focusKey, setFocusKey] = useState<string | null>(null);
   useEffect(() => {
     if (focusKey) document.getElementById(`policy-${focusKey}-title`)?.focus();
   }, [focusKey]);
+  // After Remove (its button goes with the term), focus moves to adding another, once it is enabled again.
+  const [removed, setRemoved] = useState(0);
+  useEffect(() => {
+    if (removed > 0) addOwnButton.current?.focus();
+  }, [removed]);
 
   const active = sortPolicies(library.filter((p) => !p.archived));
   const copyOf = (policyId: string) => value.find((c) => c.policyId !== "" && c.policyId === policyId);
@@ -76,6 +82,7 @@ export function TermsSection({
   }
   function remove(key: string) {
     onChange(value.filter((c) => c.key !== key));
+    setRemoved((n) => n + 1);
   }
   function addOwn() {
     const term = oneOffTerm(newKey());
@@ -87,7 +94,8 @@ export function TermsSection({
     <div className="space-y-2 pl-9">
       <TextAreaField
         id={`policy-${copy.key}-body`}
-        label={`Wording for this quote: ${termName(copy)}`}
+        // Named by the saved term, so an untitled one's label does not change as its wording is typed.
+        label={`Wording for this quote: ${termName(saved ?? copy)}`}
         value={copy.body}
         error={errorsByKey?.[copy.key]?.body ?? errorsByKey?.[copy.key]?.title}
         onChange={(body) => edit(copy.key, { body })}
@@ -164,34 +172,36 @@ export function TermsSection({
             const label = ownTerms.length > 1 ? `Term just for this quote ${i + 1}` : "Term just for this quote";
             return (
               // A group, so a screen reader says which term its title and wording belong to.
-              <li key={c.key} role="group" aria-labelledby={`policy-${c.key}-heading`} className="space-y-3 rounded-lg border border-border p-3">
-                <div className="flex min-h-11 items-center justify-between gap-3">
-                  <p id={`policy-${c.key}-heading`} className="text-base font-medium">
-                    {label}
-                  </p>
-                  <Button type="button" variant="ghost" onClick={() => remove(c.key)}>
-                    Remove<span className="sr-only"> {label.toLowerCase()}</span>
-                  </Button>
+              <li key={c.key}>
+                <div role="group" aria-labelledby={`policy-${c.key}-heading`} className="space-y-3 rounded-lg border border-border p-3">
+                  <div className="flex min-h-11 items-center justify-between gap-3">
+                    <p id={`policy-${c.key}-heading`} className="text-base font-medium">
+                      {label}
+                    </p>
+                    <Button type="button" variant="ghost" onClick={() => remove(c.key)}>
+                      Remove<span className="sr-only"> {label.toLowerCase()}</span>
+                    </Button>
+                  </div>
+                  <TextField
+                    id={`policy-${c.key}-title`}
+                    label="Title (optional)"
+                    autoComplete="off"
+                    maxLength={POLICY_TITLE_MAX}
+                    value={c.title}
+                    error={errorsByKey?.[c.key]?.title}
+                    onChange={(title) => edit(c.key, { title })}
+                    hint={i === 0 ? "Leave it empty for a short line, printed as a plain paragraph." : undefined}
+                  />
+                  <TextAreaField
+                    id={`policy-${c.key}-body`}
+                    label="Wording"
+                    value={c.body}
+                    error={errorsByKey?.[c.key]?.body}
+                    onChange={(body) => edit(c.key, { body })}
+                    maxLength={POLICY_BODY_MAX}
+                    rows={4}
+                  />
                 </div>
-                <TextField
-                  id={`policy-${c.key}-title`}
-                  label="Title (optional)"
-                  autoComplete="off"
-                  maxLength={POLICY_TITLE_MAX}
-                  value={c.title}
-                  error={errorsByKey?.[c.key]?.title}
-                  onChange={(title) => edit(c.key, { title })}
-                  hint={i === 0 ? "Leave it empty for a short line, printed as a plain paragraph." : undefined}
-                />
-                <TextAreaField
-                  id={`policy-${c.key}-body`}
-                  label="Wording"
-                  value={c.body}
-                  error={errorsByKey?.[c.key]?.body}
-                  onChange={(body) => edit(c.key, { body })}
-                  maxLength={POLICY_BODY_MAX}
-                  rows={4}
-                />
               </li>
             );
           })}
@@ -205,7 +215,7 @@ export function TermsSection({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="button" variant="outline" disabled={full} onClick={addOwn}>
+        <Button ref={addOwnButton} type="button" variant="outline" disabled={full} onClick={addOwn}>
           Add a term just for this quote
         </Button>
         {canManage && (
