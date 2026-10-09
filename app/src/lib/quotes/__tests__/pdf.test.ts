@@ -651,46 +651,66 @@ describe("a variation on an item", () => {
 });
 
 describe("options and extras on an item", () => {
-  it("print folded under the item in every layout: once-per-line amounts shown, per-item ones in the price", async () => {
-    const options = [
-      { groupId: "", group: "Flavour", kind: "one" as const, charge: "item" as const, valueId: "", value: "Vanilla", text: "", amountCents: 0 },
-      { groupId: "", group: "Extras", kind: "any" as const, charge: "item" as const, valueId: "", value: "Gold sprinkles", text: "", amountCents: 200 },
-      { groupId: "", group: "Extras", kind: "any" as const, charge: "line" as const, valueId: "", value: "Gift box", text: "", amountCents: 3000 },
-      { groupId: "", group: "Message", kind: "text" as const, charge: "line" as const, valueId: "", value: "", text: "Happy 40th", amountCents: 0 },
-    ];
-    const s = snapshot(vats.none, {
+  const options = [
+    { groupId: "", group: "Flavour", kind: "one" as const, valueId: "", value: "Vanilla", text: "", amountCents: 0 },
+    { groupId: "", group: "Toppings", kind: "any" as const, valueId: "", value: "Gold sprinkles", text: "", amountCents: 200 },
+    { groupId: "", group: "Packaging", kind: "any" as const, valueId: "", value: "Gift box", text: "", amountCents: 300 },
+    { groupId: "", group: "Message", kind: "text" as const, valueId: "", value: "", text: "Happy 40th", amountCents: 0 },
+  ];
+  const cupcakes = () =>
+    snapshot(vats.none, {
       fulfilment: "none",
       discountKind: "none",
       discountValue: "",
       lines: [{ key: "a", kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cupcakes", description: "", quantity: "12", unit: "", unitPrice: "15", discountKind: "none", discountValue: "", options }],
     });
-    expect(s.lines[0].unitPriceCents).toBe(1700);
-    expect(s.lines[0].lineTotalCents).toBe(23400);
-    expect(s.totals.grossCents).toBe(23400);
+  /** A version sent before options were simplified: the gift box was charged once for the line. */
+  const sentBefore = () => {
+    const s = cupcakes();
+    const line = s.lines[0];
+    return {
+      ...s,
+      lines: [
+        {
+          ...line,
+          unitPriceCents: 1700,
+          lineTotalCents: 23400,
+          options: line.options!.map((o) => (o.value === "Gift box" ? { ...o, charge: "line" as const, amountCents: 3000 } : { ...o, charge: "item" as const })),
+        },
+      ],
+      totals: { ...s.totals, subtotalCents: 23400, netCents: 23400, grossCents: 23400 },
+    };
+  };
+
+  it("print folded under the item in every layout, with every amount in the price each", async () => {
+    const s = cupcakes();
+    expect(s.lines[0].unitPriceCents).toBe(2000);
+    expect(s.lines[0].lineTotalCents).toBe(24000);
+    expect(s.totals.grossCents).toBe(24000);
+    expect(s.lines[0].options?.every((o) => o.charge === undefined)).toBe(true);
     for (const layout of LAYOUTS) {
       const themed = { ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout }, "Test") };
       const text = (await pageTexts(await renderQuotePdf(themed))).flat().join(" ");
       expect(text, layout).toContain("Flavour: Vanilla");
       expect(text, layout).toContain("Gold sprinkles");
-      expect(text, layout).toMatch(/Gift box \(\+R\s?30,00 once\)/);
+      expect(text, layout).toContain("Gift box");
+      expect(text, layout).not.toMatch(/once/);
       expect(text, layout).toContain("Happy 40th");
     }
   }, 60_000);
-});
 
-describe("the theme's extra prices shown separately", () => {
-  it("draws the item's own price and a line for each extra with what it adds, in every layout", async () => {
-    const options = [
-      { groupId: "", group: "Flavour", kind: "one" as const, charge: "item" as const, valueId: "", value: "Vanilla", text: "", amountCents: 0 },
-      { groupId: "", group: "Toppings", kind: "any" as const, charge: "item" as const, valueId: "", value: "Gold sprinkles", text: "", amountCents: 200 },
-      { groupId: "", group: "Packaging", kind: "any" as const, charge: "line" as const, valueId: "", value: "Gift box", text: "", amountCents: 3000 },
-    ];
-    const s = snapshot(vats.none, {
-      fulfilment: "none",
-      discountKind: "none",
-      discountValue: "",
-      lines: [{ key: "a", kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cupcakes", description: "", quantity: "12", unit: "", unitPrice: "15", discountKind: "none", discountValue: "", options }],
-    });
+  it("draws a version sent before as it was, with its once-per-line amount", async () => {
+    const text = (await pageTexts(await renderQuotePdf(sentBefore()))).flat().join(" ");
+    expect(text).toMatch(/Gift box \(\+R\s?30,00 once\)/);
+    expect(text).toMatch(/R\s?234,00/);
+    const separate = { ...sentBefore(), theme: resolveTheme({ ...STARTERS[0].spec, extraPrices: "separate" }, "Test") };
+    const separateText = (await pageTexts(await renderQuotePdf(separate))).flat().join(" ");
+    expect(separateText).toMatch(/R\s?30,00 once/);
+    expect(separateText).toMatch(/R\s?15,00/);
+  }, 60_000);
+
+  it("with the theme's extra prices shown separately: the item's own price and a line for each extra, in every layout", async () => {
+    const s = cupcakes();
     for (const layout of LAYOUTS) {
       const themed = { ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout, extraPrices: "separate" }, "Test") };
       const text = (await pageTexts(await renderQuotePdf(themed))).flat().join(" ");
@@ -698,11 +718,11 @@ describe("the theme's extra prices shown separately", () => {
       expect(text, layout).toMatch(/Toppings: Gold sprinkles/);
       expect(text, layout).toMatch(/12 × R\s?2,00 = R\s?24,00/);
       expect(text, layout).toMatch(/Packaging: Gift box/);
-      expect(text, layout).toMatch(/R\s?30,00 once/);
+      expect(text, layout).toMatch(/12 × R\s?3,00 = R\s?36,00/);
       // The item's own price each, not the one with extras folded in.
       expect(text, layout).toMatch(/R\s?15,00/);
-      expect(text, layout).not.toMatch(/R\s?17,00/);
-      expect(text, layout).toMatch(/R\s?234,00/);
+      expect(text, layout).not.toMatch(/R\s?20,00/);
+      expect(text, layout).toMatch(/R\s?240,00/);
     }
   }, 60_000);
 });

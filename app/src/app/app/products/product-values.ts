@@ -1,6 +1,7 @@
 import { moneyToInput, type NumberStyle, type VatStatus } from "@/lib/money";
 import type { ProductKind, ProductSummary } from "@/lib/products";
 import type { VariationFormRow } from "@/lib/products/variations";
+import { OPTION_TEXT_DEFAULT } from "@/lib/products/options";
 import type { OptionGroupFormRow } from "@/lib/products/options";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
@@ -67,9 +68,9 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       name: g.name,
       kind: g.kind,
       required: g.required,
-      charge: g.charge,
       textPrice: g.kind === "text" && g.textPriceCents > 0 ? moneyToInput(g.textPriceCents, style) : "",
-      textMax: String(g.textMax),
+      // The usual length shows as empty: the field is only for when it matters.
+      textMax: g.textMax === OPTION_TEXT_DEFAULT ? "" : String(g.textMax),
       priceByVariation: g.priceByVariation,
       values: g.values.map((x) => ({
         key: x.id,

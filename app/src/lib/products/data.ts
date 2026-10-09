@@ -2,7 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
-import type { OptionCharge, OptionKind } from "./options";
+import type { OptionKind } from "./options";
 import type { ProductKind, ProductSummary } from "./index";
 
 /**
@@ -31,7 +31,6 @@ type Row = {
         name: string;
         kind: OptionKind;
         required: boolean;
-        charge: OptionCharge;
         text_price_cents: number | string;
         text_max: number;
         price_by_variation: boolean;
@@ -50,7 +49,7 @@ type Row = {
     | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, kind, required, charge, text_price_cents, text_max, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, product_option_value_prices ( variation_id, price_cents ) ) )";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, kind, required, text_price_cents, text_max, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, product_option_value_prices ( variation_id, price_cents ) ) )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -75,7 +74,6 @@ function fromRow(row: Row): ProductSummary {
         name: g.name,
         kind: g.kind,
         required: g.required,
-        charge: g.charge,
         textPriceCents: Number(g.text_price_cents),
         textMax: g.text_max,
         priceByVariation: g.price_by_variation,

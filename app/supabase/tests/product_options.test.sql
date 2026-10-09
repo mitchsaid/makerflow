@@ -45,9 +45,9 @@ begin
   cake := public.save_product(org_a, null, pg_temp.product('Cake'), '[]'::jsonb, '[
     {"name": "Flavour", "kind": "one", "required": true, "charge": "item",
      "values": [{"name": "Vanilla", "price_cents": 0, "usual": true}, {"name": "Red velvet", "price_cents": 5000}]},
-    {"name": "Extras", "kind": "any", "charge": "line",
+    {"name": "Extras", "kind": "any",
      "values": [{"name": "Gift box", "price_cents": 3000}]},
-    {"name": "Message", "kind": "text", "required": false, "charge": "line", "text_price_cents": 2500, "text_max": 60, "values": []}
+    {"name": "Message", "kind": "text", "required": false, "text_price_cents": 2500, "text_max": 60, "values": []}
   ]'::jsonb);
   assert (select count(*) from public.product_option_groups where product_id = cake) = 3, 'options were not added';
   assert (select array_agg(name order by sort_order) from public.product_option_groups where product_id = cake) = array['Flavour', 'Extras', 'Message'],
@@ -57,6 +57,8 @@ begin
   select id into vanilla from public.product_option_values where group_id = flavour and name = 'Vanilla';
   assert (select usual from public.product_option_values where id = vanilla), 'the usual value was not marked';
   assert (select text_price_cents = 2500 and text_max = 60 from public.product_option_groups where id = message), 'the text option lost its settings';
+  -- Every option's amount is added to each item (20261024100000_simpler_options).
+  assert (select bool_and(charge = 'item') from public.product_option_groups where product_id = cake), 'an option was not charged per item';
 
   -- Changing: keep Flavour (renamed) and Vanilla (same ids), drop Red velvet, add Chocolate; drop Extras.
   perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, jsonb_build_array(
@@ -64,7 +66,7 @@ begin
       'values', jsonb_build_array(
         jsonb_build_object('name', 'Chocolate', 'price_cents', 2000, 'usual', true),
         jsonb_build_object('id', vanilla, 'name', 'Vanilla bean', 'price_cents', 0))),
-    jsonb_build_object('id', message, 'name', 'Message', 'kind', 'text', 'charge', 'line', 'text_price_cents', 2500, 'text_max', 60, 'values', '[]'::jsonb)));
+    jsonb_build_object('id', message, 'name', 'Message', 'kind', 'text', 'text_price_cents', 2500, 'text_max', 60, 'values', '[]'::jsonb)));
   assert (select name from public.product_option_groups where id = flavour) = 'Sponge', 'a kept option lost its id';
   assert (select name from public.product_option_values where id = vanilla) = 'Vanilla bean', 'a kept value lost its id';
   assert not exists (select 1 from public.product_option_groups where product_id = cake and name = 'Extras'), 'a removed option is still there';
@@ -78,6 +80,16 @@ begin
 
   -- Rules of each kind.
   begin
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Box", "kind": "any", "charge": "line", "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
+    raise exception 'FAIL: an option charged once for the line was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": false, "values": [{"name": "A", "price_cents": 0}]}]'::jsonb);
+    raise exception 'FAIL: a "choose one" that needs no choice was accepted';
+  exception when check_violation then null;
+  end;
+  begin
     perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Extras", "kind": "any", "required": true, "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
     raise exception 'FAIL: a required "choose any" was accepted';
   exception when check_violation then null;
@@ -88,23 +100,23 @@ begin
   exception when invalid_parameter_value then null;
   end;
   begin
-    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "values": []}]'::jsonb);
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": true, "values": []}]'::jsonb);
     raise exception 'FAIL: a choice without values was accepted';
   exception when invalid_parameter_value then null;
   end;
   begin
-    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "values": [{"name": "A", "price_cents": 1}], "text_price_cents": 5}]'::jsonb);
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": true, "values": [{"name": "A", "price_cents": 1}], "text_price_cents": 5}]'::jsonb);
     raise exception 'FAIL: a text price on a choice was accepted';
   exception when check_violation then null;
   end;
   begin
-    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "values": [{"name": "A", "price_cents": -1}]}]'::jsonb);
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": true, "values": [{"name": "A", "price_cents": -1}]}]'::jsonb);
     raise exception 'FAIL: a negative amount was accepted';
   exception when check_violation then null;
   end;
   begin
     perform public.save_product(org_a, cake, pg_temp.product('Cake'), null,
-      '[{"name": "Flavour", "kind": "one", "values": [{"name": "A", "price_cents": 1, "usual": true}, {"name": "B", "price_cents": 1, "usual": true}]}]'::jsonb);
+      '[{"name": "Flavour", "kind": "one", "required": true, "values": [{"name": "A", "price_cents": 1, "usual": true}, {"name": "B", "price_cents": 1, "usual": true}]}]'::jsonb);
     raise exception 'FAIL: two usual values were accepted';
   exception when unique_violation then null;
   end;
@@ -139,7 +151,7 @@ begin
   -- Another business sees and changes nothing.
   perform pg_temp.as_user(a);
   set local role authenticated;
-  perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
+  perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": true, "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
   select id into flavour from public.product_option_groups where product_id = cake;
   reset role;
   perform pg_temp.as_user(b);

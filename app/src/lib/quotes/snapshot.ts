@@ -65,8 +65,7 @@ export type SnapshotLine = {
   variation?: { label: string; name: string } | null;
   /**
    * The options chosen, as the item kept them: the option's name, the value or the typed text, and the amount
-   * with how it was charged. `unitPriceCents` already includes those charged per item; `lineTotalCents`
-   * those charged once. Absent before options existed.
+   * each item. `unitPriceCents` already includes them. Absent before options existed.
    */
   options?: SnapshotOption[];
 };
@@ -74,7 +73,11 @@ export type SnapshotLine = {
 export type SnapshotOption = {
   group: string;
   kind: "one" | "any" | "text";
-  charge: "item" | "line";
+  /**
+   * "line": charged once for the item line, on versions sent before options were simplified (then
+   * `lineTotalCents` includes it). Absent (or "item"): added to each item.
+   */
+  charge?: "item" | "line";
   value: string | null;
   text: string | null;
   amountCents: number;
@@ -318,7 +321,7 @@ export function buildQuoteSnapshot(input: {
       ...(vat.registered ? { vatStatus: l.vatStatus } : {}),
       ...(l.variation ? { variation: { label: l.variation.label, name: l.variation.name } } : {}),
       ...(l.options.length > 0
-        ? { options: l.options.map((o) => ({ group: o.group, kind: o.kind, charge: o.charge, value: o.value, text: o.text, amountCents: o.amountCents })) }
+        ? { options: l.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, amountCents: o.amountCents })) }
         : {}),
     })),
     quoteDiscount: quote.quoteDiscount
