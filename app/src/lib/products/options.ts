@@ -132,7 +132,7 @@ export function parseOptionGroups(
         else e.textPrice = price.error;
       }
       const max = Number(row.textMax.trim() === "" ? OPTION_TEXT_DEFAULT : row.textMax.trim());
-      if (!Number.isInteger(max) || max < 1 || max > OPTION_TEXT_MAX) e.textMax = `Choose a length from 1 to ${OPTION_TEXT_MAX} characters.`;
+      if (!Number.isInteger(max) || max < 1 || max > OPTION_TEXT_MAX) e.textMax = `Choose a length from 1 to ${OPTION_TEXT_MAX} characters, or leave it empty for ${OPTION_TEXT_DEFAULT}.`;
       else textMax = max;
     } else {
       if (row.values.length === 0) e.values = "Add at least one choice.";

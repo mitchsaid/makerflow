@@ -102,24 +102,24 @@ export function OptionChoices({
           );
         }
         if (g.kind === "one") {
+          // "Choose one" always needs a choice: an optional one has a choice like "None" of its own.
           const value = mine[0]?.valueId ?? "";
           return (
             <FieldSet key={g.id} data-invalid={!!error}>
               <FieldLegend variant="label" className="text-base">
                 {g.name}
-                {g.required ? "" : " (optional)"}
               </FieldLegend>
               <RadioGroup
                 aria-describedby={describedBy}
                 aria-invalid={!!error}
-                value={value || (g.required ? "" : "none")}
+                value={value}
                 onValueChange={(key) => {
                   const v = g.values.find((x) => x.id === key);
                   onChange([...others(g), ...(v ? [copyOf(g, v)] : [])]);
                 }}
                 className="gap-2"
               >
-                {[...g.values, ...(g.required ? [] : [{ id: "none", name: "None", priceCents: 0, usual: false, prices: {} }])].map((v, i) => (
+                {g.values.map((v, i) => (
                   <Field
                     key={v.id}
                     orientation="horizontal"

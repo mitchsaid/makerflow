@@ -30,7 +30,7 @@ test("options and extras: chosen on a quote, added to each item, and printed und
   // Choose one: Flavour, Vanilla usual, Red velvet +R5 each.
   await addOption(page, "Choose one", "Flavour");
   // Asked once: the kind is not asked again, a choice is always needed, and the price is always for each item.
-  await expect(page.getByLabel("Kind")).toHaveCount(0);
+  await expect(page.getByLabel("Kind", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("How is the price added?")).toHaveCount(0);
   await expect(page.getByRole("checkbox", { name: "One must be chosen" })).toHaveCount(0);
   await expect(page.getByText("One is always chosen. To make it optional, add a choice like “None”.")).toBeVisible();

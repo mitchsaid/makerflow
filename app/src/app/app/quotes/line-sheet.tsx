@@ -549,7 +549,7 @@ function ConfigureView({
     if (optionErrors[g.id]) problems.push({ fieldId: id(`option-${g.id}`), label: g.name, message: optionErrors[g.id] });
   }
 
-  // "12 × R17 + R30 once = R234": the line as it will add up, once something is chosen that costs.
+  // "12 × R17 = R204": the line as it will add up, once something is chosen that costs.
   const quantity = parseQuantity(line.quantity);
   const sum =
     extrasEach > 0 && typedPrice.ok && quantity.ok
