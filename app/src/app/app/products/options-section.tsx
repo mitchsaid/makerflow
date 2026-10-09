@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   OPTION_KIND_WORDS,
@@ -208,78 +209,105 @@ export function OptionsSection({
                       </div>
                     ) : (
                       <>
-                        <ol className="space-y-3">
-                          {g.values.map((v, vi) => {
-                            const ve = e?.rows[v.key];
-                            const vTitle = v.name.trim() || `${title}: choice ${vi + 1}`;
-                            return (
-                              <li key={v.key} className="space-y-2 rounded-lg bg-muted/40 p-2">
-                                <div className={byVariation ? "space-y-3" : "grid grid-cols-[1fr_8rem] gap-3"}>
-                                  <TextField
-                                    id={fid(`option-${g.key}-value-${v.key}-name`)}
-                                    label={`${title}: choice ${vi + 1}`}
-                                    autoComplete="off"
-                                    maxLength={80}
-                                    value={v.name}
-                                    error={ve?.name}
-                                    onChange={(name) =>
-                                      setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, name } : x)) })
-                                    }
-                                  />
+                        {/* One line each: the choice, what it adds and a remove button, under shared headings.
+                            Priced by size: the choice's line, then a price for each size under it. */}
+                        <div className="space-y-2">
+                          <div
+                            aria-hidden="true"
+                            className={`grid items-end gap-2 text-sm font-medium ${byVariation ? "grid-cols-[1fr_2.75rem]" : "grid-cols-[1fr_7.5rem_2.75rem]"}`}
+                          >
+                            <span>Choice</span>
+                            {!byVariation && <span>Adds</span>}
+                            <span />
+                          </div>
+                          <ol className={byVariation ? "space-y-4" : "space-y-2"}>
+                            {g.values.map((v, vi) => {
+                              const ve = e?.rows[v.key];
+                              const vTitle = v.name.trim() || `${title}: choice ${vi + 1}`;
+                              const remove = (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive"
+                                  aria-label={`Remove ${vTitle}`}
+                                  onClick={() => {
+                                    const next = g.values.filter((x) => x.key !== v.key);
+                                    setGroup(g.key, { values: next });
+                                    pendingFocus.current =
+                                      next.length > 0 ? fid(`option-${g.key}-value-${next[Math.max(0, vi - 1)].key}-name`) : fid(`option-${g.key}-add-value`);
+                                  }}
+                                >
+                                  <Trash2Icon aria-hidden="true" />
+                                </Button>
+                              );
+                              const nameField = (
+                                <TextField
+                                  id={fid(`option-${g.key}-value-${v.key}-name`)}
+                                  label={`${title}: choice ${vi + 1}`}
+                                  labelHidden
+                                  autoComplete="off"
+                                  maxLength={80}
+                                  value={v.name}
+                                  error={ve?.name}
+                                  onChange={(name) => setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, name } : x)) })}
+                                />
+                              );
+                              return (
+                                <li key={v.key} className="space-y-2">
                                   {byVariation ? (
-                                    <div className="grid grid-cols-2 gap-3">
-                                      {variations.map((variation) => (
-                                        <TextField
-                                          key={variation.key}
-                                          id={fid(`option-${g.key}-value-${v.key}-price-${variation.key}`)}
-                                          label={`${title}: choice ${vi + 1} adds for ${variation.name}`}
-                                          startText={`+${currencySymbol}`}
-                                          inputMode="decimal"
-                                          autoComplete="off"
-                                          value={v.prices?.[variation.key] ?? ""}
-                                          error={ve?.prices?.[variation.key]}
-                                          onChange={(price) =>
-                                            setGroup(g.key, {
-                                              values: g.values.map((x) => (x.key === v.key ? { ...x, prices: { ...(x.prices ?? {}), [variation.key]: price } } : x)),
-                                            })
-                                          }
-                                        />
-                                      ))}
-                                    </div>
+                                    <>
+                                      <div className="grid grid-cols-[1fr_2.75rem] items-start gap-2">
+                                        {nameField}
+                                        {remove}
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 pl-3">
+                                        {variations.map((variation) => (
+                                          <div key={variation.key} className="space-y-1">
+                                            <span aria-hidden="true" className="block text-sm text-muted-foreground">
+                                              {variation.name}
+                                            </span>
+                                            <TextField
+                                              id={fid(`option-${g.key}-value-${v.key}-price-${variation.key}`)}
+                                              label={`${title}: choice ${vi + 1} adds for ${variation.name}`}
+                                              labelHidden
+                                              startText={`+${currencySymbol}`}
+                                              inputMode="decimal"
+                                              autoComplete="off"
+                                              value={v.prices?.[variation.key] ?? ""}
+                                              error={ve?.prices?.[variation.key]}
+                                              onChange={(price) =>
+                                                setGroup(g.key, {
+                                                  values: g.values.map((x) => (x.key === v.key ? { ...x, prices: { ...(x.prices ?? {}), [variation.key]: price } } : x)),
+                                                })
+                                              }
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </>
                                   ) : (
-                                  <TextField
-                                    id={fid(`option-${g.key}-value-${v.key}-price`)}
-                                    label={`${title}: choice ${vi + 1} adds`}
-                                    startText={`+${currencySymbol}`}
-                                    inputMode="decimal"
-                                    autoComplete="off"
-                                    value={v.price}
-                                    error={ve?.price}
-                                    onChange={(price) =>
-                                      setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, price } : x)) })
-                                    }
-                                  />
+                                    <div className="grid grid-cols-[1fr_7.5rem_2.75rem] items-start gap-2">
+                                      {nameField}
+                                      <TextField
+                                        id={fid(`option-${g.key}-value-${v.key}-price`)}
+                                        label={`${title}: choice ${vi + 1} adds`}
+                                        labelHidden
+                                        startText={`+${currencySymbol}`}
+                                        inputMode="decimal"
+                                        autoComplete="off"
+                                        value={v.price}
+                                        error={ve?.price}
+                                        onChange={(price) => setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, price } : x)) })}
+                                      />
+                                      {remove}
+                                    </div>
                                   )}
-                                </div>
-                                <div className="flex justify-end">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="text-destructive"
-                                    onClick={() => {
-                                      const next = g.values.filter((x) => x.key !== v.key);
-                                      setGroup(g.key, { values: next });
-                                      pendingFocus.current =
-                                        next.length > 0 ? fid(`option-${g.key}-value-${next[Math.max(0, vi - 1)].key}-name`) : fid(`option-${g.key}-add-value`);
-                                    }}
-                                  >
-                                    Remove<span className="sr-only"> {vTitle}</span>
-                                  </Button>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ol>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        </div>
                         {e?.values && <p className="text-sm text-destructive">{e.values}</p>}
                         <Button
                           id={fid(`option-${g.key}-add-value`)}
