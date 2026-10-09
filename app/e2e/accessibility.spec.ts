@@ -298,12 +298,31 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await expectNoViolations(page, "product variations, saved");
+      // Options and extras: the kind picker, an option with problems, then saved.
+      await page.getByRole("button", { name: "Add an option" }).click();
+      await expectNoViolations(page, "product options, choosing the kind");
+      await page.getByRole("group", { name: "What kind of option?" }).getByRole("button", { name: /Choose one/ }).click();
+      await page.getByLabel("Option name").fill("Flavour");
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByTestId("form-summary")).toContainText("Flavour: choice 1");
+      await expectNoViolations(page, "product options, with problems");
+      await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
+      await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Chocolate");
+      await page.getByLabel("Flavour: choice 2 adds", { exact: true }).fill("20");
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
+      await expectNoViolations(page, "product options, saved");
       await page.goto("/app/quotes/new");
       await page.getByRole("button", { name: "Add item" }).click();
       await page.getByRole("dialog").getByRole("button", { name: /Axe product/ }).click();
       await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
       await expect(page.getByRole("dialog").getByTestId("form-summary")).toContainText("Choose a size");
-      await expectNoViolations(page, "item sheet, choose a size with an error");
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toContainText("Choose a flavour");
+      await expectNoViolations(page, "item sheet, choose a size and a flavour with errors");
+      await page.getByRole("dialog").getByRole("radio", { name: /Small/ }).check();
+      await page.getByRole("dialog").getByRole("radio", { name: /Chocolate/ }).check();
+      await expect(page.getByRole("dialog").getByTestId("line-sum")).toBeVisible();
+      await expectNoViolations(page, "item sheet, an option that adds to the price");
       await page.keyboard.press("Escape");
 
       await openBusinessProfile(page);

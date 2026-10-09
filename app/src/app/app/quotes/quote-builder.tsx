@@ -34,6 +34,7 @@ import { addDays } from "@/lib/quotes/dates";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import {
+  optionAmounts,
   previewTotals,
   type DiscountKind,
   type LineFormValues,
@@ -281,7 +282,7 @@ export function QuoteBuilder({
   values.lines.forEach((line, index) => {
     const e = errors.lines[line.key];
     if (!e) return;
-    const message = e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description;
+    const message = e.name ?? e.variation ?? e.options ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description;
     if (message) {
       problems.push({ fieldId: `line-${line.key}-edit`, label: `Item ${index + 1}: ${line.name || "item"}`, message });
     }
@@ -455,7 +456,7 @@ export function QuoteBuilder({
                   number={index + 1}
                   error={(() => {
                     const e = errors.lines[line.key];
-                    return e ? (e.name ?? e.variation ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
+                    return e ? (e.name ?? e.variation ?? e.options ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
                   })()}
                   money={money}
                   lineTotal={(() => {
@@ -780,8 +781,10 @@ function LineRow({
               {name}
             </span>
             <span className="block truncate text-sm text-muted-foreground">
-              {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} × {price.ok ? money(price.value) : "?"}
+              {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} ×{" "}
+              {price.ok ? money(price.value + optionAmounts(line.options ?? []).perItem) : "?"}
               {line.variationName && ` · ${line.variationName}`}
+              {(line.options?.length ?? 0) > 0 && ` · ${line.options!.length} ${line.options!.length === 1 ? "option" : "options"}`}
               {line.discountKind !== "none" && " · discount"}
               {vatLabel && ` · ${vatLabel}`}
               {!line.productId && " · one-off item"}

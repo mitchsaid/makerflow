@@ -3,7 +3,7 @@ import type { BalanceDue, DepositKind } from "./deposit";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
-import type { DiscountKind } from "./index";
+import type { DiscountKind, LineOption } from "./index";
 import type { Customer, CustomerKind } from "../customers";
 import { isStarterKey, type StarterKey } from "./themes";
 import type { QuoteEventKind } from "./outcome";
@@ -90,6 +90,7 @@ type LineRow = {
   variation_id: string | null;
   variation_label: string | null;
   variation_name: string | null;
+  options: unknown;
 };
 
 type VersionRow = {
@@ -221,6 +222,7 @@ export type StoredQuote = {
     variationId: string | null;
     variationLabel: string | null;
     variationName: string | null;
+    options: LineOption[];
   }[];
   /** The customer as they are now (a draft shows live details; a sent version has its own copy). */
   customer: Customer | null;
@@ -244,6 +246,31 @@ export type StoredQuote = {
     at: string;
   }[];
 };
+
+/** An item's options as stored (snake_case JSON), as the form holds them; anything unreadable is left out. */
+function storedOptions(value: unknown): LineOption[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((o): LineOption[] => {
+    if (typeof o !== "object" || o === null) return [];
+    const r = o as Record<string, unknown>;
+    const kind = r.kind === "one" || r.kind === "any" || r.kind === "text" ? r.kind : null;
+    const charge = r.charge === "item" || r.charge === "line" ? r.charge : null;
+    const amount = Number(r.amount_cents);
+    if (!kind || !charge || typeof r.group !== "string" || !Number.isSafeInteger(amount)) return [];
+    return [
+      {
+        groupId: typeof r.group_id === "string" ? r.group_id : "",
+        group: r.group,
+        kind,
+        charge,
+        valueId: typeof r.value_id === "string" ? r.value_id : "",
+        value: typeof r.value === "string" ? r.value : "",
+        text: typeof r.text === "string" ? r.text : "",
+        amountCents: amount,
+      },
+    ];
+  });
+}
 
 /** The quote's own policies as stored (a list), ignoring anything that isn't one. */
 function storedPolicies(value: unknown): StoredQuote["policies"] {
@@ -274,7 +301,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
        deposit_kind, deposit_value, balance_due, balance_due_date, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
-         discount_kind, discount_value, vat_status, variation_id, variation_label, variation_name
+         discount_kind, discount_value, vat_status, variation_id, variation_label, variation_name, options
        ),
        customers (
          id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
@@ -334,6 +361,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       variationId: l.variation_id,
       variationLabel: l.variation_label,
       variationName: l.variation_name,
+      options: storedOptions(l.options),
     })),
     customer: (() => {
       const c = Array.isArray(row.customers) ? row.customers[0] : row.customers;

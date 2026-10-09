@@ -74,6 +74,7 @@ describe("productMatchesSearch", () => {
     vatStatus: "standard",
     variationLabel: null,
     variations: [],
+    options: [],
   };
   it("searches the name and description without caring about case", () => {
     expect(productMatchesSearch(p, "WEDDING")).toBe(true);

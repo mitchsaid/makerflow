@@ -14,7 +14,7 @@ async function addProduct(page: Page, name: string, price: string) {
   await expect(page.getByTestId("product-added")).toHaveText(`Added ${name}.`);
 }
 
-const COMING_SOON = ["Options and extras", "Costs and margin", "Quantity prices", "Production steps", "Stock"];
+const COMING_SOON = ["Costs and margin", "Quantity prices", "Production steps", "Stock"];
 
 test("the first product: a name and a price; the later layers are shown but do nothing", async ({ page }) => {
   await signUpAndOnboard(page, "p-first", "Product Co");
@@ -81,8 +81,8 @@ test("services are their own list, with their own form, and save, edit and come 
   await expect(page.getByRole("heading", { name: "Add a service", level: 1 })).toBeVisible();
   // A service's own coming-soon layers: no photo or stock.
   const placeholders = page.getByTestId("coming-soon");
-  await expect(placeholders).toHaveCount(4);
-  for (const title of ["Options and extras", "Costs and margin", "Quantity prices", "Steps"]) {
+  await expect(placeholders).toHaveCount(3);
+  for (const title of ["Costs and margin", "Quantity prices", "Steps"]) {
     await expect(placeholders.filter({ hasText: title })).toHaveCount(1);
   }
   await expect(page.getByText("Stock")).toHaveCount(0);
@@ -103,7 +103,7 @@ test("services are their own list, with their own form, and save, edit and come 
 
   await page.getByRole("link", { name: /Design time/ }).click();
   await expect(page.getByRole("heading", { name: "Design time", level: 1 })).toBeVisible();
-  await expect(page.getByTestId("coming-soon")).toHaveCount(4);
+  await expect(page.getByTestId("coming-soon")).toHaveCount(3);
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("450,50");
   await expect(page.getByLabel("Description (optional)")).toHaveValue("Per hour\nMinimum one hour");
   await page.getByLabel("Price", { exact: true }).fill("500");

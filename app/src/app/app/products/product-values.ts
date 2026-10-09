@@ -1,6 +1,7 @@
 import { moneyToInput, type NumberStyle, type VatStatus } from "@/lib/money";
 import type { ProductKind, ProductSummary } from "@/lib/products";
 import type { VariationFormRow } from "@/lib/products/variations";
+import type { OptionGroupFormRow } from "@/lib/products/options";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
 export type ProductFormValues = {
@@ -17,6 +18,8 @@ export type ProductFormValues = {
   /** The maker's word for the variations ("Size"), and the rows. No rows: one price. */
   variationLabel: string;
   variations: VariationFormRow[];
+  /** Options and extras, as the form holds them. */
+  options: OptionGroupFormRow[];
 };
 
 export const EMPTY_PRODUCT: ProductFormValues = {
@@ -29,6 +32,7 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   vatStatus: "standard",
   variationLabel: "",
   variations: [],
+  options: [],
 };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
@@ -57,6 +61,17 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
     vatStatus: p.vatStatus ?? "standard",
     variationLabel: p.variationLabel ?? "",
     variations: p.variations.map((x) => ({ key: x.id, id: x.id, name: x.name, price: moneyToInput(x.priceCents, style), usual: x.usual })),
+    options: p.options.map((g) => ({
+      key: g.id,
+      id: g.id,
+      name: g.name,
+      kind: g.kind,
+      required: g.required,
+      charge: g.charge,
+      textPrice: g.kind === "text" && g.textPriceCents > 0 ? moneyToInput(g.textPriceCents, style) : "",
+      textMax: String(g.textMax),
+      values: g.values.map((x) => ({ key: x.id, id: x.id, name: x.name, price: x.priceCents > 0 ? moneyToInput(x.priceCents, style) : "", usual: x.usual })),
+    })),
   };
 }
 

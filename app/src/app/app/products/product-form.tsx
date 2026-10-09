@@ -14,6 +14,7 @@ import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { VariationsSection } from "./variations-section";
+import { OptionsSection } from "./options-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 
 /**
@@ -22,7 +23,6 @@ import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
  */
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
-    ["Options and extras", "Choices like flavour, add-ons like gold leaf or a gift box, and text like a message on the cake."],
     ["Costs and margin", "What it costs to make (materials, your time, other costs), so you can see your profit."],
     ["Quantity prices", "Lower prices when someone orders more."],
     ["Production steps", "The steps to make it, so you can track each job."],
@@ -30,7 +30,6 @@ const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> =
   ],
   // Services (founder, 2026-10-03): no photo or stock; costs are mostly your time.
   service: [
-    ["Options and extras", "Options like a rush job or working on site, each with its own price."],
     ["Costs and margin", "Your time at an hourly rate and any other costs, so you can see your profit."],
     ["Quantity prices", "Lower rates for larger amounts."],
     ["Steps", "The steps of the service, so you can track each job."],
@@ -118,13 +117,32 @@ export function ProductForm({
   // quote items that point at them) instead of replacing them.
   // The rows as they were sent, in order: the saved product lists its variations in the same order.
   const [sentKeys, setSentKeys] = useState<string[]>([]);
+  const [sentOptions, setSentOptions] = useState<{ key: string; values: string[] }[]>([]);
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
     if (state.status === "saved" || state.status === "created") {
       const saved = state.product.variations;
       const idOf = new Map(saved.length === sentKeys.length ? sentKeys.map((key, i) => [key, saved[i].id]) : []);
-      setValues((v) => ({ ...v, variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })) }));
+      // Options and their values too, by their place in what was sent.
+      const groupIdOf = new Map<string, string>();
+      const valueIdOf = new Map<string, string>();
+      const savedOptions = state.product.options;
+      if (savedOptions.length === sentOptions.length) {
+        sentOptions.forEach((sent, i) => {
+          groupIdOf.set(sent.key, savedOptions[i].id);
+          if (savedOptions[i].values.length === sent.values.length) sent.values.forEach((key, j) => valueIdOf.set(key, savedOptions[i].values[j].id));
+        });
+      }
+      setValues((v) => ({
+        ...v,
+        variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })),
+        options: v.options.map((g) => ({
+          ...g,
+          id: g.id || (groupIdOf.get(g.key) ?? ""),
+          values: g.values.map((x) => (x.id ? x : { ...x, id: valueIdOf.get(x.key) ?? "" })),
+        })),
+      }));
     }
   }
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -153,6 +171,21 @@ export function ProductForm({
     if (e?.price) problems.push({ fieldId: fid(`variation-${row.key}-price`), label: `${variationWord} ${i + 1} price`, message: e.price });
   });
   if (errors.variations?.list) problems.push({ fieldId: fid("variations"), label: "Variations", message: errors.variations.list });
+  values.options.forEach((g, gi) => {
+    const e = errors.options?.groups[g.key];
+    if (!e) return;
+    const title = g.name.trim() || `Option ${gi + 1}`;
+    if (e.name) problems.push({ fieldId: fid(`option-${g.key}-name`), label: `${title}: name`, message: e.name });
+    if (e.textPrice) problems.push({ fieldId: fid(`option-${g.key}-textPrice`), label: `${title}: price`, message: e.textPrice });
+    if (e.textMax) problems.push({ fieldId: fid(`option-${g.key}-textMax`), label: `${title}: length`, message: e.textMax });
+    if (e.values) problems.push({ fieldId: fid(`option-${g.key}-add-value`), label: title, message: e.values });
+    g.values.forEach((v, vi) => {
+      const ve = e.rows[v.key];
+      if (ve?.name) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-name`), label: `${title}: choice ${vi + 1}`, message: ve.name });
+      if (ve?.price) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price`), label: `${title}: choice ${vi + 1} price`, message: ve.price });
+    });
+  });
+  if (errors.options?.list) problems.push({ fieldId: fid("add-option"), label: "Options and extras", message: errors.options.list });
 
   const set =
     <K extends keyof ProductFormValues>(key: K) =>
@@ -171,6 +204,7 @@ export function ProductForm({
     }
     const formData = new FormData(event.currentTarget);
     setSentKeys(values.variations.map((r) => r.key));
+    setSentOptions(values.options.map((g) => ({ key: g.key, values: g.kind === "text" ? [] : g.values.map((x) => x.key) })));
     setEditedSinceSave(false);
     startTransition(() => formAction(formData));
   }
@@ -280,7 +314,19 @@ export function ProductForm({
           }));
         }}
       />
-      {/* Sent as one field: the rows as a list, read and checked by the server. */}
+      <OptionsSection
+        groups={values.options}
+        errors={errors.options}
+        priceLabel={priceLabel}
+        currencySymbol={currencySymbol}
+        fid={fid}
+        onChange={(options) => {
+          setEditedSinceSave(true);
+          setValues((v) => ({ ...v, options }));
+        }}
+      />
+      {/* Sent as one field each: the rows as lists, read and checked by the server. */}
+      <input type="hidden" name="options" value={JSON.stringify(values.options)} />
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 

@@ -19,6 +19,7 @@ import {
   formatMoney,
   moneyToInput,
   parseMoney,
+  parseQuantity,
   type NumberStyle,
 } from "@/lib/money";
 import { UnitField } from "@/components/unit-field";
@@ -28,7 +29,8 @@ import type { VatChoice } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
 import { VariationChoice } from "./variation-choice";
-import { parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
+import { missingOptions, OptionChoices } from "./option-choices";
+import { optionAmounts, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
@@ -74,6 +76,13 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     variationId: usual?.id ?? "",
     variationLabel: usual ? (product.variationLabel ?? "") : "",
     variationName: usual?.name ?? "",
+    // Each "choose one" option starts with its usual value, if it has one.
+    options: product.options.flatMap((g) => {
+      const v = g.kind === "one" ? g.values.find((x) => x.usual) : undefined;
+      return v
+        ? [{ groupId: g.id, group: g.name, kind: g.kind, charge: g.charge, valueId: v.id, value: v.name, text: "", amountCents: v.priceCents }]
+        : [];
+    }),
   };
 }
 
@@ -269,7 +278,34 @@ function followProduct(
         : line.unitPrice,
     vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
     ...followVariation(line, before, after, style),
+    options: followOptions(line.options ?? [], after),
   };
+}
+
+/**
+ * The options chosen on a new item after its product was edited: each takes the option's new words and
+ * amount; ones the product no longer offers go; "choose one" options with nothing chosen get their usual one.
+ */
+function followOptions(chosen: readonly LineOption[], after: ProductSummary): LineOption[] {
+  const next: LineOption[] = [];
+  for (const o of chosen) {
+    const g = after.options.find((x) => x.id === o.groupId);
+    if (!g || g.kind !== o.kind) continue;
+    if (g.kind === "text") {
+      next.push({ ...o, group: g.name, charge: g.charge, amountCents: g.textPriceCents });
+      continue;
+    }
+    const v = g.values.find((x) => x.id === o.valueId);
+    if (!v) continue;
+    if (g.kind === "one" && next.some((x) => x.groupId === g.id)) continue;
+    next.push({ ...o, group: g.name, charge: g.charge, value: v.name, amountCents: v.priceCents });
+  }
+  for (const g of after.options) {
+    if (g.kind !== "one" || next.some((x) => x.groupId === g.id)) continue;
+    const usual = g.values.find((x) => x.usual);
+    if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", charge: g.charge, valueId: usual.id, value: usual.name, text: "", amountCents: usual.priceCents });
+  }
+  return next;
 }
 
 /** The chosen variation after its product was edited: renamed, repriced or removed. */
@@ -420,6 +456,8 @@ function ConfigureView({
 }) {
   const [line, setLine] = useState(initialLine);
   const [errors, setErrors] = useState<LineErrors>({});
+  // Required options with nothing chosen, by option id (shown after Save is pressed).
+  const [optionErrors, setOptionErrors] = useState<Record<string, string>>({});
   // Changes every time Save is pressed, so the summary takes focus each time.
   const [attempt, setAttempt] = useState(0);
   const [, startTransition] = useTransition();
@@ -435,6 +473,11 @@ function ConfigureView({
   const id = (field: string) => `line-sheet-${field}`;
   const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) =>
     setLine((l) => ({ ...l, [key]: value }));
+
+  // The product's options and extras, and what they add to this item.
+  const optionGroups = product?.options ?? [];
+  const showOptions = optionGroups.length > 0 || (line.options ?? []).length > 0;
+  const extras = optionAmounts(line.options ?? []);
 
   // The product's variations, and the one this item has kept if the product no longer lists it.
   const variations = product?.variations ?? [];
@@ -471,9 +514,12 @@ function ConfigureView({
     event.stopPropagation();
     const result = parseLine(line);
     setAttempt((n) => n + 1);
-    // A product with variations needs one chosen (the database cannot know: lines keep their own copy).
+    // A product with variations needs one chosen, and its required options answered (the database cannot
+    // know: lines keep their own copy).
     const mustChoose = variations.length > 0 && !line.variationName ? { variation: `Choose a ${word.toLowerCase()}.` } : {};
-    if (!result.ok || Object.keys(mustChoose).length > 0) {
+    const missing = missingOptions(optionGroups, line.options ?? []);
+    setOptionErrors(missing);
+    if (!result.ok || Object.keys(mustChoose).length > 0 || Object.keys(missing).length > 0) {
       setErrors({ ...(result.ok ? {} : result.errors), ...mustChoose });
       return;
     }
@@ -485,6 +531,7 @@ function ConfigureView({
     [
       ["name", "Name"],
       ["variation", word],
+      ["options", "Options and extras"],
       ["quantity", "Quantity"],
       ["unit", "Unit"],
       ["unitPrice", priceLabel],
@@ -495,6 +542,20 @@ function ConfigureView({
     const message = errors[field];
     return message ? [{ fieldId: id(field), label, message }] : [];
   });
+  for (const g of optionGroups) {
+    if (optionErrors[g.id]) problems.push({ fieldId: id(`option-${g.id}`), label: g.name, message: optionErrors[g.id] });
+  }
+
+  // "12 × R17 + R30 once = R234": the line as it will add up, once something is chosen that costs.
+  const quantity = parseQuantity(line.quantity);
+  const sum =
+    (extras.perItem > 0 || extras.once > 0) && typedPrice.ok && quantity.ok
+      ? (() => {
+          const each = typedPrice.value + extras.perItem;
+          const total = Math.round((quantity.value * each) / 1000) + extras.once;
+          return `${line.quantity} × ${money(each)}${extras.once > 0 ? ` + ${money(extras.once)} once` : ""} = ${money(total)}`;
+        })()
+      : null;
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
@@ -644,10 +705,32 @@ function ConfigureView({
         )}
       </Section>
 
-      <ComingSoonSection
-        title="Options and extras"
-        description="Choose this item's options, like flavour, add-ons like gold leaf or a gift box, and text like a message on the cake."
-      />
+      {showOptions && (
+        <Section title="Options and extras">
+          <OptionChoices
+            idPrefix="line-sheet-"
+            groups={optionGroups}
+            chosen={line.options ?? []}
+            errors={optionErrors}
+            money={money}
+            onChange={(options) => {
+              setLine((l) => ({ ...l, options }));
+              // A problem goes away once it is fixed.
+              setOptionErrors((e) => Object.fromEntries(Object.entries(e).filter(([gid]) => missingOptions(optionGroups, options)[gid])));
+            }}
+          />
+          {errors.options && (
+            <p id={id("options")} tabIndex={-1} className="text-sm text-destructive">
+              {errors.options}
+            </p>
+          )}
+          {sum && (
+            <p className="text-base" data-testid="line-sum">
+              {sum}
+            </p>
+          )}
+        </Section>
+      )}
 
       <FormSummary problems={problems} trigger={attempt} />
 

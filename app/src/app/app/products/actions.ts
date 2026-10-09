@@ -10,6 +10,7 @@ import {
   type ProductSummary,
 } from "@/lib/products";
 import { findProduct } from "@/lib/products/data";
+import { optionsPayload } from "@/lib/products/options";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProductSaveState =
@@ -37,6 +38,7 @@ function toPayload(p: ProductFields) {
       // Only when the form carried a VAT choice (a VAT-registered business): otherwise it is left alone.
       ...(p.vatStatus === undefined ? {} : { vat_status: p.vatStatus }),
     },
+    options: p.options === undefined ? null : optionsPayload(p.options),
     variations:
       p.variations === undefined
         ? null
@@ -63,6 +65,7 @@ async function saveProduct(
     p_product_id: id,
     p_product: payload.product,
     p_variations: payload.variations,
+    p_options: payload.options,
   });
   if (error?.code === "23503") {
     return { ok: false, state: { status: "error", errors: { photo: "That photo could not be used. Choose it again." } } };
