@@ -1,5 +1,6 @@
--- Product options and extras: save_product keeps, adds and removes options and their values in one go
--- (keeping ids); the rules of each kind; limits; isolation; quote items keep their own copy.
+-- Product lists ("choose one" options, shown with the variations): save_product keeps, adds and removes
+-- them and their values in one go (keeping ids); the rules; limits; isolation; quote items keep their own
+-- copy. (Extras have their own test: extras.test.sql.)
 -- Plain SQL, one transaction, rolled back.
 
 begin;
@@ -26,7 +27,6 @@ declare
   cake uuid;
   flavour uuid;
   vanilla uuid;
-  message uuid;
   q uuid;
   n integer;
 begin
@@ -45,59 +45,56 @@ begin
   cake := public.save_product(org_a, null, pg_temp.product('Cake'), '[]'::jsonb, '[
     {"name": "Flavour", "kind": "one", "required": true, "charge": "item",
      "values": [{"name": "Vanilla", "price_cents": 0, "usual": true}, {"name": "Red velvet", "price_cents": 5000}]},
-    {"name": "Extras", "kind": "any",
-     "values": [{"name": "Gift box", "price_cents": 3000}]},
-    {"name": "Message", "kind": "text", "required": false, "text_price_cents": 2500, "text_max": 60, "values": []}
+    {"name": "Filling", "kind": "one", "required": true,
+     "values": [{"name": "Jam", "price_cents": 0}, {"name": "Cream", "price_cents": 300}]}
   ]'::jsonb);
-  assert (select count(*) from public.product_option_groups where product_id = cake) = 3, 'options were not added';
-  assert (select array_agg(name order by sort_order) from public.product_option_groups where product_id = cake) = array['Flavour', 'Extras', 'Message'],
+  assert (select count(*) from public.product_option_groups where product_id = cake) = 2, 'lists were not added';
+  assert (select array_agg(name order by sort_order) from public.product_option_groups where product_id = cake) = array['Flavour', 'Filling'],
     'the order was not kept';
   select id into flavour from public.product_option_groups where product_id = cake and name = 'Flavour';
-  select id into message from public.product_option_groups where product_id = cake and name = 'Message';
   select id into vanilla from public.product_option_values where group_id = flavour and name = 'Vanilla';
   assert (select usual from public.product_option_values where id = vanilla), 'the usual value was not marked';
-  assert (select text_price_cents = 2500 and text_max = 60 from public.product_option_groups where id = message), 'the text option lost its settings';
   -- Every option's amount is added to each item (20261024100000_simpler_options).
   assert (select bool_and(charge = 'item') from public.product_option_groups where product_id = cake), 'an option was not charged per item';
 
-  -- Changing: keep Flavour (renamed) and Vanilla (same ids), drop Red velvet, add Chocolate; drop Extras.
+  -- Changing: keep Flavour (renamed) and Vanilla (same ids), drop Red velvet, add Chocolate; drop Filling.
   perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, jsonb_build_array(
     jsonb_build_object('id', flavour, 'name', 'Sponge', 'kind', 'one', 'required', true, 'charge', 'item',
       'values', jsonb_build_array(
         jsonb_build_object('name', 'Chocolate', 'price_cents', 2000, 'usual', true),
-        jsonb_build_object('id', vanilla, 'name', 'Vanilla bean', 'price_cents', 0))),
-    jsonb_build_object('id', message, 'name', 'Message', 'kind', 'text', 'text_price_cents', 2500, 'text_max', 60, 'values', '[]'::jsonb)));
+        jsonb_build_object('id', vanilla, 'name', 'Vanilla bean', 'price_cents', 0)))));
   assert (select name from public.product_option_groups where id = flavour) = 'Sponge', 'a kept option lost its id';
   assert (select name from public.product_option_values where id = vanilla) = 'Vanilla bean', 'a kept value lost its id';
-  assert not exists (select 1 from public.product_option_groups where product_id = cake and name = 'Extras'), 'a removed option is still there';
+  assert not exists (select 1 from public.product_option_groups where product_id = cake and name = 'Filling'), 'a removed list is still there';
   assert (select array_agg(name order by sort_order) from public.product_option_values where group_id = flavour) = array['Chocolate', 'Vanilla bean'],
     'values were not replaced in order';
   assert (select name from public.product_option_values where group_id = flavour and usual) = 'Chocolate', 'the usual value did not move';
 
   -- No list leaves the options alone.
   perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, null);
-  assert (select count(*) from public.product_option_groups where product_id = cake) = 2, 'a missing list removed options';
+  assert (select count(*) from public.product_option_groups where product_id = cake) = 1, 'a missing list removed options';
 
   -- Rules of each kind.
   begin
-    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Box", "kind": "any", "charge": "line", "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Box", "kind": "one", "required": true, "charge": "line", "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
     raise exception 'FAIL: an option charged once for the line was accepted';
+  exception when check_violation then null;
+  end;
+  -- "Choose any" and "type something" became extras (20261025100000_extras): lists are only "choose one".
+  begin
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Extras", "kind": "any", "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
+    raise exception 'FAIL: a "choose any" option was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Message", "kind": "text", "values": []}]'::jsonb);
+    raise exception 'FAIL: a "type something" option was accepted';
   exception when check_violation then null;
   end;
   begin
     perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": false, "values": [{"name": "A", "price_cents": 0}]}]'::jsonb);
     raise exception 'FAIL: a "choose one" that needs no choice was accepted';
   exception when check_violation then null;
-  end;
-  begin
-    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Extras", "kind": "any", "required": true, "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
-    raise exception 'FAIL: a required "choose any" was accepted';
-  exception when check_violation then null;
-  end;
-  begin
-    perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Message", "kind": "text", "values": [{"name": "A", "price_cents": 1}]}]'::jsonb);
-    raise exception 'FAIL: a text option with values was accepted';
-  exception when invalid_parameter_value then null;
   end;
   begin
     perform public.save_product(org_a, cake, pg_temp.product('Cake'), null, '[{"name": "Flavour", "kind": "one", "required": true, "values": []}]'::jsonb);
@@ -122,7 +119,7 @@ begin
   end;
   begin
     perform public.save_product(org_a, cake, pg_temp.product('Cake'), null,
-      (select jsonb_agg(jsonb_build_object('name', 'O' || i, 'kind', 'text', 'values', '[]'::jsonb)) from generate_series(1, 21) i));
+      (select jsonb_agg(jsonb_build_object('name', 'O' || i, 'kind', 'one', 'required', true, 'values', '[{"name": "A", "price_cents": 0}]'::jsonb)) from generate_series(1, 21) i));
     raise exception 'FAIL: 21 options were accepted';
   exception when program_limit_exceeded then null;
   end;

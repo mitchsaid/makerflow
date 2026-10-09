@@ -74,6 +74,27 @@ describe("lines and discounts", () => {
   });
 });
 
+describe("extras for a fixed count", () => {
+  it("adds them after quantity x price, before the line's discount, and VAT is on the whole", () => {
+    // 12 cupcakes at R17 (R15 plus R2 of sprinkles each) and a R30 gift box (a count of one): R234.
+    const t = calculateDocument({ lines: [line("a", 12, 1700, { extraCents: 3000 })], vat: NOT_REGISTERED });
+    expect(t.lines[0].amountBeforeDiscountCents).toBe(23400);
+    const d = calculateDocument({
+      lines: [line("a", 12, 1700, { extraCents: 3000, discount: { kind: "percent", basisPoints: 1000 } })],
+      vat: INCLUSIVE,
+    });
+    expect(d.lines[0].lineDiscountCents).toBe(2340);
+    expect(d.grossCents).toBe(21060);
+    expect(d.vatCents).toBe(Math.round((21060 * 15) / 115));
+  });
+
+  it("is nothing when absent, and refuses a negative or fractional amount", () => {
+    expect(calculateDocument({ lines: [line("a", 2, 500)], vat: NOT_REGISTERED }).grossCents).toBe(1000);
+    expect(() => calculateDocument({ lines: [line("a", 1, 100, { extraCents: -1 })], vat: NOT_REGISTERED })).toThrow();
+    expect(() => calculateDocument({ lines: [line("a", 1, 100, { extraCents: 1.5 })], vat: NOT_REGISTERED })).toThrow();
+  });
+});
+
 describe("VAT", () => {
   it("not registered: no VAT at all", () => {
     const t = calculateDocument({ lines: [line("a", 1, 115_000)], vat: NOT_REGISTERED });

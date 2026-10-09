@@ -1,6 +1,6 @@
 # Plan: two concepts for product choices (variation lists and extras)
 
-Status: **agreed with the founder 2026-10-09**, building in two slices. Replaces the three kinds of option ("choose one", "choose any", "type something") in `product-choices.md`. Slice 2 changes the database and how a line's amount is worked out: money and data, needs human review.
+Status: **agreed with the founder 2026-10-09; both slices built 2026-10-09** (slice 1 merged as PR 53; slice 2 in the pull request that follows it). Replaces the three kinds of option ("choose one", "choose any", "type something") in `product-choices.md`. Slice 2 changes the database and how a line's amount is worked out: money and data, needs human review.
 
 ## Why
 Options were getting too complex for a maker setting up a product: three kinds, "required", "how is it charged", a kind to pick and a kind to change. Asked what the best shape is, the answer (objective assessment, 2026-10-09) was two concepts, each answering one plain question, and neither needing a setting about how many can be chosen:
@@ -46,6 +46,13 @@ Unchanged in order (`docs/plans/product-choices.md`, "How the money works"), wit
 
 ## Tests
 Unit: variation list parsing and the form; extras parsing (wording, shared or product-only, price by size); the money addition (fixed-number extras, discounts, VAT); document text for each quantity; old snapshots with "once". SQL: isolation and session required, unique shared names, `save_product` keeping ids, shared-to-product-only copying, the conversion of options. Browser: set up a product with two variation lists and a reusable extra; reuse it on a second product and see the price change follow; quote it with extras for each item and for a fixed number; the document. Accessibility: the product form sections and the item sheet.
+
+## Built (notes)
+- The product form: **Variations** holds the sizes (each with its price) and any number of lists ("Add a list": a list you pick one from, each choice adds an amount, "Price depends on the size" when the product has sizes); **Extras** holds the extras as cards (name, price, "Ask for wording" with an optional "Longest", "Where does it apply?": Any product / This product only, and for a product-only extra "Price depends on the size"). "Add an extra" offers the business's saved extras first (read when asked, by `listSharedExtras`, so product pages carry nothing extra) and "Make a new extra"; with none to offer it goes straight to a new one.
+- A shared extra shows "Also on 2 other products. Changing it changes it there too." Removing a shared extra takes it off this product only; one that no product has any more is deleted. A new shared extra whose name another has is refused ("You already have a saved extra with that name").
+- The item sheet: lists as rows to pick one from, extras as ticks. A ticked extra has "how many (optional)" (whole numbers; empty: one for each item) and, when it asks for wording, "what should it say?" (needed). The sum reads "12 × R24,00 + R30,00 = R318,00".
+- Money: `extraCents` on a line (`lib/money/document.ts`) is the extras for a fixed count; extras for each item stay in the price each. The snapshot's option has an optional `quantityMilli`; "once for the line" from before reads as a count of one.
+- A zero price by size is kept as "0" when a product is opened again (it used to come back empty and ask again).
 
 ## Not built
 "Often added with this" (adding Mugs suggests "Logo setup"); extras with a cost (a material) for costing; stock; a screen to rename or archive saved extras (an extra can be removed from every product by removing it from each).

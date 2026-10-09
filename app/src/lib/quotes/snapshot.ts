@@ -78,6 +78,8 @@ export type SnapshotOption = {
    * `lineTotalCents` includes it). Absent (or "item"): added to each item.
    */
   charge?: "item" | "line";
+  /** How many of an extra: absent means one for each item, a number is a fixed count. */
+  quantityMilli?: number | null;
   value: string | null;
   text: string | null;
   amountCents: number;
@@ -321,7 +323,7 @@ export function buildQuoteSnapshot(input: {
       ...(vat.registered ? { vatStatus: l.vatStatus } : {}),
       ...(l.variation ? { variation: { label: l.variation.label, name: l.variation.name } } : {}),
       ...(l.options.length > 0
-        ? { options: l.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, amountCents: o.amountCents })) }
+        ? { options: l.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, amountCents: o.amountCents, ...(o.quantityMilli === null ? {} : { quantityMilli: o.quantityMilli }) })) }
         : {}),
     })),
     quoteDiscount: quote.quoteDiscount

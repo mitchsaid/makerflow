@@ -32,7 +32,7 @@ begin
   cake := public.save_product(org_a, null,
     jsonb_build_object('kind', 'product', 'name', 'Cake', 'description', '', 'unit_price_cents', 0, 'unit', '', 'variation_label', 'Size'),
     '[{"name": "Small", "price_cents": 30000}, {"name": "Large", "price_cents": 60000}]'::jsonb,
-    '[{"name": "Extras", "kind": "any", "charge": "item", "price_by_variation": true,
+    '[{"name": "Gold", "kind": "one", "required": true, "charge": "item", "price_by_variation": true,
        "values": [{"name": "Gold leaf", "price_cents": 5000, "prices": [{"variation_index": 0, "price_cents": 5000}, {"variation_index": 1, "price_cents": 12000}]}]}]'::jsonb);
   select id into small from public.product_variations where product_id = cake and name = 'Small';
   select id into large from public.product_variations where product_id = cake and name = 'Large';
@@ -45,7 +45,7 @@ begin
   perform public.save_product(org_a, cake,
     jsonb_build_object('kind', 'product', 'name', 'Cake', 'description', '', 'unit_price_cents', 0, 'unit', '', 'variation_label', 'Size'),
     null,
-    jsonb_build_array(jsonb_build_object('id', (select id from public.product_option_groups where product_id = cake), 'name', 'Extras', 'kind', 'any', 'charge', 'item',
+    jsonb_build_array(jsonb_build_object('id', (select id from public.product_option_groups where product_id = cake), 'name', 'Gold', 'kind', 'one', 'required', true, 'charge', 'item',
       'values', jsonb_build_array(jsonb_build_object('id', gold, 'name', 'Gold leaf', 'price_cents', 5000)))));
   assert (select count(*) from public.product_option_value_prices where value_id = gold) = 0, 'prices stayed with the switch off';
 
@@ -53,7 +53,7 @@ begin
   perform public.save_product(org_a, cake,
     jsonb_build_object('kind', 'product', 'name', 'Cake', 'description', '', 'unit_price_cents', 0, 'unit', '', 'variation_label', 'Size'),
     null,
-    jsonb_build_array(jsonb_build_object('id', (select id from public.product_option_groups where product_id = cake), 'name', 'Extras', 'kind', 'any', 'charge', 'item', 'price_by_variation', true,
+    jsonb_build_array(jsonb_build_object('id', (select id from public.product_option_groups where product_id = cake), 'name', 'Gold', 'kind', 'one', 'required', true, 'charge', 'item', 'price_by_variation', true,
       'values', jsonb_build_array(jsonb_build_object('id', gold, 'name', 'Gold leaf', 'price_cents', 5000,
         'prices', '[{"variation_index": 0, "price_cents": 4000}, {"variation_index": 1, "price_cents": 9000}]'::jsonb)))));
   assert (select count(*) from public.product_option_value_prices where value_id = gold) = 2, 'prices were not stored again';
@@ -80,14 +80,6 @@ begin
     end;
   end;
 
-  -- A text option can't be priced by variation.
-  begin
-    perform public.save_product(org_a, cake,
-      jsonb_build_object('kind', 'product', 'name', 'Cake', 'description', '', 'unit_price_cents', 0, 'unit', '', 'variation_label', 'Size'),
-      null, '[{"name": "Message", "kind": "text", "price_by_variation": true, "values": []}]'::jsonb);
-    raise exception 'FAIL: a text option priced by variation was accepted';
-  exception when check_violation then null;
-  end;
   reset role;
 
   -- Another business sees none of it.

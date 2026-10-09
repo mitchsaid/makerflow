@@ -10,6 +10,7 @@ import {
   type ProductSummary,
 } from "@/lib/products";
 import { findProduct } from "@/lib/products/data";
+import { extrasPayload } from "@/lib/products/extras";
 import { optionsPayload } from "@/lib/products/options";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,6 +40,7 @@ function toPayload(p: ProductFields) {
       ...(p.vatStatus === undefined ? {} : { vat_status: p.vatStatus }),
     },
     options: p.options === undefined ? null : optionsPayload(p.options),
+    extras: p.extras === undefined ? null : extrasPayload(p.extras),
     variations:
       p.variations === undefined
         ? null
@@ -66,7 +68,17 @@ async function saveProduct(
     p_product: payload.product,
     p_variations: payload.variations,
     p_options: payload.options,
+    p_extras: payload.extras,
   });
+  if (error?.code === "23505") {
+    return {
+      ok: false,
+      state: {
+        status: "error",
+        errors: { extras: { list: "You already have a saved extra with that name. Pick it from your saved extras, or give this one its own name.", rows: {} } },
+      },
+    };
+  }
   if (error?.code === "23503") {
     return { ok: false, state: { status: "error", errors: { photo: "That photo could not be used. Choose it again." } } };
   }

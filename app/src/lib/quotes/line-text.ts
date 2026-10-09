@@ -11,19 +11,31 @@ type OptionLike = {
   kind: "one" | "any" | "text";
   /** Only "line" on versions sent before options were simplified (charged once for the line). */
   charge?: "item" | "line";
+  /** How many of an extra: absent means one for each item, a number is a fixed count. */
+  quantityMilli?: number | null;
   value: string | null;
   text: string | null;
   amountCents: number;
 };
 
+/** How many of an extra when it is a fixed count (a once-per-line extra from before is one); null: one for each item. */
+export function fixedCount(o: Pick<OptionLike, "charge" | "quantityMilli">): number | null {
+  if (o.charge === "line") return 1000;
+  return o.quantityMilli ?? null;
+}
+
 /**
  * The options chosen, folded into one line under the item (decision 8): "Flavour: Vanilla · Extras: Gold leaf,
- * Gift box · Message: “Happy 40th”". The amounts are already in the price each. Versions sent before options
- * were simplified could charge an extra once for the line: those show "(+R30 once)", so the sums add up.
+ * Gift box · Message: “Happy 40th”". Amounts for each item are already in the price each. An extra for a fixed
+ * count shows what it adds so the sums add up: "(+R30 once)" for one, "(3 × R30,00)" for more.
  */
 export function optionsText(options: readonly OptionLike[] | undefined, money: (cents: number) => string): string | null {
   if (!options || options.length === 0) return null;
-  const once = (o: OptionLike) => (o.charge === "line" && o.amountCents > 0 ? ` (+${money(o.amountCents)} once)` : "");
+  const once = (o: OptionLike) => {
+    const count = fixedCount(o);
+    if (count === null || o.amountCents <= 0) return "";
+    return count === 1000 ? ` (+${money(o.amountCents)} once)` : ` (${count / 1000} × ${money(o.amountCents)})`;
+  };
   const groups: { name: string; parts: string[] }[] = [];
   for (const o of options) {
     const part = o.kind === "text" ? `“${o.text ?? ""}”${once(o)}` : `${o.value ?? ""}${once(o)}`;
@@ -49,7 +61,7 @@ export function extrasView(
   if (!separate || !options.some((o) => o.amountCents > 0)) {
     return { priceEachCents: line.unitPriceCents, folded: optionsText(options, money), priced: [] };
   }
-  const perItem = options.reduce((sum, o) => sum + (o.charge !== "line" ? o.amountCents : 0), 0);
+  const perItem = options.reduce((sum, o) => sum + (fixedCount(o) === null ? o.amountCents : 0), 0);
   const label = (o: OptionLike) => `${o.group}: ${o.kind === "text" ? `“${o.text ?? ""}”` : (o.value ?? "")}`;
   return {
     priceEachCents: line.unitPriceCents - perItem,
@@ -58,10 +70,12 @@ export function extrasView(
       .filter((o) => o.amountCents > 0)
       .map((o) => ({
         label: label(o),
-        amount:
-          o.charge === "line"
-            ? `${money(o.amountCents)} once`
-            : `${quantity} × ${money(o.amountCents)} = ${money(Math.round((line.quantityMilli * o.amountCents) / 1000))}`,
+        amount: (() => {
+          const count = fixedCount(o);
+          if (o.charge === "line") return `${money(o.amountCents)} once`;
+          if (count !== null) return `${count / 1000} × ${money(o.amountCents)} = ${money(Math.round((count * o.amountCents) / 1000))}`;
+          return `${quantity} × ${money(o.amountCents)} = ${money(Math.round((line.quantityMilli * o.amountCents) / 1000))}`;
+        })(),
       })),
   };
 }

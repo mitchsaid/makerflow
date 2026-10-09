@@ -264,6 +264,7 @@ function storedOptions(value: unknown): LineOption[] {
         value: typeof r.value === "string" ? r.value : "",
         text: typeof r.text === "string" ? r.text : "",
         amountCents: amount,
+        quantityMilli: Number.isSafeInteger(Number(r.quantity_milli)) && Number(r.quantity_milli) >= 1 ? Number(r.quantity_milli) : null,
       },
     ];
   });

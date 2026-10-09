@@ -2,7 +2,6 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
-import type { OptionKind } from "./options";
 import type { ProductKind, ProductSummary } from "./index";
 
 /**
@@ -29,10 +28,6 @@ type Row = {
     | {
         id: string;
         name: string;
-        kind: OptionKind;
-        required: boolean;
-        text_price_cents: number | string;
-        text_max: number;
         price_by_variation: boolean;
         sort_order: number;
         product_option_values:
@@ -47,9 +42,25 @@ type Row = {
           | null;
       }[]
     | null;
+  product_extras:
+    | {
+        sort_order: number;
+        extras: {
+          id: string;
+          name: string;
+          price_cents: number | string;
+          asks_for_wording: boolean;
+          text_max: number;
+          product_id: string | null;
+          price_by_variation: boolean;
+          extra_variation_prices: { variation_id: string; price_cents: number | string }[] | null;
+          product_extras: { count: number }[] | null;
+        } | null;
+      }[]
+    | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, kind, required, text_price_cents, text_max, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, product_option_value_prices ( variation_id, price_cents ) ) )";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, product_option_value_prices ( variation_id, price_cents ) ) ),\n  product_extras ( sort_order,\n    extras ( id, name, price_cents, asks_for_wording, text_max, product_id, price_by_variation, extra_variation_prices ( variation_id, price_cents ), product_extras ( count ) ) )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -72,10 +83,7 @@ function fromRow(row: Row): ProductSummary {
       .map((g) => ({
         id: g.id,
         name: g.name,
-        kind: g.kind,
-        required: g.required,
-        textPriceCents: Number(g.text_price_cents),
-        textMax: g.text_max,
+        kind: "one" as const,
         priceByVariation: g.price_by_variation,
         values: [...(g.product_option_values ?? [])]
           .sort((a, b) => a.sort_order - b.sort_order)
@@ -87,6 +95,25 @@ function fromRow(row: Row): ProductSummary {
             prices: Object.fromEntries((v.product_option_value_prices ?? []).map((p) => [p.variation_id, Number(p.price_cents)])),
           })),
       })),
+    extras: [...(row.product_extras ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .flatMap((pe) => {
+        const x = pe.extras;
+        if (!x) return [];
+        return [
+          {
+            id: x.id,
+            name: x.name,
+            priceCents: Number(x.price_cents),
+            asksForWording: x.asks_for_wording,
+            textMax: x.text_max,
+            shared: x.product_id === null,
+            usedOn: Math.max(1, x.product_extras?.[0]?.count ?? 1),
+            priceByVariation: x.price_by_variation,
+            prices: Object.fromEntries((x.extra_variation_prices ?? []).map((p) => [p.variation_id, Number(p.price_cents)])),
+          },
+        ];
+      }),
   };
 }
 
@@ -99,7 +126,7 @@ export async function getProducts(): Promise<ProductSummary[]> {
     .order("name", { ascending: true })
     .limit(5000);
   if (error) throw new Error(`Could not load products: ${error.message}`);
-  return (data as Row[]).map(fromRow);
+  return (data as unknown as Row[]).map(fromRow);
 }
 
 /** One product, or null for a bad id or one this person cannot see. */
@@ -108,7 +135,7 @@ export async function findProduct(id: string): Promise<ProductSummary | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("products").select(COLUMNS).eq("id", id).maybeSingle();
   if (error) throw new Error(`Could not load the product: ${error.message}`);
-  return data ? fromRow(data as Row) : null;
+  return data ? fromRow(data as unknown as Row) : null;
 }
 
 /** One product. Shows the "not found" page for a bad or foreign id. */

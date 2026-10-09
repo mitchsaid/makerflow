@@ -15,7 +15,8 @@ import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { VariationsSection } from "./variations-section";
-import { OptionsSection } from "./options-section";
+import { ListsSection } from "./lists-section";
+import { ExtrasSection } from "./extras-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 
 /**
@@ -119,6 +120,7 @@ export function ProductForm({
   // The rows as they were sent, in order: the saved product lists its variations in the same order.
   const [sentKeys, setSentKeys] = useState<string[]>([]);
   const [sentOptions, setSentOptions] = useState<{ key: string; values: string[] }[]>([]);
+  const [sentExtras, setSentExtras] = useState(0);
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
@@ -135,8 +137,15 @@ export function ProductForm({
           if (savedOptions[i].values.length === sent.values.length) sent.values.forEach((key, j) => valueIdOf.set(key, savedOptions[i].values[j].id));
         });
       }
+      // Extras by their place too: a new one gets its id, a shared one turned "this product only" may be a copy,
+      // and how many products have a shared one is as saved.
+      const savedExtras = state.product.extras;
       setValues((v) => ({
         ...v,
+        extras:
+          savedExtras.length === sentExtras && v.extras.length === sentExtras
+            ? v.extras.map((r, i) => ({ ...r, id: savedExtras[i].id, shared: savedExtras[i].shared, usedOn: savedExtras[i].usedOn }))
+            : v.extras,
         variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })),
         options: v.options.map((g) => ({
           ...g,
@@ -149,6 +158,8 @@ export function ProductForm({
   const [editedSinceSave, setEditedSinceSave] = useState(false);
   const fid = (key: string) => `${idPrefix}${key}`;
   const errors: ProductFieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
+  // The variations that have a name: lists and extras that depend on them show one price for each.
+  const namedVariations = values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }));
 
   const problems: FormProblem[] = (
     [
@@ -175,10 +186,8 @@ export function ProductForm({
   values.options.forEach((g, gi) => {
     const e = errors.options?.groups[g.key];
     if (!e) return;
-    const title = g.name.trim() || `${g.kind === "one" ? "List" : "Extra"} ${values.options.filter((x, xi) => xi <= gi && (x.kind === "one") === (g.kind === "one")).length}`;
+    const title = g.name.trim() || `List ${gi + 1}`;
     if (e.name) problems.push({ fieldId: fid(`option-${g.key}-name`), label: `${title}: name`, message: e.name });
-    if (e.textPrice) problems.push({ fieldId: fid(`option-${g.key}-textPrice`), label: `${title}: price`, message: e.textPrice });
-    if (e.textMax) problems.push({ fieldId: fid(`option-${g.key}-textMax`), label: `${title}: length`, message: e.textMax });
     if (e.values) problems.push({ fieldId: fid(`option-${g.key}-add-value`), label: title, message: e.values });
     g.values.forEach((v, vi) => {
       const ve = e.rows[v.key];
@@ -190,7 +199,21 @@ export function ProductForm({
       }
     });
   });
-  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Extras and lists", message: errors.options.list });
+  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Lists", message: errors.options.list });
+  // The extras' problems, in the order they appear.
+  values.extras.forEach((x, xi) => {
+    const e = errors.extras?.rows[x.key];
+    if (!e) return;
+    const title = x.name.trim() || `Extra ${xi + 1}`;
+    if (e.name) problems.push({ fieldId: fid(`extra-${x.key}-name`), label: `${title}: name`, message: e.name });
+    if (e.price) problems.push({ fieldId: fid(`extra-${x.key}-price`), label: `${title}: price`, message: e.price });
+    if (e.textMax) problems.push({ fieldId: fid(`extra-${x.key}-textMax`), label: `${title}: longest`, message: e.textMax });
+    for (const [vk, message] of Object.entries(e.prices ?? {})) {
+      const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
+      problems.push({ fieldId: fid(`extra-${x.key}-price-${vk}`), label: `${title} for ${variationName}`, message });
+    }
+  });
+  if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
 
   const set =
     <K extends keyof ProductFormValues>(key: K) =>
@@ -209,7 +232,8 @@ export function ProductForm({
     }
     const formData = new FormData(event.currentTarget);
     setSentKeys(values.variations.map((r) => r.key));
-    setSentOptions(values.options.map((g) => ({ key: g.key, values: g.kind === "text" ? [] : g.values.map((x) => x.key) })));
+    setSentOptions(values.options.map((g) => ({ key: g.key, values: g.values.map((x) => x.key) })));
+    setSentExtras(values.extras.length);
     setEditedSinceSave(false);
     startTransition(() => formAction(formData));
   }
@@ -331,15 +355,12 @@ export function ProductForm({
         }}
       >
         {/* The lists you pick one from (flavour) sit with the variations: they are the same idea. */}
-        <OptionsSection
-          show="lists"
-          bare
+        <ListsSection
           hasPricedList={values.variations.length > 0}
-          variations={values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }))}
+          variations={namedVariations}
           variationWord={values.variationLabel.trim() || "variation"}
           groups={values.options}
           errors={errors.options}
-          priceLabel={priceLabel}
           currencySymbol={currencySymbol}
           fid={fid}
           onChange={(options) => {
@@ -348,22 +369,22 @@ export function ProductForm({
           }}
         />
       </VariationsSection>
-      <OptionsSection
-        show="extras"
-        variations={values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }))}
+      <ExtrasSection
+        rows={values.extras}
+        errors={errors.extras}
+        variations={namedVariations}
         variationWord={values.variationLabel.trim() || "variation"}
-        groups={values.options}
-        errors={errors.options}
         priceLabel={priceLabel}
         currencySymbol={currencySymbol}
         fid={fid}
-        onChange={(options) => {
+        onChange={(extras) => {
           setEditedSinceSave(true);
-          setValues((v) => ({ ...v, options }));
+          setValues((v) => ({ ...v, extras }));
         }}
       />
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
       <input type="hidden" name="options" value={JSON.stringify(values.options)} />
+      <input type="hidden" name="extras" value={JSON.stringify(values.extras)} />
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 

@@ -699,6 +699,42 @@ describe("options and extras on an item", () => {
     }
   }, 60_000);
 
+  it("shows an extra for a fixed count with what it adds, folded and shown separately, in every layout", async () => {
+    const fixed = [
+      { groupId: "", group: "Extras", kind: "any" as const, valueId: "", value: "Gold sprinkles", text: "", amountCents: 200 },
+      { groupId: "", group: "Extras", kind: "any" as const, valueId: "", value: "Gift box", text: "", amountCents: 3000, quantityMilli: 1000 },
+      { groupId: "", group: "Extras", kind: "any" as const, valueId: "", value: "Ribbon", text: "", amountCents: 500, quantityMilli: 3000 },
+      { groupId: "", group: "Engraving", kind: "text" as const, valueId: "", value: "", text: "Happy 40th", amountCents: 0, quantityMilli: 1000 },
+    ];
+    const s = snapshot(vats.none, {
+      fulfilment: "none",
+      discountKind: "none",
+      discountValue: "",
+      lines: [{ key: "a", kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cupcakes", description: "", quantity: "12", unit: "", unitPrice: "15", discountKind: "none", discountValue: "", options: fixed }],
+    });
+    // 12 × (R15 + R2) + 1 × R30 + 3 × R5 = R249.
+    expect(s.lines[0].unitPriceCents).toBe(1700);
+    expect(s.lines[0].lineTotalCents).toBe(24900);
+    expect(s.lines[0].options?.[1]).toMatchObject({ quantityMilli: 1000 });
+    expect(s.lines[0].options?.[0]).not.toHaveProperty("quantityMilli");
+    for (const layout of LAYOUTS) {
+      const folded = (await pageTexts(await renderQuotePdf({ ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout }, "Test") }))).flat().join(" ");
+      expect(folded, layout).toMatch(/Gift box \(\+R\s?30,00 once\)/);
+      expect(folded, layout).toMatch(/Ribbon \(3 × R\s?5,00\)/);
+      expect(folded, layout).toContain("Happy 40th");
+      expect(folded, layout).toMatch(/R\s?249,00/);
+      const separate = (
+        await pageTexts(await renderQuotePdf({ ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout, extraPrices: "separate" }, "Test") }))
+      )
+        .flat()
+        .join(" ");
+      expect(separate, layout).toMatch(/12 × R\s?2,00 = R\s?24,00/);
+      expect(separate, layout).toMatch(/1 × R\s?30,00 = R\s?30,00/);
+      expect(separate, layout).toMatch(/3 × R\s?5,00 = R\s?15,00/);
+      expect(separate, layout).toMatch(/R\s?249,00/);
+    }
+  }, 60_000);
+
   it("draws a version sent before as it was, with its once-per-line amount", async () => {
     const text = (await pageTexts(await renderQuotePdf(sentBefore()))).flat().join(" ");
     expect(text).toMatch(/Gift box \(\+R\s?30,00 once\)/);

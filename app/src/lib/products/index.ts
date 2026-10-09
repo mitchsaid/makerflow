@@ -2,6 +2,7 @@ import { optionalMultiline, optionalText } from "../form-values";
 import { isImageId } from "../images";
 import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
+import { parseExtras, type ExtraErrors, type ExtraSummary, type ParsedExtra } from "./extras";
 import { parseOptionGroups, type OptionErrors, type OptionGroup, type ParsedOptionGroup } from "./options";
 import { parseVariations, type ParsedVariation, type ProductVariation, type VariationErrors } from "./variations";
 
@@ -43,8 +44,10 @@ export type ProductFields = {
    */
   variationLabel?: string | null;
   variations?: ParsedVariation[];
-  /** Options and extras. Undefined when the form did not carry them: they are left as they are. */
+  /** The lists you pick one from (flavour). Undefined when the form did not carry them: they are left as they are. */
   options?: ParsedOptionGroup[];
+  /** Extras. Undefined when the form did not carry them: they are left as they are. */
+  extras?: ParsedExtra[];
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
@@ -53,8 +56,10 @@ export type ProductFieldName = "kind" | "name" | "description" | "unitPrice" | "
 export type ProductFieldErrors = Partial<Record<ProductFieldName, string>> & {
   /** Problems with the variations: their name, the list, and each row by its key. */
   variations?: VariationErrors;
-  /** Problems with the options and extras, by option and value. */
+  /** Problems with the lists, by list and choice. */
   options?: OptionErrors;
+  /** Problems with the extras, by extra. */
+  extras?: ExtraErrors;
 };
 
 export type ParsedProductForm =
@@ -148,6 +153,30 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     else errors.options = parsed.errors;
   }
 
+  // Extras: the same way, in their own field. A price by variation refers to the variation rows by place.
+  let extras: ParsedExtra[] | undefined;
+  const extrasRaw = form.get("extras");
+  if (extrasRaw !== null) {
+    let rows: unknown = null;
+    try {
+      rows = JSON.parse(typeof extrasRaw === "string" ? extrasRaw : "");
+    } catch {
+      rows = null;
+    }
+    let variationRows: unknown = [];
+    try {
+      variationRows = JSON.parse(typeof variationsRaw === "string" ? variationsRaw : "[]");
+    } catch {
+      variationRows = [];
+    }
+    const variationKeys = Array.isArray(variationRows)
+      ? variationRows.flatMap((r) => (typeof r === "object" && r !== null && typeof (r as { key?: unknown }).key === "string" ? [(r as { key: string }).key] : []))
+      : [];
+    const parsed = parseExtras(rows, variationKeys);
+    if (parsed.ok) extras = parsed.extras;
+    else errors.extras = parsed.errors;
+  }
+
   const hasVariations = (variations?.length ?? 0) > 0 || (errors.variations !== undefined && variationsRaw !== null && variationsRaw !== "[]");
 
   // With variations each has its own price, and the product's is the lowest of theirs.
@@ -175,6 +204,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
       vatStatus,
       ...(variations === undefined ? {} : { variationLabel, variations }),
       ...(options === undefined ? {} : { options }),
+      ...(extras === undefined ? {} : { extras }),
     },
   };
 }
@@ -197,8 +227,10 @@ export type ProductSummary = {
   variationLabel: string | null;
   /** In the maker's order. Empty when the product has a single price. */
   variations: ProductVariation[];
-  /** Options and extras, in the maker's order. */
+  /** The lists you pick one from (flavour), in the maker's order. */
   options: OptionGroup[];
+  /** Extras, in the maker's order. */
+  extras: ExtraSummary[];
 };
 
 /** Does a list row match what the person typed in the search box? */

@@ -1,7 +1,7 @@
 import { moneyToInput, type NumberStyle, type VatStatus } from "@/lib/money";
 import type { ProductKind, ProductSummary } from "@/lib/products";
 import type { VariationFormRow } from "@/lib/products/variations";
-import { OPTION_TEXT_DEFAULT } from "@/lib/products/options";
+import { EXTRA_TEXT_DEFAULT, type ExtraFormRow } from "@/lib/products/extras";
 import type { OptionGroupFormRow } from "@/lib/products/options";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
@@ -19,8 +19,10 @@ export type ProductFormValues = {
   /** The maker's word for the variations ("Size"), and the rows. No rows: one price. */
   variationLabel: string;
   variations: VariationFormRow[];
-  /** Options and extras, as the form holds them. */
+  /** The lists you pick one from (flavour), as the form holds them. */
   options: OptionGroupFormRow[];
+  /** Extras, as the form holds them. */
+  extras: ExtraFormRow[];
 };
 
 export const EMPTY_PRODUCT: ProductFormValues = {
@@ -34,6 +36,7 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   variationLabel: "",
   variations: [],
   options: [],
+  extras: [],
 };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
@@ -66,11 +69,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       key: g.id,
       id: g.id,
       name: g.name,
-      kind: g.kind,
-      required: g.required,
-      textPrice: g.kind === "text" && g.textPriceCents > 0 ? moneyToInput(g.textPriceCents, style) : "",
-      // The usual length shows as empty: the field is only for when it matters.
-      textMax: g.textMax === OPTION_TEXT_DEFAULT ? "" : String(g.textMax),
+      kind: "one" as const,
       priceByVariation: g.priceByVariation,
       values: g.values.map((x) => ({
         key: x.id,
@@ -78,9 +77,23 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
         name: x.name,
         price: x.priceCents > 0 ? moneyToInput(x.priceCents, style) : "",
         usual: x.usual,
-        // By the variation's row key (a saved variation's key is its id).
-        prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, cents > 0 ? moneyToInput(cents, style) : ""])),
+        // By the variation's row key (a saved variation's key is its id). A zero is kept as "0": left empty, a
+        // size asks what it adds.
+        prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
       })),
+    })),
+    extras: p.extras.map((x) => ({
+      key: x.id,
+      id: x.id,
+      name: x.name,
+      price: x.priceCents > 0 ? moneyToInput(x.priceCents, style) : "",
+      asksForWording: x.asksForWording,
+      // The usual length shows as empty: the field is only for when it matters.
+      textMax: x.textMax === EXTRA_TEXT_DEFAULT ? "" : String(x.textMax),
+      shared: x.shared,
+      usedOn: x.usedOn,
+      priceByVariation: x.priceByVariation,
+      prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
     })),
   };
 }
