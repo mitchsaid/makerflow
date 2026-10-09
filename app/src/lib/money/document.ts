@@ -14,8 +14,9 @@ import {
  * Totals for a quote (and later an invoice). The order of operations is fixed and documented
  * in docs/plans/quotes.md and docs/locales/za/vat-and-documents.md:
  *
- *  1. line amount = quantity x unit price, rounded to the cent (halves up). Options and extras are
- *     already in the unit price (docs/plans/product-choices.md);
+ *  1. line amount = quantity x unit price, rounded to the cent (halves up), plus the extras for a fixed
+ *     count (a gift box: 1 x R30). Choices and extras for each item are already in the unit price
+ *     (docs/plans/product-extras.md);
  *  2. line discount (percentage or fixed) comes off that line;
  *  3. the quote-level discount is worked out on the sum of the lines and shared across
  *     the lines in proportion, with exact cents (so VAT is charged on discounted amounts);
@@ -43,6 +44,8 @@ export type LineInput = {
   id: string;
   quantityMilli: QuantityMilli;
   unitPriceCents: Cents;
+  /** Added to the line, whatever the quantity: extras for a fixed count. Zero when absent. */
+  extraCents?: Cents;
   discount?: Discount;
   vatStatus: VatStatus;
 };
@@ -155,7 +158,10 @@ export function calculateDocument(input: {
     if (line.quantityMilli < 0 || line.unitPriceCents < 0) {
       throw new RangeError("quantities and prices can't be negative");
     }
-    const amountBeforeDiscountCents = mulDivRound(line.quantityMilli, line.unitPriceCents, QUANTITY_SCALE);
+    const extra = line.extraCents ?? 0;
+    assertSafeInteger(extra, "extras for a fixed count");
+    if (extra < 0) throw new RangeError("quantities and prices can't be negative");
+    const amountBeforeDiscountCents = mulDivRound(line.quantityMilli, line.unitPriceCents, QUANTITY_SCALE) + extra;
     if (amountBeforeDiscountCents > MAX_CENTS) throw new RangeError("a line amount is too large");
     const lineDiscountCents = discountOn(amountBeforeDiscountCents, line.discount);
     return {

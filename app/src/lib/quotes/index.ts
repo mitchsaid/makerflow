@@ -1,6 +1,8 @@
 import {
   calculateDocument,
   MAX_CENTS,
+  MAX_QUANTITY_MILLI,
+  mulDivRound,
   parseMoney,
   parsePercent,
   parseQuantity,
@@ -16,7 +18,8 @@ import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
 import { VARIATION_LABEL_MAX, VARIATION_NAME_MAX } from "../products/variations";
-import { OPTION_NAME_MAX, OPTION_TEXT_MAX, type OptionKind } from "../products/options";
+import { EXTRA_TEXT_MAX } from "../products/extras";
+import { OPTION_NAME_MAX, type OptionKind } from "../products/options";
 import { depositColumns, isDepositKind, parseDeposit, type DepositFormValues, type ParsedDeposit } from "./deposit";
 
 /**
@@ -76,9 +79,10 @@ export type LineFormValues = {
 };
 
 /**
- * One option chosen on an item: where it came from (ids, "" when unknown), the item's own copy of the words,
- * and the amount it adds to each item (cents, in the price-entry mode).
- * For "type something" the typed text is kept and `value` is "".
+ * One choice on an item: from one of the product's lists ("one"), or an extra ("any": ticked; "text": ticked
+ * with its wording, which is kept in `text` and `value` is ""). Where it came from (ids, "" when unknown; an
+ * extra's id is the `valueId`), the item's own copy of the words, and the price (cents, in the price-entry mode).
+ * `quantityMilli` is how many of an extra: absent means one for each item, a number is a fixed count.
  */
 export type LineOption = {
   groupId: string;
@@ -88,6 +92,7 @@ export type LineOption = {
   value: string;
   text: string;
   amountCents: number;
+  quantityMilli?: number | null;
 };
 
 export type QuoteFormValues = {
@@ -171,9 +176,10 @@ export type ParsedLine = {
   vatStatus: VatStatus;
   /** The variation chosen (a copy of its words), or null. */
   variation: { id: string | null; label: string; name: string } | null;
-  /** The options chosen (copies), and what they add to each item's price. */
+  /** The choices (copies), what they add to each item's price, and what extras for a fixed count add to the line. */
   options: ParsedLineOption[];
   extrasPerItemCents: Cents;
+  extrasFixedCents: Cents;
 };
 
 export type ParsedLineOption = {
@@ -184,6 +190,8 @@ export type ParsedLineOption = {
   value: string | null;
   text: string | null;
   amountCents: Cents;
+  /** Null: one for each item. */
+  quantityMilli: QuantityMilli | null;
 };
 
 export type ParsedQuote = {
@@ -304,7 +312,8 @@ function isLineOption(value: unknown): value is LineOption {
   return (
     ["groupId", "group", "valueId", "value", "text"].every((key) => typeof o[key] === "string") &&
     OPTION_KINDS.includes(o.kind) &&
-    typeof o.amountCents === "number"
+    typeof o.amountCents === "number" &&
+    (o.quantityMilli === undefined || o.quantityMilli === null || typeof o.quantityMilli === "number")
   );
 }
 
@@ -317,11 +326,14 @@ function parseLineOptions(options: readonly LineOption[]): { ok: true; options: 
     const text = o.text.trim();
     const amountOk = Number.isSafeInteger(o.amountCents) && o.amountCents >= 0 && o.amountCents <= MAX_CENTS;
     const idsOk = (o.groupId === "" || UUID.test(o.groupId)) && (o.valueId === "" || UUID.test(o.valueId));
+    const quantity = o.quantityMilli ?? null;
+    const quantityOk = quantity === null || (Number.isSafeInteger(quantity) && quantity >= 1 && quantity <= MAX_QUANTITY_MILLI);
     const wordsOk =
       group !== "" &&
       group.length <= OPTION_NAME_MAX &&
-      (o.kind === "text" ? text !== "" && text.length <= OPTION_TEXT_MAX && value === "" : value !== "" && value.length <= OPTION_NAME_MAX && text === "");
-    if (!amountOk || !idsOk || !wordsOk) return { ok: false };
+      (o.kind === "text" ? text !== "" && text.length <= EXTRA_TEXT_MAX && value === "" : value !== "" && value.length <= OPTION_NAME_MAX && text === "");
+    // A list's choice is for each item; only an extra can be a fixed count.
+    if (!amountOk || !idsOk || !wordsOk || !quantityOk || (quantity !== null && o.kind === "one")) return { ok: false };
     parsed.push({
       groupId: o.groupId || null,
       group,
@@ -330,14 +342,20 @@ function parseLineOptions(options: readonly LineOption[]): { ok: true; options: 
       value: o.kind === "text" ? null : value,
       text: o.kind === "text" ? text : null,
       amountCents: o.amountCents,
+      quantityMilli: quantity,
     });
   }
   return { ok: true, options: parsed };
 }
 
-/** What the options add to each item's price. */
-export function optionsPerItem(options: readonly { amountCents: number }[]): Cents {
-  return options.reduce((sum, o) => sum + o.amountCents, 0);
+/** What the choices add to each item's price: those for each item (no fixed count). */
+export function optionsPerItem(options: readonly { amountCents: number; quantityMilli?: number | null }[]): Cents {
+  return options.reduce((sum, o) => sum + (o.quantityMilli == null ? o.amountCents : 0), 0);
+}
+
+/** What extras for a fixed count add to the line: count × price, each rounded to the cent. */
+export function optionsFixed(options: readonly { amountCents: number; quantityMilli?: number | null }[]): Cents {
+  return options.reduce((sum, o) => sum + (o.quantityMilli == null ? 0 : mulDivRound(o.quantityMilli, o.amountCents, 1000)), 0);
 }
 
 /** An empty item row, as a new quote starts with. */
@@ -463,6 +481,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       variation,
       options,
       extrasPerItemCents: optionsPerItem(options),
+      extrasFixedCents: optionsFixed(options),
     },
   };
 }
@@ -471,8 +490,9 @@ function toInputs(lines: readonly ParsedLine[]): LineInput[] {
   return lines.map((l) => ({
     id: l.key,
     quantityMilli: l.quantityMilli,
-    // The price each, with what the options add to each item.
+    // The price each, with what the choices add to each item; extras for a fixed count go on the line.
     unitPriceCents: l.unitPriceCents + l.extrasPerItemCents,
+    extraCents: l.extrasFixedCents,
     discount: l.discount,
     vatStatus: l.vatStatus,
   }));
@@ -486,14 +506,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0 },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasFixedCents: 0 },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0 },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasFixedCents: 0 },
   };
 }
 
@@ -670,7 +690,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       ...(() => {
         const r = line.productId ? parseLineOptions(line.options ?? []) : ({ ok: false } as const);
         const options = r.ok ? r.options : [];
-        return { options, extrasPerItemCents: optionsPerItem(options) };
+        return { options, extrasPerItemCents: optionsPerItem(options), extrasFixedCents: optionsFixed(options) };
       })(),
     });
   }
@@ -748,6 +768,7 @@ export function toDatabasePayload(
         value: o.value,
         text: o.text,
         amount_cents: o.amountCents,
+        ...(o.quantityMilli === null ? {} : { quantity_milli: o.quantityMilli }),
       })),
     })),
   };

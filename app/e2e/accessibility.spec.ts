@@ -304,24 +304,51 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await expectNoViolations(page, "product variations, saved");
-      // Lists and extras: the kind of extra picker, a list with problems, then saved.
+      // Extras: a new one with problems, saved, then the picker of saved extras; then a list with problems.
       await page.getByRole("button", { name: "Add an extra" }).click();
-      await expectNoViolations(page, "product extras, choosing the kind");
-      await page.getByRole("group", { name: "What kind of extra?" }).getByRole("button", { name: /Choose any/ }).click();
-      await page.getByLabel("Extra name").fill("Toppings");
-      await page.getByLabel("Toppings: choice 1", { exact: true }).fill("Gold leaf");
-      await page.getByLabel("Toppings: choice 2", { exact: true }).fill("Sprinkles");
+      await expect(page.getByLabel("Extra name")).toBeFocused();
+      await expectNoViolations(page, "product extras, a new extra");
+      await page.getByRole("checkbox", { name: "Ask for wording" }).check();
+      await page.getByLabel("Longest (optional)").fill("0");
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "product extras, with problems");
+      await page.getByLabel("Extra name").fill("Engraving");
+      await page.getByLabel("Longest (optional)").fill("40");
+      await page.getByLabel("Where does it apply?").selectOption({ label: "This product only" });
+      await page.getByRole("checkbox", { name: "Price depends on the size" }).check();
+      await expectNoViolations(page, "product extras, priced by size");
+      await page.getByLabel("Engraving adds for Small", { exact: true }).fill("5");
+      await page.getByLabel("Engraving adds for Large", { exact: true }).fill("9");
+      // Saved first: a card that has a problem stays open until the next save.
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
+      await page.getByRole("button", { name: "Done Engraving" }).click();
+      await page.getByRole("button", { name: "Add an extra" }).click();
+      await expect(page.getByLabel("Extra name")).toBeFocused();
+      await page.getByLabel("Extra name").fill("Gift wrap");
+      await page.getByLabel(/^Price/).last().fill("30");
+      await page.getByRole("button", { name: "Done Gift wrap" }).click();
+      await page.getByRole("button", { name: "Save changes" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
       await page.getByRole("button", { name: /^Add (a|another) list$/ }).click();
       await page.getByLabel("List name").fill("Flavour");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toContainText("Flavour: choice 1");
-      await expectNoViolations(page, "product options, with problems");
+      await expectNoViolations(page, "product lists, with problems");
       await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
       await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Chocolate");
       await page.getByLabel("Flavour: choice 2 adds", { exact: true }).fill("20");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await expectNoViolations(page, "product options, saved");
+      // Another product is offered the saved extra before a new one is made.
+      await page.goto("/app/products/new");
+      await page.getByLabel("Name", { exact: true }).fill("Second product");
+      await page.getByRole("button", { name: "Add an extra" }).click();
+      await expect(page.getByRole("group", { name: "Add an extra" })).toBeVisible();
+      await expectNoViolations(page, "product extras, the saved extras to pick from");
+      await page.getByRole("button", { name: "Cancel" }).click();
       await page.goto("/app/quotes/new");
       await page.getByRole("button", { name: "Add item" }).click();
       await page.getByRole("dialog").getByRole("button", { name: /Axe product/ }).click();
@@ -333,6 +360,9 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("radio", { name: /Chocolate/ }).check();
       await expect(page.getByRole("dialog").getByTestId("line-sum")).toBeVisible();
       await expectNoViolations(page, "item sheet, an option that adds to the price");
+      await page.getByRole("dialog").getByRole("checkbox", { name: /Gift wrap/ }).check();
+      await expect(page.getByRole("dialog").getByLabel("Gift wrap: how many (optional)")).toBeVisible();
+      await expectNoViolations(page, "item sheet, an extra ticked with how many");
       await page.keyboard.press("Escape");
 
       await openBusinessProfile(page);

@@ -542,6 +542,40 @@ describe("options and extras on an item", () => {
     expect(previewTotals(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", amountCents: 300 })])] }), NOT_REGISTERED)?.grossCents).toBe(24000);
   });
 
+  it("adds an extra for a fixed count to the line, not to the price each", () => {
+    const box = (quantityMilli: number | null) => opt({ value: "Gift box", amountCents: 3000, quantityMilli });
+    const one = parsed(quote({ lines: [cupcakes([opt(), box(1000)])] }));
+    expect(one.lines[0]).toMatchObject({ extrasPerItemCents: 200, extrasFixedCents: 3000, unitPriceCents: 1500 });
+    // 12 × R17 + 1 × R30 = R234.
+    expect(one.totals.grossCents).toBe(23400);
+    expect(previewTotals(quote({ lines: [cupcakes([opt(), box(1000)])] }), NOT_REGISTERED)?.grossCents).toBe(23400);
+    // Three of them: 12 × R17 + 3 × R30 = R294. Empty count: one for each item.
+    expect(parsed(quote({ lines: [cupcakes([opt(), box(3000)])] })).totals.grossCents).toBe(29400);
+    expect(parsed(quote({ lines: [cupcakes([box(null)])] })).totals.grossCents).toBe(12 * 4500);
+    expect(parsed(quote({ lines: [cupcakes([box(undefined as never)])] })).lines[0].options[0].quantityMilli).toBeNull();
+  });
+
+  it("keeps the count with the item, and refuses one it can't use", () => {
+    const p = parsed(quote({ lines: [cupcakes([opt({ value: "Gift box", amountCents: 3000, quantityMilli: 2000 })])] }));
+    const payload = toDatabasePayload(p, { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.lines[0].options[0]).toMatchObject({ quantity_milli: 2000, amount_cents: 3000 });
+    // No count in the payload when it is for each item.
+    expect(toDatabasePayload(parsed(quote({ lines: [cupcakes([opt()])] })), { countryCode: "ZA", currencyCode: "ZAR" }).lines[0].options[0]).not.toHaveProperty("quantity_milli");
+    for (const bad of [0, -1000, 1.5, 10_000_000_000]) {
+      expect(errorsOf(quote({ lines: [cupcakes([opt({ quantityMilli: bad })])] })).lines.k1.options, String(bad)).toBeTruthy();
+    }
+    // A choice from a list is always for each item.
+    expect(errorsOf(quote({ lines: [cupcakes([opt({ kind: "one", quantityMilli: 1000 })])] })).lines.k1.options).toBeTruthy();
+    expect(isQuoteFormValues(quote({ lines: [cupcakes([{ ...opt(), quantityMilli: "3" as never }])] }))).toBe(false);
+  });
+
+  it("takes an extra's wording, and needs it", () => {
+    const wording = (text: string) => opt({ group: "Engraving", kind: "text", value: "", text, amountCents: 5000, quantityMilli: 1000 });
+    expect(parsed(quote({ lines: [cupcakes([wording(" Happy 40th ")])] })).lines[0].options[0]).toMatchObject({ kind: "text", text: "Happy 40th", value: null });
+    expect(errorsOf(quote({ lines: [cupcakes([wording("   ")])] })).lines.k1.options).toBeTruthy();
+    expect(errorsOf(quote({ lines: [cupcakes([wording("x".repeat(501))])] })).lines.k1.options).toBeTruthy();
+  });
+
   it("charges an older app's “once for the line” option for each item too", () => {
     const older = { ...opt({ value: "Gift box", amountCents: 300 }), charge: "line" } as LineOption;
     const p = parsed(quote({ lines: [cupcakes([older])] }));
