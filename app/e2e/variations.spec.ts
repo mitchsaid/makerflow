@@ -146,3 +146,20 @@ test("sizes added from inside a quote start the item with the usual one, and sav
   await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(3);
   await expect(page.getByLabel("Size 3 price", { exact: true })).toHaveValue("210");
 });
+
+test("the price typed first moves into the first size, and back when the sizes are removed", async ({ page }) => {
+  await signUpAndOnboard(page, "var-carry", "Carry Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByLabel("Price", { exact: true }).fill("350");
+  await page.getByRole("button", { name: "Add variations" }).click();
+  await expect(page.getByLabel("Size 1 price", { exact: true })).toHaveValue("350");
+  await expect(page.getByLabel("Size 2 price", { exact: true })).toHaveValue("");
+
+  // Changed, then every size removed: the first size's price is the product's price again.
+  await page.getByLabel("Size 1 price", { exact: true }).fill("400");
+  await tap(page.getByRole("button", { name: "Remove Size 2" }));
+  await tap(page.getByRole("button", { name: "Remove Size 1" }));
+  await expect(page.getByRole("button", { name: "Add variations" })).toBeFocused();
+  await expect(page.getByLabel("Price", { exact: true })).toHaveValue("400");
+});

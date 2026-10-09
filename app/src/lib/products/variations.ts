@@ -108,3 +108,21 @@ export function variationSuggestions(types: readonly BusinessType[] | null, kind
 export function lowestPrice(variations: readonly { priceCents: Cents }[], ownPrice: Cents): Cents {
   return variations.length === 0 ? ownPrice : Math.min(...variations.map((v) => v.priceCents));
 }
+
+/**
+ * The price follows the maker between the product's one price and its variations, so nothing typed is lost:
+ * adding variations puts the product's price into the first one (if that is still empty), and removing the
+ * last variation puts the first one's price back as the product's price.
+ */
+export function carryPrice(
+  before: { unitPrice: string; rows: readonly VariationFormRow[] },
+  rows: VariationFormRow[],
+): { unitPrice: string; rows: VariationFormRow[] } {
+  if (before.rows.length === 0 && rows.length > 0 && rows[0].price.trim() === "" && before.unitPrice.trim() !== "") {
+    return { unitPrice: before.unitPrice, rows: [{ ...rows[0], price: before.unitPrice }, ...rows.slice(1)] };
+  }
+  if (before.rows.length > 0 && rows.length === 0 && before.rows[0].price.trim() !== "") {
+    return { unitPrice: before.rows[0].price, rows };
+  }
+  return { unitPrice: before.unitPrice, rows };
+}
