@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
+import type { OptionCharge, OptionKind } from "./options";
 import type { ProductKind, ProductSummary } from "./index";
 
 /**
@@ -24,9 +25,22 @@ type Row = {
   vat_status: VatStatus;
   variation_label: string | null;
   product_variations: { id: string; name: string; price_cents: number | string; usual: boolean; sort_order: number }[] | null;
+  product_option_groups:
+    | {
+        id: string;
+        name: string;
+        kind: OptionKind;
+        required: boolean;
+        charge: OptionCharge;
+        text_price_cents: number | string;
+        text_max: number;
+        sort_order: number;
+        product_option_values: { id: string; name: string; price_cents: number | string; usual: boolean; sort_order: number }[] | null;
+      }[]
+    | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order )";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, kind, required, charge, text_price_cents, text_max, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order ) )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -44,6 +58,20 @@ function fromRow(row: Row): ProductSummary {
     variations: [...(row.product_variations ?? [])]
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((v) => ({ id: v.id, name: v.name, priceCents: Number(v.price_cents), usual: v.usual })),
+    options: [...(row.product_option_groups ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((g) => ({
+        id: g.id,
+        name: g.name,
+        kind: g.kind,
+        required: g.required,
+        charge: g.charge,
+        textPriceCents: Number(g.text_price_cents),
+        textMax: g.text_max,
+        values: [...(g.product_option_values ?? [])]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((v) => ({ id: v.id, name: v.name, priceCents: Number(v.price_cents), usual: v.usual })),
+      })),
   };
 }
 

@@ -16,6 +16,7 @@ import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
 import { VARIATION_LABEL_MAX, VARIATION_NAME_MAX } from "../products/variations";
+import { OPTION_NAME_MAX, OPTION_TEXT_MAX, type OptionCharge, type OptionKind } from "../products/options";
 import { depositColumns, isDepositKind, parseDeposit, type DepositFormValues, type ParsedDeposit } from "./deposit";
 
 /**
@@ -72,6 +73,24 @@ export type LineFormValues = {
   variationId?: string;
   variationLabel?: string;
   variationName?: string;
+  /** The options and extras chosen, each the item's own copy (see LineOption). Absent from an older app. */
+  options?: LineOption[];
+};
+
+/**
+ * One option chosen on an item: where it came from (ids, "" when unknown), the item's own copy of the words,
+ * and the amount it adds (cents, in the price-entry mode), charged for each item or once for the line.
+ * For "type something" the typed text is kept and `value` is "".
+ */
+export type LineOption = {
+  groupId: string;
+  group: string;
+  kind: OptionKind;
+  charge: OptionCharge;
+  valueId: string;
+  value: string;
+  text: string;
+  amountCents: number;
 };
 
 export type QuoteFormValues = {
@@ -113,7 +132,7 @@ export type QuoteFormValues = {
 };
 
 export type LineErrors = Partial<
-  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue" | "variation", string>
+  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue" | "variation" | "options", string>
 >;
 
 export type QuoteErrors = {
@@ -158,6 +177,21 @@ export type ParsedLine = {
   vatStatus: VatStatus;
   /** The variation chosen (a copy of its words), or null. */
   variation: { id: string | null; label: string; name: string } | null;
+  /** The options chosen (copies), and what they add: to each item's price, and once to the line. */
+  options: ParsedLineOption[];
+  extrasPerItemCents: Cents;
+  extrasOnceCents: Cents;
+};
+
+export type ParsedLineOption = {
+  groupId: string | null;
+  group: string;
+  kind: OptionKind;
+  charge: OptionCharge;
+  valueId: string | null;
+  value: string | null;
+  text: string | null;
+  amountCents: Cents;
 };
 
 export type ParsedQuote = {
@@ -262,9 +296,65 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
       // An older app does not send it: that means standard-rated.
       (l.vatStatus === undefined || VAT_STATUSES.includes(l.vatStatus as VatStatus)) &&
       // Nor the variation: that means none.
-      ["variationId", "variationLabel", "variationName"].every((key) => l[key] === undefined || typeof l[key] === "string")
+      ["variationId", "variationLabel", "variationName"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
+      // Nor the options: that means none.
+      (l.options === undefined || (Array.isArray(l.options) && l.options.length <= MAX_LINE_OPTIONS && l.options.every(isLineOption)))
     );
   });
+}
+
+const MAX_LINE_OPTIONS = 100;
+const OPTION_KINDS: readonly unknown[] = ["one", "any", "text"];
+const OPTION_CHARGES: readonly unknown[] = ["item", "line"];
+
+function isLineOption(value: unknown): value is LineOption {
+  if (typeof value !== "object" || value === null) return false;
+  const o = value as Record<string, unknown>;
+  return (
+    ["groupId", "group", "valueId", "value", "text"].every((key) => typeof o[key] === "string") &&
+    OPTION_KINDS.includes(o.kind) &&
+    OPTION_CHARGES.includes(o.charge) &&
+    typeof o.amountCents === "number"
+  );
+}
+
+/** Checks the options chosen on an item: their shape, words and amounts. */
+function parseLineOptions(options: readonly LineOption[]): { ok: true; options: ParsedLineOption[] } | { ok: false } {
+  const parsed: ParsedLineOption[] = [];
+  for (const o of options) {
+    const group = o.group.trim();
+    const value = o.value.trim();
+    const text = o.text.trim();
+    const amountOk = Number.isSafeInteger(o.amountCents) && o.amountCents >= 0 && o.amountCents <= MAX_CENTS;
+    const idsOk = (o.groupId === "" || UUID.test(o.groupId)) && (o.valueId === "" || UUID.test(o.valueId));
+    const wordsOk =
+      group !== "" &&
+      group.length <= OPTION_NAME_MAX &&
+      (o.kind === "text" ? text !== "" && text.length <= OPTION_TEXT_MAX && value === "" : value !== "" && value.length <= OPTION_NAME_MAX && text === "");
+    if (!amountOk || !idsOk || !wordsOk) return { ok: false };
+    parsed.push({
+      groupId: o.groupId || null,
+      group,
+      kind: o.kind,
+      charge: o.charge,
+      valueId: o.valueId || null,
+      value: o.kind === "text" ? null : value,
+      text: o.kind === "text" ? text : null,
+      amountCents: o.amountCents,
+    });
+  }
+  return { ok: true, options: parsed };
+}
+
+/** What the options add: to each item's price, and once to the line. */
+export function optionAmounts(options: readonly { charge: OptionCharge; amountCents: number }[]): { perItem: Cents; once: Cents } {
+  let perItem = 0;
+  let once = 0;
+  for (const o of options) {
+    if (o.charge === "line") once += o.amountCents;
+    else perItem += o.amountCents;
+  }
+  return { perItem, once };
 }
 
 /** An empty item row, as a new quote starts with. */
@@ -348,6 +438,14 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   const discount = discountFrom(line.discountKind, line.discountValue);
   if (!discount.ok) errors.discountValue = discount.error;
 
+  // The options chosen: the item's own copy; only on an item from a product.
+  let options: ParsedLineOption[] = [];
+  if ((line.options ?? []).length > 0) {
+    const r = fromProduct ? parseLineOptions(line.options ?? []) : ({ ok: false } as const);
+    if (r.ok) options = r.options;
+    else errors.options = "This item's choices could not be read. Choose them again.";
+  }
+
   // The variation: its own copy of the words; a link only to a product's variation.
   const variationName = (line.variationName ?? "").trim();
   const variationLabel = (line.variationLabel ?? "").trim();
@@ -380,6 +478,9 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       discount: discount.value,
       vatStatus: line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
       variation,
+      options,
+      extrasPerItemCents: optionAmounts(options).perItem,
+      extrasOnceCents: optionAmounts(options).once,
     },
   };
 }
@@ -388,7 +489,9 @@ function toInputs(lines: readonly ParsedLine[]): LineInput[] {
   return lines.map((l) => ({
     id: l.key,
     quantityMilli: l.quantityMilli,
-    unitPriceCents: l.unitPriceCents,
+    // The price each, with the options charged per item; those charged once go on the line.
+    unitPriceCents: l.unitPriceCents + l.extrasPerItemCents,
+    onceCents: l.extrasOnceCents,
     discount: l.discount,
     vatStatus: l.vatStatus,
   }));
@@ -402,14 +505,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasOnceCents: 0 },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasOnceCents: 0 },
   };
 }
 
@@ -580,6 +683,11 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       discount: discount.ok ? discount.value : undefined,
       vatStatus: vat.registered && line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
       variation: null,
+      ...(() => {
+        const r = line.productId ? parseLineOptions(line.options ?? []) : ({ ok: false } as const);
+        const options = r.ok ? r.options : [];
+        return { options, extrasPerItemCents: optionAmounts(options).perItem, extrasOnceCents: optionAmounts(options).once };
+      })(),
     });
   }
   const fulfilment = fulfilmentLine(values);
@@ -649,6 +757,16 @@ export function toDatabasePayload(
       variation_id: l.variation?.id ?? null,
       variation_label: l.variation?.label ?? null,
       variation_name: l.variation?.name ?? null,
+      options: l.options.map((o) => ({
+        group_id: o.groupId,
+        group: o.group,
+        kind: o.kind,
+        charge: o.charge,
+        value_id: o.valueId,
+        value: o.value,
+        text: o.text,
+        amount_cents: o.amountCents,
+      })),
     })),
   };
 }

@@ -7,6 +7,7 @@ import {
   previewTotals,
   toDatabasePayload,
   type LineFormValues,
+  type LineOption,
   type QuoteFormValues,
 } from "../index";
 import { ZA_LOCALE } from "../../locale/za";
@@ -523,5 +524,53 @@ describe("a variation on an item", () => {
 
   it("an item without one has none, and an older app's item still reads", () => {
     expect(parsed(quote()).lines[0].variation).toBeNull();
+  });
+});
+
+describe("options and extras on an item", () => {
+  const PRODUCT = "22222222-2222-4222-8222-222222222222";
+  const opt = (over: Partial<LineOption> = {}): LineOption => ({
+    groupId: "", group: "Extras", kind: "any", charge: "item", valueId: "", value: "Gold sprinkles", text: "", amountCents: 200, ...over,
+  });
+  const cupcakes = (options: LineOption[]) =>
+    line({ kind: "product", productId: PRODUCT, name: "Cupcakes", quantity: "12", unitPrice: "15", options });
+
+  it("adds per-item amounts to the price each and once-per-line amounts to the line", () => {
+    const p = parsed(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", charge: "line", amountCents: 3000 })])] }));
+    expect(p.lines[0]).toMatchObject({ extrasPerItemCents: 200, extrasOnceCents: 3000, unitPriceCents: 1500 });
+    // 12 × R17 + R30 = R234.
+    expect(p.totals.grossCents).toBe(23400);
+    expect(previewTotals(quote({ lines: [cupcakes([opt(), opt({ value: "Gift box", charge: "line", amountCents: 3000 })])] }), NOT_REGISTERED)?.grossCents).toBe(23400);
+  });
+
+  it("keeps typed text, and is saved with the item", () => {
+    const p = parsed(quote({ lines: [cupcakes([opt({ group: "Message", kind: "text", value: "", text: " Happy 40th ", charge: "line", amountCents: 2500 })])] }));
+    expect(p.lines[0].options[0]).toMatchObject({ text: "Happy 40th", value: null, amountCents: 2500 });
+    const payload = toDatabasePayload(p, { countryCode: "ZA", currencyCode: "ZAR" });
+    expect(payload.lines[0].options).toEqual([
+      { group_id: null, group: "Message", kind: "text", charge: "line", value_id: null, value: null, text: "Happy 40th", amount_cents: 2500 },
+    ]);
+  });
+
+  it("refuses options it can't read, or on a one-off item", () => {
+    expect(errorsOf(quote({ lines: [cupcakes([opt({ amountCents: -1 })])] })).lines.k1.options).toBeTruthy();
+    expect(errorsOf(quote({ lines: [cupcakes([opt({ value: "" })])] })).lines.k1.options).toBeTruthy();
+    expect(errorsOf(quote({ lines: [cupcakes([opt({ kind: "text", text: "" })])] })).lines.k1.options).toBeTruthy();
+    expect(errorsOf(quote({ lines: [line({ options: [opt()] })] })).lines.k1.options).toBeTruthy();
+    expect(isQuoteFormValues(quote({ lines: [cupcakes([{ ...opt(), kind: "maybe" as never }])] }))).toBe(false);
+  });
+
+  it("comes back into the form from what was stored", () => {
+    const back = toFormValues(
+      {
+        customerId: null, issueDate: "2026-10-02", validUntil: "2026-10-16", neededBy: null, deliveryAddress: null,
+        discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null, terms: null,
+        paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none", depositValue: 0,
+        balanceDue: "handover", balanceDueDate: null, policies: [],
+        lines: [{ id: "l1", sortOrder: 0, kind: "product", productId: PRODUCT, name: "Cupcakes", description: null, quantityMilli: 12000, unit: null, unitPriceCents: 1500, discountKind: "none", discountValue: 0, options: [opt()] }],
+      },
+      ZA_LOCALE.numberStyle,
+    );
+    expect(back.lines[0].options).toEqual([opt()]);
   });
 });

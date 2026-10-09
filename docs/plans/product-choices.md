@@ -1,6 +1,6 @@
 # Plan: product variations, and options and extras
 
-Status: **decisions made with the founder 2026-10-09; building in three slices. Slice 1 (variations) built 2026-10-09** (migration `20261020100000_product_variations.sql`, needs human review). Replaces the "Variations and extras" placeholder on products and in the item sheet. Migrations and the change to how a line's amount is worked out need human review (money).
+Status: **decisions made with the founder 2026-10-09; building in three slices. Slice 1 (variations) built, merged and deployed 2026-10-09** (migration `20261020100000_product_variations.sql`, needs human review). **Slice 2 (options and extras) built 2026-10-09** (migration `20261021100000_product_options.sql` and the once-per-line amount in `lib/money/document.ts`: money, needs human review). Replaces the "Variations and extras" placeholder on products and in the item sheet. Migrations and the change to how a line's amount is worked out need human review (money).
 
 ## Decisions (founder, 2026-10-09)
 1. **Two concepts, not one** (after comparing Shopify, Square and WooCommerce, below):
@@ -46,6 +46,12 @@ Option amounts are typed in the business's price-entry mode (including or exclud
 1. **Variations:** tables, `save_product`, the product form section with the maker's word and suggestions, the item sheet's variation cards with usual and the "choose one" error, quote items carrying the variation (name on the document "Wedding cake, Large"), the list's "from" price. No change to how amounts are worked out.
 2. **Options and extras:** the three kinds, per item or once, usual, the item sheet, the money change (once-per-line amounts), the document (folded), text options.
 3. **"Extra prices shown separately"** (theme option, every layout) and **extras priced per variation**.
+
+## Built in slice 2 (notes)
+- The product form: "Add an option" asks the kind first (three small pictures), then the option opens as a card (name, kind, "must be chosen" or "must be typed", "How is the price added?": to each item or once for the item line, its choices with "+R", the usual one for "choose one", or for text a price when typed and a longest length). One card is open at a time; a card with a problem stays open.
+- The item sheet: "choose one" as rows (with "None" when not required), "choose any" as ticks, "type something" as a box with a character count; each shows "+R2 each" or "+R30 once"; a live sum ("12 × R22 + R55 once = R319"); required ones say "Choose a flavour." at the field and in the summary. Choices the product no longer offers stay on the item under "Kept as they were" until removed.
+- The quote row: "12 × R22 · 4 options". The document (folded): "Flavour: Red velvet · Toppings: Gold sprinkles · Packaging: Gift box (+R30 once) · Message: “Happy 40th” (+R25 once)"; per-item amounts are in the price each.
+- An item's options are a JSON list on `quote_lines.options` (the item's own copy, with the ids it came from).
 
 ## Comparison (2026-10-09)
 - Shopify: up to 3 options per product, every combination a variant (up to 2,048) with its own absolute price; no built-in extras (line item properties carry text but not price; apps add priced add-ons).

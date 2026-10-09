@@ -4,7 +4,7 @@ import { quantityText } from "@/lib/quotes/units";
 import { formatDay } from "@/lib/quotes/dates";
 import type { QuoteSnapshot, SnapshotParty } from "@/lib/quotes/snapshot";
 import { vatView } from "@/lib/quotes/vat-view";
-import { itemName } from "@/lib/quotes/line-text";
+import { itemName, optionsText } from "@/lib/quotes/line-text";
 
 /**
  * A sent quote on screen, drawn from its frozen snapshot only (the same data the PDF uses), so
@@ -90,6 +90,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
                   }`}
               </p>
               {l.description && <p className="whitespace-pre-line text-sm text-muted-foreground">{l.description}</p>}
+              {optionsText(l.options, money) && <p className="text-sm text-muted-foreground">{optionsText(l.options, money)}</p>}
               {vat.lineLabel(l) && <p className="text-sm text-muted-foreground">{vat.lineLabel(l)}</p>}
             </li>
           ))}

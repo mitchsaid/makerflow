@@ -7,7 +7,7 @@ import { IMAGE_OPACITY, themeFromStored } from "../themes";
 import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 import { vatView } from "../vat-view";
-import { itemName } from "../line-text";
+import { itemName, optionsText } from "../line-text";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -289,6 +289,7 @@ export function QuoteDocument({
                             <Text>{itemName(l)}</Text>
                             {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                             {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                            {optionsText(l.options, money) ? <Text style={styles.description}>{optionsText(l.options, money)}</Text> : null}
                             {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
                           </View>
                         </View>
@@ -316,6 +317,7 @@ export function QuoteDocument({
                   <>
                     {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                     {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
+                    {optionsText(l.options, money) ? <Text style={styles.description}>{optionsText(l.options, money)}</Text> : null}
                     {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
                   </>
                 );

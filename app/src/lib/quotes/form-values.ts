@@ -1,7 +1,7 @@
 import type { VatStatus } from "../money";
 import { moneyToInput, percentToInput, quantityToInput, type NumberStyle } from "../money";
 import type { BalanceDue, DepositKind } from "./deposit";
-import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, QuoteFormValues } from "./index";
+import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, LineOption, QuoteFormValues } from "./index";
 
 /** The fields of a stored quote that the builder form needs (see StoredQuote in ./data). */
 export type StoredQuoteFields = {
@@ -41,6 +41,7 @@ export type StoredQuoteFields = {
     variationId?: string | null;
     variationLabel?: string | null;
     variationName?: string | null;
+    options?: LineOption[];
   }[];
 };
 
@@ -73,6 +74,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
       variationId: l.variationId ?? "",
       variationLabel: l.variationLabel ?? "",
       variationName: l.variationName ?? "",
+      options: l.options ?? [],
     }));
   const fulfilmentLine = sorted.find((l) => l.kind === "delivery" || l.kind === "collection");
   const fulfilment: Fulfilment = fulfilmentLine ? (fulfilmentLine.kind as Fulfilment) : "none";

@@ -622,3 +622,31 @@ describe("a variation on an item", () => {
     }
   }, 60_000);
 });
+
+describe("options and extras on an item", () => {
+  it("print folded under the item in every layout: once-per-line amounts shown, per-item ones in the price", async () => {
+    const options = [
+      { groupId: "", group: "Flavour", kind: "one" as const, charge: "item" as const, valueId: "", value: "Vanilla", text: "", amountCents: 0 },
+      { groupId: "", group: "Extras", kind: "any" as const, charge: "item" as const, valueId: "", value: "Gold sprinkles", text: "", amountCents: 200 },
+      { groupId: "", group: "Extras", kind: "any" as const, charge: "line" as const, valueId: "", value: "Gift box", text: "", amountCents: 3000 },
+      { groupId: "", group: "Message", kind: "text" as const, charge: "line" as const, valueId: "", value: "", text: "Happy 40th", amountCents: 0 },
+    ];
+    const s = snapshot(vats.none, {
+      fulfilment: "none",
+      discountKind: "none",
+      discountValue: "",
+      lines: [{ key: "a", kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cupcakes", description: "", quantity: "12", unit: "", unitPrice: "15", discountKind: "none", discountValue: "", options }],
+    });
+    expect(s.lines[0].unitPriceCents).toBe(1700);
+    expect(s.lines[0].lineTotalCents).toBe(23400);
+    expect(s.totals.grossCents).toBe(23400);
+    for (const layout of LAYOUTS) {
+      const themed = { ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout }, "Test") };
+      const text = (await pageTexts(await renderQuotePdf(themed))).flat().join(" ");
+      expect(text, layout).toContain("Flavour: Vanilla");
+      expect(text, layout).toContain("Gold sprinkles");
+      expect(text, layout).toMatch(/Gift box \(\+R\s?30,00 once\)/);
+      expect(text, layout).toContain("Happy 40th");
+    }
+  }, 60_000);
+});
