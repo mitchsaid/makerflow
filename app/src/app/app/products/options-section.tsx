@@ -16,12 +16,21 @@ import {
   type OptionValueFormRow,
 } from "@/lib/products/options";
 
+// The two sections share the list of options, and either can remount (the lists move when sizes are added or
+// removed), so new keys come from one counter that is never reset.
+let keyCounter = 0;
+const nextKey = (prefix: string) => `${prefix}-${(keyCounter += 1)}`;
+
 /**
- * "Options and extras" (docs/plans/product-choices.md): choose one (Flavour), choose any (Extras) or type
- * something (Message on the cake). Each option is a card; one is open at a time, and any with a problem
+ * The option cards (docs/plans/product-extras.md). "lists" are the lists you pick one from, like Flavour:
+ * they live inside the Variations section (`bare`: no section of their own). "extras" are the things people
+ * add, like gold leaf or a message on the cake. Each is a card; one is open at a time, and any with a problem
  * stays open so the summary can take the person to it.
  */
 export function OptionsSection({
+  show,
+  bare = false,
+  hasPricedList = false,
   groups,
   errors,
   priceLabel,
@@ -31,6 +40,11 @@ export function OptionsSection({
   fid,
   onChange,
 }: {
+  show: "lists" | "extras";
+  /** Without a section of its own (the lists sit inside Variations). */
+  bare?: boolean;
+  /** The product has a list where each has its own price (sizes): the lists here add to that price. */
+  hasPricedList?: boolean;
   groups: OptionGroupFormRow[];
   /** The product's variations (named ones), for options whose price depends on them. */
   variations: { key: string; name: string }[];
@@ -45,14 +59,17 @@ export function OptionsSection({
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [choosingKind, setChoosingKind] = useState(false);
   const pendingFocus = useRef<string | null>(null);
-  const counter = useRef(0);
-  const newKey = (prefix: string) => `${prefix}-${(counter.current += 1)}`;
+  const newKey = nextKey;
   useEffect(() => {
     if (!pendingFocus.current) return;
     document.getElementById(pendingFocus.current)?.focus();
     pendingFocus.current = null;
   });
 
+  const lists = show === "lists";
+  // This section's cards, in the maker's order; the others belong to the other section.
+  const mine = groups.filter((g) => (g.kind === "one") === lists);
+  const noun = lists ? "list" : "extra";
   const setGroup = (key: string, change: Partial<OptionGroupFormRow>) =>
     onChange(groups.map((g) => (g.key === key ? { ...g, ...change } : g)));
   const blankValue = (): OptionValueFormRow => ({ key: newKey("value"), id: "", name: "", price: "", usual: false });
@@ -74,20 +91,24 @@ export function OptionsSection({
     pendingFocus.current = fid(`option-${group.key}-name`);
   }
 
-  return (
-    <Section title="Options and extras">
-      <p className="text-base text-muted-foreground">
-        Choices like flavour, extras like gold leaf or a gift box, or a message on the cake. Each can add to the price.
-      </p>
+  const body = (
+    <>
+      {!bare && (
+        <p className="text-base text-muted-foreground">
+          Things people can add, like gold leaf or a gift box, or a message on the cake. Each can add to the price.
+        </p>
+      )}
 
-      {groups.length > 0 && (
+      {mine.length > 0 && (
         <ol className="space-y-3">
-          {groups.map((g, gi) => {
+          {mine.map((g, gi) => {
             const e = errors?.groups[g.key];
             const open = openKey === g.key || e !== undefined;
             const byVariation = g.kind !== "text" && g.priceByVariation === true && variations.length > 0;
-            const title = g.name.trim() || `Option ${gi + 1}`;
-            const summary = `${OPTION_KIND_WORDS[g.kind].title}${g.kind === "text" ? "" : ` · ${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}`}`;
+            const title = g.name.trim() || `${lists ? "List" : "Extra"} ${gi + 1}`;
+            const summary = lists
+              ? `${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}${hasPricedList ? " · adds to the price" : ""}`
+              : `${OPTION_KIND_WORDS[g.kind].title}${g.kind === "text" ? "" : ` · ${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}`}`;
             return (
               <li key={g.key} className="rounded-xl border border-border p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -110,7 +131,7 @@ export function OptionsSection({
                   <div id={fid(`option-${g.key}-body`)} className="mt-3 space-y-4">
                     <TextField
                       id={fid(`option-${g.key}-name`)}
-                      label="Option name"
+                      label={lists ? "List name" : "Extra name"}
                       hint={g.kind === "text" ? "Like “Message on the cake”." : g.kind === "one" ? "Like “Flavour”." : "Like “Extras”."}
                       autoComplete="off"
                       maxLength={80}
@@ -325,10 +346,11 @@ export function OptionsSection({
                         onClick={() => {
                           onChange(groups.filter((x) => x.key !== g.key));
                           setOpenKey(null);
-                          pendingFocus.current = fid("add-option");
+                          setChoosingKind(false);
+                          pendingFocus.current = fid(lists ? "add-list" : "add-option");
                         }}
                       >
-                        Remove this option<span className="sr-only">: {title}</span>
+                        Remove this {noun}<span className="sr-only">: {title}</span>
                       </Button>
                     </div>
                   </div>
@@ -338,13 +360,29 @@ export function OptionsSection({
           })}
         </ol>
       )}
-      {errors?.list && <p className="text-sm text-destructive">{errors.list}</p>}
+      {/* About the options as a whole: said once, by the extras (the summary jumps here). */}
+      {!lists && errors?.list && (
+        <p id={fid("options-error")} tabIndex={-1} className="text-sm text-destructive">
+          {errors.list}
+        </p>
+      )}
 
-      {choosingKind ? (
-        <div role="group" aria-label="What kind of option?" className="space-y-2">
-          <p className="text-base font-medium">What kind of option?</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {(["one", "any", "text"] as const).map((kind) => (
+      {lists ? (
+        groups.length < OPTIONS_MAX && (
+          <div className="space-y-1">
+            <Button id={fid("add-list")} type="button" variant="outline" className="self-start" onClick={() => add("one")}>
+              {mine.length > 0 || hasPricedList ? "Add another list" : "Add a list"}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              A list you pick one from, like Flavour. Each choice can add to the price.
+            </p>
+          </div>
+        )
+      ) : choosingKind ? (
+        <div role="group" aria-label="What kind of extra?" className="space-y-2">
+          <p className="text-base font-medium">What kind of extra?</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(["any", "text"] as const).map((kind) => (
               <Button
                 key={kind}
                 type="button"
@@ -365,12 +403,13 @@ export function OptionsSection({
       ) : (
         groups.length < OPTIONS_MAX && (
           <Button id={fid("add-option")} type="button" variant="outline" className="self-start" onClick={() => setChoosingKind(true)}>
-            Add an option
+            Add an extra
           </Button>
         )
       )}
-    </Section>
+    </>
   );
+  return bare ? <div className="space-y-4">{body}</div> : <Section title="Extras">{body}</Section>;
 }
 
 /** A small picture of each kind: dots for choose one, ticks for choose any, a box for text. */

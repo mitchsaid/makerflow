@@ -11,12 +11,21 @@ async function tap(locator: import("@playwright/test").Locator) {
   await locator.press("Enter");
 }
 
-/** Adds an option of a kind on the product form and opens it. */
+/**
+ * Adds a list (to pick one from) or an extra (of a kind) on the product form and opens it. "Choose one" is a
+ * list in the Variations section; "Choose any" and "Type something" are extras.
+ */
 async function addOption(page: Page, kind: "Choose one" | "Choose any" | "Type something", name: string) {
-  await page.getByRole("button", { name: "Add an option" }).click();
-  await page.getByRole("group", { name: "What kind of option?" }).getByRole("button", { name: new RegExp(kind) }).click();
-  await expect(page.getByLabel("Option name").last()).toBeFocused();
-  await page.getByLabel("Option name").last().fill(name);
+  if (kind === "Choose one") {
+    await page.getByRole("button", { name: /^Add (a|another) list$/ }).click();
+    await expect(page.getByLabel("List name").last()).toBeFocused();
+    await page.getByLabel("List name").last().fill(name);
+    return;
+  }
+  await page.getByRole("button", { name: "Add an extra" }).click();
+  await page.getByRole("group", { name: "What kind of extra?" }).getByRole("button", { name: new RegExp(kind) }).click();
+  await expect(page.getByLabel("Extra name").last()).toBeFocused();
+  await page.getByLabel("Extra name").last().fill(name);
 }
 
 test("options and extras: chosen on a quote, added to each item, and printed under the item", async ({ page }) => {

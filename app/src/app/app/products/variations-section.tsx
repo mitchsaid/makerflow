@@ -21,7 +21,9 @@ export function VariationsSection({
   currencySymbol,
   fid,
   onChange,
+  children,
 }: {
+  children?: React.ReactNode;
   label: string;
   rows: VariationFormRow[];
   suggestions: string[];
@@ -54,22 +56,26 @@ export function VariationsSection({
   if (rows.length === 0) {
     return (
       <Section title="Variations">
-        <p className="text-base text-muted-foreground">
-          Does it come in sizes or other versions, each with its own price? Like Small, Medium and Large.
-        </p>
-        <Button
-          id={fid("add-variations")}
-          type="button"
-          variant="outline"
-          className="self-start"
-          onClick={() => {
-            const first = blank();
-            onChange({ label: label || suggestions[0] || "Size", rows: [first, blank()] });
-            setFocusKey(fid(`variation-${first.key}-name`));
-          }}
-        >
-          Add variations
-        </Button>
+        <p className="text-base text-muted-foreground">What does it come in? Sizes, flavours or other versions.</p>
+        <div className="space-y-1">
+          <Button
+            id={fid("add-variations")}
+            type="button"
+            variant="outline"
+            className="self-start"
+            onClick={() => {
+              const first = blank();
+              onChange({ label: label || suggestions[0] || "Size", rows: [first, blank()] });
+              setFocusKey(fid(`variation-${first.key}-name`));
+            }}
+          >
+            Add variations
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Versions that each have their own price, like Small, Medium and Large.
+          </p>
+        </div>
+        {children}
       </Section>
     );
   }
@@ -186,8 +192,9 @@ export function VariationsSection({
           setFocusKey(fid(`variation-${row.key}-name`));
         }}
       >
-        Add another
+        Add another {word.toLowerCase()}
       </Button>
+      {children && <div className="space-y-4 border-t border-border pt-4">{children}</div>}
     </Section>
   );
 }

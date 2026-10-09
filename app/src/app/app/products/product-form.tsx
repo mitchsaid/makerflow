@@ -175,7 +175,7 @@ export function ProductForm({
   values.options.forEach((g, gi) => {
     const e = errors.options?.groups[g.key];
     if (!e) return;
-    const title = g.name.trim() || `Option ${gi + 1}`;
+    const title = g.name.trim() || `${g.kind === "one" ? "List" : "Extra"} ${values.options.filter((x, xi) => xi <= gi && (x.kind === "one") === (g.kind === "one")).length}`;
     if (e.name) problems.push({ fieldId: fid(`option-${g.key}-name`), label: `${title}: name`, message: e.name });
     if (e.textPrice) problems.push({ fieldId: fid(`option-${g.key}-textPrice`), label: `${title}: price`, message: e.textPrice });
     if (e.textMax) problems.push({ fieldId: fid(`option-${g.key}-textMax`), label: `${title}: length`, message: e.textMax });
@@ -190,7 +190,7 @@ export function ProductForm({
       }
     });
   });
-  if (errors.options?.list) problems.push({ fieldId: fid("add-option"), label: "Options and extras", message: errors.options.list });
+  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Extras and lists", message: errors.options.list });
 
   const set =
     <K extends keyof ProductFormValues>(key: K) =>
@@ -319,13 +319,37 @@ export function ProductForm({
             ...(change.rows !== undefined
               ? (() => {
                   const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, change.rows);
-                  return { variations: carried.rows, unitPrice: carried.unitPrice };
+                  return {
+                    variations: carried.rows,
+                    unitPrice: carried.unitPrice,
+                    // With no sizes left there is nothing for a price to depend on (and no stale prices to come back).
+                    ...(carried.rows.length === 0 ? { options: v.options.map((g) => ({ ...g, priceByVariation: false })) } : {}),
+                  };
                 })()
               : {}),
           }));
         }}
-      />
+      >
+        {/* The lists you pick one from (flavour) sit with the variations: they are the same idea. */}
+        <OptionsSection
+          show="lists"
+          bare
+          hasPricedList={values.variations.length > 0}
+          variations={values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }))}
+          variationWord={values.variationLabel.trim() || "variation"}
+          groups={values.options}
+          errors={errors.options}
+          priceLabel={priceLabel}
+          currencySymbol={currencySymbol}
+          fid={fid}
+          onChange={(options) => {
+            setEditedSinceSave(true);
+            setValues((v) => ({ ...v, options }));
+          }}
+        />
+      </VariationsSection>
       <OptionsSection
+        show="extras"
         variations={values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }))}
         variationWord={values.variationLabel.trim() || "variation"}
         groups={values.options}
