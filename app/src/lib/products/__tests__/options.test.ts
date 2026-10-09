@@ -91,9 +91,11 @@ describe("an option priced by variation", () => {
     expect(optionsPayload(r.groups)[0].values[0]).toMatchObject({ prices: [{ variation_index: 0, price_cents: 5000 }, { variation_index: 1, price_cents: 12000 }] });
   });
 
-  it("an empty price is R0, a bad one says so at its field, and without variations the switch is off", () => {
+  it("an empty or bad price says so at its field (0 is fine when typed), and without variations the switch is off", () => {
     const bad = parseOptionGroups([byVariation({ small: "", large: "abc" })], ["small", "large"]);
     expect(!bad.ok && bad.errors.groups.g1.rows.v1.prices?.large).toBeTruthy();
+    expect(!bad.ok && bad.errors.groups.g1.rows.v1.prices?.small).toMatch(/Use 0 if nothing/);
+    expect(parseOptionGroups([byVariation({ small: "0", large: "120" })], ["small", "large"]).ok).toBe(true);
     const none = parseOptionGroups([byVariation({})], []);
     expect(none.ok && none.groups[0].priceByVariation).toBe(false);
   });

@@ -64,6 +64,22 @@ begin
   assert (select count(*) from public.product_option_value_prices where value_id = gold) = 1, 'a removed variation''s price stayed';
   assert (select variation_id from public.product_option_value_prices where value_id = gold) = small, 'the wrong price went';
 
+  -- A price for a variation of another product is refused.
+  declare
+    other uuid;
+    other_var uuid;
+  begin
+    other := public.save_product(org_a, null,
+      jsonb_build_object('kind', 'product', 'name', 'Other', 'description', '', 'unit_price_cents', 0, 'unit', '', 'variation_label', 'Size'),
+      '[{"name": "A", "price_cents": 1}, {"name": "B", "price_cents": 2}]'::jsonb, null);
+    select id into other_var from public.product_variations where product_id = other limit 1;
+    begin
+      insert into public.product_option_value_prices (organisation_id, value_id, variation_id, price_cents) values (org_a, gold, other_var, 1);
+      raise exception 'FAIL: a price for another product''s variation was accepted';
+    exception when check_violation then null;
+    end;
+  end;
+
   -- A text option can't be priced by variation.
   begin
     perform public.save_product(org_a, cake,

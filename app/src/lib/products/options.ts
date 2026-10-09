@@ -157,7 +157,13 @@ export function parseOptionGroups(
         let price: ReturnType<typeof amount>;
         if (byVariation) {
           variationKeys.forEach((vk, index) => {
-            const r = amount(v.prices?.[vk] ?? "");
+            const text = v.prices?.[vk] ?? "";
+            // Left empty, a size would quietly cost nothing: say so (0 is fine when typed).
+            if (text.trim() === "") {
+              priceErrors[vk] = "Enter what it adds for this one. Use 0 if nothing.";
+              return;
+            }
+            const r = parseMoney(text);
             if (r.ok) prices.push({ variationIndex: index, priceCents: r.value });
             else priceErrors[vk] = r.error;
           });

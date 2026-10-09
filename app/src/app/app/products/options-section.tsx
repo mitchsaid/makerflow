@@ -140,7 +140,21 @@ export function OptionsSection({
                         <Checkbox
                           id={fid(`option-${g.key}-byVariation`)}
                           checked={g.priceByVariation === true}
-                          onCheckedChange={(checked) => setGroup(g.key, { priceByVariation: checked === true })}
+                          onCheckedChange={(checked) =>
+                            setGroup(g.key, {
+                              priceByVariation: checked === true,
+                              // Each size starts with the choice's price as it was, so nothing becomes free by surprise.
+                              values:
+                                checked === true
+                                  ? g.values.map((x) => ({
+                                      ...x,
+                                      prices: Object.fromEntries(
+                                        variations.map((variation) => [variation.key, x.prices?.[variation.key]?.trim() ? x.prices[variation.key] : x.price.trim() || "0"]),
+                                      ),
+                                    }))
+                                  : g.values,
+                            })
+                          }
                         />
                         <FieldLabel htmlFor={fid(`option-${g.key}-byVariation`)} className="text-base">
                           Price depends on the {variationWord.toLowerCase()}

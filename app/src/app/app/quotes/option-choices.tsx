@@ -33,7 +33,8 @@ export function OptionChoices({
   onChange: (options: LineOption[]) => void;
 }) {
   const id = (part: string) => `${idPrefix}${part}`;
-  const plus = (cents: number, charge: "item" | "line") => (cents > 0 ? `+${money(cents)}${charge === "line" ? " once" : " each"}` : "");
+  const plus = (cents: number, charge: "item" | "line", from = false) =>
+    cents > 0 ? `${from ? "from " : ""}+${money(cents)}${charge === "line" ? " once" : " each"}` : "";
   // What each option shows as chosen: entries of its current kind that it still offers ("choose one": the
   // first only). Anything else on the item is shown under "Kept as they were", and is never hidden.
   const shownIn = (g: OptionGroup): LineOption[] => {
@@ -129,7 +130,7 @@ export function OptionChoices({
                     <RadioGroupItem id={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} value={v.id} />
                     <FieldLabel htmlFor={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{v.name}</span>
-                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge)}</span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge, g.priceByVariation && !variationId)}</span>
                     </FieldLabel>
                   </Field>
                 ))}
@@ -166,7 +167,7 @@ export function OptionChoices({
                     />
                     <FieldLabel htmlFor={fieldId} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{v.name}</span>
-                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge)}</span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge, g.priceByVariation && !variationId)}</span>
                     </FieldLabel>
                   </Field>
                 );

@@ -27,6 +27,32 @@ create table public.product_option_value_prices (
 create index product_option_value_prices_org_idx on public.product_option_value_prices (organisation_id, value_id);
 create index product_option_value_prices_variation_idx on public.product_option_value_prices (organisation_id, variation_id);
 
+-- The variation must be one of the SAME product as the value's option (the keys only say same business).
+create function public.product_option_value_prices_same_product()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if not exists (
+    select 1
+      from public.product_option_values ov
+      join public.product_option_groups g on g.id = ov.group_id
+      join public.product_variations v on v.product_id = g.product_id
+     where ov.id = new.value_id and v.id = new.variation_id
+  ) then
+    raise exception 'a price must be for a variation of the same product' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.product_option_value_prices_same_product() from public, anon, authenticated;
+
+create trigger product_option_value_prices_same_product
+  before insert or update on public.product_option_value_prices
+  for each row execute function public.product_option_value_prices_same_product();
+
 revoke all on public.product_option_value_prices from anon, authenticated;
 grant select, delete on public.product_option_value_prices to authenticated;
 grant insert (organisation_id, value_id, variation_id, price_cents) on public.product_option_value_prices to authenticated;
