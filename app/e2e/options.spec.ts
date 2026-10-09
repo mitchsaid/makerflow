@@ -2,10 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 import { item, rand, sheet } from "./quote-helpers";
 
-/** Taps a button after bringing it to the middle of the screen, clear of the bar pinned at the foot. */
+/**
+ * Presses a button from the keyboard (focus, then Enter). The small remove buttons sit near the bar pinned
+ * at the foot of a phone screen, where a pointer tap in a test can land on something else.
+ */
 async function tap(locator: import("@playwright/test").Locator) {
-  await locator.evaluate((el) => el.scrollIntoView({ block: "center" }));
-  await locator.click();
+  await locator.focus();
+  await locator.press("Enter");
 }
 
 /** Adds an option of a kind on the product form and opens it. */
@@ -161,10 +164,7 @@ test("an extra can cost more on a bigger size, and follows the size chosen", asy
   await page.getByLabel("Extras: choice 1", { exact: true }).fill("Gold leaf");
   await page.getByLabel("Extras: choice 1 adds for Small", { exact: true }).fill("50");
   await page.getByLabel("Extras: choice 1 adds for Large", { exact: true }).fill("120");
-  // Clear of the bar pinned at the foot of a phone screen.
-  const removeSecond = page.getByRole("button", { name: "Remove Extras: choice 2" });
-  await removeSecond.evaluate((el) => el.scrollIntoView({ block: "center" }));
-  await removeSecond.click();
+  await tap(page.getByRole("button", { name: "Remove Extras: choice 2" }));
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toBeVisible();
 

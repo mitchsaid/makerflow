@@ -2,10 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 import { item, rand, sheet } from "./quote-helpers";
 
-/** Taps a button after bringing it to the middle of the screen, clear of the bar pinned at the foot. */
+/**
+ * Presses a button from the keyboard (focus, then Enter). The small remove buttons sit near the bar pinned
+ * at the foot of a phone screen, where a pointer tap in a test can land on something else.
+ */
 async function tap(locator: import("@playwright/test").Locator) {
-  await locator.evaluate((el) => el.scrollIntoView({ block: "center" }));
-  await locator.click();
+  await locator.focus();
+  await locator.press("Enter");
 }
 
 /** Fills the variation rows on the product form, in order. */
