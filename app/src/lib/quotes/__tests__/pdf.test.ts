@@ -650,3 +650,32 @@ describe("options and extras on an item", () => {
     }
   }, 60_000);
 });
+
+describe("the theme's extra prices shown separately", () => {
+  it("draws the item's own price and a line for each extra with what it adds, in every layout", async () => {
+    const options = [
+      { groupId: "", group: "Flavour", kind: "one" as const, charge: "item" as const, valueId: "", value: "Vanilla", text: "", amountCents: 0 },
+      { groupId: "", group: "Toppings", kind: "any" as const, charge: "item" as const, valueId: "", value: "Gold sprinkles", text: "", amountCents: 200 },
+      { groupId: "", group: "Packaging", kind: "any" as const, charge: "line" as const, valueId: "", value: "Gift box", text: "", amountCents: 3000 },
+    ];
+    const s = snapshot(vats.none, {
+      fulfilment: "none",
+      discountKind: "none",
+      discountValue: "",
+      lines: [{ key: "a", kind: "product", productId: "22222222-2222-4222-8222-222222222222", name: "Cupcakes", description: "", quantity: "12", unit: "", unitPrice: "15", discountKind: "none", discountValue: "", options }],
+    });
+    for (const layout of LAYOUTS) {
+      const themed = { ...s, theme: resolveTheme({ ...STARTERS[0].spec, layout, extraPrices: "separate" }, "Test") };
+      const text = (await pageTexts(await renderQuotePdf(themed))).flat().join(" ");
+      expect(text, layout).toContain("Flavour: Vanilla");
+      expect(text, layout).toMatch(/Toppings: Gold sprinkles/);
+      expect(text, layout).toMatch(/12 × R\s?2,00 = R\s?24,00/);
+      expect(text, layout).toMatch(/Packaging: Gift box/);
+      expect(text, layout).toMatch(/R\s?30,00 once/);
+      // The item's own price each, not the one with extras folded in.
+      expect(text, layout).toMatch(/R\s?15,00/);
+      expect(text, layout).not.toMatch(/R\s?17,00/);
+      expect(text, layout).toMatch(/R\s?234,00/);
+    }
+  }, 60_000);
+});

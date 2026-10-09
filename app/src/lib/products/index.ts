@@ -133,7 +133,17 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     } catch {
       rows = null;
     }
-    const parsed = parseOptionGroups(rows);
+    // The variation rows as sent, in order: an option priced by variation refers to them by place.
+    let variationRows: unknown = [];
+    try {
+      variationRows = JSON.parse(typeof variationsRaw === "string" ? variationsRaw : "[]");
+    } catch {
+      variationRows = [];
+    }
+    const variationKeys = Array.isArray(variationRows)
+      ? variationRows.flatMap((r) => (typeof r === "object" && r !== null && typeof (r as { key?: unknown }).key === "string" ? [(r as { key: string }).key] : []))
+      : [];
+    const parsed = parseOptionGroups(rows, variationKeys);
     if (parsed.ok) options = parsed.groups;
     else errors.options = parsed.errors;
   }

@@ -29,7 +29,7 @@ import type { VatChoice } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
 import { VariationChoice } from "./variation-choice";
-import { missingOptions, OptionChoices } from "./option-choices";
+import { missingOptions, OptionChoices, optionValueAmount, repriceOptions } from "./option-choices";
 import { optionAmounts, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
@@ -80,7 +80,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     options: product.options.flatMap((g) => {
       const v = g.kind === "one" ? g.values.find((x) => x.usual) : undefined;
       return v
-        ? [{ groupId: g.id, group: g.name, kind: g.kind, charge: g.charge, valueId: v.id, value: v.name, text: "", amountCents: v.priceCents }]
+        ? [{ groupId: g.id, group: g.name, kind: g.kind, charge: g.charge, valueId: v.id, value: v.name, text: "", amountCents: optionValueAmount(g, v, usual?.id) }]
         : [];
     }),
   };
@@ -266,6 +266,7 @@ function followProduct(
   after: ProductSummary,
   style: NumberStyle,
 ): LineFormValues {
+  const followed = followVariation(line, before, after, style);
   return {
     ...line,
     kind: after.kind,
@@ -277,8 +278,8 @@ function followProduct(
         ? moneyToInput(after.unitPriceCents, style)
         : line.unitPrice,
     vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
-    ...followVariation(line, before, after, style),
-    options: followOptions(line.options ?? [], after),
+    ...followed,
+    options: followOptions(line.options ?? [], after, followed.variationId ?? line.variationId),
   };
 }
 
@@ -286,7 +287,7 @@ function followProduct(
  * The options chosen on a new item after its product was edited: each takes the option's new words and
  * amount; ones the product no longer offers go; "choose one" options with nothing chosen get their usual one.
  */
-function followOptions(chosen: readonly LineOption[], after: ProductSummary): LineOption[] {
+function followOptions(chosen: readonly LineOption[], after: ProductSummary, variationId: string | undefined): LineOption[] {
   const next: LineOption[] = [];
   for (const o of chosen) {
     const g = after.options.find((x) => x.id === o.groupId);
@@ -298,12 +299,12 @@ function followOptions(chosen: readonly LineOption[], after: ProductSummary): Li
     const v = g.values.find((x) => x.id === o.valueId);
     if (!v) continue;
     if (g.kind === "one" && next.some((x) => x.groupId === g.id)) continue;
-    next.push({ ...o, group: g.name, charge: g.charge, value: v.name, amountCents: v.priceCents });
+    next.push({ ...o, group: g.name, charge: g.charge, value: v.name, amountCents: optionValueAmount(g, v, variationId) });
   }
   for (const g of after.options) {
     if (g.kind !== "one" || next.some((x) => x.groupId === g.id)) continue;
     const usual = g.values.find((x) => x.usual);
-    if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", charge: g.charge, valueId: usual.id, value: usual.name, text: "", amountCents: usual.priceCents });
+    if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", charge: g.charge, valueId: usual.id, value: usual.name, text: "", amountCents: optionValueAmount(g, usual, variationId) });
   }
   return next;
 }
@@ -499,6 +500,8 @@ function ConfigureView({
         variationName: next.name,
         variationLabel: product?.variationLabel ?? l.variationLabel ?? "",
         unitPrice: follows ? moneyToInput(next.priceCents, numberStyle) : l.unitPrice,
+        // Options priced by variation take the new one's price.
+        options: repriceOptions(product?.options ?? [], l.options ?? [], next.id),
       };
     });
   }
@@ -711,6 +714,7 @@ function ConfigureView({
             idPrefix="line-sheet-"
             groups={optionGroups}
             chosen={line.options ?? []}
+            variationId={line.variationId ?? ""}
             errors={optionErrors}
             money={money}
             onChange={(options) => {

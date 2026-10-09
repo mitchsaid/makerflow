@@ -6,6 +6,9 @@ import { addDays, todayIn } from "./dates";
 import { parseQuote, type QuoteFormValues } from "./index";
 import { buildQuoteSnapshot, type QuoteSnapshot } from "./snapshot";
 
+/** A stand-in product id for the sample's first item (never stored: the sample is never saved). */
+const SAMPLE_PRODUCT = "00000000-0000-4000-8000-000000000001";
+
 /** What a sample quote is made of when the business has no products to borrow. */
 const GENERIC: { name: string; description: string; unitPrice: string; quantity: string }[] = [
   { name: "Made-to-order piece", description: "Made by hand to your size and colours", unitPrice: "1200", quantity: "1" },
@@ -53,8 +56,16 @@ function buildSample(workspace: Workspace, products: readonly ProductSummary[]):
     neededBy: "",
     lines: items.map((l, i) => ({
       key: `s${i}`,
-      kind: "custom" as const,
-      productId: "",
+      // The first item carries an extra (as if from a product), so a theme's way of showing extra prices shows.
+      kind: i === 0 ? ("product" as const) : ("custom" as const),
+      productId: i === 0 ? SAMPLE_PRODUCT : "",
+      options:
+        i === 0
+          ? [
+              { groupId: "", group: "Extras", kind: "any" as const, charge: "item" as const, valueId: "", value: "Hand finishing", text: "", amountCents: 5000 },
+              { groupId: "", group: "Extras", kind: "any" as const, charge: "line" as const, valueId: "", value: "Gift wrap", text: "", amountCents: 2500 },
+            ]
+          : [],
       name: l.name,
       description: l.description,
       quantity: l.quantity,

@@ -34,13 +34,23 @@ type Row = {
         charge: OptionCharge;
         text_price_cents: number | string;
         text_max: number;
+        price_by_variation: boolean;
         sort_order: number;
-        product_option_values: { id: string; name: string; price_cents: number | string; usual: boolean; sort_order: number }[] | null;
+        product_option_values:
+          | {
+              id: string;
+              name: string;
+              price_cents: number | string;
+              usual: boolean;
+              sort_order: number;
+              product_option_value_prices: { variation_id: string; price_cents: number | string }[] | null;
+            }[]
+          | null;
       }[]
     | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, kind, required, charge, text_price_cents, text_max, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order ) )";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_variations ( id, name, price_cents, usual, sort_order ),\n  product_option_groups ( id, name, kind, required, charge, text_price_cents, text_max, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, product_option_value_prices ( variation_id, price_cents ) ) )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -68,9 +78,16 @@ function fromRow(row: Row): ProductSummary {
         charge: g.charge,
         textPriceCents: Number(g.text_price_cents),
         textMax: g.text_max,
+        priceByVariation: g.price_by_variation,
         values: [...(g.product_option_values ?? [])]
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((v) => ({ id: v.id, name: v.name, priceCents: Number(v.price_cents), usual: v.usual })),
+          .map((v) => ({
+            id: v.id,
+            name: v.name,
+            priceCents: Number(v.price_cents),
+            usual: v.usual,
+            prices: Object.fromEntries((v.product_option_value_prices ?? []).map((p) => [p.variation_id, Number(p.price_cents)])),
+          })),
       })),
   };
 }

@@ -333,6 +333,7 @@ export function ThemeStudio({
               {spec.layout === "table" && cards("tableHead")}
               {cards("rows", "density", "photo")}
               {spec.photo !== "none" && cards("photoShape")}
+              {cards("extraPrices")}
               <fieldset className="space-y-1">
                 <legend className="text-sm font-medium">Show on each item</legend>
                 {SWITCHES.map((s) => (

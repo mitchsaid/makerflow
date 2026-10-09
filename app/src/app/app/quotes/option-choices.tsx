@@ -19,9 +19,12 @@ export function OptionChoices({
   chosen,
   errors,
   money,
+  variationId,
   onChange,
 }: {
   idPrefix: string;
+  /** The variation chosen on the item, for options whose price depends on it. */
+  variationId: string;
   groups: OptionGroup[];
   chosen: LineOption[];
   /** By option id: what is missing ("Choose a flavour."). */
@@ -30,7 +33,8 @@ export function OptionChoices({
   onChange: (options: LineOption[]) => void;
 }) {
   const id = (part: string) => `${idPrefix}${part}`;
-  const plus = (cents: number, charge: "item" | "line") => (cents > 0 ? `+${money(cents)}${charge === "line" ? " once" : " each"}` : "");
+  const plus = (cents: number, charge: "item" | "line", from = false) =>
+    cents > 0 ? `${from ? "from " : ""}+${money(cents)}${charge === "line" ? " once" : " each"}` : "";
   // What each option shows as chosen: entries of its current kind that it still offers ("choose one": the
   // first only). Anything else on the item is shown under "Kept as they were", and is never hidden.
   const shownIn = (g: OptionGroup): LineOption[] => {
@@ -46,6 +50,7 @@ export function OptionChoices({
     const own = new Set(shownIn(g));
     return chosen.filter((o) => !own.has(o));
   };
+  const amountOf = (g: OptionGroup, v: OptionGroup["values"][number]) => optionValueAmount(g, v, variationId);
   const copyOf = (g: OptionGroup, v: OptionGroup["values"][number]): LineOption => ({
     groupId: g.id,
     group: g.name,
@@ -54,7 +59,7 @@ export function OptionChoices({
     valueId: v.id,
     value: v.name,
     text: "",
-    amountCents: v.priceCents,
+    amountCents: amountOf(g, v),
   });
   // What is on the item but not shown by the product's options as they are now.
   const kept = chosen.filter((o) => !shown.has(o));
@@ -116,7 +121,7 @@ export function OptionChoices({
                 }}
                 className="gap-2"
               >
-                {[...g.values, ...(g.required ? [] : [{ id: "none", name: "None", priceCents: 0, usual: false }])].map((v, i) => (
+                {[...g.values, ...(g.required ? [] : [{ id: "none", name: "None", priceCents: 0, usual: false, prices: {} }])].map((v, i) => (
                   <Field
                     key={v.id}
                     orientation="horizontal"
@@ -125,7 +130,7 @@ export function OptionChoices({
                     <RadioGroupItem id={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} value={v.id} />
                     <FieldLabel htmlFor={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{v.name}</span>
-                      <span className="shrink-0 text-sm text-muted-foreground">{plus(v.priceCents, g.charge)}</span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge, g.priceByVariation && !variationId)}</span>
                     </FieldLabel>
                   </Field>
                 ))}
@@ -162,7 +167,7 @@ export function OptionChoices({
                     />
                     <FieldLabel htmlFor={fieldId} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{v.name}</span>
-                      <span className="shrink-0 text-sm text-muted-foreground">{plus(v.priceCents, g.charge)}</span>
+                      <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.charge, g.priceByVariation && !variationId)}</span>
                     </FieldLabel>
                   </Field>
                 );
@@ -195,6 +200,21 @@ export function OptionChoices({
       )}
     </div>
   );
+}
+
+/** What a value adds on an item: its price for the item's variation when the option is priced by variation. */
+export function optionValueAmount(g: OptionGroup, v: OptionGroup["values"][number], variationId: string | undefined): number {
+  if (g.priceByVariation && variationId && v.prices[variationId] !== undefined) return v.prices[variationId];
+  return v.priceCents;
+}
+
+/** The options chosen on an item, with the amounts for its variation (after the variation changes). */
+export function repriceOptions(groups: readonly OptionGroup[], chosen: readonly LineOption[], variationId: string | undefined): LineOption[] {
+  return chosen.map((o) => {
+    const g = groups.find((x) => x.id === o.groupId && x.kind === o.kind);
+    const v = g?.priceByVariation ? g.values.find((x) => x.id === o.valueId) : undefined;
+    return g && v ? { ...o, amountCents: optionValueAmount(g, v, variationId) } : o;
+  });
 }
 
 /** What is missing on an item: each required option with nothing chosen or typed. */

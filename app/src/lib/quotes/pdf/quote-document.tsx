@@ -7,7 +7,7 @@ import { IMAGE_OPACITY, themeFromStored } from "../themes";
 import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 import { vatView } from "../vat-view";
-import { itemName, optionsText } from "../line-text";
+import { extrasView, itemName } from "../line-text";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -118,6 +118,23 @@ export function QuoteDocument({
     borderRadius: theme.photoShape === "round" ? size / 2 : theme.photoShape === "rounded" ? Math.min(size / 6, 10) : 0,
   });
   const numberText = s.version > 1 ? `${s.number} · version ${s.version}` : s.number;
+  // Options and extras, as the theme shows their prices (folded in, or each on its own line).
+  const extrasOf = (l: QuoteSnapshot["lines"][number]) =>
+    extrasView(l, theme.extraPrices === "separate", money, quantityText(l.quantityMilli, null, s.numberStyle, " "));
+  const extraLines = (l: QuoteSnapshot["lines"][number]) => {
+    const x = extrasOf(l);
+    return (
+      <>
+        {x.folded ? <Text style={styles.description}>{x.folded}</Text> : null}
+        {x.priced.map((p, k) => (
+          <View key={k} style={{ flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
+            <Text style={[styles.description, { flexShrink: 1 }]}>{p.label}</Text>
+            <Text style={styles.description}>{p.amount}</Text>
+          </View>
+        ))}
+      </>
+    );
+  };
 
   return (
     <Document title={`${s.wording.title} ${s.number}`} author={s.business.name} creator="MakerFlow" producer="MakerFlow">
@@ -289,13 +306,13 @@ export function QuoteDocument({
                             <Text>{itemName(l)}</Text>
                             {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                             {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
-                            {optionsText(l.options, money) ? <Text style={styles.description}>{optionsText(l.options, money)}</Text> : null}
+                            {extraLines(l)}
                             {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
                           </View>
                         </View>
                       </View>
                       {theme.showQty ? <Text style={[styles.colQty, cell ?? {}]}>{quantityText(l.quantityMilli, l.unit, s.numberStyle, " ")}</Text> : null}
-                      {theme.showUnitPrice ? <Text style={[styles.colPrice, cell ?? {}]}>{money(l.unitPriceCents)}</Text> : null}
+                      {theme.showUnitPrice ? <Text style={[styles.colPrice, cell ?? {}]}>{money(extrasOf(l).priceEachCents)}</Text> : null}
                       <Text style={styles.colAmount}>{money(l.lineTotalCents)}</Text>
                     </View>
                   </View>
@@ -310,14 +327,14 @@ export function QuoteDocument({
                 const size = theme.layout === "cards" ? cardPhoto : theme.layout === "showcase" ? showcasePhoto : tablePhoto;
                 const shaded = theme.rows === "zebra" && i % 2 === 1;
                 const label = `${theme.numbered ? `${i + 1}. ` : ""}${itemName(l)}`;
-                const meta = [theme.showQty ? quantityText(l.quantityMilli, l.unit, s.numberStyle, " ") : null, theme.showUnitPrice ? `${money(l.unitPriceCents)}${theme.showQty ? "" : " each"}` : null]
+                const meta = [theme.showQty ? quantityText(l.quantityMilli, l.unit, s.numberStyle, " ") : null, theme.showUnitPrice ? `${money(extrasOf(l).priceEachCents)}${theme.showQty ? "" : " each"}` : null]
                   .filter(Boolean)
                   .join(theme.showQty && theme.showUnitPrice ? " × " : "");
                 const details = (
                   <>
                     {theme.descriptions && l.description ? <Text style={styles.description}>{l.description}</Text> : null}
                     {l.discount ? <Text style={styles.description}>{lineDiscountText(l.discount, s)}</Text> : null}
-                    {optionsText(l.options, money) ? <Text style={styles.description}>{optionsText(l.options, money)}</Text> : null}
+                    {extraLines(l)}
                     {vat.lineLabel(l) ? <Text style={styles.description}>{vat.lineLabel(l)}</Text> : null}
                   </>
                 );
