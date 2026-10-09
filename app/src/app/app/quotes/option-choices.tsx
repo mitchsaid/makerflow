@@ -31,8 +31,21 @@ export function OptionChoices({
 }) {
   const id = (part: string) => `${idPrefix}${part}`;
   const plus = (cents: number, charge: "item" | "line") => (cents > 0 ? `+${money(cents)}${charge === "line" ? " once" : " each"}` : "");
-  const inGroup = (g: OptionGroup) => chosen.filter((o) => o.groupId === g.id);
-  const others = (g: OptionGroup) => chosen.filter((o) => o.groupId !== g.id);
+  // What each option shows as chosen: entries of its current kind that it still offers ("choose one": the
+  // first only). Anything else on the item is shown under "Kept as they were", and is never hidden.
+  const shownIn = (g: OptionGroup): LineOption[] => {
+    const mine = chosen.filter((o) => o.groupId === g.id && o.kind === g.kind);
+    if (g.kind === "text") return mine.slice(0, 1);
+    const offered = mine.filter((o) => g.values.some((v) => v.id === o.valueId));
+    return g.kind === "one" ? offered.slice(0, 1) : offered;
+  };
+  const shown = new Set(groups.flatMap(shownIn));
+  const inGroup = shownIn;
+  // Everything but what this option shows: changing a choice never drops a kept one.
+  const others = (g: OptionGroup) => {
+    const own = new Set(shownIn(g));
+    return chosen.filter((o) => !own.has(o));
+  };
   const copyOf = (g: OptionGroup, v: OptionGroup["values"][number]): LineOption => ({
     groupId: g.id,
     group: g.name,
@@ -43,12 +56,8 @@ export function OptionChoices({
     text: "",
     amountCents: v.priceCents,
   });
-  // What is on the item but no longer offered by the product.
-  const kept = chosen.filter((o) => {
-    const g = groups.find((x) => x.id === o.groupId);
-    if (!g) return true;
-    return g.kind !== "text" && !g.values.some((v) => v.id === o.valueId);
-  });
+  // What is on the item but not shown by the product's options as they are now.
+  const kept = chosen.filter((o) => !shown.has(o));
 
   return (
     <div className="space-y-5">
@@ -193,7 +202,9 @@ export function missingOptions(groups: readonly OptionGroup[], chosen: readonly 
   const missing: Record<string, string> = {};
   for (const g of groups) {
     if (!g.required) continue;
-    const has = chosen.some((o) => o.groupId === g.id && (g.kind === "text" ? o.text.trim() !== "" : g.values.some((v) => v.id === o.valueId)));
+    const has = chosen.some(
+      (o) => o.groupId === g.id && o.kind === g.kind && (g.kind === "text" ? o.text.trim() !== "" : g.values.some((v) => v.id === o.valueId)),
+    );
     if (!has) missing[g.id] = g.kind === "text" ? `Type the ${g.name.toLowerCase()}.` : `Choose a ${g.name.toLowerCase()}.`;
   }
   return missing;

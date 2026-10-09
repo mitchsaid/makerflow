@@ -30,7 +30,7 @@ import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
 import { VariationChoice } from "./variation-choice";
 import { missingOptions, OptionChoices } from "./option-choices";
-import { optionAmounts, parseLine, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
+import { optionAmounts, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
@@ -278,7 +278,34 @@ function followProduct(
         : line.unitPrice,
     vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
     ...followVariation(line, before, after, style),
+    options: followOptions(line.options ?? [], after),
   };
+}
+
+/**
+ * The options chosen on a new item after its product was edited: each takes the option's new words and
+ * amount; ones the product no longer offers go; "choose one" options with nothing chosen get their usual one.
+ */
+function followOptions(chosen: readonly LineOption[], after: ProductSummary): LineOption[] {
+  const next: LineOption[] = [];
+  for (const o of chosen) {
+    const g = after.options.find((x) => x.id === o.groupId);
+    if (!g || g.kind !== o.kind) continue;
+    if (g.kind === "text") {
+      next.push({ ...o, group: g.name, charge: g.charge, amountCents: g.textPriceCents });
+      continue;
+    }
+    const v = g.values.find((x) => x.id === o.valueId);
+    if (!v) continue;
+    if (g.kind === "one" && next.some((x) => x.groupId === g.id)) continue;
+    next.push({ ...o, group: g.name, charge: g.charge, value: v.name, amountCents: v.priceCents });
+  }
+  for (const g of after.options) {
+    if (g.kind !== "one" || next.some((x) => x.groupId === g.id)) continue;
+    const usual = g.values.find((x) => x.usual);
+    if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", charge: g.charge, valueId: usual.id, value: usual.name, text: "", amountCents: usual.priceCents });
+  }
+  return next;
 }
 
 /** The chosen variation after its product was edited: renamed, repriced or removed. */
@@ -504,6 +531,7 @@ function ConfigureView({
     [
       ["name", "Name"],
       ["variation", word],
+      ["options", "Options and extras"],
       ["quantity", "Quantity"],
       ["unit", "Unit"],
       ["unitPrice", priceLabel],
@@ -691,6 +719,11 @@ function ConfigureView({
               setOptionErrors((e) => Object.fromEntries(Object.entries(e).filter(([gid]) => missingOptions(optionGroups, options)[gid])));
             }}
           />
+          {errors.options && (
+            <p id={id("options")} tabIndex={-1} className="text-sm text-destructive">
+              {errors.options}
+            </p>
+          )}
           {sum && (
             <p className="text-base" data-testid="line-sum">
               {sum}

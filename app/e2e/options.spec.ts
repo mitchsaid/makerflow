@@ -110,3 +110,32 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(item(page, 2)).toContainText("1 option");
 });
+
+test("editing a product from a new item's sheet updates the options chosen on it", async ({ page }) => {
+  await signUpAndOnboard(page, "opt-follow", "Follow Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
+  await page.getByLabel("Price", { exact: true }).fill("15");
+  await addOption(page, "Choose any", "Toppings");
+  await page.getByLabel("Toppings: choice 1", { exact: true }).fill("Sprinkles");
+  await page.getByLabel("Toppings: choice 1 adds", { exact: true }).fill("2");
+  await page.getByRole("button", { name: "Remove Toppings: choice 2" }).click();
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
+  await sheet(page).getByLabel("Quantity").fill("10");
+  await sheet(page).getByRole("checkbox", { name: /Sprinkles/ }).check();
+  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/10 × R\s?17,00 = R\s?170,00/);
+  await sheet(page).getByRole("button", { name: "Edit this product" }).click();
+  await sheet(page).getByRole("button", { name: "Edit Toppings" }).click();
+  await sheet(page).getByLabel("Toppings: choice 1", { exact: true }).fill("Rainbow sprinkles");
+  await sheet(page).getByLabel("Toppings: choice 1 adds", { exact: true }).fill("3");
+  await sheet(page).getByRole("button", { name: "Save changes" }).click();
+  await expect(sheet(page).getByRole("checkbox", { name: /Rainbow sprinkles/ })).toBeChecked();
+  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/10 × R\s?18,00 = R\s?180,00/);
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("180"));
+});

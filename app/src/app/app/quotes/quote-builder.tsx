@@ -282,7 +282,7 @@ export function QuoteBuilder({
   values.lines.forEach((line, index) => {
     const e = errors.lines[line.key];
     if (!e) return;
-    const message = e.name ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description;
+    const message = e.name ?? e.variation ?? e.options ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description;
     if (message) {
       problems.push({ fieldId: `line-${line.key}-edit`, label: `Item ${index + 1}: ${line.name || "item"}`, message });
     }
@@ -456,7 +456,7 @@ export function QuoteBuilder({
                   number={index + 1}
                   error={(() => {
                     const e = errors.lines[line.key];
-                    return e ? (e.name ?? e.variation ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
+                    return e ? (e.name ?? e.variation ?? e.options ?? e.quantity ?? e.unitPrice ?? e.discountValue ?? e.description) : undefined;
                   })()}
                   money={money}
                   lineTotal={(() => {
