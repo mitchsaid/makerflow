@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseProductForm } from "../index";
-import { lowestPrice, parseVariations, variationSuggestions, type VariationFormRow } from "../variations";
+import { carryPrice, lowestPrice, parseVariations, variationSuggestions, type VariationFormRow } from "../variations";
 
 const row = (over: Partial<VariationFormRow> = {}): VariationFormRow => ({ key: "k1", id: "", name: "Small", price: "300", usual: false, ...over });
 const ID = "11111111-1111-4111-8111-111111111111";
@@ -81,5 +81,33 @@ describe("suggestions and prices", () => {
   it("the from price is the lowest variation's", () => {
     expect(lowestPrice([{ priceCents: 500 }, { priceCents: 300 }], 999)).toBe(300);
     expect(lowestPrice([], 999)).toBe(999);
+  });
+});
+
+describe("the price moving between the product and its variations", () => {
+  const row = (key: string, price = ""): VariationFormRow => ({ key, id: "", name: "", price, usual: false });
+
+  it("puts the product's price into the first variation when variations are added", () => {
+    expect(carryPrice({ unitPrice: "350", rows: [] }, [row("a"), row("b")])).toEqual({ unitPrice: "350", rows: [row("a", "350"), row("b")] });
+    // Nothing typed yet: nothing to carry.
+    expect(carryPrice({ unitPrice: " ", rows: [] }, [row("a"), row("b")]).rows).toEqual([row("a"), row("b")]);
+  });
+
+  it("puts the first variation's price back as the product's price when the last one is removed", () => {
+    expect(carryPrice({ unitPrice: "350", rows: [row("a", "400")] }, [])).toEqual({ unitPrice: "400", rows: [] });
+    // An empty one leaves the price as it was.
+    expect(carryPrice({ unitPrice: "350", rows: [row("a")] }, []).unitPrice).toBe("350");
+    // Removed in any order: the price is the one left last. Adding variations again carries it once more.
+    const before = { unitPrice: "350", rows: [row("a", "400"), row("b", "500")] };
+    const one = carryPrice(before, [row("b", "500")]);
+    const none = carryPrice(one, []);
+    expect(none).toEqual({ unitPrice: "500", rows: [] });
+    expect(carryPrice(none, [row("c"), row("d")]).rows[0].price).toBe("500");
+  });
+
+  it("leaves everything else alone", () => {
+    const before = { unitPrice: "350", rows: [row("a", "400"), row("b", "500")] };
+    expect(carryPrice(before, [row("a", "400")])).toEqual({ unitPrice: "350", rows: [row("a", "400")] });
+    expect(carryPrice(before, [row("a", "450"), row("b", "500")]).rows[0].price).toBe("450");
   });
 });

@@ -10,6 +10,7 @@ import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
+import { carryPrice } from "@/lib/products/variations";
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
@@ -314,7 +315,13 @@ export function ProductForm({
           setValues((v) => ({
             ...v,
             ...(change.label !== undefined ? { variationLabel: change.label } : {}),
-            ...(change.rows !== undefined ? { variations: change.rows } : {}),
+            // The price moves into the first variation, and back again when the last one goes.
+            ...(change.rows !== undefined
+              ? (() => {
+                  const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, change.rows);
+                  return { variations: carried.rows, unitPrice: carried.unitPrice };
+                })()
+              : {}),
           }));
         }}
       />
