@@ -292,9 +292,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product variations, with problems");
       const rows = page.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: /^Size \d$/ }) });
-      await rows.nth(0).getByLabel("Price", { exact: true }).fill("100");
+      await rows.nth(0).getByLabel("Size 1 price", { exact: true }).fill("100");
       await page.getByRole("textbox", { name: "Size 2", exact: true }).fill("Large");
-      await rows.nth(1).getByLabel("Price", { exact: true }).fill("200");
+      await rows.nth(1).getByLabel("Size 2 price", { exact: true }).fill("200");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await expectNoViolations(page, "product variations, saved");

@@ -274,6 +274,18 @@ function followProduct(
 
 /** The chosen variation after its product was edited: renamed, repriced or removed. */
 function followVariation(line: LineFormValues, before: ProductSummary, after: ProductSummary, style: NumberStyle): Partial<LineFormValues> {
+  // Variations were just added to the product: start as a new item from it would (the usual one and its
+  // price, or nothing chosen and no price yet), unless the price was changed by hand.
+  if (!line.variationId && after.variations.length > 0 && before.variations.length === 0) {
+    const fresh = lineFromProduct(after, line.key, style);
+    const priceUntouched = line.unitPrice === moneyToInput(before.unitPriceCents, style);
+    return {
+      variationId: fresh.variationId,
+      variationLabel: fresh.variationLabel,
+      variationName: fresh.variationName,
+      ...(priceUntouched ? { unitPrice: fresh.unitPrice } : {}),
+    };
+  }
   if (!line.variationId) return {};
   const was = before.variations.find((v) => v.id === line.variationId);
   const now = after.variations.find((v) => v.id === line.variationId);

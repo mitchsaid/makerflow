@@ -7,7 +7,7 @@ async function fillVariations(page: Page, rows: [string, string][]) {
   for (const [i, [name, price]] of rows.entries()) {
     const row = page.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }) });
     await row.getByLabel(`Size ${i + 1}`, { exact: true }).fill(name);
-    await row.getByLabel("Price", { exact: true }).fill(price);
+    await row.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
   }
 }
 
@@ -20,7 +20,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
   await page.getByRole("button", { name: "Add variations" }).click();
   await expect(page.getByLabel("What do you call them?")).toHaveValue("Size");
-  await expect(page.getByLabel("Price", { exact: true })).toHaveCount(2);
+  await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(2);
   await expect(page.getByTestId("price-by-variation")).toBeVisible();
   await fillVariations(page, [["Small", "300"], ["Small", ""]]);
 
@@ -100,4 +100,40 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await item(page, 1).getByRole("button", { name: /Edit/ }).click();
   await expect(sheet(page).getByRole("radio", { name: /Large/ })).toBeChecked();
   await expect(sheet(page).getByRole("group", { name: "Choose a size" })).toContainText("No longer on the product");
+});
+
+test("sizes added from inside a quote start the item with the usual one, and saving twice never doubles them", async ({ page }) => {
+  await signUpAndOnboard(page, "var-sheet", "Sheet Sizes Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Candle");
+  await page.getByLabel("Price", { exact: true }).fill("100");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Candle/ }).click();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("100");
+  await sheet(page).getByRole("button", { name: "Edit this product" }).click();
+  await sheet(page).getByRole("button", { name: "Add variations" }).click();
+  await fillVariations(page, [["Small", "80"], ["Large", "150"]]);
+  await sheet(page).getByLabel("Usual size").selectOption({ label: "Large" });
+  await sheet(page).getByRole("button", { name: "Save changes" }).click();
+  await expect(sheet(page).getByRole("group", { name: "Choose a size" }).getByRole("radio", { name: /Large/ })).toBeChecked();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("150");
+  await page.keyboard.press("Escape");
+
+  // Saving the product twice keeps the same two sizes.
+  await page.goto("/app/products");
+  await page.getByRole("link", { name: /Candle/ }).click();
+  await page.getByRole("button", { name: "Add another" }).click();
+  await fillVariations(page, [["Small", "80"], ["Large", "150"], ["Jar", "200"]]);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.getByLabel("Size 3 price", { exact: true }).fill("210");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(3);
+  await expect(page.getByLabel("Size 3 price", { exact: true })).toHaveValue("210");
 });

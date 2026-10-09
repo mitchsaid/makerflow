@@ -46,7 +46,8 @@ export function VariationsSection({
   const blank = (): VariationFormRow => ({ key: newKey(), id: "", name: "", price: "", usual: false });
   const setRow = (key: string, change: Partial<VariationFormRow>) =>
     onChange({ rows: rows.map((r) => (r.key === key ? { ...r, ...change } : r)) });
-  const usualKey = rows.find((r) => r.usual)?.key ?? "none";
+  // A usual row whose name was cleared can't be shown in the list, so it reads as none until named.
+  const usualKey = rows.find((r) => r.usual && r.name.trim() !== "")?.key ?? "none";
 
   if (rows.length === 0) {
     return (
@@ -55,6 +56,7 @@ export function VariationsSection({
           Does it come in sizes or other versions, each with its own price? Like Small, Medium and Large.
         </p>
         <Button
+          id={fid("add-variations")}
           type="button"
           variant="outline"
           className="self-start"
@@ -120,7 +122,7 @@ export function VariationsSection({
                   />
                   <TextField
                     id={fid(`variation-${row.key}-price`)}
-                    label={priceLabel}
+                    label={priceLabel.replace(/^Price/, `${word} ${i + 1} price`)}
                     startText={currencySymbol}
                     inputMode="decimal"
                     autoComplete="off"
@@ -137,7 +139,7 @@ export function VariationsSection({
                     onClick={() => {
                       const next = rows.filter((r) => r.key !== row.key);
                       onChange({ rows: next });
-                      setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : null);
+                      setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("add-variations"));
                     }}
                   >
                     Remove<span className="sr-only"> {title}</span>

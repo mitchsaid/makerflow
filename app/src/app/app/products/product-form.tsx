@@ -116,15 +116,15 @@ export function ProductForm({
   const [values, setValues] = useState<ProductFormValues>(initial);
   // After a save, new variations take the ids the database gave them, so saving again keeps them (and the
   // quote items that point at them) instead of replacing them.
+  // The rows as they were sent, in order: the saved product lists its variations in the same order.
+  const [sentKeys, setSentKeys] = useState<string[]>([]);
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
     if (state.status === "saved" || state.status === "created") {
       const saved = state.product.variations;
-      setValues((v) => ({
-        ...v,
-        variations: v.variations.map((r) => (r.id ? r : { ...r, id: saved.find((x) => x.name === r.name.trim().replace(/\s+/g, " "))?.id ?? "" })),
-      }));
+      const idOf = new Map(saved.length === sentKeys.length ? sentKeys.map((key, i) => [key, saved[i].id]) : []);
+      setValues((v) => ({ ...v, variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })) }));
     }
   }
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -170,6 +170,7 @@ export function ProductForm({
       return;
     }
     const formData = new FormData(event.currentTarget);
+    setSentKeys(values.variations.map((r) => r.key));
     setEditedSinceSave(false);
     startTransition(() => formAction(formData));
   }

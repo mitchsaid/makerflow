@@ -35,6 +35,8 @@ create table public.product_variations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint product_variations_org_id_unique unique (organisation_id, id),
+  -- So a quote item can point at a variation OF ITS OWN product (below).
+  constraint product_variations_org_product_id_unique unique (organisation_id, product_id, id),
   constraint product_variations_product_same_org
     foreign key (organisation_id, product_id) references public.products (organisation_id, id)
     on delete cascade
@@ -110,10 +112,12 @@ alter table public.quote_lines
   add column variation_label text check (variation_label is null or char_length(variation_label) between 1 and 40),
   add column variation_name text check (variation_name is null or char_length(variation_name) between 1 and 80);
 
--- Same business; a removed variation leaves the item's copy of its words (only the link is cleared).
+-- Same business AND the item's own product; a removed variation leaves the item's copy of its words
+-- (only the link is cleared).
 alter table public.quote_lines
-  add constraint quote_lines_variation_same_org
-  foreign key (organisation_id, variation_id) references public.product_variations (organisation_id, id)
+  add constraint quote_lines_variation_same_product
+  foreign key (organisation_id, product_id, variation_id)
+  references public.product_variations (organisation_id, product_id, id)
   on delete set null (variation_id);
 
 alter table public.quote_lines

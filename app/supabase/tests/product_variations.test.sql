@@ -166,6 +166,17 @@ begin
   exception when foreign_key_violation then null;
   end;
 
+  -- A variation of ANOTHER product of the same business cannot be put on an item.
+  begin
+    perform public.save_quote_draft(org_a, q,
+      jsonb_build_object('issue_date', '2026-10-09', 'valid_until', '2026-10-23'),
+      jsonb_build_array(jsonb_build_object('sort_order', 0, 'kind', 'product', 'product_id', plain, 'name', 'Card',
+        'quantity_milli', 1000, 'unit_price_cents', 100,
+        'variation_id', small, 'variation_label', 'Tiers', 'variation_name', 'Small round')));
+    raise exception 'FAIL: another product''s variation was put on an item';
+  exception when foreign_key_violation then null;
+  end;
+
   -- A variation on a one-off item, or a name without its list name, is refused.
   begin
     perform public.save_quote_draft(org_a, q,
