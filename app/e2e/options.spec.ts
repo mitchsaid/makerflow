@@ -2,6 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 import { item, rand, sheet } from "./quote-helpers";
 
+/** Taps a button after bringing it to the middle of the screen, clear of the bar pinned at the foot. */
+async function tap(locator: import("@playwright/test").Locator) {
+  await locator.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await locator.click();
+}
+
 /** Adds an option of a kind on the product form and opens it. */
 async function addOption(page: Page, kind: "Choose one" | "Choose any" | "Type something", name: string) {
   await page.getByRole("button", { name: "Add an option" }).click();
@@ -32,7 +38,7 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await page.getByLabel("Toppings: choice 1 adds", { exact: true }).fill("2");
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("form-summary")).toContainText("Toppings: choice 2");
-  await page.getByRole("button", { name: "Remove Toppings: choice 2" }).click();
+  await tap(page.getByRole("button", { name: "Remove Toppings: choice 2" }));
   await page.getByRole("button", { name: "Done Toppings" }).click();
 
   // Choose any, once per line: Packaging, gift box +R30.
@@ -40,7 +46,7 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await page.getByLabel("How is the price added?").last().selectOption("line");
   await page.getByLabel("Packaging: choice 1", { exact: true }).fill("Gift box");
   await page.getByLabel("Packaging: choice 1 adds", { exact: true }).fill("30");
-  await page.getByRole("button", { name: "Remove Packaging: choice 2" }).click();
+  await tap(page.getByRole("button", { name: "Remove Packaging: choice 2" }));
   await page.getByRole("button", { name: "Done Packaging" }).click();
 
   // Type something, once per line, +R25.
@@ -86,7 +92,7 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await page.getByRole("button", { name: "Edit Flavour" }).click();
   await page.getByLabel("Usual flavour").selectOption({ label: "None" });
   await page.getByRole("button", { name: "Edit Toppings" }).click();
-  await page.getByRole("button", { name: "Remove Gold sprinkles" }).click();
+  await tap(page.getByRole("button", { name: "Remove Gold sprinkles" }));
   await page.getByRole("button", { name: "Add a choice to Toppings" }).click();
   await page.getByLabel("Toppings: choice 1", { exact: true }).fill("Pearls");
   await page.getByRole("button", { name: "Save changes" }).click();
@@ -96,7 +102,7 @@ test("options and extras: chosen on a quote, charged per item or once, and print
   await item(page, 1).getByRole("button", { name: /Edit/ }).click();
   await expect(sheet(page).getByText("Kept as they were")).toBeVisible();
   await expect(sheet(page).getByText(/Toppings: Gold sprinkles/)).toBeVisible();
-  await sheet(page).getByRole("button", { name: "Remove Gold sprinkles" }).click();
+  await tap(sheet(page).getByRole("button", { name: "Remove Gold sprinkles" }));
   await expect(sheet(page).getByTestId("line-sum")).toHaveText(/12 × R\s?20,00 \+ R\s?55,00 once = R\s?295,00/);
   await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("295"));
@@ -119,7 +125,7 @@ test("editing a product from a new item's sheet updates the options chosen on it
   await addOption(page, "Choose any", "Toppings");
   await page.getByLabel("Toppings: choice 1", { exact: true }).fill("Sprinkles");
   await page.getByLabel("Toppings: choice 1 adds", { exact: true }).fill("2");
-  await page.getByRole("button", { name: "Remove Toppings: choice 2" }).click();
+  await tap(page.getByRole("button", { name: "Remove Toppings: choice 2" }));
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toBeVisible();
 
@@ -155,7 +161,10 @@ test("an extra can cost more on a bigger size, and follows the size chosen", asy
   await page.getByLabel("Extras: choice 1", { exact: true }).fill("Gold leaf");
   await page.getByLabel("Extras: choice 1 adds for Small", { exact: true }).fill("50");
   await page.getByLabel("Extras: choice 1 adds for Large", { exact: true }).fill("120");
-  await page.getByRole("button", { name: "Remove Extras: choice 2" }).click();
+  // Clear of the bar pinned at the foot of a phone screen.
+  const removeSecond = page.getByRole("button", { name: "Remove Extras: choice 2" });
+  await removeSecond.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await removeSecond.click();
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toBeVisible();
 

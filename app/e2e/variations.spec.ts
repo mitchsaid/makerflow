@@ -2,6 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 import { item, rand, sheet } from "./quote-helpers";
 
+/** Taps a button after bringing it to the middle of the screen, clear of the bar pinned at the foot. */
+async function tap(locator: import("@playwright/test").Locator) {
+  await locator.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await locator.click();
+}
+
 /** Fills the variation rows on the product form, in order. */
 async function fillVariations(page: Page, rows: [string, string][]) {
   for (const [i, [name, price]] of rows.entries()) {
@@ -92,7 +98,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   // Removing a size from the product leaves the saved quote's item as it was.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Wedding cake/ }).click();
-  await page.getByRole("button", { name: "Remove Large" }).click();
+  await tap(page.getByRole("button", { name: "Remove Large" }));
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.goto(quoteUrl);
