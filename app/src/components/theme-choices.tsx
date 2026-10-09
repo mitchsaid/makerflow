@@ -13,7 +13,7 @@ import { CHOICES, IMAGE_OPACITY, resolveTheme, type ChoiceName, type ThemeSpec }
  */
 
 /** Which little drawing shows a choice. */
-const VISUAL: Record<ChoiceName, "header" | "items" | "totals" | "corners" | "logo" | "align" | "shape" | "background"> = {
+const VISUAL: Record<ChoiceName, "header" | "items" | "totals" | "corners" | "logo" | "align" | "shape" | "background" | "extras"> = {
   background: "background",
   gradientDirection: "background",
   imageStrength: "background",
@@ -26,6 +26,7 @@ const VISUAL: Record<ChoiceName, "header" | "items" | "totals" | "corners" | "lo
   density: "items",
   photo: "items",
   photoShape: "shape",
+  extraPrices: "extras",
   totals: "totals",
   corners: "corners",
 };
@@ -54,6 +55,29 @@ function Drawing({ name, value, spec }: { name: ChoiceName; value: string; spec:
       return frame(<MiniItems theme={{ ...theme, layout: "list", photo: theme.photo === "none" ? "small" : theme.photo }} count={2} />);
     case "totals":
       return frame(<MiniTotals theme={theme} />);
+    case "extras": {
+      // An item with its extras: folded into a grey line under the name, or each on its own line with an amount.
+      const bar = (width: string, colour: string, height = 3) => <div style={{ width, height, background: colour, borderRadius: 1 }} />;
+      const row = (left: React.ReactNode, right: React.ReactNode) => (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+          {left}
+          {right}
+        </div>
+      );
+      return frame(
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {row(bar("45%", theme.ink, 4), bar("18%", theme.ink, 4))}
+          {theme.extraPrices === "separate" ? (
+            <>
+              {row(bar("38%", theme.muted), bar("14%", theme.muted))}
+              {row(bar("30%", theme.muted), bar("14%", theme.muted))}
+            </>
+          ) : (
+            row(bar("70%", theme.muted), null)
+          )}
+        </div>,
+      );
+    }
     case "corners":
       return frame(
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>

@@ -139,3 +139,39 @@ test("editing a product from a new item's sheet updates the options chosen on it
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("180"));
 });
+
+test("an extra can cost more on a bigger size, and follows the size chosen", async ({ page }) => {
+  await signUpAndOnboard(page, "opt-by-size", "By Size Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cake");
+  await page.getByRole("button", { name: "Add variations" }).click();
+  for (const [i, [name, price]] of ([["Small", "300"], ["Large", "600"]] as const).entries()) {
+    await page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }).fill(name);
+    await page.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
+  }
+  await page.getByLabel("Usual size").selectOption({ label: "Small" });
+  await addOption(page, "Choose any", "Extras");
+  await page.getByRole("checkbox", { name: "Price depends on the size" }).check();
+  await page.getByLabel("Extras: choice 1", { exact: true }).fill("Gold leaf");
+  await page.getByLabel("Extras: choice 1 adds for Small", { exact: true }).fill("50");
+  await page.getByLabel("Extras: choice 1 adds for Large", { exact: true }).fill("120");
+  await page.getByRole("button", { name: "Remove Extras: choice 2" }).click();
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+
+  // It comes back as typed.
+  await page.getByRole("link", { name: /Cake/ }).click();
+  await page.getByRole("button", { name: "Edit Extras" }).click();
+  await expect(page.getByLabel("Extras: choice 1 adds for Large", { exact: true })).toHaveValue("120");
+
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Cake/ }).click();
+  await expect(sheet(page).getByText(/\+R\s?50,00 each/)).toBeVisible();
+  await sheet(page).getByRole("checkbox", { name: /Gold leaf/ }).check();
+  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/1 × R\s?350,00 = R\s?350,00/);
+  await sheet(page).getByRole("group", { name: "Choose a size" }).getByRole("radio", { name: /Large/ }).check();
+  await expect(sheet(page).getByTestId("line-sum")).toHaveText(/1 × R\s?720,00 = R\s?720,00/);
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("720"));
+});

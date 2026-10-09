@@ -70,7 +70,16 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       charge: g.charge,
       textPrice: g.kind === "text" && g.textPriceCents > 0 ? moneyToInput(g.textPriceCents, style) : "",
       textMax: String(g.textMax),
-      values: g.values.map((x) => ({ key: x.id, id: x.id, name: x.name, price: x.priceCents > 0 ? moneyToInput(x.priceCents, style) : "", usual: x.usual })),
+      priceByVariation: g.priceByVariation,
+      values: g.values.map((x) => ({
+        key: x.id,
+        id: x.id,
+        name: x.name,
+        price: x.priceCents > 0 ? moneyToInput(x.priceCents, style) : "",
+        usual: x.usual,
+        // By the variation's row key (a saved variation's key is its id).
+        prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, cents > 0 ? moneyToInput(cents, style) : ""])),
+      })),
     })),
   };
 }

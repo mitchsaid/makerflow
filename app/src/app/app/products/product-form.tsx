@@ -183,6 +183,10 @@ export function ProductForm({
       const ve = e.rows[v.key];
       if (ve?.name) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-name`), label: `${title}: choice ${vi + 1}`, message: ve.name });
       if (ve?.price) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price`), label: `${title}: choice ${vi + 1} price`, message: ve.price });
+      for (const [vk, message] of Object.entries(ve?.prices ?? {})) {
+        const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
+        problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price-${vk}`), label: `${title}: choice ${vi + 1} for ${variationName}`, message });
+      }
     });
   });
   if (errors.options?.list) problems.push({ fieldId: fid("add-option"), label: "Options and extras", message: errors.options.list });
@@ -315,6 +319,8 @@ export function ProductForm({
         }}
       />
       <OptionsSection
+        variations={values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }))}
+        variationWord={values.variationLabel.trim() || "variation"}
         groups={values.options}
         errors={errors.options}
         priceLabel={priceLabel}

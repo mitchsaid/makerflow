@@ -72,7 +72,7 @@ for (const scheme of ["light", "dark"] as const) {
 
     test("signed-in pages", async ({ page }) => {
       // One long walk through every screen (and their error states); it grows with the app.
-      test.setTimeout(240_000);
+      test.setTimeout(420_000);
       await signUpAndOnboard(page, `a11y-${scheme}`, "Axe Co");
       await expectNoViolations(page, "home");
 

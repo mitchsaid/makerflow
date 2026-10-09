@@ -25,10 +25,16 @@ export function OptionsSection({
   errors,
   priceLabel,
   currencySymbol,
+  variations,
+  variationWord,
   fid,
   onChange,
 }: {
   groups: OptionGroupFormRow[];
+  /** The product's variations (named ones), for options whose price depends on them. */
+  variations: { key: string; name: string }[];
+  /** The maker's word for them ("Size"). */
+  variationWord: string;
   errors: OptionErrors | undefined;
   priceLabel: string;
   currencySymbol: string;
@@ -79,6 +85,7 @@ export function OptionsSection({
           {groups.map((g, gi) => {
             const e = errors?.groups[g.key];
             const open = openKey === g.key || e !== undefined;
+            const byVariation = g.kind !== "text" && g.priceByVariation === true && variations.length > 0;
             const title = g.name.trim() || `Option ${gi + 1}`;
             const summary = `${OPTION_KIND_WORDS[g.kind].title}${g.kind === "text" ? "" : ` · ${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}`}${g.charge === "line" ? " · once per line" : ""}`;
             return (
@@ -128,6 +135,18 @@ export function OptionsSection({
                         });
                       }}
                     />
+                    {g.kind !== "text" && variations.length > 0 && (
+                      <Field orientation="horizontal" className="items-start py-1">
+                        <Checkbox
+                          id={fid(`option-${g.key}-byVariation`)}
+                          checked={g.priceByVariation === true}
+                          onCheckedChange={(checked) => setGroup(g.key, { priceByVariation: checked === true })}
+                        />
+                        <FieldLabel htmlFor={fid(`option-${g.key}-byVariation`)} className="text-base">
+                          Price depends on the {variationWord.toLowerCase()}
+                        </FieldLabel>
+                      </Field>
+                    )}
                     {g.kind !== "any" && (
                       <Field orientation="horizontal" className="items-start py-1">
                         <Checkbox
@@ -181,7 +200,7 @@ export function OptionsSection({
                             const vTitle = v.name.trim() || `${title}: choice ${vi + 1}`;
                             return (
                               <li key={v.key} className="space-y-2 rounded-lg bg-muted/40 p-2">
-                                <div className="grid grid-cols-[1fr_8rem] gap-3">
+                                <div className={byVariation ? "space-y-3" : "grid grid-cols-[1fr_8rem] gap-3"}>
                                   <TextField
                                     id={fid(`option-${g.key}-value-${v.key}-name`)}
                                     label={`${title}: choice ${vi + 1}`}
@@ -193,6 +212,27 @@ export function OptionsSection({
                                       setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, name } : x)) })
                                     }
                                   />
+                                  {byVariation ? (
+                                    <div className="grid grid-cols-2 gap-3">
+                                      {variations.map((variation) => (
+                                        <TextField
+                                          key={variation.key}
+                                          id={fid(`option-${g.key}-value-${v.key}-price-${variation.key}`)}
+                                          label={`${title}: choice ${vi + 1} adds for ${variation.name}`}
+                                          startText={`+${currencySymbol}`}
+                                          inputMode="decimal"
+                                          autoComplete="off"
+                                          value={v.prices?.[variation.key] ?? ""}
+                                          error={ve?.prices?.[variation.key]}
+                                          onChange={(price) =>
+                                            setGroup(g.key, {
+                                              values: g.values.map((x) => (x.key === v.key ? { ...x, prices: { ...(x.prices ?? {}), [variation.key]: price } } : x)),
+                                            })
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
                                   <TextField
                                     id={fid(`option-${g.key}-value-${v.key}-price`)}
                                     label={`${title}: choice ${vi + 1} adds`}
@@ -205,6 +245,7 @@ export function OptionsSection({
                                       setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, price } : x)) })
                                     }
                                   />
+                                  )}
                                 </div>
                                 <div className="flex justify-end">
                                   <Button

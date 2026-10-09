@@ -32,3 +32,35 @@ export function optionsText(options: readonly OptionLike[] | undefined, money: (
   }
   return groups.map((g) => `${g.name}: ${g.parts.join(", ")}`).join(" · ");
 }
+
+/**
+ * How an item's extras are drawn, by the theme's "Extra prices" choice. Included (the default): the price
+ * each includes the per-item extras and the options print folded under the item. Shown separately: the price
+ * each is the item's own, and every option with an amount gets its own line with what it adds.
+ */
+export function extrasView(
+  line: { quantityMilli: number; unitPriceCents: number; options?: readonly OptionLike[] },
+  separate: boolean,
+  money: (cents: number) => string,
+  quantity: string,
+): { priceEachCents: number; folded: string | null; priced: { label: string; amount: string }[] } {
+  const options = line.options ?? [];
+  if (!separate || !options.some((o) => o.amountCents > 0)) {
+    return { priceEachCents: line.unitPriceCents, folded: optionsText(options, money), priced: [] };
+  }
+  const perItem = options.reduce((sum, o) => sum + (o.charge === "item" ? o.amountCents : 0), 0);
+  const label = (o: OptionLike) => `${o.group}: ${o.kind === "text" ? `“${o.text ?? ""}”` : (o.value ?? "")}`;
+  return {
+    priceEachCents: line.unitPriceCents - perItem,
+    folded: optionsText(options.filter((o) => o.amountCents === 0), money),
+    priced: options
+      .filter((o) => o.amountCents > 0)
+      .map((o) => ({
+        label: label(o),
+        amount:
+          o.charge === "line"
+            ? `${money(o.amountCents)} once`
+            : `${quantity} × ${money(o.amountCents)} = ${money(Math.round((line.quantityMilli * o.amountCents) / 1000))}`,
+      })),
+  };
+}

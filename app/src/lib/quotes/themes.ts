@@ -29,6 +29,8 @@ export const CORNERS = ["square", "soft", "round"] as const;
 export const BACKGROUNDS = ["paper", "gradient", "image"] as const;
 export const GRADIENT_DIRECTIONS = ["down", "diagonal"] as const;
 export const IMAGE_STRENGTHS = ["faint", "soft", "medium"] as const;
+/** How the prices of options and extras show on an item: in the price each, or each on its own line. */
+export const EXTRA_PRICES = ["included", "separate"] as const;
 
 /** How much of a background picture shows through over the paper (so text stays easy to read). */
 export const IMAGE_OPACITY: Record<(typeof IMAGE_STRENGTHS)[number], number> = { faint: 0.12, soft: 0.25, medium: 0.4 };
@@ -47,6 +49,7 @@ export type Corners = (typeof CORNERS)[number];
 export type Background = (typeof BACKGROUNDS)[number];
 export type GradientDirection = (typeof GRADIENT_DIRECTIONS)[number];
 export type ImageStrength = (typeof IMAGE_STRENGTHS)[number];
+export type ExtraPrices = (typeof EXTRA_PRICES)[number];
 
 /** Every part of a theme. All present, always: a theme is whole. */
 export type ThemeSpec = {
@@ -79,6 +82,8 @@ export type ThemeSpec = {
   descriptions: boolean;
   photo: PhotoSize;
   photoShape: PhotoShape;
+  /** Options and extras: their prices folded into the price each, or each shown with its amount. */
+  extraPrices: ExtraPrices;
   totals: TotalsStyle;
   corners: Corners;
 };
@@ -99,6 +104,7 @@ export const CHOICES = {
   density: { label: "Spacing", options: [["compact", "Compact"], ["comfortable", "Comfortable"], ["airy", "Airy"]] },
   photo: { label: "Product photos", options: [["none", "None"], ["small", "Small"], ["large", "Large"]] },
   photoShape: { label: "Photo shape", options: [["square", "Square"], ["rounded", "Rounded"], ["round", "Round"]] },
+  extraPrices: { label: "Extra prices", options: [["included", "In the price"], ["separate", "Shown separately"]] },
   totals: { label: "Total", options: [["rule", "A line"], ["tint", "Light box"], ["solid", "Solid box"], ["pill", "Pill"]] },
   corners: { label: "Corners", options: [["square", "Square"], ["soft", "Soft"], ["round", "Round"]] },
 } as const satisfies Record<string, { label: string; options: readonly (readonly [string, string])[] }>;
@@ -118,6 +124,7 @@ const LISTS: Record<ChoiceName, readonly string[]> = {
   density: DENSITIES,
   photo: PHOTOS,
   photoShape: PHOTO_SHAPES,
+  extraPrices: EXTRA_PRICES,
   totals: TOTALS,
   corners: CORNERS,
 };
@@ -223,6 +230,7 @@ export const BLANK_SPEC: ThemeSpec = {
   descriptions: true,
   photo: "small",
   photoShape: "rounded",
+  extraPrices: "included",
   totals: "rule",
   corners: "soft",
 };
@@ -392,8 +400,8 @@ export function resolveTheme(spec: ThemeSpec, name = ""): Theme {
 /** The spec a resolved theme was made from (for editing a copy of a version's look). */
 export function specOf(theme: Theme): ThemeSpec {
   const corners = (Object.entries(RADIUS).find(([, r]) => r === theme.radius)?.[0] ?? "soft") as Corners;
-  const { accent, paper, background, gradientTo, gradientDirection, backgroundImageId, imageStrength, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, totals } = theme;
-  return { accent, paper, background, gradientTo, gradientDirection, backgroundImageId, imageStrength, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, totals, corners };
+  const { accent, paper, background, gradientTo, gradientDirection, backgroundImageId, imageStrength, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, extraPrices, totals } = theme;
+  return { accent, paper, background, gradientTo, gradientDirection, backgroundImageId, imageStrength, headingFont, bodyFont, header, headerLogo, headerAlign, layout, tableHead, rows, density, showQty, showUnitPrice, numbered, descriptions, photo, photoShape, extraPrices, totals, corners };
 }
 
 /** Is this stored value a theme we can draw from? (A snapshot is ours, but never assume.) */
@@ -434,6 +442,8 @@ export function themeFromStored(stored: { theme?: unknown; design?: string } | n
         gradientDirection: "down",
         backgroundImageId: null,
         imageStrength: "soft",
+        // Before options existed there was nothing to show separately.
+        extraPrices: "included",
         ...old,
       };
       if (old.rows === "grid") next.rows = old.layout === "table" ? "sheet" : "boxed";

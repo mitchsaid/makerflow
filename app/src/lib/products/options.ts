@@ -15,7 +15,8 @@ export const OPTION_TEXT_DEFAULT = 100;
 export type OptionKind = "one" | "any" | "text";
 export type OptionCharge = "item" | "line";
 
-export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean };
+/** `prices`: by variation id, when the option's price depends on the variation (else empty). */
+export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean; prices: Record<string, Cents> };
 export type OptionGroup = {
   id: string;
   name: string;
@@ -25,11 +26,14 @@ export type OptionGroup = {
   /** "Type something": what it costs when something is typed, and how long it can be. */
   textPriceCents: Cents;
   textMax: number;
+  /** Each value has a price for each of the product's variations ("Gold leaf: Small +R50, Large +R120"). */
+  priceByVariation: boolean;
   values: OptionValue[];
 };
 
 /** One option on the form while it is being filled in. Ids are "" for new ones. */
-export type OptionValueFormRow = { key: string; id: string; name: string; price: string; usual: boolean };
+/** `prices`: by the variation row's key, when the option's price depends on the variation. */
+export type OptionValueFormRow = { key: string; id: string; name: string; price: string; usual: boolean; prices?: Record<string, string> };
 export type OptionGroupFormRow = {
   key: string;
   id: string;
@@ -39,12 +43,13 @@ export type OptionGroupFormRow = {
   charge: OptionCharge;
   textPrice: string;
   textMax: string;
+  priceByVariation?: boolean;
   values: OptionValueFormRow[];
 };
 
 export type ParsedOptionGroup = Omit<OptionGroup, "id" | "values"> & {
   id: string | null;
-  values: { id: string | null; name: string; priceCents: Cents; usual: boolean }[];
+  values: { id: string | null; name: string; priceCents: Cents; usual: boolean; prices: { variationIndex: number; priceCents: Cents }[] }[];
 };
 
 export type OptionGroupErrors = {
@@ -53,7 +58,7 @@ export type OptionGroupErrors = {
   textMax?: string;
   /** About the values as a whole ("add at least one"). */
   values?: string;
-  rows: Record<string, { name?: string; price?: string }>;
+  rows: Record<string, { name?: string; price?: string; prices?: Record<string, string> }>;
 };
 export type OptionErrors = { list?: string; groups: Record<string, OptionGroupErrors> };
 
@@ -70,7 +75,10 @@ export const OPTION_KIND_WORDS: Record<OptionKind, { title: string; hint: string
 function isValueRow(value: unknown): value is OptionValueFormRow {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return typeof v.key === "string" && typeof v.id === "string" && typeof v.name === "string" && typeof v.price === "string" && typeof v.usual === "boolean";
+  const pricesOk =
+    v.prices === undefined ||
+    (typeof v.prices === "object" && v.prices !== null && !Array.isArray(v.prices) && Object.values(v.prices).every((p) => typeof p === "string"));
+  return typeof v.key === "string" && typeof v.id === "string" && typeof v.name === "string" && typeof v.price === "string" && typeof v.usual === "boolean" && pricesOk;
 }
 
 function isGroupRow(value: unknown): value is OptionGroupFormRow {
@@ -85,6 +93,7 @@ function isGroupRow(value: unknown): value is OptionGroupFormRow {
     CHARGES.includes(v.charge) &&
     typeof v.textPrice === "string" &&
     typeof v.textMax === "string" &&
+    (v.priceByVariation === undefined || typeof v.priceByVariation === "boolean") &&
     Array.isArray(v.values) &&
     v.values.length <= OPTION_VALUES_MAX &&
     v.values.every(isValueRow)
@@ -93,8 +102,14 @@ function isGroupRow(value: unknown): value is OptionGroupFormRow {
 
 const tidy = (text: string) => text.trim().replace(/\s+/g, " ");
 
-/** Checks the options, saying how to fix each problem where it is. */
-export function parseOptionGroups(input: unknown): { ok: true; groups: ParsedOptionGroup[] } | { ok: false; errors: OptionErrors } {
+/**
+ * Checks the options, saying how to fix each problem where it is. `variationKeys` are the product's variation
+ * rows in order (a price by variation is stored by the variation's place in that list).
+ */
+export function parseOptionGroups(
+  input: unknown,
+  variationKeys: readonly string[] = [],
+): { ok: true; groups: ParsedOptionGroup[] } | { ok: false; errors: OptionErrors } {
   const errors: OptionErrors = { groups: {} };
   if (!Array.isArray(input)) return { ok: false, errors: { ...errors, list: "The options could not be read. Open the product again." } };
   if (input.length > OPTIONS_MAX) return { ok: false, errors: { ...errors, list: `A product can have up to ${OPTIONS_MAX} options.` } };
@@ -124,6 +139,8 @@ export function parseOptionGroups(input: unknown): { ok: true; groups: ParsedOpt
       else textMax = max;
     } else {
       if (row.values.length === 0) e.values = "Add at least one choice.";
+      // Prices by variation only make sense when there are variations to price by.
+      const byVariation = row.priceByVariation === true && variationKeys.length > 0;
       const valueNames = new Set<string>();
       let usualTaken = false;
       for (const v of row.values) {
@@ -134,13 +151,28 @@ export function parseOptionGroups(input: unknown): { ok: true; groups: ParsedOpt
         else if (valueNames.has(vName.toLowerCase())) ve.name = "Two have this name. Give each its own.";
         valueNames.add(vName.toLowerCase());
         // An empty amount is R0: most choices cost nothing extra.
-        const price = v.price.trim() === "" ? ({ ok: true, value: 0 } as const) : parseMoney(v.price);
-        if (!price.ok) ve.price = price.error;
-        if (ve.name || ve.price) e.rows[v.key] = ve;
+        const amount = (text: string) => (text.trim() === "" ? ({ ok: true, value: 0 } as const) : parseMoney(text));
+        const prices: { variationIndex: number; priceCents: Cents }[] = [];
+        const priceErrors: Record<string, string> = {};
+        let price: ReturnType<typeof amount>;
+        if (byVariation) {
+          variationKeys.forEach((vk, index) => {
+            const r = amount(v.prices?.[vk] ?? "");
+            if (r.ok) prices.push({ variationIndex: index, priceCents: r.value });
+            else priceErrors[vk] = r.error;
+          });
+          // The value's own price is the lowest of its prices (its "from").
+          price = { ok: true, value: prices.length > 0 ? Math.min(...prices.map((p) => p.priceCents)) : 0 };
+        } else {
+          price = amount(v.price);
+          if (!price.ok) ve.price = price.error;
+        }
+        if (Object.keys(priceErrors).length > 0) (ve as { prices?: Record<string, string> }).prices = priceErrors;
+        if (ve.name || ve.price || Object.keys(priceErrors).length > 0) e.rows[v.key] = ve;
         else if (price.ok) {
           const usual = row.kind === "one" && v.usual && !usualTaken;
           if (usual) usualTaken = true;
-          values.push({ id: UUID.test(v.id) ? v.id : null, name: vName, priceCents: price.value, usual });
+          values.push({ id: UUID.test(v.id) ? v.id : null, name: vName, priceCents: price.value, usual, prices });
         }
       }
     }
@@ -156,6 +188,7 @@ export function parseOptionGroups(input: unknown): { ok: true; groups: ParsedOpt
         charge: row.charge,
         textPriceCents,
         textMax,
+        priceByVariation: row.kind !== "text" && row.priceByVariation === true && variationKeys.length > 0,
         values,
       });
     }
@@ -174,6 +207,13 @@ export function optionsPayload(groups: readonly ParsedOptionGroup[]) {
     charge: g.charge,
     text_price_cents: g.kind === "text" ? g.textPriceCents : 0,
     text_max: g.textMax,
-    values: g.values.map((v) => ({ ...(v.id ? { id: v.id } : {}), name: v.name, price_cents: v.priceCents, usual: v.usual })),
+    price_by_variation: g.priceByVariation,
+    values: g.values.map((v) => ({
+      ...(v.id ? { id: v.id } : {}),
+      name: v.name,
+      price_cents: v.priceCents,
+      usual: v.usual,
+      ...(g.priceByVariation ? { prices: v.prices.map((p) => ({ variation_index: p.variationIndex, price_cents: p.priceCents })) } : {}),
+    })),
   }));
 }

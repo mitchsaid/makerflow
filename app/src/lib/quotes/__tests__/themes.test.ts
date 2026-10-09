@@ -221,3 +221,16 @@ describe("a theme from the first release", () => {
     expect(themeFromStored({ theme: { ...first, layout: "cards" } }).rows).toBe("boxed");
   });
 });
+
+describe("the extra prices part", () => {
+  it("defaults to included, is kept by a spec, and older stored themes read as included", () => {
+    expect(BLANK_SPEC.extraPrices).toBe("included");
+    expect(parseSpec({ extraPrices: "separate" }).extraPrices).toBe("separate");
+    expect(parseSpec({ extraPrices: "loud" }).extraPrices).toBe("included");
+    const resolved = resolveTheme({ ...BLANK_SPEC, extraPrices: "separate" }, "T");
+    expect(specOf(resolved).extraPrices).toBe("separate");
+    const { extraPrices: _dropped, ...older } = resolveTheme(BLANK_SPEC, "Old");
+    void _dropped;
+    expect(themeFromStored({ theme: older }).extraPrices).toBe("included");
+  });
+});

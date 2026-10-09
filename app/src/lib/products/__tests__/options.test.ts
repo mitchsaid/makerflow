@@ -68,11 +68,33 @@ describe("parseOptionGroups", () => {
         charge: "item",
         text_price_cents: 0,
         text_max: 100,
+        price_by_variation: false,
         values: [
           { id: ID, name: "Vanilla", price_cents: 0, usual: true },
           { name: "Red velvet", price_cents: 5000, usual: false },
         ],
       },
     ]);
+  });
+});
+
+describe("an option priced by variation", () => {
+  const byVariation = (prices: Record<string, string>) =>
+    group({ name: "Extras", kind: "any", required: false, priceByVariation: true, values: [{ key: "v1", id: "", name: "Gold leaf", price: "", usual: false, prices }] });
+
+  it("stores a price for each variation by its place in the list, the lowest as the value's own", () => {
+    const r = parseOptionGroups([byVariation({ small: "50", large: "120" })], ["small", "large"]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.groups[0].priceByVariation).toBe(true);
+    expect(r.groups[0].values[0]).toMatchObject({ priceCents: 5000, prices: [{ variationIndex: 0, priceCents: 5000 }, { variationIndex: 1, priceCents: 12000 }] });
+    expect(optionsPayload(r.groups)[0].values[0]).toMatchObject({ prices: [{ variation_index: 0, price_cents: 5000 }, { variation_index: 1, price_cents: 12000 }] });
+  });
+
+  it("an empty price is R0, a bad one says so at its field, and without variations the switch is off", () => {
+    const bad = parseOptionGroups([byVariation({ small: "", large: "abc" })], ["small", "large"]);
+    expect(!bad.ok && bad.errors.groups.g1.rows.v1.prices?.large).toBeTruthy();
+    const none = parseOptionGroups([byVariation({})], []);
+    expect(none.ok && none.groups[0].priceByVariation).toBe(false);
   });
 });
