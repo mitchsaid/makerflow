@@ -41,7 +41,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await expect(page.getByLabel("Size 1", { exact: true })).toHaveValue("Small");
 
   await fillVariations(page, [["Small", "300"], ["Medium", "450"]]);
-  await page.getByRole("button", { name: "Add another" }).click();
+  await page.getByRole("button", { name: "Add another size" }).click();
   await expect(page.getByRole("textbox", { name: "Size 3", exact: true })).toBeFocused();
   await fillVariations(page, [["Small", "300"], ["Medium", "450"], ["Large", "600"]]);
   await page.getByLabel("Usual size").selectOption({ label: "Medium" });
@@ -135,7 +135,7 @@ test("sizes added from inside a quote start the item with the usual one, and sav
   // Saving the product twice keeps the same two sizes.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Candle/ }).click();
-  await page.getByRole("button", { name: "Add another" }).click();
+  await page.getByRole("button", { name: "Add another size" }).click();
   await fillVariations(page, [["Small", "80"], ["Large", "150"], ["Jar", "200"]]);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();

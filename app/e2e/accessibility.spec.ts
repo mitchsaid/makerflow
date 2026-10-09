@@ -304,11 +304,15 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await expectNoViolations(page, "product variations, saved");
-      // Options and extras: the kind picker, an option with problems, then saved.
-      await page.getByRole("button", { name: "Add an option" }).click();
-      await expectNoViolations(page, "product options, choosing the kind");
-      await page.getByRole("group", { name: "What kind of option?" }).getByRole("button", { name: /Choose one/ }).click();
-      await page.getByLabel("Option name").fill("Flavour");
+      // Lists and extras: the kind of extra picker, a list with problems, then saved.
+      await page.getByRole("button", { name: "Add an extra" }).click();
+      await expectNoViolations(page, "product extras, choosing the kind");
+      await page.getByRole("group", { name: "What kind of extra?" }).getByRole("button", { name: /Choose any/ }).click();
+      await page.getByLabel("Extra name").fill("Toppings");
+      await page.getByLabel("Toppings: choice 1", { exact: true }).fill("Gold leaf");
+      await page.getByLabel("Toppings: choice 2", { exact: true }).fill("Sprinkles");
+      await page.getByRole("button", { name: /^Add (a|another) list$/ }).click();
+      await page.getByLabel("List name").fill("Flavour");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toContainText("Flavour: choice 1");
       await expectNoViolations(page, "product options, with problems");
