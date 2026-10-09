@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
+import { termName } from "@/lib/policies";
 import { getPolicy } from "@/lib/policies/data";
 import { PolicyArchiveButton } from "../archive-button";
 import { PolicyForm } from "../policy-form";
@@ -20,13 +21,13 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/documen
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="space-y-1">
         <Link href="/app/documents/policies" className="text-sm text-muted-foreground underline">
-          Quote policies
+          Terms
         </Link>
-        <h1 className="text-xl font-semibold">{policy.title}</h1>
+        <h1 className="text-xl font-semibold">{termName(policy)}</h1>
       </div>
       {policy.archived && (
         <Alert data-testid="archived-notice">
-          <AlertDescription>This policy is archived, so it is hidden from new quotes. Restore it below to use it again.</AlertDescription>
+          <AlertDescription>This term is archived, so it is hidden from new quotes. Restore it below to use it again.</AlertDescription>
         </Alert>
       )}
       {canEditBusinessProfile(role) ? (
@@ -34,7 +35,7 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/documen
           <PolicyForm
             key={policy.id}
             initial={{
-              title: policy.title,
+              title: policy.title ?? "",
               body: policy.body,
               includeByDefault: policy.includeByDefault,
             }}
@@ -45,7 +46,7 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/documen
         </>
       ) : (
         <Alert>
-          <AlertDescription>Only owners and admins can change policies.</AlertDescription>
+          <AlertDescription>Only owners and admins can change terms.</AlertDescription>
         </Alert>
       )}
     </main>

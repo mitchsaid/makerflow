@@ -12,8 +12,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
+  exampleLabel,
   POLICY_BODY_MAX,
   POLICY_TITLE_MAX,
+  termExamples,
   type PolicyExample,
   type PolicyFieldErrors,
   type PolicyFormValues,
@@ -23,7 +25,7 @@ import {
 import { splitForTypes } from "@/lib/business-types";
 import { savePolicy } from "./actions";
 
-/** Set when the form is shown in a sheet over a quote: it hands the saved policy back instead of navigating. */
+/** Set when the form is shown in a sheet over a quote: it hands the saved term back instead of navigating. */
 export type EmbeddedPolicyForm = {
   onDone: (policy: PolicySummary) => void;
   onCancel: () => void;
@@ -31,9 +33,9 @@ export type EmbeddedPolicyForm = {
 };
 
 /**
- * Add or edit a policy: a title, the wording, and whether new quotes include it. A new policy can
- * start from an example (it fills in both the title and the wording, to be changed); examples are
- * prompts to edit, not legal advice.
+ * Add or edit a term: an optional title, the wording, and whether new quotes include it. A new term
+ * can start from an example (it fills in both the title and the wording, to be changed); examples
+ * are prompts to edit, not legal advice.
  */
 export function PolicyForm({
   initial,
@@ -52,7 +54,8 @@ export function PolicyForm({
   embedded?: EmbeddedPolicyForm;
 }) {
   const router = useRouter();
-  const start = policyId === null ? content.examples.find((e) => e.key === startFrom) : undefined;
+  const allExamples = termExamples(content);
+  const start = policyId === null ? allExamples.find((e) => e.key === startFrom) : undefined;
   const [values, setValues] = useState<PolicyFormValues>(
     start ? { ...initial, title: start.title, body: start.text } : initial,
   );
@@ -62,13 +65,13 @@ export function PolicyForm({
   const [tries, setTries] = useState(0);
   const [pending, startTransition] = useTransition();
   const fid = (key: string) => `${idPrefix}${key}`;
-  const examples = splitForTypes(content.examples, useBusinessTypes());
+  const examples = splitForTypes(allExamples, useBusinessTypes());
   // An example picked from "More examples" (a link from the library) keeps its row open, so its pressed button shows.
   const [moreOpen, setMoreOpen] = useState(!!start && examples.others.some((e) => e.key === start.key));
 
   useEffect(() => embedded?.onPendingChange(pending), [pending, embedded]);
 
-  // The note belongs to the example the policy started from; with nothing written it no longer applies.
+  // The note belongs to the example the term started from; with nothing written it no longer applies.
   const shownExample = values.title.trim() === "" && values.body.trim() === "" ? undefined : example;
 
   const set =
@@ -94,7 +97,7 @@ export function PolicyForm({
       disabled={!untouched}
       onClick={() => chooseExample(e)}
     >
-      {e.title}
+      {exampleLabel(e)}
     </Button>
   );
 
@@ -137,8 +140,8 @@ export function PolicyForm({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Section title="Policy">
-        {policyId === null && content.examples.length > 0 && (
+      <Section title="Term">
+        {policyId === null && allExamples.length > 0 && (
           <div className="space-y-2" data-testid="examples">
             <p className="text-sm text-muted-foreground">
               Write your own, or start from an example and change it to suit you:
@@ -154,7 +157,7 @@ export function PolicyForm({
             )}
             {!untouched && (
               <p className="text-sm text-muted-foreground">
-                Examples fill in an empty policy. Clear the title and wording to pick a different one.
+                Examples fill in an empty term. Clear the title and wording to pick a different one.
               </p>
             )}
             <p className="text-sm text-muted-foreground">{content.adviceNote}</p>
@@ -163,13 +166,13 @@ export function PolicyForm({
         <TextField
           id={fid("policyTitle")}
           name="title"
-          label="Title"
+          label="Title (optional)"
           autoComplete="off"
           maxLength={POLICY_TITLE_MAX}
           value={values.title}
           error={errors.title}
           onChange={set("title")}
-          hint="What the customer sees above the wording, like “If you cancel”."
+          hint="Shown above the wording, like “If you cancel”. Leave it empty for a short line, like a lead time."
         />
         <TextAreaField
           id={fid("policyBody")}
@@ -207,12 +210,12 @@ export function PolicyForm({
       )}
       <ComingSoonSection
         title="Only on certain products"
-        description="Show a policy only on quotes that include particular products or services, like “natural stones vary” on jewellery."
+        description="Show a term only on quotes that include particular products or services, like “natural stones vary” on jewellery."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : "Save policy"}
+          {pending ? "Saving…" : "Save term"}
         </Button>
         {embedded ? (
           <Button type="button" size="lg" variant="outline" disabled={pending} onClick={embedded.onCancel}>

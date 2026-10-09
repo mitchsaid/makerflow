@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
-import { TermsStarters } from "@/components/terms-starters";
-import type { PolicyPackContent, PolicySummary } from "@/lib/policies";
+import { termName, type PolicyPackContent, type PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
 import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
@@ -14,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { imageUrl } from "@/lib/images";
 import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
-import { PoliciesSection } from "./policies-section";
+import { TermsSection } from "./terms-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -96,7 +95,7 @@ export function QuoteBuilder({
   justSaved: boolean;
   /** The field to land on (the preview sends people back to fix something). */
   focusOnLoad?: string;
-  /** The business's saved policies, to tick onto the quote. */
+  /** The business's saved terms, to tick onto the quote. */
   policyLibrary: PolicySummary[];
   /** Starter wording for the policy form (from the locale pack). */
   policyContent: PolicyPackContent;
@@ -296,16 +295,18 @@ export function QuoteBuilder({
   if (f.notes) problems.push({ fieldId: "notes", label: "Extra details", message: f.notes });
   if (f.policies) {
     const first = values.policies.find((c) => errors.policies?.[c.key]);
+    const firstError = first ? errors.policies?.[first.key] : undefined;
+    // A term written for this quote has its own title box (checked first); a copied one only its wording.
+    const onTitle = first?.policyId === "" && !!firstError?.title;
     problems.push({
-      fieldId: first ? `policy-${first.key}-body` : "policies-error",
-      label: "Policies",
-      message: first ? `${first.title}: ${errors.policies?.[first.key]?.body ?? errors.policies?.[first.key]?.title}` : f.policies,
+      fieldId: first ? `policy-${first.key}-${onTitle ? "title" : "body"}` : "policies-error",
+      label: "Terms",
+      message: first ? `${termName(first)}: ${onTitle ? firstError?.title : (firstError?.body ?? firstError?.title)}` : f.policies,
     });
   }
   if (f.paymentInstructions) {
     problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
   }
-  if (f.terms) problems.push({ fieldId: "terms", label: "Small print", message: f.terms });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
 
   const priceLabel = priceEntryLabel(vat, taxName);
@@ -588,7 +589,7 @@ export function QuoteBuilder({
         />
       </Section>
 
-      <PoliciesSection
+      <TermsSection
         value={values.policies}
         onChange={(policies) => update({ policies })}
         library={policyLibrary}
@@ -618,19 +619,6 @@ export function QuoteBuilder({
           maxLength={1000}
         />
       </BankDetailsSection>
-
-      <Section title="Terms">
-        <TextAreaField
-          id="terms"
-          label="Small print (optional)"
-          hint="Anything else, shown in small print at the end of the quote."
-          value={values.terms}
-          error={f.terms}
-          onChange={(terms) => update({ terms })}
-          maxLength={4000}
-        />
-        <TermsStarters terms={values.terms} onChange={(terms) => update({ terms })} />
-      </Section>
 
       <Section title="Sign-off">
         <TextField

@@ -16,7 +16,6 @@ export type StoredQuoteFields = {
   title: string | null;
   description: string | null;
   signOff: string | null;
-  terms: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
   showPhotos: boolean;
@@ -24,7 +23,7 @@ export type StoredQuoteFields = {
   depositValue: number;
   balanceDue: BalanceDue;
   balanceDueDate: string | null;
-  policies: { policyId: string | null; title: string; body: string }[];
+  policies: { policyId: string | null; title: string | null; body: string }[];
   lines: {
     id: string;
     sortOrder: number;
@@ -95,7 +94,6 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     title: quote.title ?? "",
     description: quote.description ?? "",
     signOff: quote.signOff ?? "",
-    terms: quote.terms ?? "",
     paymentInstructions: quote.paymentInstructions ?? "",
     showBankDetails: quote.showBankDetails,
     showPhotos: quote.showPhotos,
@@ -111,7 +109,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     policies: quote.policies.map((p, i) => ({
       key: `p-${i}`,
       policyId: p.policyId ?? "",
-      title: p.title,
+      title: p.title ?? "",
       body: p.body,
     })),
   };

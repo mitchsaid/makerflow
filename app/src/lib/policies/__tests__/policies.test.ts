@@ -7,8 +7,11 @@ import {
   inLibraryOrder,
   parsePolicy,
   parseQuotePolicies,
+  oneOffTerm,
   QUOTE_MAX_POLICIES,
   sortPolicies,
+  termExamples,
+  termName,
   type PolicySummary,
   type QuotePolicyValues,
 } from "..";
@@ -33,26 +36,48 @@ describe("parsePolicy", () => {
     });
   });
 
-  it("says how to fix what is missing, by field", () => {
+  it("needs the wording, and the title is optional", () => {
     const r = parsePolicy({ title: "", body: "", includeByDefault: false });
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.errors.title).toMatch(/Give the policy a title/);
-      expect(r.errors.body).toMatch(/Write what the policy says/);
+      expect(r.errors.title).toBeUndefined();
+      expect(r.errors.body).toMatch(/Write what the term says/);
     }
+    expect(parsePolicy({ title: "  ", body: "Please allow 2 weeks.", includeByDefault: true })).toEqual({
+      ok: true,
+      value: { title: null, body: "Please allow 2 weeks.", includeByDefault: true },
+    });
   });
 
   it("limits the title, the wording and the lines", () => {
     const r = parsePolicy({
       title: "t".repeat(81),
-      body: "b".repeat(2001),
+      body: "b".repeat(4001),
       includeByDefault: false,
     });
     expect(!r.ok && r.errors.title).toMatch(/up to 80 characters/);
-    expect(!r.ok && r.errors.body).toMatch(/up to 2000 characters/);
-    const lines = Array.from({ length: 41 }, (_, i) => `line ${i}`).join("\n");
+    expect(!r.ok && r.errors.body).toMatch(/up to 4000 characters/);
+    expect(parsePolicy({ title: "", body: "b".repeat(4000), includeByDefault: false }).ok).toBe(true);
+    const lines = Array.from({ length: 81 }, (_, i) => `line ${i}`).join("\n");
     const tall = parsePolicy({ title: "x", body: lines, includeByDefault: false });
-    expect(!tall.ok && tall.errors.body).toMatch(/up to 40 lines/);
+    expect(!tall.ok && tall.errors.body).toMatch(/up to 80 lines/);
+  });
+});
+
+describe("what a term is called", () => {
+  it("is its title, or the start of its wording when it has none", () => {
+    expect(termName({ title: "If you cancel", body: "x" })).toBe("If you cancel");
+    expect(termName({ title: null, body: "Please allow 2 weeks.\nSecond line" })).toBe("Please allow 2 weeks.");
+    expect(termName({ title: "", body: "a".repeat(60) })).toBe(`${"a".repeat(47)}…`);
+    expect(termName({ title: null, body: "  " })).toBe("A term with no wording yet");
+  });
+
+  it("starts from the country's examples and the short lines, which have no title", () => {
+    const all = termExamples(ZA_LOCALE.policies);
+    expect(all.slice(0, ZA_LOCALE.policies.examples.length)).toEqual(ZA_LOCALE.policies.examples);
+    const lead = all.find((e) => e.key === "lead-time");
+    expect(lead).toMatchObject({ title: "", label: "Lead time" });
+    expect(parsePolicy({ title: lead!.title, body: lead!.text, includeByDefault: false }).ok).toBe(true);
   });
 });
 
@@ -83,9 +108,31 @@ describe("a quote's own copy of policies", () => {
     });
     const bad = parseQuotePolicies([ok, { ...ok, key: "k2", body: "" }]);
     expect(bad.ok).toBe(false);
-    if (!bad.ok) expect(bad.byKey.k2.body).toMatch(/Write what the policy says/);
+    if (!bad.ok) expect(bad.byKey.k2.body).toBe("Write what this term says, or remove it.");
+    expect(parseQuotePolicies(Array.from({ length: QUOTE_MAX_POLICIES }, (_, i) => ({ ...ok, key: `k${i}` }))).ok).toBe(true);
     const many = parseQuotePolicies(Array.from({ length: QUOTE_MAX_POLICIES + 1 }, (_, i) => ({ ...ok, key: `k${i}` })));
-    expect(!many.ok && many.error).toMatch(/up to 12 policies/);
+    expect(!many.ok && many.error).toMatch(/up to 20 terms/);
+  });
+
+  it("takes a term written just for this quote, with or without a title", () => {
+    const blank = oneOffTerm("k9");
+    expect(blank).toEqual({ key: "k9", policyId: "", title: "", body: "" });
+    expect(parseQuotePolicies([{ ...blank, body: "Collect from the studio." }])).toEqual({
+      ok: true,
+      policies: [{ policyId: null, title: null, body: "Collect from the studio." }],
+    });
+    expect(parseQuotePolicies([{ ...blank, title: "Pick-up", body: "From the studio." }])).toEqual({
+      ok: true,
+      policies: [{ policyId: null, title: "Pick-up", body: "From the studio." }],
+    });
+    // Added and left empty: left out, not an error. With only a title, it needs its wording.
+    expect(parseQuotePolicies([blank])).toEqual({ ok: true, policies: [] });
+    const titleOnly = parseQuotePolicies([{ ...blank, title: "Pick-up" }]);
+    expect(!titleOnly.ok && titleOnly.byKey.k9.body).toBe("Write what this term says, or remove it.");
+  });
+
+  it("copies an untitled library term with no title", () => {
+    expect(copyForQuote(policy({ title: null }), "k")).toMatchObject({ title: "", body: "You pay the deposit." });
   });
 
   it("goes from the quote form to the database payload, with where each came from", () => {
@@ -104,7 +151,6 @@ describe("a quote's own copy of policies", () => {
       title: "",
       description: "",
       signOff: "",
-      terms: "",
       paymentInstructions: "",
       showBankDetails: true, showPhotos: true,
       depositKind: "none",

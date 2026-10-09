@@ -83,7 +83,7 @@ export async function openBusinessProfile(page: Page) {
   await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
 }
 
-/** Quote and invoice settings: numbering, wording, policies. Behind "More" on a phone. */
+/** Quote and invoice settings: numbering, wording, terms. Behind "More" on a phone. */
 export async function openDocuments(page: Page) {
   await openMore(page);
   await page.getByRole("link", { name: /Quotes and invoices/ }).click();

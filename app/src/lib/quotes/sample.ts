@@ -83,7 +83,6 @@ function buildSample(workspace: Workspace, products: readonly ProductSummary[]):
     title: "Sample quote",
     description: "Here is what I would make for you.",
     signOff: "",
-    terms: "",
     paymentInstructions: "",
     showBankDetails: true,
     showPhotos: true,

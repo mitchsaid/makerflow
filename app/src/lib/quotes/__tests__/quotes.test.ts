@@ -46,7 +46,6 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   title: "",
   description: "",
   signOff: "",
-  terms: "",
   paymentInstructions: "",
   showBankDetails: true, showPhotos: true,
   depositKind: "none",
@@ -275,7 +274,7 @@ describe("toFormValues", () => {
     discountKind: "percent" as const,
     discountValue: 750,
     notes: null,
-    title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
+    title: null, description: null, signOff: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
     lines: [
       { id: "l2", sortOrder: 1, kind: "custom", productId: null, name: "Cupcakes", description: "Vanilla", quantityMilli: 12_000, unit: null, unitPriceCents: 1550, discountKind: "none" as const, discountValue: 0 },
       { id: "l3", sortOrder: 2, kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 3500, discountKind: "none" as const, discountValue: 0 },
@@ -374,7 +373,7 @@ describe("lines from products", () => {
       {
         customerId: null, issueDate: "2026-10-03", validUntil: "2026-10-17", neededBy: null, deliveryAddress: null,
         discountKind: "none", discountValue: 0, notes: null,
-        title: null, description: null, signOff: null, terms: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
+        title: null, description: null, signOff: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const, depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
         lines: [{ id: "x", sortOrder: 0, kind: "service", productId: PRODUCT, name: "Design", description: null, quantityMilli: 2000, unit: null, unitPriceCents: 45000, discountKind: "none", discountValue: 0 }],
       },
       ZA_LOCALE.numberStyle,
@@ -436,7 +435,7 @@ describe("VAT treatment on items", () => {
   const stored = {
     customerId: null, issueDate: "2026-10-02", validUntil: "2026-10-16", neededBy: null, deliveryAddress: null,
     discountKind: "none" as const, discountValue: 0, notes: null, title: null, description: null, signOff: null,
-    terms: null, paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const,
+    paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none" as const,
     depositValue: 0, balanceDue: "handover" as const, balanceDueDate: null, policies: [],
   };
   const lines = [line({ key: "a", unitPrice: "115" }), line({ key: "b", name: "Bread", unitPrice: "100", vatStatus: "zero" })];
@@ -564,7 +563,7 @@ describe("options and extras on an item", () => {
     const back = toFormValues(
       {
         customerId: null, issueDate: "2026-10-02", validUntil: "2026-10-16", neededBy: null, deliveryAddress: null,
-        discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null, terms: null,
+        discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null,
         paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "none", depositValue: 0,
         balanceDue: "handover", balanceDueDate: null, policies: [],
         lines: [{ id: "l1", sortOrder: 0, kind: "product", productId: PRODUCT, name: "Cupcakes", description: null, quantityMilli: 12000, unit: null, unitPriceCents: 1500, discountKind: "none", discountValue: 0, options: [opt()] }],

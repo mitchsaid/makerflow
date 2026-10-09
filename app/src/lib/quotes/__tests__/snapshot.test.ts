@@ -50,7 +50,6 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
     title: "",
     description: "",
     signOff: "",
-    terms: "",
     paymentInstructions: "",
     showBankDetails: true, showPhotos: true,
     depositKind: "none",
@@ -167,7 +166,6 @@ describe("the quote snapshot", () => {
       title: "Wedding cake for Sarah",
       description: "Thank you for asking.",
       signOff: "Yours in sweetness",
-      terms: "Deposit first.",
       paymentInstructions: "EFT to 123",
       lines: [{ ...form().lines[0], unit: "tier" }],
     });
@@ -189,19 +187,22 @@ describe("the quote snapshot", () => {
       title: "Wedding cake for Sarah",
       description: "Thank you for asking.",
       signOff: "Yours in sweetness",
-      terms: "Deposit first.",
       paymentInstructions: "EFT to 123",
     });
+    // The old Terms box is gone: new versions carry their terms as terms, under the frozen heading.
+    expect(s).not.toHaveProperty("terms");
+    expect(s.wording.termsHeading).toBe("Terms");
     expect(s.lines[0].unit).toBe("tier");
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
 
-  it("carries the policies the quote included, each with its own title and wording", () => {
+  it("carries the terms the quote included, each with its title (or none) and wording", () => {
     const parsed = parseQuote(
       form({
         policies: [
           { key: "p-0", policyId: "", title: "If you cancel", body: "You pay the deposit." },
           { key: "p-1", policyId: "", title: "Handmade", body: "Items vary a little." },
+          { key: "p-2", policyId: "", title: "", body: "Please allow 2 weeks." },
         ],
       }),
       INCLUSIVE,
@@ -222,6 +223,7 @@ describe("the quote snapshot", () => {
     expect(s.policies).toEqual([
       { title: "If you cancel", body: "You pay the deposit." },
       { title: "Handmade", body: "Items vary a little." },
+      { title: null, body: "Please allow 2 weeks." },
     ]);
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });

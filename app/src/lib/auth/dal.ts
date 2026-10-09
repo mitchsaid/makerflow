@@ -86,7 +86,6 @@ type ProfileRow = {
   usual_fulfilment: "collection" | "delivery" | null;
   quote_setup_at: string | null;
   default_sign_off: string | null;
-  default_terms: string | null;
   payment_instructions: string | null;
   logo_image_id: string | null;
 };
@@ -122,7 +121,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
-           default_sign_off, default_terms, payment_instructions, business_types,
+           default_sign_off, payment_instructions, business_types,
            default_deposit_kind, default_deposit_value, usual_fulfilment, quote_setup_at, logo_image_id
          ),
          business_bank_details (
@@ -173,7 +172,6 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       usualFulfilment: p?.usual_fulfilment ?? null,
       quoteSetupAt: p?.quote_setup_at ?? null,
       defaultSignOff: p?.default_sign_off ?? null,
-      defaultTerms: p?.default_terms ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
       logoImageId: p?.logo_image_id ?? null,
     },

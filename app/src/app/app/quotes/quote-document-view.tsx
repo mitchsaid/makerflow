@@ -194,16 +194,34 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
-        {s.policies && s.policies.length > 0 && (
-          <section className="space-y-3 border-t border-border pt-4" aria-label="Terms and policies">
-            <h3 className="text-base font-semibold">Terms and policies</h3>
-            {s.policies.map((p, i) => (
-              <div key={i} className="space-y-0.5">
-                <h4 className="text-base font-medium">{p.title}</h4>
-                <p className="whitespace-pre-line text-base">{p.body}</p>
-              </div>
-            ))}
-          </section>
+        {s.wording.termsHeading ? (
+          // One "Terms" section: each term under its title, or as a plain paragraph when it has none.
+          s.policies &&
+          s.policies.length > 0 && (
+            <section className="space-y-3 border-t border-border pt-4" aria-label={s.wording.termsHeading}>
+              <h3 className="text-base font-semibold">{s.wording.termsHeading}</h3>
+              {s.policies.map((p, i) => (
+                <div key={i} className="space-y-0.5">
+                  {p.title && <h4 className="text-base font-medium">{p.title}</h4>}
+                  <p className="whitespace-pre-line text-base">{p.body}</p>
+                </div>
+              ))}
+            </section>
+          )
+        ) : (
+          // Sent before the Terms box and the policies became one: as it showed then.
+          s.policies &&
+          s.policies.length > 0 && (
+            <section className="space-y-3 border-t border-border pt-4" aria-label="Terms and policies">
+              <h3 className="text-base font-semibold">Terms and policies</h3>
+              {s.policies.map((p, i) => (
+                <div key={i} className="space-y-0.5">
+                  <h4 className="text-base font-medium">{p.title}</h4>
+                  <p className="whitespace-pre-line text-base">{p.body}</p>
+                </div>
+              ))}
+            </section>
+          )
         )}
 
         {s.terms && (

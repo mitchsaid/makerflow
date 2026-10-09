@@ -14,9 +14,9 @@ export default async function NewPolicyPage({ searchParams }: PageProps<"/app/do
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="space-y-1">
         <Link href="/app/documents/policies" className="text-sm text-muted-foreground underline">
-          Quote policies
+          Terms
         </Link>
-        <h1 className="text-xl font-semibold">Add a policy</h1>
+        <h1 className="text-xl font-semibold">Add a term</h1>
       </div>
       {canEditBusinessProfile(role) ? (
         <PolicyForm
@@ -27,7 +27,7 @@ export default async function NewPolicyPage({ searchParams }: PageProps<"/app/do
         />
       ) : (
         <Alert>
-          <AlertDescription>Only owners and admins can add policies. Ask one of them.</AlertDescription>
+          <AlertDescription>Only owners and admins can add terms. Ask one of them.</AlertDescription>
         </Alert>
       )}
     </main>

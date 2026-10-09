@@ -521,11 +521,12 @@ export function QuoteDocument({
 
           {s.policies && s.policies.length > 0 ? (
             <View style={styles.smallPrint}>
-              <Text style={styles.sectionLabel}>Terms and policies</Text>
+              {/* Versions sent before the Terms box and the policies became one keep their old heading. */}
+              <Text style={styles.sectionLabel}>{s.wording.termsHeading ?? "Terms and policies"}</Text>
               {s.policies.map((p, i) => (
                 // One piece of text with its title, so the title is never alone at the foot of a page.
                 <Text key={i} style={styles.policy}>
-                  <Text style={styles.policyTitle}>{`${p.title}\n`}</Text>
+                  {p.title ? <Text style={styles.policyTitle}>{`${p.title}\n`}</Text> : null}
                   {p.body}
                 </Text>
               ))}

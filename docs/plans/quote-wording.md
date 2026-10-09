@@ -1,5 +1,7 @@
 # Plan: quote wording and units (units, title and description, sign-off, terms, how to pay)
 
+> **Changed 2026-10-09 (founder):** the Terms box (on a quote and under Quote wording) is gone: its text became a term. See `terms.md`.
+
 Status: **built 2026-10-05 on the founder's "Build 1 to 4"** (the first four items of the list of missing maker-quote elements). The founder did not set the details below, so they are my defaults, open to change. Touches the database (migration `20261005100000_quote_wording_and_units.sql`), so it needs human review.
 
 ## What the maker can do

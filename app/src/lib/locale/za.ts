@@ -330,6 +330,7 @@ export const ZA_LOCALE: LocalePack = {
     },
     // A quotation is not a tax invoice (VAT 404 guide, 13.2).
     quoteNotATaxInvoice: "This quotation is not a tax invoice.",
+    termsHeading: "Terms",
     missingForQuote,
     missingForInvoice,
   },
