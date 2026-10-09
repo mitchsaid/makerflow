@@ -165,7 +165,7 @@ test("an extra can cost more on a bigger size, and follows the size chosen", asy
   await page.getByLabel("Extras: choice 1 adds for Small", { exact: true }).fill("50");
   await page.getByLabel("Extras: choice 1 adds for Large", { exact: true }).fill("120");
   await tap(page.getByRole("button", { name: "Remove Extras: choice 2" }));
-  await page.getByRole("button", { name: "Add product" }).click();
+  await tap(page.getByRole("button", { name: "Add product" }));
   await expect(page.getByTestId("product-added")).toBeVisible();
 
   // It comes back as typed.
