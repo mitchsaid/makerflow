@@ -225,7 +225,7 @@ test("an extra for one product can cost more on a bigger size, and follows the s
   await signUpAndOnboard(page, "ext-by-size", "By Size Co");
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
-  await page.getByRole("radio", { name: /^A price for each/ }).click();
+  await page.getByRole("radio", { name: /^Yes/ }).click();
   for (const [i, [name, price]] of ([["Small", "300"], ["Large", "600"]] as const).entries()) {
     await page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }).fill(name);
     await page.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
