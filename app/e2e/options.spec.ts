@@ -226,6 +226,8 @@ test("an extra for one product can cost more on a bigger size, and follows the s
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
   await page.getByRole("radio", { name: /^Yes/ }).click();
+  await page.getByLabel("Variation name", { exact: true }).first().fill("Size");
+  await page.getByRole("button", { name: "Add another choice" }).click();
   for (const [i, [name, price]] of ([["Small", "300"], ["Large", "600"]] as const).entries()) {
     await page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }).fill(name);
     await page.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);

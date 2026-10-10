@@ -12,7 +12,8 @@ export const newVariationKey = () => `new-${(rowKeyCounter += 1)}`;
 
 /**
  * What a product that is priced by size or version looks like (docs/plans/product-extras.md): the maker names the
- * list ("Size", "Tiers") from suggestions or their own word, and each choice has its own price. It replaces the
+ * variation ("Size", "Tiers"; the business type's first suggestion is shown as an example), and each choice has
+ * its own price. It replaces the
  * product's single price (the first row starts with the typed price, and the one left gives its price back when
  * the last is removed). One choice can be the usual one, chosen for you on a quote.
  */
@@ -55,40 +56,21 @@ export function PricedVariations({
 
   return (
     <div className="space-y-4">
-      <p className="text-base text-muted-foreground">
-        On a quote you choose one.
-      </p>
       <TextField
         id={fid("variationLabel")}
-        label="What do you call them?"
-        hint="Shown on your quotes, like “Choose a size”."
+        label="Variation name"
+        placeholder={suggestions[0] ? `e.g. ${suggestions[0]}` : undefined}
         autoComplete="off"
         maxLength={40}
         value={label}
         error={errors?.label}
         onChange={(v) => onChange({ label: v })}
       />
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Suggestions">
-          {suggestions.map((s) => (
-            <Button
-              key={s}
-              type="button"
-              variant="outline"
-              aria-pressed={label.trim().toLowerCase() === s.toLowerCase()}
-              className="aria-pressed:border-primary aria-pressed:bg-primary/5"
-              onClick={() => onChange({ label: s })}
-            >
-              {s}
-            </Button>
-          ))}
-        </div>
-      )}
 
       {/* One line each: the name, its price and a remove button, under shared headings. */}
       <div className="space-y-2">
         <div aria-hidden="true" className="grid grid-cols-[1fr_7.5rem_2.75rem] items-end gap-2 text-sm font-medium">
-          <span>{word.charAt(0).toUpperCase() + word.slice(1)}</span>
+          <span>Choice</span>
           <span>{priceLabel}</span>
           <span />
         </div>
@@ -166,7 +148,7 @@ export function PricedVariations({
           setFocusKey(fid(`variation-${row.key}-name`));
         }}
       >
-        Add another {word.toLowerCase()}
+        Add another choice
       </Button>
     </div>
   );
