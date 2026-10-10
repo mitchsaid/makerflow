@@ -11,8 +11,19 @@ async function tap(locator: import("@playwright/test").Locator) {
   await locator.press("Enter");
 }
 
-/** Adds a variation that adds to the price (a flavour) on the product form and opens it. */
+/**
+ * Adds a variation that adds to the price (a flavour) on the product form and opens it. Other variations come
+ * under the first, so a product that had one price first gets one: "Type", Standard (the product's price, the
+ * default) and Other (the same price), so nothing else changes for the product.
+ */
 async function addList(page: Page, name: string) {
+  const price = await page.getByLabel("Price", { exact: true }).inputValue();
+  await page.getByRole("radio", { name: "Yes" }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Type");
+  await page.getByLabel("Type 1", { exact: true }).fill("Standard");
+  await page.getByLabel("Type 2", { exact: true }).fill("Other");
+  await page.getByLabel("Type 2 price", { exact: true }).fill(price);
+  await page.getByLabel("Default type").selectOption({ label: "Standard" });
   await page.getByRole("button", { name: /^Add (a|another) variation$/ }).click();
   await expect(page.getByLabel("Name of this variation").last()).toBeFocused();
   await page.getByLabel("Name of this variation").last().fill(name);
@@ -52,7 +63,7 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
   await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Red velvet");
   await page.getByLabel("Flavour: choice 2 adds", { exact: true }).fill("5");
-  await page.getByLabel("Usual flavour").selectOption({ label: "Vanilla" });
+  await page.getByLabel("Default flavour").selectOption({ label: "Vanilla" });
   await page.getByRole("button", { name: "Done Flavour" }).click();
 
   // Extras: sprinkles +R2, a gift box +R30, and a message on the cake that asks for wording (+R2).
@@ -113,7 +124,7 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await page.getByRole("button", { name: "Edit Gold sprinkles" }).click();
   await page.getByRole("button", { name: /Remove this extra/ }).click();
   await page.getByRole("button", { name: "Edit Flavour" }).click();
-  await page.getByLabel("Usual flavour").selectOption({ label: "No usual one" });
+  await page.getByLabel("Default flavour").selectOption({ label: "No default" });
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
@@ -227,12 +238,11 @@ test("an extra for one product can cost more on a bigger size, and follows the s
   await page.getByLabel("Name", { exact: true }).fill("Cake");
   await page.getByRole("radio", { name: /^Yes/ }).click();
   await page.getByLabel("Variation name", { exact: true }).fill("Size");
-  await page.getByRole("button", { name: "Add another choice" }).click();
   for (const [i, [name, price]] of ([["Small", "300"], ["Large", "600"]] as const).entries()) {
     await page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }).fill(name);
     await page.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
   }
-  await page.getByLabel("Usual size").selectOption({ label: "Small" });
+  await page.getByLabel("Default size").selectOption({ label: "Small" });
   await addExtra(page, "Gold leaf", { productOnly: true });
   // A saved extra has one price everywhere; only "this product only" can depend on the size.
   await page.getByRole("checkbox", { name: "Price depends on the size" }).check();
