@@ -182,8 +182,8 @@ export function ProductForm({
     return message ? [{ fieldId: fid(field), label, message }] : [];
   });
   // The variations' problems, in the order they appear on the screen.
-  const variationWord = values.variationLabel.trim() || "Variation";
-  if (values.variations.length > 0 && errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
+  const variationWord = values.variationLabel.trim() || "Choice";
+  if (values.variations.length > 0 && errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "Variation name", message: errors.variations.label });
   values.variations.forEach((row, i) => {
     const e = errors.variations?.rows[row.key];
     if (e?.name) problems.push({ fieldId: fid(`variation-${row.key}-name`), label: `${variationWord} ${i + 1}`, message: e.name });
@@ -222,12 +222,12 @@ export function ProductForm({
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
 
-  // Whether it comes in sizes or versions is one yes/no question about the product, asked before the price. The
+  // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
   const priced = values.variations.length > 0;
   // The question's examples come from what we know of the business ("size, material, flavour").
-  const examples = (variationSuggestions.length > 0 ? variationSuggestions.slice(0, 3) : ["Size", "Material", "Flavour"]).map((w) => w.toLowerCase()).join(", ");
-  // The price moves into the first row when sizes start, and back when the last one goes.
+  const examples = variationSuggestions.slice(0, 3).map((w) => w.toLowerCase()).join(", ");
+  // The price moves into the first choice when variations start, and back when the last one goes.
   function changeVariations(change: { label?: string; rows?: ProductFormValues["variations"] }) {
     setEditedSinceSave(true);
     setValues((v) => ({
@@ -353,7 +353,7 @@ export function ProductForm({
       <Section title="Variations">
         <FieldSet>
           <FieldLegend variant="label" className="text-base">
-            Does this product come in any variations (e.g. {examples})?
+            Does this {KIND_WORDS[values.kind].one} come in any variations (e.g. {examples})?
           </FieldLegend>
           <RadioGroup value={priced ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
             {(

@@ -11,11 +11,10 @@ let rowKeyCounter = 0;
 export const newVariationKey = () => `new-${(rowKeyCounter += 1)}`;
 
 /**
- * What a product that is priced by size or version looks like (docs/plans/product-extras.md): the maker names the
+ * What a product with variations that set its price looks like (docs/plans/product-extras.md): the maker names the
  * variation ("Size", "Tiers"; the business type's first suggestion is shown as an example), and each choice has
- * its own price. It replaces the
- * product's single price (the first row starts with the typed price, and the one left gives its price back when
- * the last is removed). One choice can be the usual one, chosen for you on a quote.
+ * its own price. It replaces the product's single price (the first row starts with the typed price, and the one
+ * left gives its price back when the last is removed). One choice can be the usual one, chosen for you on a quote.
  */
 export function PricedVariations({
   label,
@@ -47,7 +46,8 @@ export function PricedVariations({
     pendingFocus.current = null;
   });
 
-  const word = label.trim() || "variation";
+  // The choices are called by the variation's name once it has one ("Size 1"), "Choice" until then.
+  const word = label.trim() || "Choice";
   const blank = (): VariationFormRow => ({ key: newVariationKey(), id: "", name: "", price: "", usual: false });
   const setRow = (key: string, change: Partial<VariationFormRow>) =>
     onChange({ rows: rows.map((r) => (r.key === key ? { ...r, ...change } : r)) });
