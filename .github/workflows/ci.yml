@@ -81,7 +81,7 @@ jobs:
         run: pnpm stack:start
       - name: Write local environment file
         run: pnpm env:local --force
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()

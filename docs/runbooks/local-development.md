@@ -83,6 +83,7 @@ A terminal or an editor such as VS Code also works with Claude Code. Both would 
 | `pnpm check` | lint, types, unit tests (~30 seconds) |
 | `pnpm test:e2e -g "part of a test name"` | one browser journey |
 | `pnpm test:e2e` | all browser tests (~40 seconds) |
+| `WEBKIT=1 pnpm test:e2e e2e/layout.spec.ts` | the layout checks in Safari on an iPhone (WebKit; run `pnpm exec playwright install webkit` once). CI runs them always. Playwright's WebKit is not iOS Safari, so a layout bug seen on a real iPhone still needs checking on one |
 | `pnpm db:test` | database security tests |
 | `pnpm db:reset` | wipes the **local** database and rebuilds it (clean slate) |
 | `pnpm stack:stop` | stops the local database |

@@ -31,6 +31,12 @@ export default defineConfig({
         launchOptions: executablePath ? { executablePath } : {},
       },
     },
+    // Safari on an iPhone lays some things out differently (date fields, for one), and most of the people using
+    // the app will be on one. Only the layout checks run here, in CI or when asked for (WEBKIT=1: needs
+    // `pnpm exec playwright install webkit`).
+    ...(process.env.CI || process.env.WEBKIT
+      ? [{ name: "iphone", testMatch: /layout\.spec\.ts/, use: { ...devices["iPhone 14"] } }]
+      : []),
   ],
   webServer: {
     command: "pnpm dev",
