@@ -20,7 +20,7 @@ const nextKey = (prefix: string) => `${prefix}-${(keyCounter += 1)}`;
 /**
  * "Other variations": the ones that do not carry the price, like Flavour or Colour (docs/plans/product-extras.md).
  * You pick one of their choices, each can add an amount to the price (R0 is common), and an amount can be bigger
- * on a bigger size. (The one where each choice has its own price, like sizes, is the "Sizes and versions" section above.)
+ * on a bigger size. (The one where each choice has its own price, like sizes, is the "Variations" section above.)
  * Each is a card; one is open at a time, and any with a problem stays open so the summary can take the person to it.
  */
 export function ListsSection({
@@ -102,7 +102,7 @@ export function ListsSection({
                   <div id={fid(`option-${g.key}-body`)} className="mt-3 space-y-4">
                     <TextField
                       id={fid(`option-${g.key}-name`)}
-                      label="Variation name"
+                      label="Name of this variation"
                       hint="Like “Flavour”."
                       autoComplete="off"
                       maxLength={80}

@@ -182,8 +182,8 @@ export function ProductForm({
     return message ? [{ fieldId: fid(field), label, message }] : [];
   });
   // The variations' problems, in the order they appear on the screen.
-  const variationWord = values.variationLabel.trim() || "Variation";
-  if (values.variations.length > 0 && errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
+  const variationWord = values.variationLabel.trim() || "Choice";
+  if (values.variations.length > 0 && errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "Variation name", message: errors.variations.label });
   values.variations.forEach((row, i) => {
     const e = errors.variations?.rows[row.key];
     if (e?.name) problems.push({ fieldId: fid(`variation-${row.key}-name`), label: `${variationWord} ${i + 1}`, message: e.name });
@@ -222,10 +222,12 @@ export function ProductForm({
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
 
-  // Whether it comes in sizes or versions is one yes/no question about the product, asked before the price. The
+  // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
   const priced = values.variations.length > 0;
-  // The price moves into the first row when sizes start, and back when the last one goes.
+  // The question's examples come from what we know of the business ("size, material, flavour").
+  const examples = variationSuggestions.slice(0, 3).map((w) => w.toLowerCase()).join(", ");
+  // The price moves into the first choice when variations start, and back when the last one goes.
   function changeVariations(change: { label?: string; rows?: ProductFormValues["variations"] }) {
     setEditedSinceSave(true);
     setValues((v) => ({
@@ -258,12 +260,9 @@ export function ProductForm({
   function choosePricing(each: boolean) {
     if (each === priced) return;
     if (each) {
-      // Two rows to start, named from the business type's suggestions, or the ones put aside.
-      const rows = aside?.rows ?? [
-        { key: newVariationKey(), id: "", name: "", price: "", usual: false },
-        { key: newVariationKey(), id: "", name: "", price: "", usual: false },
-      ];
-      changeVariations({ label: aside?.label || values.variationLabel || variationSuggestions[0] || "Size", rows });
+      // One empty choice to start (nothing pre-filled), or the ones put aside.
+      const rows = aside?.rows ?? [{ key: newVariationKey(), id: "", name: "", price: "", usual: false }];
+      changeVariations({ label: aside?.label ?? values.variationLabel, rows });
       // What was typed in the price field meanwhile is the first size's price; "price depends on the size" comes back too.
       const back = new Set(aside?.priceBySize ?? []);
       setValues((v) => ({
@@ -351,18 +350,18 @@ export function ProductForm({
         )}
       </Section>
 
-      <Section title="Sizes and versions">
+      <Section title="Variations">
         <FieldSet>
           <FieldLegend variant="label" className="text-base">
-            Does it come in different sizes or versions?
+            Does this {KIND_WORDS[values.kind].one} come in any variations (e.g. {examples})?
           </FieldLegend>
           <RadioGroup value={priced ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
             {(
               [
-                ["one", "No", "It is one thing."],
-                ["each", "Yes", "Like Small, Medium and Large. Each has its own price."],
+                ["one", "No"],
+                ["each", "Yes"],
               ] as const
-            ).map(([value, title, description]) => (
+            ).map(([value, title]) => (
               <Field
                 key={value}
                 orientation="horizontal"
@@ -371,7 +370,6 @@ export function ProductForm({
                 <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} value={value} />
                 <FieldLabel htmlFor={fid(value === "one" ? "pricing-one" : "pricing-each")} className="flex w-full flex-col items-start gap-0.5 text-base">
                   <span>{title}</span>
-                  <span className="text-sm font-normal text-muted-foreground">{description}</span>
                 </FieldLabel>
               </Field>
             ))}
@@ -397,7 +395,7 @@ export function ProductForm({
 
       <Section title="Price">
         {priced ? (
-          <p className="text-base text-muted-foreground">The price is set on each size or version above.</p>
+          <p className="text-base text-muted-foreground">The price is set on each choice above.</p>
         ) : (
           <TextField
             id={fid("unitPrice")}

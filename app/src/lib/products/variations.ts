@@ -4,7 +4,7 @@ import type { ProductKind } from "./index";
 
 /**
  * Variations (docs/plans/product-choices.md): a list where each entry is a complete version of the product
- * with its own price ("Small R300", "Large R600"). The maker names the list ("Size", "Tiers"). Exactly one
+ * with its own price ("Small R300", "Large R600"). The maker names the variation ("Size", "Tiers"). Exactly one
  * is chosen on a quote item. A product has none, or two or more.
  */
 
@@ -52,10 +52,10 @@ export function parseVariations(
   if (rows.length === 0) return { ok: true, label: null, variations: [] };
 
   const label = typeof labelInput === "string" ? labelInput.trim().replace(/\s+/g, " ") : "";
-  if (label === "") errors.label = "Say what you call them, like “Size” or “Tiers”.";
+  if (label === "") errors.label = "Name this variation, like “Size” or “Tiers”.";
   else if (label.length > VARIATION_LABEL_MAX) errors.label = `Keep it to ${VARIATION_LABEL_MAX} characters or fewer.`;
 
-  if (rows.length === 1) errors.list = "Add at least one more, or answer “No” to sizes and versions instead.";
+  if (rows.length === 1) errors.list = "A variation needs at least two choices. Add another, or answer “No” above.";
 
   const seen = new Set<string>();
   const variations: ParsedVariation[] = [];

@@ -293,6 +293,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "edit product");
       // Variations on the product, with a problem, then saved and chosen on a quote.
       await page.getByRole("radio", { name: /^Yes/ }).click();
+      await page.getByLabel("Variation name", { exact: true }).fill("Size");
+      await page.getByRole("button", { name: "Add another choice" }).click();
       await page.getByRole("textbox", { name: "Size 1", exact: true }).fill("Small");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
@@ -332,7 +334,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await page.getByRole("button", { name: /^Add (a|another) variation$/ }).click();
-      await page.getByLabel("Variation name").fill("Flavour");
+      await page.getByLabel("Name of this variation").last().fill("Flavour");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toContainText("Flavour: choice 1");
       await expectNoViolations(page, "product lists, with problems");
