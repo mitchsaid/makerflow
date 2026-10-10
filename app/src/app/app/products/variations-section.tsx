@@ -26,6 +26,7 @@ export function PricedVariations({
   currencySymbol,
   fid,
   onPendingChange,
+  onImage,
   onChange,
 }: {
   label: string;
@@ -37,6 +38,8 @@ export function PricedVariations({
   fid: (key: string) => string;
   /** A choice's picture is on its way (true) or has arrived (false), so the form can wait for it before saving. */
   onPendingChange: (pending: boolean) => void;
+  /** A choice's picture chosen or removed. The form applies it by the row's key to what the form holds now. */
+  onImage: (rowKey: string, imageId: string) => void;
   onChange: (change: { label?: string; rows?: VariationFormRow[] }) => void;
 }) {
   // Where focus goes after adding or removing a row (once the row is on the screen).
@@ -95,7 +98,7 @@ export function PricedVariations({
                 value={picture}
                 onChange={(imageId) => {
                   setProblem(row.key, null);
-                  setRow(row.key, { imageId });
+                  onImage(row.key, imageId);
                 }}
                 onProblem={(message) => setProblem(row.key, message)}
                 onPendingChange={onPendingChange}
@@ -142,7 +145,7 @@ export function PricedVariations({
                   />
                 </div>
                 {picture !== "" && (
-                  <Button type="button" variant="ghost" onClick={() => setRow(row.key, { imageId: "" })}>
+                  <Button type="button" variant="ghost" onClick={() => onImage(row.key, "")}>
                     Remove picture<span className="sr-only"> of {title}</span>
                   </Button>
                 )}

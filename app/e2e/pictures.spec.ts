@@ -274,3 +274,27 @@ test("a choice of another variation (a flavour) has its own picture too, shown b
   await expect(flavour.locator("label", { hasText: "Vanilla" }).locator("img")).toHaveCount(1);
   await expect(flavour.locator("label", { hasText: "Red velvet" }).locator("img")).toHaveCount(0);
 });
+
+test("pictures chosen for two choices at once both stay, and what is typed while they upload is kept", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "pic-race", "Race Pics Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByRole("radio", { name: "Yes" }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  await page.getByRole("button", { name: "Add another choice" }).click();
+  await page.getByLabel("Size 1", { exact: true }).fill("Small");
+  await page.getByLabel("Size 2", { exact: true }).fill("Large");
+
+  // Both pictures are on their way together, and a price is typed meanwhile (the product's own photo field is first).
+  const files = page.locator('input[type="file"]');
+  const one = await picture(2400, 1800);
+  await files.nth(1).setInputFiles({ name: "a.jpg", mimeType: "image/jpeg", buffer: one });
+  await files.nth(2).setInputFiles({ name: "b.jpg", mimeType: "image/jpeg", buffer: one });
+  await page.getByLabel("Size 1 price", { exact: true }).fill("300");
+
+  await expect(page.getByRole("button", { name: "Small: replace the picture" }).locator("img")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Large: replace the picture" }).locator("img")).toBeVisible();
+  await expect(page.getByLabel("Size 1 price", { exact: true })).toHaveValue("300");
+  await expect(page.getByLabel("Size 1", { exact: true })).toHaveValue("Small");
+});

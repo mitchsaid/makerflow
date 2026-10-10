@@ -32,6 +32,7 @@ export function ListsSection({
   variationWord,
   fid,
   onPendingChange,
+  onImage,
   onChange,
 }: {
   groups: OptionGroupFormRow[];
@@ -44,6 +45,8 @@ export function ListsSection({
   fid: (key: string) => string;
   /** A choice's picture is on its way (true) or has arrived (false), so the form can wait for it before saving. */
   onPendingChange: (pending: boolean) => void;
+  /** A choice's picture chosen or removed. The form applies it by keys to what the form holds now. */
+  onImage: (groupKey: string, valueKey: string, imageId: string) => void;
   onChange: (groups: OptionGroupFormRow[]) => void;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -174,8 +177,7 @@ export function ListsSection({
                           );
                           const picture = v.imageId ?? "";
                           const problem = problems[v.key];
-                          const setValue = (imageId: string) =>
-                            setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, imageId } : x)) });
+                          const setValue = (imageId: string) => onImage(g.key, v.key, imageId);
                           const removePicture = (
                             <Button type="button" variant="ghost" onClick={() => setValue("")}>
                               Remove picture<span className="sr-only"> of {vTitle}</span>

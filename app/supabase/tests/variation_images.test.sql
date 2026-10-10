@@ -95,6 +95,21 @@ begin
   assert (select count(*) from public.product_variations where product_id = cake and image_id is not null) = 0, 'an empty image_id did not remove the picture';
 
   ----------------------------------------------------------------------
+  -- Reordered: each picture goes with its row (by its new place)
+  ----------------------------------------------------------------------
+  perform public.save_product(
+    org_a, cake, pg_temp.product('Cake', 'Size'),
+    jsonb_build_array(
+      jsonb_build_object('name', 'Big', 'price_cents', 60000, 'id', big_id, 'image_id', img1::text),
+      jsonb_build_object('name', 'Small', 'price_cents', 30000, 'id', (select id from public.product_variations where product_id = cake and name = 'Small'), 'image_id', img2::text),
+      jsonb_build_object('name', 'Huge', 'price_cents', 90000, 'image_id', img1::text)),
+    null);
+  assert (select image_id = img1 from public.product_variations where id = big_id), 'a reordered variation lost its picture';
+  assert (select image_id = img2 from public.product_variations where product_id = cake and name = 'Small'), 'the picture did not follow the reordered row';
+  assert (select image_id = img1 from public.product_variations where product_id = cake and name = 'Huge'), 'a new row ahead of the others got the wrong picture';
+  assert (select sort_order from public.product_variations where product_id = cake and name = 'Huge') = 2, 'the new row is not where it was sent';
+
+  ----------------------------------------------------------------------
   -- Another business's picture cannot be pointed at (variation or choice)
   ----------------------------------------------------------------------
   begin

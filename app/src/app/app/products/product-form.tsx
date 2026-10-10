@@ -113,9 +113,25 @@ export function ProductForm({
   const [waiting, setWaiting] = useState(false);
   // How many pictures of choices are on their way (each choice has its own).
   const [choiceUploads, setChoiceUploads] = useState(0);
+  const uploadsRef = useRef(0);
   const onChoicePending = (busy: boolean) => {
-    setChoiceUploads((n) => Math.max(0, n + (busy ? 1 : -1)));
-    if (!busy) setWaiting(false);
+    uploadsRef.current = Math.max(0, uploadsRef.current + (busy ? 1 : -1));
+    setChoiceUploads(uploadsRef.current);
+    // The "wait" note goes only when the last one has arrived.
+    if (uploadsRef.current === 0) setWaiting(false);
+  };
+  // A picture that finishes uploading is put on its choice in the form as it is NOW (by key): what was typed while
+  // it was on its way must not be put back the way it was when the picture was chosen.
+  const setVariationImage = (key: string, imageId: string) => {
+    setEditedSinceSave(true);
+    setValues((v) => ({ ...v, variations: v.variations.map((r) => (r.key === key ? { ...r, imageId } : r)) }));
+  };
+  const setValueImage = (groupKey: string, valueKey: string, imageId: string) => {
+    setEditedSinceSave(true);
+    setValues((v) => ({
+      ...v,
+      options: v.options.map((g) => (g.key === groupKey ? { ...g, values: g.values.map((x) => (x.key === valueKey ? { ...x, imageId } : x)) } : g)),
+    }));
   };
   const uploadingAny = uploading || choiceUploads > 0;
   useEffect(() => {
@@ -392,6 +408,7 @@ export function ProductForm({
             currencySymbol={currencySymbol}
             fid={fid}
             onPendingChange={onChoicePending}
+            onImage={setVariationImage}
             onChange={(change) => {
               // The last size removed takes the sizes away: focus goes to the answer that is left.
               if (change.rows?.length === 0) focusOnePrice.current = true;
@@ -449,6 +466,7 @@ export function ProductForm({
         currencySymbol={currencySymbol}
         fid={fid}
         onPendingChange={onChoicePending}
+        onImage={setValueImage}
         onChange={(options) => {
           setEditedSinceSave(true);
           setValues((v) => ({ ...v, options }));
