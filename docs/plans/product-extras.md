@@ -59,7 +59,7 @@ Unit: variation list parsing and the form; extras parsing (wording, shared or pr
 
 ## Changed after first use (founder, 2026-10-10)
 - **No "list" concept.** The variations that add to the price (flavour) are just more variations. There is one place to add a variation, with the price as the plain question: "Each has its own price" (like sizes) or "Adds to the price" (like flavour). Once one with its own prices exists, the button is "Add another variation". Nothing changed in the database.
-- **Variations are introduced around the price.** The form reads: Basics (name, description, photo), then Price (the price, with "Does the price change with size or version? Add variations below.", unit, VAT), then Variations, then Extras. Variations sit directly under the price they change.
+- **Variations are introduced around the price, as one question.** The form reads: Basics (name, description, photo), then Price, which starts with "How is it priced?": **One price** or **A price for each size or version**. The answer decides what shows: the single price field, or the sizes with their prices (never both). Going back to one price carries the first size's price into the field and puts the sizes aside until the form is saved (choosing prices for each again brings them back); the first price typed carries into the first size the other way. Then **Other variations** (flavour, colour: they add to the price, one "Add a variation" button) and Extras.
 
 ## Not built
 "Often added with this" (adding Mugs suggests "Logo setup"); extras with a cost (a material) for costing; stock; a screen to rename or archive saved extras (an extra can be removed from every product by removing it from each).

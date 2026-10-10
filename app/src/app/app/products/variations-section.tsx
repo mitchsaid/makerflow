@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Section, SelectField, TextField } from "@/components/form-fields";
+import { SelectField, TextField } from "@/components/form-fields";
 import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VariationErrors, VariationFormRow } from "@/lib/products/variations";
@@ -11,13 +11,12 @@ let rowKeyCounter = 0;
 export const newVariationKey = () => `new-${(rowKeyCounter += 1)}`;
 
 /**
- * "Variations": what the product comes in (docs/plans/product-extras.md). The one where each choice has its
- * own price (sizes) is edited here: the maker names it ("Size", "Tiers") from suggestions or their own word,
- * and with it the product's single price goes (the first row starts with the product's price, and the last
- * one left gives its price back when it is removed). One choice can be the usual one, chosen for you on a
- * quote. The others (flavour: they add to the price) are the children, with the one place to add a variation.
+ * What a product that is priced by size or version looks like (docs/plans/product-extras.md): the maker names the
+ * list ("Size", "Tiers") from suggestions or their own word, and each choice has its own price. It replaces the
+ * product's single price (the first row starts with the typed price, and the one left gives its price back when
+ * the last is removed). One choice can be the usual one, chosen for you on a quote.
  */
-export function VariationsSection({
+export function PricedVariations({
   label,
   rows,
   suggestions,
@@ -26,10 +25,7 @@ export function VariationsSection({
   currencySymbol,
   fid,
   onChange,
-  children,
 }: {
-  /** The other variations (they add to the price) and the way to add a variation. */
-  children: React.ReactNode;
   label: string;
   rows: VariationFormRow[];
   suggestions: string[];
@@ -57,19 +53,8 @@ export function VariationsSection({
   // A usual row whose name was cleared can't be shown in the list, so it reads as none until named.
   const usualKey = rows.find((r) => r.usual && r.name.trim() !== "")?.key ?? "none";
 
-  if (rows.length === 0) {
-    return (
-      <Section title="Variations">
-        <p className="text-base text-muted-foreground">
-          Does the price change with size or version? Or does it come in flavours or colours?
-        </p>
-        {children}
-      </Section>
-    );
-  }
-
   return (
-    <Section title="Variations">
+    <div className="space-y-4">
       <p className="text-base text-muted-foreground">
         Each has its own price. On a quote you choose one.
       </p>
@@ -143,7 +128,7 @@ export function VariationsSection({
                   onClick={() => {
                     const next = rows.filter((r) => r.key !== row.key);
                     onChange({ rows: next });
-                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("add-variation"));
+                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("pricing-one"));
                   }}
                 >
                   <Trash2Icon aria-hidden="true" />
@@ -182,7 +167,6 @@ export function VariationsSection({
       >
         Add another {word.toLowerCase()}
       </Button>
-      <div className="space-y-4 border-t border-border pt-4">{children}</div>
-    </Section>
+    </div>
   );
 }
