@@ -9,14 +9,15 @@ import type { VatStatus } from "@/lib/money";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
 import { carryPrice } from "@/lib/products/variations";
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
-import { VariationsSection } from "./variations-section";
+import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
-import { newVariationKey } from "./variations-section";
 import { ExtrasSection } from "./extras-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 
@@ -122,6 +123,8 @@ export function ProductForm({
   const [sentKeys, setSentKeys] = useState<string[]>([]);
   const [sentOptions, setSentOptions] = useState<{ key: string; values: string[] }[]>([]);
   const [sentExtras, setSentExtras] = useState(0);
+  // The sizes put aside when the maker goes back to one price, so changing their mind loses nothing typed.
+  const [aside, setAside] = useState<{ label: string; rows: ProductFormValues["variations"]; priceBySize: string[] } | null>(null);
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
@@ -141,6 +144,7 @@ export function ProductForm({
       // Extras by their place too: a new one gets its id, a shared one turned "this product only" may be a copy,
       // and how many products have a shared one is as saved.
       const savedExtras = state.product.extras;
+      setAside(null);
       setValues((v) => ({
         ...v,
         extras:
@@ -179,13 +183,13 @@ export function ProductForm({
   });
   // The variations' problems, in the order they appear on the screen.
   const variationWord = values.variationLabel.trim() || "Variation";
-  if (errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
+  if (values.variations.length > 0 && errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
   values.variations.forEach((row, i) => {
     const e = errors.variations?.rows[row.key];
     if (e?.name) problems.push({ fieldId: fid(`variation-${row.key}-name`), label: `${variationWord} ${i + 1}`, message: e.name });
     if (e?.price) problems.push({ fieldId: fid(`variation-${row.key}-price`), label: `${variationWord} ${i + 1} price`, message: e.price });
   });
-  if (errors.variations?.list) problems.push({ fieldId: fid("variations"), label: "Variations", message: errors.variations.list });
+  if (values.variations.length > 0 && errors.variations?.list) problems.push({ fieldId: fid("variations"), label: "Variations", message: errors.variations.list });
   values.options.forEach((g, gi) => {
     const e = errors.options?.groups[g.key];
     if (!e) return;
@@ -196,7 +200,7 @@ export function ProductForm({
       const ve = e.rows[v.key];
       if (ve?.name) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-name`), label: `${title}: choice ${vi + 1}`, message: ve.name });
       if (ve?.price) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price`), label: `${title}: choice ${vi + 1} price`, message: ve.price });
-      for (const [vk, message] of Object.entries(ve?.prices ?? {})) {
+      for (const [vk, message] of values.variations.length > 0 ? Object.entries(ve?.prices ?? {}) : []) {
         const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
         problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price-${vk}`), label: `${title}: choice ${vi + 1} for ${variationName}`, message });
       }
@@ -211,35 +215,72 @@ export function ProductForm({
     if (e.name) problems.push({ fieldId: fid(`extra-${x.key}-name`), label: `${title}: name`, message: e.name });
     if (e.price) problems.push({ fieldId: fid(`extra-${x.key}-price`), label: `${title}: price`, message: e.price });
     if (e.textMax) problems.push({ fieldId: fid(`extra-${x.key}-textMax`), label: `${title}: longest`, message: e.textMax });
-    for (const [vk, message] of Object.entries(e.prices ?? {})) {
+    for (const [vk, message] of values.variations.length > 0 ? Object.entries(e.prices ?? {}) : []) {
       const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
       problems.push({ fieldId: fid(`extra-${x.key}-price-${vk}`), label: `${title} for ${variationName}`, message });
     }
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
 
-  // The variation where each choice has its own price (sizes) starts with two rows, named from the business
-  // type's suggestions; the price typed so far moves into the first (see carryPrice).
-  const focusAfter = useRef<string | null>(null);
-  useEffect(() => {
-    if (!focusAfter.current) return;
-    document.getElementById(focusAfter.current)?.focus();
-    focusAfter.current = null;
-  });
-  function startPriced() {
-    const first = { key: newVariationKey(), id: "", name: "", price: "", usual: false };
-    const second = { key: newVariationKey(), id: "", name: "", price: "", usual: false };
+  // How it is priced is one question, asked before the price: one price, or a price for each size or version. The
+  // answer decides which of the two the form shows (a product has one or the other).
+  const priced = values.variations.length > 0;
+  // The price moves into the first row when sizes start, and back when the last one goes.
+  function changeVariations(change: { label?: string; rows?: ProductFormValues["variations"] }) {
     setEditedSinceSave(true);
-    setValues((v) => {
-      const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, [first, second]);
-      return {
+    setValues((v) => ({
+      ...v,
+      ...(change.label !== undefined ? { variationLabel: change.label } : {}),
+      ...(change.rows !== undefined
+        ? (() => {
+            const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, change.rows);
+            return {
+              variations: carried.rows,
+              unitPrice: carried.unitPrice,
+              // With no sizes left there is nothing for a price to depend on (and no stale prices to come back).
+              ...(carried.rows.length === 0
+                ? {
+                    options: v.options.map((g) => ({ ...g, priceByVariation: false })),
+                    extras: v.extras.map((x) => ({ ...x, priceByVariation: false })),
+                  }
+                : {}),
+            };
+          })()
+        : {}),
+    }));
+  }
+  const focusOnePrice = useRef(false);
+  useEffect(() => {
+    if (!focusOnePrice.current) return;
+    focusOnePrice.current = false;
+    document.getElementById(fid("pricing-one"))?.closest('[data-slot="field"]')?.querySelector<HTMLElement>('[role="radio"]')?.focus();
+  });
+  function choosePricing(each: boolean) {
+    if (each === priced) return;
+    if (each) {
+      // Two rows to start, named from the business type's suggestions, or the ones put aside.
+      const rows = aside?.rows ?? [
+        { key: newVariationKey(), id: "", name: "", price: "", usual: false },
+        { key: newVariationKey(), id: "", name: "", price: "", usual: false },
+      ];
+      changeVariations({ label: aside?.label || values.variationLabel || variationSuggestions[0] || "Size", rows });
+      // What was typed in the price field meanwhile is the first size's price; "price depends on the size" comes back too.
+      const back = new Set(aside?.priceBySize ?? []);
+      setValues((v) => ({
         ...v,
-        variationLabel: v.variationLabel || variationSuggestions[0] || "Size",
-        variations: carried.rows,
-        unitPrice: carried.unitPrice,
-      };
-    });
-    focusAfter.current = fid(`variation-${first.key}-name`);
+        variations: aside && v.unitPrice.trim() !== "" ? v.variations.map((r, i) => (i === 0 ? { ...r, price: v.unitPrice } : r)) : v.variations,
+        options: v.options.map((g) => (back.has(g.key) ? { ...g, priceByVariation: true } : g)),
+        extras: v.extras.map((x) => (back.has(x.key) ? { ...x, priceByVariation: true } : x)),
+      }));
+      setAside(null);
+    } else {
+      setAside({
+        label: values.variationLabel,
+        rows: values.variations,
+        priceBySize: [...values.options, ...values.extras].filter((x) => x.priceByVariation).map((x) => x.key),
+      });
+      changeVariations({ rows: [] });
+    }
   }
 
   const set =
@@ -311,8 +352,47 @@ export function ProductForm({
       </Section>
 
       <Section title="Price">
-        {/* With a variation that has its own prices (below), each choice is priced there and the single price goes. */}
-        {values.variations.length === 0 ? (
+        <FieldSet>
+          <FieldLegend variant="label" className="text-base">
+            How is it priced?
+          </FieldLegend>
+          <RadioGroup value={priced ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
+            {(
+              [
+                ["one", "One price", "The same whatever they choose."],
+                ["each", "A price for each size or version", `Like Small ${currencySymbol}300, Large ${currencySymbol}600.`],
+              ] as const
+            ).map(([value, title, description]) => (
+              <Field
+                key={value}
+                orientation="horizontal"
+                className="items-center rounded-xl border border-border px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+              >
+                <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} value={value} />
+                <FieldLabel htmlFor={fid(value === "one" ? "pricing-one" : "pricing-each")} className="flex w-full flex-col items-start gap-0.5 text-base">
+                  <span>{title}</span>
+                  <span className="text-sm font-normal text-muted-foreground">{description}</span>
+                </FieldLabel>
+              </Field>
+            ))}
+          </RadioGroup>
+        </FieldSet>
+        {priced ? (
+          <PricedVariations
+            label={values.variationLabel}
+            rows={values.variations}
+            suggestions={variationSuggestions}
+            errors={errors.variations}
+            priceLabel={priceLabel}
+            currencySymbol={currencySymbol}
+            fid={fid}
+            onChange={(change) => {
+              // The last size removed takes the sizes away: focus goes to the answer that is left.
+              if (change.rows?.length === 0) focusOnePrice.current = true;
+              changeVariations(change);
+            }}
+          />
+        ) : (
           <TextField
             id={fid("unitPrice")}
             name="unitPrice"
@@ -323,12 +403,7 @@ export function ProductForm({
             value={values.unitPrice}
             error={errors.unitPrice}
             onChange={set("unitPrice")}
-            hint="Does the price change with size or version? Add variations below."
           />
-        ) : (
-          <p className="text-base text-muted-foreground" data-testid="price-by-variation">
-            Each {values.variationLabel.trim().toLowerCase() || "variation"} has its own price, below.
-          </p>
         )}
         <UnitField
           id={fid("unit")}
@@ -354,50 +429,18 @@ export function ProductForm({
         )}
       </Section>
 
-      <VariationsSection
-        label={values.variationLabel}
-        rows={values.variations}
-        suggestions={variationSuggestions}
-        errors={errors.variations}
-        priceLabel={priceLabel}
+      <ListsSection
+        variations={namedVariations}
+        variationWord={values.variationLabel.trim() || "variation"}
+        groups={values.options}
+        errors={errors.options}
         currencySymbol={currencySymbol}
         fid={fid}
-        onChange={(change) => {
+        onChange={(options) => {
           setEditedSinceSave(true);
-          setValues((v) => ({
-            ...v,
-            ...(change.label !== undefined ? { variationLabel: change.label } : {}),
-            // The price moves into the first variation, and back again when the last one goes.
-            ...(change.rows !== undefined
-              ? (() => {
-                  const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, change.rows);
-                  return {
-                    variations: carried.rows,
-                    unitPrice: carried.unitPrice,
-                    // With no sizes left there is nothing for a price to depend on (and no stale prices to come back).
-                    ...(carried.rows.length === 0 ? { options: v.options.map((g) => ({ ...g, priceByVariation: false })) } : {}),
-                  };
-                })()
-              : {}),
-          }));
+          setValues((v) => ({ ...v, options }));
         }}
-      >
-        {/* The variations that add to the price (flavour) sit with the one that has its own prices (sizes): one idea. */}
-        <ListsSection
-          onAddPriced={startPriced}
-          hasPricedList={values.variations.length > 0}
-          variations={namedVariations}
-          variationWord={values.variationLabel.trim() || "variation"}
-          groups={values.options}
-          errors={errors.options}
-          currencySymbol={currencySymbol}
-          fid={fid}
-          onChange={(options) => {
-            setEditedSinceSave(true);
-            setValues((v) => ({ ...v, options }));
-          }}
-        />
-      </VariationsSection>
+      />
       <ExtrasSection
         rows={values.extras}
         errors={errors.extras}

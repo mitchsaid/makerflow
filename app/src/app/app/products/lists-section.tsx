@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SelectField, TextField } from "@/components/form-fields";
+import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Trash2Icon } from "lucide-react";
@@ -18,15 +18,12 @@ let keyCounter = 0;
 const nextKey = (prefix: string) => `${prefix}-${(keyCounter += 1)}`;
 
 /**
- * The variations that add to the price, like Flavour or Filling (docs/plans/product-extras.md): you pick one of
- * their choices, each can add an amount (R0 is common), and an amount can be bigger on a bigger size. They sit in
- * the Variations section, and this is where a variation is added (either kind: with its own prices, or adding to
- * the price). Each is a card; one is open at a time, and any with a problem stays open so the summary can take the
- * person to it.
+ * "Other variations": the ones that do not carry the price, like Flavour or Colour (docs/plans/product-extras.md).
+ * You pick one of their choices, each can add an amount to the price (R0 is common), and an amount can be bigger
+ * on a bigger size. (The one where each choice has its own price, like sizes, is the pricing question above.)
+ * Each is a card; one is open at a time, and any with a problem stays open so the summary can take the person to it.
  */
 export function ListsSection({
-  onAddPriced,
-  hasPricedList,
   groups,
   errors,
   currencySymbol,
@@ -35,10 +32,6 @@ export function ListsSection({
   fid,
   onChange,
 }: {
-  /** Starts the variation where each choice has its own price (sizes). */
-  onAddPriced: () => void;
-  /** The product has one where each choice has its own price (sizes): the ones here add to that price. */
-  hasPricedList: boolean;
   groups: OptionGroupFormRow[];
   /** The product's variations (named ones), for choices whose price depends on them. */
   variations: { key: string; name: string }[];
@@ -75,7 +68,10 @@ export function ListsSection({
   }
 
   return (
-    <div className="space-y-4">
+    <Section title="Other variations">
+      <p className="text-base text-muted-foreground">
+        Anything else they choose that does not have its own price, like flavour or colour.
+      </p>
       {groups.length > 0 && (
         <ol className="space-y-3">
           {groups.map((g, gi) => {
@@ -83,7 +79,7 @@ export function ListsSection({
             const open = openKey === g.key || e !== undefined;
             const byVariation = g.priceByVariation === true && variations.length > 0;
             const title = g.name.trim() || `Variation ${gi + 1}`;
-            const summary = `${g.values.length} ${g.values.length === 1 ? "choice" : "choices"}${hasPricedList ? " · adds to the price" : ""}`;
+            const summary = `${g.values.length} ${g.values.length === 1 ? "choice" : "choices"} · can add to the price`;
             return (
               <li key={g.key} className="rounded-xl border border-border p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -293,48 +289,14 @@ export function ListsSection({
         </p>
       )}
 
-      {hasPricedList ? (
-        groups.length < OPTIONS_MAX && (
-          <div className="space-y-1">
-            <Button id={fid("add-variation")} type="button" variant="outline" className="self-start" onClick={add}>
-              Add another variation
-            </Button>
-            <p className="text-sm text-muted-foreground">One you choose from, like Flavour. Each choice can add to the price.</p>
-          </div>
-        )
-      ) : (
-        // Nothing with its own prices yet: the price is what tells the two apart, so it is asked in plain words.
-        <div role="group" aria-labelledby={fid("add-variation-heading")} className="space-y-2">
-          <p id={fid("add-variation-heading")} className="text-base font-medium">
+      {groups.length < OPTIONS_MAX && (
+        <div className="space-y-1">
+          <Button id={fid("add-variation")} type="button" variant="outline" className="self-start" onClick={add}>
             {groups.length > 0 ? "Add another variation" : "Add a variation"}
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              id={fid("add-variation")}
-              type="button"
-              variant="outline"
-              className="h-auto flex-col items-start gap-1 whitespace-normal p-3 text-left font-normal"
-              onClick={onAddPriced}
-            >
-              <span className="text-base font-medium">Each has its own price</span>
-              <span className="text-sm text-muted-foreground">Like sizes: Small {currencySymbol}300, Large {currencySymbol}600.</span>
-            </Button>
-            {groups.length < OPTIONS_MAX && (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-auto flex-col items-start gap-1 whitespace-normal p-3 text-left font-normal"
-                onClick={add}
-              >
-                <span className="text-base font-medium">Adds to the price</span>
-                <span className="text-sm text-muted-foreground">
-                  Like flavour: Vanilla +{currencySymbol}0, Red velvet +{currencySymbol}50.
-                </span>
-              </Button>
-            )}
-          </div>
+          </Button>
+          <p className="text-sm text-muted-foreground">One you choose from, like Flavour or Colour. Each choice can add to the price.</p>
         </div>
       )}
-    </div>
+    </Section>
   );
 }
