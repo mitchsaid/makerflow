@@ -29,6 +29,8 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByText("It gets its number the first time you save it.")).toBeVisible();
   await fillItem(page, 1, "Wedding cake", "1", "800");
+  // A customer too: Preview needs one (see the next test).
+  await addCustomerInSheet(page, "Sipho");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Draft$/, level: 1 })).toBeVisible();
@@ -173,9 +175,27 @@ test("a quote with no customer and no items says so, and each fix takes you to t
   await addBusinessPhone(page);
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
-  // Preview on a new, empty quote saves it and opens its preview; Send there lists what it needs.
-  await startSend(page);
-  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
+
+  // Preview on a new, empty quote shows what is missing, where it is missing, and goes nowhere.
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  const summary = page.getByTestId("form-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText("2 things need fixing");
+  await expect(summary).toContainText("Choose who the quote is for.");
+  await expect(summary).toContainText("Add at least one item to the quote.");
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  await expect(page.getByLabel("Customer name", { exact: true })).toHaveAccessibleDescription(/Choose who the quote is for\./);
+  // Each entry takes you to its field.
+  await summary.getByRole("link", { name: /Customer name/ }).click();
+  await expect(page.getByLabel("Customer name", { exact: true })).toBeFocused();
+
+  // A draft can still be saved as it is, and sending from its preview lists what it needs too (the preview is
+  // reached by its address here: the button will not take an empty quote there).
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  const quoteUrl = page.url().replace(/\?saved=1$/, "");
+  await page.goto(`${quoteUrl}/preview`);
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(sheet(page)).toHaveAccessibleName("Before you can send this quote");
   const missing = sheet(page).getByRole("list", { name: "What is missing" });
   await expect(missing).toContainText("Choose who the quote is for.");

@@ -33,6 +33,7 @@ import { addDays } from "@/lib/quotes/dates";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import {
+  isBlankLine,
   optionsPerItem,
   previewTotals,
   type DiscountKind,
@@ -40,6 +41,7 @@ import {
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
+import { MISSING_CUSTOMER, MISSING_ITEMS } from "@/lib/quotes/send-checks";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
@@ -264,8 +266,20 @@ export function QuoteBuilder({
     save();
   }
 
-  /** The preview shows what is saved, so unsaved changes are saved first. */
+  /**
+   * The preview shows what is saved, so unsaved changes are saved first. A quote with no customer or no items is not
+   * previewed: it shows what is missing, where it is missing, like any form that is not ready (a draft can still be saved).
+   */
   function onPreview() {
+    const noCustomer = values.customerId === "";
+    const noItems = values.lines.every(isBlankLine);
+    if (noCustomer || noItems) {
+      setState({
+        status: "error",
+        errors: { fields: { ...(noCustomer ? { customerId: MISSING_CUSTOMER } : {}), ...(noItems ? { lines: MISSING_ITEMS } : {}) }, lines: {} },
+      });
+      return;
+    }
     if (quoteId === null || editedSinceSave) save("preview");
     else router.push(`/app/quotes/${quoteId}/preview`);
   }

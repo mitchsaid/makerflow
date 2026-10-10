@@ -15,6 +15,10 @@ export type SendProblem = {
   message: string;
 };
 
+/** What is said when a quote has no customer or no items (on Preview, on the draft, and when sending). */
+export const MISSING_CUSTOMER = "Choose who the quote is for.";
+export const MISSING_ITEMS = "Add at least one item to the quote.";
+
 export function sendProblems(input: {
   hasCustomer: boolean;
   itemCount: number;
@@ -33,10 +37,10 @@ export function sendProblems(input: {
 }): SendProblem[] {
   const problems: SendProblem[] = [];
   if (!input.hasCustomer) {
-    problems.push({ code: "customer", message: "Choose who the quote is for." });
+    problems.push({ code: "customer", message: MISSING_CUSTOMER });
   }
   if (input.itemCount === 0) {
-    problems.push({ code: "items", message: "Add at least one item to the quote." });
+    problems.push({ code: "items", message: MISSING_ITEMS });
   }
   if (input.validUntil < input.today) {
     problems.push({
