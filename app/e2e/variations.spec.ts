@@ -282,3 +282,31 @@ test("with only further variations left, the first variation can be added again,
   await expect(page.getByRole("radio", { name: /^No/ })).toBeChecked();
   await expect(page.getByRole("radio", { name: /^No/ })).toBeFocused();
 });
+
+test("a further variation with no name is called Variation 2, and is saved with that name", async ({ page }) => {
+  await signUpAndOnboard(page, "var-numbered", "Numbered Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByRole("radio", { name: /^Yes/ }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  await fillVariations(page, [["Small", "300"], ["Large", "500"]]);
+
+  // No helper text, and the button always says "another" (the first variation is there).
+  await page.getByRole("button", { name: "Add another variation" }).click();
+  await expect(page.getByText("One you choose from")).toHaveCount(0);
+  await expect(page.getByLabel("Name of this variation")).toHaveAttribute("placeholder", "Variation 2");
+  await expect(page.getByRole("button", { name: /^Done Variation 2$/ })).toBeVisible();
+  await page.getByLabel("Variation 2: choice 1", { exact: true }).fill("Vanilla");
+  await page.getByLabel("Variation 2: choice 2", { exact: true }).fill("Chocolate");
+
+  await page.getByRole("button", { name: "Add another variation" }).click();
+  await expect(page.getByRole("button", { name: /^Done Variation 3$/ })).toBeVisible();
+  await page.getByLabel("Variation 3: choice 1", { exact: true }).fill("Jam");
+  await page.getByLabel("Variation 3: choice 2", { exact: true }).fill("Cream");
+
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Wedding cake.");
+  await page.getByRole("link", { name: /Wedding cake/ }).click();
+  await expect(page.getByRole("button", { name: /^Edit Variation 2$/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Edit Variation 3$/ })).toBeVisible();
+});

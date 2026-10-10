@@ -6,6 +6,7 @@ import { Trash2Icon } from "lucide-react";
 import { ChoiceImage } from "@/components/choice-image";
 import { Button } from "@/components/ui/button";
 import type { VariationErrors, VariationFormRow } from "@/lib/products/variations";
+import { AddButton } from "@/components/add-button";
 
 // New rows' keys come from one counter that is never reset (the product form starts the first rows too).
 let rowKeyCounter = 0;
@@ -165,9 +166,7 @@ export function PricedVariations({
           {errors.list}
         </p>
       )}
-      <Button
-        type="button"
-        variant="outline"
+      <AddButton
         className="self-start"
         onClick={() => {
           const row = blank();
@@ -176,7 +175,7 @@ export function PricedVariations({
         }}
       >
         Add another choice
-      </Button>
+      </AddButton>
       <SelectField
         id={fid("variationUsual")}
         label={`Default ${word.toLowerCase()}`}

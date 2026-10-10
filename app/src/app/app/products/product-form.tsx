@@ -20,6 +20,7 @@ import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
+import { AddButton } from "@/components/add-button";
 
 /**
  * The layers a product will grow, shown where they will live but not working yet
@@ -187,6 +188,9 @@ export function ProductForm({
   const fid = (key: string) => `${idPrefix}${key}`;
   const errors: ProductFieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
   // The variations that have a name: lists and extras that depend on them show one price for each.
+  // The further variations are numbered after the first one ("Variation 2"), and a further variation with no name
+  // is called that (the same words in the card, the summary and what is saved).
+  const furtherNumber = values.variations.length > 0 ? 2 : 1;
   const namedVariations = values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }));
 
   const problems: FormProblem[] = (
@@ -216,7 +220,7 @@ export function ProductForm({
   values.options.forEach((g, gi) => {
     const e = errors.options?.groups[g.key];
     if (!e) return;
-    const title = g.name.trim() || `Variation ${gi + 1}`;
+    const title = g.name.trim() || `Variation ${gi + furtherNumber}`;
     if (e.name) problems.push({ fieldId: fid(`option-${g.key}-name`), label: `${title}: name`, message: e.name });
     if (e.values) problems.push({ fieldId: fid(`option-${g.key}-add-value`), label: title, message: e.values });
     g.values.forEach((v, vi) => {
@@ -439,13 +443,14 @@ export function ProductForm({
           // Only further variations are left (an older product, or the first one was removed): the first one can be added again.
           <div className="space-y-2">
             <p className="text-base text-muted-foreground">One variation sets the price: each of its choices has its own price.</p>
-            <Button id={fid("add-first-variation")} type="button" variant="outline" className="self-start" onClick={startFirstVariation}>
+            <AddButton id={fid("add-first-variation")} className="self-start" onClick={startFirstVariation}>
               Add choices with their own prices
-            </Button>
+            </AddButton>
           </div>
         )}
         {hasVariations && (
           <ListsSection
+            firstNumber={furtherNumber}
             variations={namedVariations}
             variationWord={values.variationLabel.trim() || "variation"}
             groups={values.options}
@@ -518,7 +523,11 @@ export function ProductForm({
         }}
       />
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
-      <input type="hidden" name="options" value={JSON.stringify(values.options)} />
+      <input
+        type="hidden"
+        name="options"
+        value={JSON.stringify(values.options.map((g, gi) => (g.name.trim() === "" ? { ...g, name: `Variation ${gi + furtherNumber}` } : g)))}
+      />
       <input type="hidden" name="extras" value={JSON.stringify(values.extras)} />
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />

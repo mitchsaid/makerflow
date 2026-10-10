@@ -22,6 +22,7 @@ import {
 } from "@/lib/policies";
 import type { QuotePolicyError } from "@/lib/policies";
 import { PolicyForm } from "../documents/policies/policy-form";
+import { AddButton } from "@/components/add-button";
 
 /**
  * The quote's terms (docs/plans/terms.md): the business's saved terms as ticks, and terms written
@@ -215,9 +216,9 @@ export function TermsSection({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button ref={addOwnButton} type="button" variant="outline" disabled={full} onClick={addOwn}>
+        <AddButton ref={addOwnButton} disabled={full} onClick={addOwn}>
           Add a term just for this quote
-        </Button>
+        </AddButton>
         {canManage && (
           <Button ref={addButton} type="button" variant="outline" onClick={() => setSheetOpen(true)}>
             Save a new term

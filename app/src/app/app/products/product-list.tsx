@@ -4,7 +4,6 @@ import Link from "next/link";
 import { imageUrl } from "@/lib/images";
 import { useState } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -12,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { formatMoney, type NumberStyle } from "@/lib/money";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
 import { KIND_WORDS, newHref } from "./product-values";
+import { AddLink } from "@/components/add-button";
 
 /** The products list: search as you type, archived products hidden until asked for. */
 export function ProductList({
@@ -47,9 +47,9 @@ export function ProductList({
                 ? "Save the work you charge for, like design time or delivery and setup, with its price, so a quote is a few taps away."
                 : "Save the things you make, with their prices, so a quote is a few taps away."}
             </p>
-            <Link href={newHref(kind)} className={buttonVariants()}>
+            <AddLink href={newHref(kind)} variant="default">
               Add your first {words.one}
-            </Link>
+            </AddLink>
           </CardContent>
         </Card>
         {kind === "product" && (

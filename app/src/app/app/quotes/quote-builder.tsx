@@ -16,7 +16,7 @@ import { DepositSection } from "./deposit-section";
 import { TermsSection } from "./terms-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   formatMoney,
@@ -33,6 +33,7 @@ import { addDays } from "@/lib/quotes/dates";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import {
+  isBlankLine,
   optionsPerItem,
   previewTotals,
   type DiscountKind,
@@ -40,10 +41,12 @@ import {
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
+import { MISSING_CUSTOMER, MISSING_ITEMS } from "@/lib/quotes/send-checks";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
 import { LineSheet, type LineSheetView } from "./line-sheet";
+import { AddButton } from "@/components/add-button";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -263,8 +266,20 @@ export function QuoteBuilder({
     save();
   }
 
-  /** The preview shows what is saved, so unsaved changes are saved first. */
+  /**
+   * The preview shows what is saved, so unsaved changes are saved first. A quote with no customer or no items is not
+   * previewed: it shows what is missing, where it is missing, like any form that is not ready (a draft can still be saved).
+   */
   function onPreview() {
+    const noCustomer = values.customerId === "";
+    const noItems = values.lines.every(isBlankLine);
+    if (noCustomer || noItems) {
+      setState({
+        status: "error",
+        errors: { fields: { ...(noCustomer ? { customerId: MISSING_CUSTOMER } : {}), ...(noItems ? { lines: MISSING_ITEMS } : {}) }, lines: {} },
+      });
+      return;
+    }
     if (quoteId === null || editedSinceSave) save("preview");
     else router.push(`/app/quotes/${quoteId}/preview`);
   }
@@ -482,9 +497,15 @@ export function QuoteBuilder({
             {expanded ? "Show fewer items" : `Show all ${values.lines.length} items`}
           </Button>
         )}
-        <Button id="add-item" type="button" variant="outline" onClick={() => openSheet({ kind: "pick" })}>
+        <AddButton
+          id="add-item"
+          aria-invalid={!!f.lines}
+          aria-describedby={f.lines ? "items-error" : undefined}
+          onClick={() => openSheet({ kind: "pick" })}
+        >
           Add item
-        </Button>
+        </AddButton>
+        {f.lines && <FieldError id="items-error">{f.lines}</FieldError>}
         {/* Only when an item has a photo to show; nothing to decide otherwise. */}
         {values.lines.some((l) => photoOf(l)) && (
           <Field orientation="horizontal" className="items-start py-2.5">

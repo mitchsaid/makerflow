@@ -6,8 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
 import { matchesSearch, type CustomerSummary } from "@/lib/customers";
+import { AddLink } from "@/components/add-button";
 
 /**
  * The customers list: search as you type, archived customers hidden until asked for. The
@@ -39,9 +39,9 @@ export function CustomerList({
             Add the people you make things for. Only a name is needed, and you can add the
             rest later.
           </p>
-          <Link href="/app/customers/new" className={buttonVariants()}>
+          <AddLink href="/app/customers/new" variant="default">
             Add your first customer
-          </Link>
+          </AddLink>
         </CardContent>
       </Card>
     );

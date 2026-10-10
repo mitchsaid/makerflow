@@ -20,6 +20,7 @@ import {
 } from "../customers/actions";
 import { CustomerForm } from "../customers/customer-form";
 import { EMPTY_CUSTOMER, valuesFromCustomer } from "../customers/customer-values";
+import { AddButton } from "@/components/add-button";
 
 type Choice =
   | { kind: "customer"; customer: CustomerOption }
@@ -377,9 +378,9 @@ export function CustomerPicker({
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
       {/* In view whenever the list is not, so adding someone never depends on finding an option. */}
       {!(open && choices.length > 0) && (
-        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => openAdd(tidy(query))}>
+        <AddButton className="w-full sm:w-auto" onClick={() => openAdd(tidy(query))}>
           {tidy(query) !== "" ? `Add “${tidy(query)}” as a new customer` : "Add new customer"}
-        </Button>
+        </AddButton>
       )}
       {sheetView}
     </Field>

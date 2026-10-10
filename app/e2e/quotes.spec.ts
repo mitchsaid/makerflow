@@ -465,3 +465,45 @@ test("the X cancels a new quote: at once when nothing is typed, after asking whe
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   await expect(page.getByRole("button", { name: "Cancel new quote" })).toHaveCount(0);
 });
+
+test("Preview with no customer and/or no items shows the error state instead of opening the preview", async ({ page }) => {
+  await signUpAndOnboard(page, "q-preview-errors", "Preview Errors Co");
+  await openQuotes(page);
+  await page.getByRole("link", { name: "Start your first quote" }).click();
+  const preview = page.getByRole("button", { name: "Preview", exact: true });
+  const summary = page.getByTestId("form-summary");
+
+  // Neither: both are named, the page does not move.
+  await preview.click();
+  await expect(summary).toContainText("2 things need fixing");
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+
+  // An item but no customer: one thing.
+  await fillItem(page, 1, "Cake", "1", "100");
+  await preview.click();
+  await expect(summary).toContainText("1 thing needs fixing");
+  await expect(summary).toContainText("Choose who the quote is for.");
+  await expect(summary).not.toContainText("Add at least one item");
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+
+  // Both there: the preview opens.
+  await addCustomerInSheet(page, "Sipho");
+  await preview.click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
+});
+
+test("Preview with a customer but no items names the items", async ({ page }) => {
+  await signUpAndOnboard(page, "q-preview-noitems", "No Items Co");
+  await openQuotes(page);
+  await page.getByRole("link", { name: "Start your first quote" }).click();
+  await addCustomerInSheet(page, "Sipho");
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.getByTestId("form-summary")).toContainText("1 thing needs fixing");
+  await expect(page.getByTestId("form-summary")).toContainText("Add at least one item to the quote.");
+  await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  // The message is at the Items too, tied to the Add item button, and the summary link goes there.
+  await expect(page.getByRole("button", { name: "Add item" })).toHaveAccessibleDescription("Add at least one item to the quote.");
+  await expect(page.getByRole("button", { name: "Add item" })).toHaveAttribute("aria-invalid", "true");
+  await page.getByTestId("form-summary").getByRole("link", { name: /Items/ }).click();
+  await expect(page.getByRole("button", { name: "Add item" })).toBeFocused();
+});

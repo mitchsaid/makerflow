@@ -13,13 +13,14 @@ import {
   type OptionGroupFormRow,
   type OptionValueFormRow,
 } from "@/lib/products/options";
+import { AddButton } from "@/components/add-button";
 
 // New keys come from one counter that is never reset: the lists move (and remount) when sizes are added or removed.
 let keyCounter = 0;
 const nextKey = (prefix: string) => `${prefix}-${(keyCounter += 1)}`;
 
 /**
- * The further variations, added under the first one with "Add a variation": the ones that do not carry the price,
+ * The further variations, added under the first one with "Add another variation": the ones that do not carry the price,
  * like Flavour or Colour (docs/plans/product-extras.md). You pick one of their choices, each can add an amount to
  * the price (R0 is common), and an amount can be bigger on a bigger size. (The first variation, where each choice
  * has its own price, is above them in the same "Variations" section.)
@@ -31,6 +32,7 @@ export function ListsSection({
   currencySymbol,
   variations,
   variationWord,
+  firstNumber,
   fid,
   onPendingChange,
   onImage,
@@ -41,6 +43,8 @@ export function ListsSection({
   variations: { key: string; name: string }[];
   /** The maker's word for them ("Size"). */
   variationWord: string;
+  /** The number of the first one here, for the name it gets when it has none ("Variation 2": the first variation is 1). */
+  firstNumber: number;
   errors: OptionErrors | undefined;
   currencySymbol: string;
   fid: (key: string) => string;
@@ -91,7 +95,7 @@ export function ListsSection({
             const e = errors?.groups[g.key];
             const open = openKey === g.key || e !== undefined;
             const byVariation = g.priceByVariation === true && variations.length > 0;
-            const title = g.name.trim() || `Variation ${gi + 1}`;
+            const title = g.name.trim() || `Variation ${gi + firstNumber}`;
             const summary = `${g.values.length} ${g.values.length === 1 ? "choice" : "choices"} · can add to the price`;
             return (
               <li key={g.key} className="rounded-xl border border-border p-3">
@@ -116,6 +120,7 @@ export function ListsSection({
                     <TextField
                       id={fid(`option-${g.key}-name`)}
                       label="Name of this variation"
+                      placeholder={`Variation ${gi + firstNumber}`}
                       hint="Like “Flavour”."
                       autoComplete="off"
                       maxLength={80}
@@ -266,10 +271,8 @@ export function ListsSection({
                     </div>
                     {e?.values && <p className="text-sm text-destructive">{e.values}</p>}
                     <p className="text-sm text-muted-foreground">One is always chosen. To make it optional, add a choice like “None”.</p>
-                    <Button
+                    <AddButton
                       id={fid(`option-${g.key}-add-value`)}
-                      type="button"
-                      variant="outline"
                       className="self-start"
                       onClick={() => {
                         const value = blankValue();
@@ -278,7 +281,7 @@ export function ListsSection({
                       }}
                     >
                       Add a choice<span className="sr-only"> to {title}</span>
-                    </Button>
+                    </AddButton>
                     <SelectField
                       id={fid(`option-${g.key}-usual`)}
                       label={`Default ${title.toLowerCase()}`}
@@ -319,12 +322,9 @@ export function ListsSection({
       )}
 
       {groups.length < OPTIONS_MAX && (
-        <div className="space-y-1">
-          <Button id={fid("add-variation")} type="button" variant="outline" className="self-start" onClick={add}>
-            {groups.length > 0 ? "Add another variation" : "Add a variation"}
-          </Button>
-          <p className="text-sm text-muted-foreground">One you choose from, like Flavour or Colour. Each choice can add to the price.</p>
-        </div>
+        <AddButton id={fid("add-variation")} className="self-start" onClick={add}>
+          Add another variation
+        </AddButton>
       )}
     </>
   );
