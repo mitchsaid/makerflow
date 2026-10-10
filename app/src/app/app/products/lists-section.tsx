@@ -293,29 +293,33 @@ export function ListsSection({
         </p>
       )}
 
-      {groups.length < OPTIONS_MAX &&
-        (hasPricedList ? (
+      {hasPricedList ? (
+        groups.length < OPTIONS_MAX && (
           <div className="space-y-1">
             <Button id={fid("add-variation")} type="button" variant="outline" className="self-start" onClick={add}>
               Add another variation
             </Button>
             <p className="text-sm text-muted-foreground">One you choose from, like Flavour. Each choice can add to the price.</p>
           </div>
-        ) : (
-          // Nothing with its own prices yet: the price is what tells the two apart, so it is asked in plain words.
-          <div role="group" aria-label={groups.length > 0 ? "Add another variation" : "Add a variation"} className="space-y-2">
-            <p className="text-base font-medium">{groups.length > 0 ? "Add another variation" : "Add a variation"}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button
-                id={fid("add-variation")}
-                type="button"
-                variant="outline"
-                className="h-auto flex-col items-start gap-1 whitespace-normal p-3 text-left font-normal"
-                onClick={onAddPriced}
-              >
-                <span className="text-base font-medium">Each has its own price</span>
-                <span className="text-sm text-muted-foreground">Like sizes: Small R300, Large R600.</span>
-              </Button>
+        )
+      ) : (
+        // Nothing with its own prices yet: the price is what tells the two apart, so it is asked in plain words.
+        <div role="group" aria-labelledby={fid("add-variation-heading")} className="space-y-2">
+          <p id={fid("add-variation-heading")} className="text-base font-medium">
+            {groups.length > 0 ? "Add another variation" : "Add a variation"}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              id={fid("add-variation")}
+              type="button"
+              variant="outline"
+              className="h-auto flex-col items-start gap-1 whitespace-normal p-3 text-left font-normal"
+              onClick={onAddPriced}
+            >
+              <span className="text-base font-medium">Each has its own price</span>
+              <span className="text-sm text-muted-foreground">Like sizes: Small {currencySymbol}300, Large {currencySymbol}600.</span>
+            </Button>
+            {groups.length < OPTIONS_MAX && (
               <Button
                 type="button"
                 variant="outline"
@@ -323,11 +327,14 @@ export function ListsSection({
                 onClick={add}
               >
                 <span className="text-base font-medium">Adds to the price</span>
-                <span className="text-sm text-muted-foreground">Like flavour: Vanilla +R0, Red velvet +R50.</span>
+                <span className="text-sm text-muted-foreground">
+                  Like flavour: Vanilla +{currencySymbol}0, Red velvet +{currencySymbol}50.
+                </span>
               </Button>
-            </div>
+            )}
           </div>
-        ))}
+        </div>
+      )}
     </div>
   );
 }

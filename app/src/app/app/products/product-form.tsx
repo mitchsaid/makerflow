@@ -173,6 +173,8 @@ export function ProductForm({
     ] as const
   ).flatMap(([field, label]) => {
     const message = errors[field];
+    // With variations that have their own prices the single price field is not on the screen.
+    if (field === "unitPrice" && values.variations.length > 0) return [];
     return message ? [{ fieldId: fid(field), label, message }] : [];
   });
   // The variations' problems, in the order they appear on the screen.
