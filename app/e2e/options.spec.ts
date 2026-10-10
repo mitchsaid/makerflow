@@ -55,7 +55,7 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
   await page.getByLabel("Price", { exact: true }).fill("15");
 
-  // A list: Flavour, Vanilla usual, Red velvet +R5 each. It asks no kind and no charge.
+  // A list: Flavour, Vanilla default, Red velvet +R5 each. It asks no kind and no charge.
   await addList(page, "Flavour");
   await expect(page.getByLabel("Kind", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("How is the price added?")).toHaveCount(0);

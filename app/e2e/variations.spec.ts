@@ -20,7 +20,7 @@ async function fillVariations(page: Page, rows: [string, string][]) {
   }
 }
 
-test("a product with sizes: each has its price, the usual one comes first, and the quote and document say which", async ({ page }) => {
+test("a product with sizes: each has its price, the default one comes first, and the quote and document say which", async ({ page }) => {
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "var-sizes", "Sizes Co");
 
@@ -49,7 +49,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await expect(page.getByTestId("product-added")).toHaveText("Added Wedding cake.");
   await expect(page.getByRole("link", { name: /Wedding cake/ })).toContainText(/from R\s?300,00/);
 
-  // On a quote: the usual one is chosen, with its price; another can be chosen and the price follows.
+  // On a quote: the default one is chosen, with its price; another can be chosen and the price follows.
   await page.goto("/app/quotes/new");
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(sheet(page).getByRole("button", { name: /Wedding cake/ })).toContainText(/from R\s?300,00/);
@@ -81,7 +81,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await page.goto(`${quoteUrl}/preview`);
   await expect(page.getByRole("region", { name: "The quote as text" })).toContainText("Wedding cake, Large");
 
-  // Without a usual one, a size must be chosen before the item can be added.
+  // Without a default one, a size must be chosen before the item can be added.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Wedding cake/ }).click();
   await page.getByLabel("Default size").selectOption({ label: "None: I choose each time" });
@@ -111,7 +111,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await expect(sheet(page).getByRole("group", { name: "Choose a size" })).toContainText("No longer on the product");
 });
 
-test("sizes added from inside a quote start the item with the usual one, and saving twice never doubles them", async ({ page }) => {
+test("sizes added from inside a quote start the item with the default one, and saving twice never doubles them", async ({ page }) => {
   await signUpAndOnboard(page, "var-sheet", "Sheet Sizes Co");
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Candle");
@@ -250,4 +250,35 @@ test("answering Yes starts with nothing filled in: an empty name with an example
   await expect(page.getByTestId("form-summary")).toContainText("Name this variation");
   await expect(page.getByTestId("form-summary")).toContainText("Give it a name");
   await expect(page.getByTestId("form-summary")).toContainText("Enter a price");
+});
+
+test("with only further variations left, the first variation can be added again, and focus is never lost", async ({ page }) => {
+  await signUpAndOnboard(page, "var-only-further", "Further Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByRole("radio", { name: /^Yes/ }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  await fillVariations(page, [["Small", "300"], ["Large", "500"]]);
+  await page.getByRole("button", { name: /^Add (a|another) variation$/ }).click();
+  await page.getByLabel("Name of this variation").last().fill("Flavour");
+  await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
+  await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Chocolate");
+
+  // Every size removed: the answer stays Yes (a flavour is left), and focus goes to the way back.
+  await tap(page.getByRole("button", { name: "Remove Large" }));
+  await tap(page.getByRole("button", { name: "Remove Small" }));
+  await expect(page.getByRole("radio", { name: /^Yes/ })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Add choices with their own prices" })).toBeFocused();
+  await expect(page.getByLabel("Price", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add choices with their own prices" }).click();
+  await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(2);
+
+  // Take the sizes away again and then the flavour: nothing left means No, with focus on it.
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  await tap(page.getByRole("button", { name: "Remove Size 2" }));
+  await tap(page.getByRole("button", { name: "Remove Size 1" }));
+  await tap(page.getByRole("button", { name: /^Remove this variation\s*: Flavour$/ }));
+  await expect(page.getByRole("radio", { name: /^No/ })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /^No/ })).toBeFocused();
 });

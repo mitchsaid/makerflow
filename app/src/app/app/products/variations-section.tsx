@@ -67,7 +67,7 @@ export function PricedVariations({
   const blank = (): VariationFormRow => ({ key: newVariationKey(), id: "", name: "", price: "", usual: false });
   const setRow = (key: string, change: Partial<VariationFormRow>) =>
     onChange({ rows: rows.map((r) => (r.key === key ? { ...r, ...change } : r)) });
-  // A usual row whose name was cleared can't be shown in the list, so it reads as none until named.
+  // A default row whose name was cleared can't be shown in the list, so it reads as none until named.
   const usualKey = rows.find((r) => r.usual && r.name.trim() !== "")?.key ?? "none";
 
   return (
@@ -187,7 +187,6 @@ export function PricedVariations({
         options={rows.filter((r) => r.name.trim() !== "").map((r) => r.key)}
         optionLabels={Object.fromEntries(rows.map((r) => [r.key, r.name.trim()]))}
       />
-
     </div>
   );
 }

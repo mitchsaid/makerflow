@@ -229,7 +229,7 @@ export function ProductForm({
       }
     });
   });
-  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Variations", message: errors.options.list });
+  if ((values.variations.length > 0 || values.options.length > 0) && errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Variations", message: errors.options.list });
   // The extras' problems, in the order they appear.
   values.extras.forEach((x, xi) => {
     const e = errors.extras?.rows[x.key];
@@ -276,21 +276,33 @@ export function ProductForm({
         : {}),
     }));
   }
-  const focusOnePrice = useRef(false);
+  // Where focus goes after the last choice (or the last further variation) is removed and its part of the form goes:
+  // to the "No" answer when nothing is left, or to the button that adds the first variation again.
+  const focusAfter = useRef<"no" | "first" | null>(null);
   useEffect(() => {
-    if (!focusOnePrice.current) return;
-    focusOnePrice.current = false;
-    document.getElementById(fid("pricing-one"))?.closest('[data-slot="field"]')?.querySelector<HTMLElement>('[role="radio"]')?.focus();
+    const what = focusAfter.current;
+    if (!what) return;
+    focusAfter.current = null;
+    if (what === "first") document.getElementById(fid("add-first-variation"))?.focus();
+    else document.getElementById(fid("pricing-one"))?.closest('[data-slot="field"]')?.querySelector<HTMLElement>('[role="radio"]')?.focus();
   });
+  // The variation that sets the price: two empty choices to start, or what was put aside (never an empty list).
+  function startFirstVariation() {
+    const rows =
+      aside && aside.rows.length > 0
+        ? aside.rows
+        : [
+            { key: newVariationKey(), id: "", name: "", price: "", usual: false },
+            { key: newVariationKey(), id: "", name: "", price: "", usual: false },
+          ];
+    changeVariations({ label: aside && aside.rows.length > 0 ? aside.label : values.variationLabel, rows });
+    focusAfter.current = null;
+  }
   function choosePricing(yes: boolean) {
     if (yes === hasVariations) return;
     if (yes) {
       // Two empty choices to start (nothing pre-filled), or what was put aside.
-      const rows = aside?.rows ?? [
-        { key: newVariationKey(), id: "", name: "", price: "", usual: false },
-        { key: newVariationKey(), id: "", name: "", price: "", usual: false },
-      ];
-      changeVariations({ label: aside?.label ?? values.variationLabel, rows });
+      startFirstVariation();
       // What was typed in the price field meanwhile is the first choice's price; "price depends on the size" comes back too.
       const back = new Set(aside?.priceBySize ?? []);
       setValues((v) => ({
@@ -417,11 +429,20 @@ export function ProductForm({
             onPendingChange={onChoicePending}
             onImage={setVariationImage}
             onChange={(change) => {
-              // The last size removed takes the sizes away: focus goes to the answer that is left.
-              if (change.rows?.length === 0) focusOnePrice.current = true;
+              // The last choice removed takes the first variation away: focus goes to what is left to press.
+              if (change.rows?.length === 0) focusAfter.current = values.options.length > 0 ? "first" : "no";
               changeVariations(change);
             }}
           />
+        )}
+        {hasVariations && !priced && (
+          // Only further variations are left (an older product, or the first one was removed): the first one can be added again.
+          <div className="space-y-2">
+            <p className="text-base text-muted-foreground">One variation sets the price: each of its choices has its own price.</p>
+            <Button id={fid("add-first-variation")} type="button" variant="outline" className="self-start" onClick={startFirstVariation}>
+              Add choices with their own prices
+            </Button>
+          </div>
         )}
         {hasVariations && (
           <ListsSection
@@ -434,6 +455,8 @@ export function ProductForm({
             onPendingChange={onChoicePending}
             onImage={setValueImage}
             onChange={(options) => {
+              // The last further variation removed with nothing else left answers the question "No": focus goes there.
+              if (options.length === 0 && !priced) focusAfter.current = "no";
               setEditedSinceSave(true);
               setValues((v) => ({ ...v, options }));
             }}
