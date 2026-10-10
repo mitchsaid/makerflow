@@ -63,7 +63,7 @@ Unit: variation list parsing and the form; extras parsing (wording, shared or pr
   - **Yes** shows one variation with nothing pre-filled: its name (the business type's first suggestion as an example, no suggestion buttons) and its choices, each with a price, starting with one empty choice and "Add another choice". The sentence "On a quote you choose one." is gone.
   - **Price** shows the single price field for No, and a note ("The price is set on each choice above.") for Yes; unit and VAT show either way.
   - Answering No carries the first choice's price into the price field and puts the choices aside until the form is saved (Yes again brings them back, with a price typed meanwhile as the first choice's price); the first price typed carries into the first choice the other way.
-  - Next (own change, needs a migration): an optional image for each choice.
+  - Each choice can have its own picture: see `variation-images.md`.
 
 ## Not built
 "Often added with this" (adding Mugs suggests "Logo setup"); extras with a cost (a material) for costing; stock; a screen to rename or archive saved extras (an extra can be removed from every product by removing it from each).

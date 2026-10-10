@@ -252,6 +252,11 @@ export function buildQuoteSnapshot(input: {
   bank: BankDetails | null;
   /** Each product's photo (product id to image id), for the lines that come from products. */
   productPhotos?: ReadonlyMap<string, string>;
+  /**
+   * The pictures of variation choices (variation id or choice id to image id). A line shows the picture of its
+   * chosen variation, else of its first chosen choice that has one, else the product's photo.
+   */
+  choicePhotos?: ReadonlyMap<string, string>;
   /** The theme to draw in, finished (see chooseTheme and resolveTheme). Classic when not given. */
   theme?: Theme;
 }): QuoteSnapshot {
@@ -261,6 +266,18 @@ export function buildQuoteSnapshot(input: {
     totals.lines.map((l) => [l.id, l.amountBeforeDiscountCents - l.lineDiscountCents]),
   );
   const rateBp = vat.registered ? vat.standardRateBp : null;
+  // The picture of what was chosen on a line: its variation's, else the first of its choices that has one.
+  const choicePhoto = (l: (typeof quote.lines)[number]): string | null => {
+    const photos = input.choicePhotos;
+    if (!photos) return null;
+    const own = l.variation?.id ? photos.get(l.variation.id) : undefined;
+    if (own) return own;
+    for (const o of l.options) {
+      const found = o.kind === "one" && o.valueId ? photos.get(o.valueId) : undefined;
+      if (found) return found;
+    }
+    return null;
+  };
   // The treatments that have an amount on the quote. A free delivery, a collection line or an item discounted
   // to nothing says nothing about VAT, so it does not count.
   const priced = new Set(totals.lines.filter((l) => l.amountCents > 0).map((l) => l.id));
@@ -319,7 +336,7 @@ export function buildQuoteSnapshot(input: {
         : null,
       lineTotalCents: totalOf.get(l.key) ?? 0,
       // Photos only when the quote shows them, and only for lines that come from a product that has one.
-      photoImageId: quote.showPhotos !== false && l.productId ? (input.productPhotos?.get(l.productId) ?? null) : null,
+      photoImageId: quote.showPhotos !== false && l.productId ? (choicePhoto(l) ?? input.productPhotos?.get(l.productId) ?? null) : null,
       ...(vat.registered ? { vatStatus: l.vatStatus } : {}),
       ...(l.variation ? { variation: { label: l.variation.label, name: l.variation.name } } : {}),
       ...(l.options.length > 0

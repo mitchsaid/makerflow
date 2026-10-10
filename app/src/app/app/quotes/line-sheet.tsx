@@ -620,7 +620,7 @@ function ConfigureView({
               chooseVariation(key);
             }}
             options={[
-              ...variations.map((v) => ({ key: v.id, name: v.name, priceText: money(v.priceCents) })),
+              ...variations.map((v) => ({ key: v.id, name: v.name, priceText: money(v.priceCents), imageId: v.imageId ?? undefined })),
               ...(keptOwn
                 ? [{ key: "kept", name: line.variationName ?? "", priceText: "", note: `No longer on the ${product ? KIND_WORDS[product.kind].one : "product"}. Kept as it was.` }]
                 : []),

@@ -196,3 +196,81 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   const after = await page.request.get(`${quoteUrl}/pdf`);
   expect(await imagesIn(after)).toBe(bothCount);
 });
+
+test("a variation choice has its own picture: chosen, kept after saving, shown beside it on a quote, removed", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "pic-choice", "Choice Pics Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByRole("radio", { name: "Yes" }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  await page.getByRole("button", { name: "Add another choice" }).click();
+  await page.getByLabel("Size 1", { exact: true }).fill("Small");
+  await page.getByLabel("Size 1 price", { exact: true }).fill("300");
+  await page.getByLabel("Size 2", { exact: true }).fill("Large");
+  await page.getByLabel("Size 2 price", { exact: true }).fill("600");
+
+  // A picture for Large only: not a picture is refused in plain words, a real one is shown on its button.
+  // The product's own photo field comes first, then each choice's.
+  const second = page.locator('input[type="file"]').nth(2);
+  await second.setInputFiles({ name: "x.png", mimeType: "image/png", buffer: Buffer.from("hello, not a picture") });
+  await expect(page.getByText(/doesn.t look like a picture we can use/)).toBeVisible();
+  await second.setInputFiles({ name: "large.jpg", mimeType: "image/jpeg", buffer: await picture(1200, 900) });
+  const largeButton = page.getByRole("button", { name: "Large: replace the picture" });
+  await expect(largeButton.locator("img")).toBeVisible();
+  await expect(page.getByText(/doesn.t look like a picture/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Small: add a picture" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Wedding cake.");
+
+  // Kept after saving: opened again, Large still has it.
+  await page.getByRole("link", { name: /Wedding cake/ }).click();
+  await expect(page.getByRole("button", { name: "Large: replace the picture" }).locator("img")).toBeVisible();
+
+  // Beside the choice on a quote.
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  const choose = sheet(page).getByRole("group", { name: "Choose a size" });
+  await expect(choose.locator("label", { hasText: "Large" }).locator("img")).toHaveCount(1);
+  await expect(choose.locator("label", { hasText: "Small" }).locator("img")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // Removed: only the pointing stops.
+  await page.goto("/app/products");
+  await page.getByRole("link", { name: /Wedding cake/ }).click();
+  await page.getByRole("button", { name: /^Remove picture of Large$/ }).click();
+  await expect(page.getByRole("button", { name: "Large: add a picture" })).toBeVisible();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Large: add a picture" })).toBeVisible();
+});
+
+test("a choice of another variation (a flavour) has its own picture too, shown beside it on a quote", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "pic-flavour", "Flavour Pics Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
+  await page.getByLabel("Price", { exact: true }).fill("30");
+  await page.getByRole("button", { name: /^Add (a|another) variation$/ }).click();
+  await page.getByLabel("Name of this variation").last().fill("Flavour");
+  await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
+  await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Red velvet");
+
+  // The product's own photo field comes first, then each choice's: this is Vanilla's.
+  await page.locator('input[type="file"]').nth(1).setInputFiles({ name: "v.jpg", mimeType: "image/jpeg", buffer: await picture(900, 900) });
+  await expect(page.getByRole("button", { name: "Vanilla: replace the picture" }).locator("img")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Red velvet: add a picture" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Cupcakes.");
+
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
+  const flavour = sheet(page).getByRole("group", { name: "Flavour" });
+  await expect(flavour.locator("label", { hasText: "Vanilla" }).locator("img")).toHaveCount(1);
+  await expect(flavour.locator("label", { hasText: "Red velvet" }).locator("img")).toHaveCount(0);
+});

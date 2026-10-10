@@ -51,6 +51,7 @@ export async function prepareQuote(
   // The photos of the products on the quote, as they are now (frozen into the snapshot when it is sent).
   const productIds = [...new Set(parsed.quote.lines.flatMap((l) => (l.productId ? [l.productId] : [])))];
   const productPhotos = new Map<string, string>();
+  const choicePhotos = new Map<string, string>();
   if (productIds.length > 0 && parsed.quote.showPhotos !== false) {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -62,6 +63,27 @@ export async function prepareQuote(
     if (error) throw new Error(`Could not load the products' photos: ${error.message}`);
     for (const row of (data ?? []) as { id: string; photo_image_id: string | null }[]) {
       if (row.photo_image_id) productPhotos.set(row.id, row.photo_image_id);
+    }
+    // The pictures of the choices on the quote's items (a line shows its variation's or choice's own picture).
+    const choiceIds = [
+      ...new Set(
+        parsed.quote.lines.flatMap((l) => [
+          ...(l.variation?.id ? [l.variation.id] : []),
+          ...l.options.flatMap((o) => (o.kind === "one" && o.valueId ? [o.valueId] : [])),
+        ]),
+      ),
+    ];
+    if (choiceIds.length > 0) {
+      const [variations, values] = await Promise.all([
+        supabase.from("product_variations").select("id, image_id").eq("organisation_id", organisation.id).in("id", choiceIds),
+        supabase.from("product_option_values").select("id, image_id").eq("organisation_id", organisation.id).in("id", choiceIds),
+      ]);
+      // Never carry on without them either: a quote sent now would be frozen with the wrong picture for good.
+      if (variations.error) throw new Error(`Could not load the variations' pictures: ${variations.error.message}`);
+      if (values.error) throw new Error(`Could not load the choices' pictures: ${values.error.message}`);
+      for (const row of [...(variations.data ?? []), ...(values.data ?? [])] as { id: string; image_id: string | null }[]) {
+        if (row.image_id) choicePhotos.set(row.id, row.image_id);
+      }
     }
   }
 
@@ -81,6 +103,7 @@ export async function prepareQuote(
     locale,
     bank: workspace.bankDetails,
     productPhotos,
+    choicePhotos,
     theme: resolveTheme(chosen.spec, chosen.name),
   });
   const depositNow = parsed.quote.deposit ? depositAmounts(parsed.quote.totals.grossCents, parsed.quote.deposit) : null;
