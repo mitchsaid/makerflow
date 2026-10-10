@@ -86,6 +86,7 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   await expect(page.getByRole("link", { name: /QT-0001/ })).toContainText("Draft");
   await page.getByRole("link", { name: "New quote" }).click();
   await fillItem(page, 1, "Cupcakes", "12", "15");
+  await addCustomerInSheet(page, "Thandi");
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByRole("heading", { name: /^Preview of quote QT-0002/, level: 1 })).toBeVisible();
