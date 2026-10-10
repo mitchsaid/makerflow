@@ -16,6 +16,7 @@ import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { VariationsSection } from "./variations-section";
 import { ListsSection } from "./lists-section";
+import { newVariationKey } from "./variations-section";
 import { ExtrasSection } from "./extras-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 
@@ -186,7 +187,7 @@ export function ProductForm({
   values.options.forEach((g, gi) => {
     const e = errors.options?.groups[g.key];
     if (!e) return;
-    const title = g.name.trim() || `List ${gi + 1}`;
+    const title = g.name.trim() || `Variation ${gi + 1}`;
     if (e.name) problems.push({ fieldId: fid(`option-${g.key}-name`), label: `${title}: name`, message: e.name });
     if (e.values) problems.push({ fieldId: fid(`option-${g.key}-add-value`), label: title, message: e.values });
     g.values.forEach((v, vi) => {
@@ -199,7 +200,7 @@ export function ProductForm({
       }
     });
   });
-  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Lists", message: errors.options.list });
+  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Variations", message: errors.options.list });
   // The extras' problems, in the order they appear.
   values.extras.forEach((x, xi) => {
     const e = errors.extras?.rows[x.key];
@@ -214,6 +215,30 @@ export function ProductForm({
     }
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
+
+  // The variation where each choice has its own price (sizes) starts with two rows, named from the business
+  // type's suggestions; the price typed so far moves into the first (see carryPrice).
+  const focusAfter = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusAfter.current) return;
+    document.getElementById(focusAfter.current)?.focus();
+    focusAfter.current = null;
+  });
+  function startPriced() {
+    const first = { key: newVariationKey(), id: "", name: "", price: "", usual: false };
+    const second = { key: newVariationKey(), id: "", name: "", price: "", usual: false };
+    setEditedSinceSave(true);
+    setValues((v) => {
+      const carried = carryPrice({ unitPrice: v.unitPrice, rows: v.variations }, [first, second]);
+      return {
+        ...v,
+        variationLabel: v.variationLabel || variationSuggestions[0] || "Size",
+        variations: carried.rows,
+        unitPrice: carried.unitPrice,
+      };
+    });
+    focusAfter.current = fid(`variation-${first.key}-name`);
+  }
 
   const set =
     <K extends keyof ProductFormValues>(key: K) =>
@@ -253,7 +278,38 @@ export function ProductForm({
         />
         {/* The kind is decided by where the form was opened ("Add new service" and so on). */}
         <input type="hidden" name="kind" value={values.kind} />
-        {/* With variations each has its own price (below), so the single price goes. */}
+        <TextAreaField
+          id={fid("description")}
+          name="description"
+          label="Description (optional)"
+          hint="Shown on your quotes under the name."
+          maxLength={1000}
+          value={values.description}
+          error={errors.description}
+          onChange={set("description")}
+        />
+        {/* Services have no photo (founder, 2026-10-03). */}
+        {values.kind === "product" && (
+          <ImageField
+            id={fid("photo")}
+            name="photoImageId"
+            label="Photo (optional)"
+            kind="product"
+            value={values.photoImageId}
+            alt={values.name ? `Photo of ${values.name}` : "Photo of this product"}
+            hint="Shown small beside the item on your quotes. It is cropped square, so keep the product in the middle."
+            error={errors.photo ?? (waiting && uploading ? "Wait for the photo to finish uploading, then save." : undefined)}
+            onChange={(photoImageId) => set("photoImageId")(photoImageId)}
+            onPendingChange={(busy) => {
+              setUploading(busy);
+              if (!busy) setWaiting(false);
+            }}
+          />
+        )}
+      </Section>
+
+      <Section title="Price">
+        {/* With a variation that has its own prices (below), each choice is priced there and the single price goes. */}
         {values.variations.length === 0 ? (
           <TextField
             id={fid("unitPrice")}
@@ -265,6 +321,7 @@ export function ProductForm({
             value={values.unitPrice}
             error={errors.unitPrice}
             onChange={set("unitPrice")}
+            hint="Does the price change with size or version? Add variations below."
           />
         ) : (
           <p className="text-base text-muted-foreground" data-testid="price-by-variation">
@@ -293,38 +350,7 @@ export function ProductForm({
             error={errors.vatStatus}
           />
         )}
-        <TextAreaField
-          id={fid("description")}
-          name="description"
-          label="Description (optional)"
-          hint="Shown on your quotes under the name."
-          maxLength={1000}
-          value={values.description}
-          error={errors.description}
-          onChange={set("description")}
-        />
       </Section>
-
-      {/* Services have no photo (founder, 2026-10-03). */}
-      {values.kind === "product" && (
-        <Section title="Photo">
-          <ImageField
-            id={fid("photo")}
-            name="photoImageId"
-            label="Photo (optional)"
-            kind="product"
-            value={values.photoImageId}
-            alt={values.name ? `Photo of ${values.name}` : "Photo of this product"}
-            hint="Shown small beside the item on your quotes. It is cropped square, so keep the product in the middle."
-            error={errors.photo ?? (waiting && uploading ? "Wait for the photo to finish uploading, then save." : undefined)}
-            onChange={(photoImageId) => set("photoImageId")(photoImageId)}
-            onPendingChange={(busy) => {
-              setUploading(busy);
-              if (!busy) setWaiting(false);
-            }}
-          />
-        </Section>
-      )}
 
       <VariationsSection
         label={values.variationLabel}
@@ -354,8 +380,9 @@ export function ProductForm({
           }));
         }}
       >
-        {/* The lists you pick one from (flavour) sit with the variations: they are the same idea. */}
+        {/* The variations that add to the price (flavour) sit with the one that has its own prices (sizes): one idea. */}
         <ListsSection
+          onAddPriced={startPriced}
           hasPricedList={values.variations.length > 0}
           variations={namedVariations}
           variationWord={values.variationLabel.trim() || "variation"}

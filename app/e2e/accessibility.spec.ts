@@ -292,7 +292,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Axe product", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit product");
       // Variations on the product, with a problem, then saved and chosen on a quote.
-      await page.getByRole("button", { name: "Add variations" }).click();
+      await page.getByRole("button", { name: /^Each has its own price/ }).click();
       await page.getByRole("textbox", { name: "Size 1", exact: true }).fill("Small");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
@@ -331,8 +331,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Done Gift wrap" }).click();
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
-      await page.getByRole("button", { name: /^Add (a|another) list$/ }).click();
-      await page.getByLabel("List name").fill("Flavour");
+      await page.getByRole("button", { name: /^(Adds to the price|Add another variation)/ }).click();
+      await page.getByLabel("Variation name").fill("Flavour");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toContainText("Flavour: choice 1");
       await expectNoViolations(page, "product lists, with problems");

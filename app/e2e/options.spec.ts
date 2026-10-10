@@ -11,11 +11,11 @@ async function tap(locator: import("@playwright/test").Locator) {
   await locator.press("Enter");
 }
 
-/** Adds a list (to pick one from) on the product form and opens it. */
+/** Adds a variation that adds to the price (a flavour) on the product form and opens it. */
 async function addList(page: Page, name: string) {
-  await page.getByRole("button", { name: /^Add (a|another) list$/ }).click();
-  await expect(page.getByLabel("List name").last()).toBeFocused();
-  await page.getByLabel("List name").last().fill(name);
+  await page.getByRole("button", { name: /^(Adds to the price|Add another variation)/ }).click();
+  await expect(page.getByLabel("Variation name").last()).toBeFocused();
+  await page.getByLabel("Variation name").last().fill(name);
 }
 
 /**
@@ -225,7 +225,7 @@ test("an extra for one product can cost more on a bigger size, and follows the s
   await signUpAndOnboard(page, "ext-by-size", "By Size Co");
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
-  await page.getByRole("button", { name: "Add variations" }).click();
+  await page.getByRole("button", { name: /^Each has its own price/ }).click();
   for (const [i, [name, price]] of ([["Small", "300"], ["Large", "600"]] as const).entries()) {
     await page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }).fill(name);
     await page.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
