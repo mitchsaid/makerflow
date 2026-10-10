@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getLocalePack } from "@/lib/locale";
 import type { ProductKind } from "@/lib/products";
@@ -7,6 +6,7 @@ import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
 import { ProductList } from "./product-list";
 import { KIND_WORDS, listHref, newHref } from "./product-values";
+import { AddLink } from "@/components/add-button";
 
 /**
  * Products and services: one tab, two lists, switched at the top (founder, 2026-10-03). They
@@ -31,9 +31,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/app/pro
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Products &amp; services</h1>
         {hasAny && (
-          <Link href={newHref(kind)} className={buttonVariants()}>
+          <AddLink href={newHref(kind)} variant="default">
             Add {KIND_WORDS[kind].one}
-          </Link>
+          </AddLink>
         )}
       </div>
       <nav aria-label="Products or services" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">

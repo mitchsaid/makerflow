@@ -10,6 +10,7 @@ import { exampleLabel, sortPolicies, termExamples, termName } from "@/lib/polici
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { BusinessTypePrompt } from "./business-type-prompt";
+import { AddLink } from "@/components/add-button";
 
 /**
  * Quotes and invoices > Terms: the library of terms a business reuses on its quotes (stored as
@@ -113,9 +114,9 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
 
       {canEdit && (
         <>
-          <Link href="/app/documents/policies/new" className={buttonVariants({ variant: "outline" })}>
+          <AddLink href="/app/documents/policies/new">
             Add a term
-          </Link>
+          </AddLink>
           <section className="space-y-2" aria-labelledby="examples-heading" data-testid="example-links">
             <div>
               <h2 id="examples-heading" className="text-base font-semibold">

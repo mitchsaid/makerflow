@@ -13,6 +13,7 @@ import {
   type OptionGroupFormRow,
   type OptionValueFormRow,
 } from "@/lib/products/options";
+import { AddButton } from "@/components/add-button";
 
 // New keys come from one counter that is never reset: the lists move (and remount) when sizes are added or removed.
 let keyCounter = 0;
@@ -266,10 +267,8 @@ export function ListsSection({
                     </div>
                     {e?.values && <p className="text-sm text-destructive">{e.values}</p>}
                     <p className="text-sm text-muted-foreground">One is always chosen. To make it optional, add a choice like “None”.</p>
-                    <Button
+                    <AddButton
                       id={fid(`option-${g.key}-add-value`)}
-                      type="button"
-                      variant="outline"
                       className="self-start"
                       onClick={() => {
                         const value = blankValue();
@@ -278,7 +277,7 @@ export function ListsSection({
                       }}
                     >
                       Add a choice<span className="sr-only"> to {title}</span>
-                    </Button>
+                    </AddButton>
                     <SelectField
                       id={fid(`option-${g.key}-usual`)}
                       label={`Default ${title.toLowerCase()}`}
@@ -320,9 +319,9 @@ export function ListsSection({
 
       {groups.length < OPTIONS_MAX && (
         <div className="space-y-1">
-          <Button id={fid("add-variation")} type="button" variant="outline" className="self-start" onClick={add}>
+          <AddButton id={fid("add-variation")} className="self-start" onClick={add}>
             {groups.length > 0 ? "Add another variation" : "Add a variation"}
-          </Button>
+          </AddButton>
           <p className="text-sm text-muted-foreground">One you choose from, like Flavour or Colour. Each choice can add to the price.</p>
         </div>
       )}

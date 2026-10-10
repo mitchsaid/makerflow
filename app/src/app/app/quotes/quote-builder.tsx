@@ -44,6 +44,7 @@ import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
 import { LineSheet, type LineSheetView } from "./line-sheet";
+import { AddButton } from "@/components/add-button";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -482,9 +483,9 @@ export function QuoteBuilder({
             {expanded ? "Show fewer items" : `Show all ${values.lines.length} items`}
           </Button>
         )}
-        <Button id="add-item" type="button" variant="outline" onClick={() => openSheet({ kind: "pick" })}>
+        <AddButton id="add-item" onClick={() => openSheet({ kind: "pick" })}>
           Add item
-        </Button>
+        </AddButton>
         {/* Only when an item has a photo to show; nothing to decide otherwise. */}
         {values.lines.some((l) => photoOf(l)) && (
           <Field orientation="horizontal" className="items-start py-2.5">

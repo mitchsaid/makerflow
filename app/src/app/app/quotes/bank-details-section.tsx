@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { Section } from "@/components/form-fields";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -10,6 +9,7 @@ import { bankPreview, type BankPreview } from "@/lib/bank";
 import { getLocalePack } from "@/lib/locale";
 import { emptyBankValues } from "@/lib/bank/form";
 import { BankDetailsForm } from "../business/bank-details-form";
+import { AddButton } from "@/components/add-button";
 
 /**
  * "How to pay" on a quote: the business's saved bank details with a tick to show them on this
@@ -73,9 +73,9 @@ export function BankDetailsSection({
               : "Your business hasn't saved its bank details yet. Ask the owner to add them."}
           </p>
           {canEdit && (
-            <Button ref={addButton} type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setSheetOpen(true)}>
+            <AddButton ref={addButton} className="w-full sm:w-auto" onClick={() => setSheetOpen(true)}>
               Add bank details
-            </Button>
+            </AddButton>
           )}
         </div>
       )}

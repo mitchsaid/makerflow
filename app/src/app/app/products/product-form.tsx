@@ -20,6 +20,7 @@ import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
+import { AddButton } from "@/components/add-button";
 
 /**
  * The layers a product will grow, shown where they will live but not working yet
@@ -439,9 +440,9 @@ export function ProductForm({
           // Only further variations are left (an older product, or the first one was removed): the first one can be added again.
           <div className="space-y-2">
             <p className="text-base text-muted-foreground">One variation sets the price: each of its choices has its own price.</p>
-            <Button id={fid("add-first-variation")} type="button" variant="outline" className="self-start" onClick={startFirstVariation}>
+            <AddButton id={fid("add-first-variation")} className="self-start" onClick={startFirstVariation}>
               Add choices with their own prices
-            </Button>
+            </AddButton>
           </div>
         )}
         {hasVariations && (

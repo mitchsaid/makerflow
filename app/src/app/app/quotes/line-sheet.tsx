@@ -35,6 +35,7 @@ import { optionsFixed, optionsPerItem, parseLine, type LineOption, type Discount
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
+import { AddButton } from "@/components/add-button";
 
 /**
  * Where the item sheet is: choosing what to add, configuring one line, or the product form
@@ -410,12 +411,12 @@ function PickView({
         </p>
       )}
       <div className="flex flex-col gap-3">
-        <Button type="button" onClick={() => onAdd("product")}>
+        <AddButton variant="default" onClick={() => onAdd("product")}>
           Add new product
-        </Button>
-        <Button type="button" variant="outline" onClick={() => onAdd("service")}>
+        </AddButton>
+        <AddButton onClick={() => onAdd("service")}>
           Add new service
-        </Button>
+        </AddButton>
         <Button type="button" variant="outline" onClick={onOneOff}>
           One-off item (just for this quote)
         </Button>

@@ -7,6 +7,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { EXTRAS_MAX, usedOnWords, type ExtraErrors, type ExtraFormRow } from "@/lib/products/extras";
 import { listSharedExtras, type SharedExtraChoice } from "./extras-actions";
+import { AddButton } from "@/components/add-button";
 
 // New keys come from one counter that is never reset (the form keeps rows by key).
 let keyCounter = 0;
@@ -311,9 +312,9 @@ export function ExtrasSection({
             ))}
           </ul>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={addNew}>
+            <AddButton onClick={addNew}>
               Make a new extra
-            </Button>
+            </AddButton>
             <Button
               type="button"
               variant="ghost"
@@ -328,9 +329,9 @@ export function ExtrasSection({
         </div>
       ) : (
         rows.length < EXTRAS_MAX && (
-          <Button id={fid("add-extra")} type="button" variant="outline" className="self-start" disabled={loading} onClick={startAdding}>
+          <AddButton id={fid("add-extra")} className="self-start" disabled={loading} onClick={startAdding}>
             {loading ? "Looking…" : "Add an extra"}
-          </Button>
+          </AddButton>
         )
       )}
     </Section>

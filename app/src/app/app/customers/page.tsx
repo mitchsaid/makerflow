@@ -1,9 +1,8 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { forOrganisation } from "@/lib/customers";
 import { getCustomers } from "@/lib/customers/data";
 import { CustomerList } from "./customer-list";
+import { AddLink } from "@/components/add-button";
 
 export default async function CustomersPage({ searchParams }: PageProps<"/app/customers">) {
   // The customers query runs beside the workspace check, not after it.
@@ -21,9 +20,9 @@ export default async function CustomersPage({ searchParams }: PageProps<"/app/cu
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Customers</h1>
         {customers.length > 0 && (
-          <Link href="/app/customers/new" className={buttonVariants()}>
+          <AddLink href="/app/customers/new" variant="default">
             Add customer
-          </Link>
+          </AddLink>
         )}
       </div>
       <CustomerList customers={customers} addedName={addedName} />

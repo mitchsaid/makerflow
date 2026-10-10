@@ -20,6 +20,7 @@ Read `docs/project-context.md` first (current state, working agreements, next st
 - Advanced features are offered through friendly, dismissable prompts and never forced on the user.
 - Thin slices keep the full feature's interaction: unbuilt parts are visible but inactive placeholder sections ("coming soon"), never a stand-in interaction to be replaced later. Placeholders show in production the same as on dev for now. See `docs/product-brief.md`, principle 9.
 - Forms: primary buttons stay enabled; clicking with problems shows them at the fields and in a summary that jumps to the first one; errors appear only after interaction; messages say how to fix it; typed data is never lost. See `docs/adr/0005-form-errors.md`.
+- Actions that add something use `AddButton` / `AddLink` (`app/src/components/add-button.tsx`): a plus, then the label. See `docs/adr/0008-add-actions.md`; a unit test fails if a plain button says "Add …".
 - Design mobile-first. UI is built from `app/src/components/ui` (shadcn/ui, see `docs/adr/0003-ui-components.md`): no hand-written buttons, inputs or cards; tap targets at least 44 px, input text at least 16 px; new screens get a case in `e2e/accessibility.spec.ts`.
 - Speed is a feature (the app is used as an installed PWA). Each protected page makes one query for its main data (plus the parallel session check), loads through `getWorkspace()`, and is checked with `pnpm perf`. See `docs/adr/0002-performance.md`.
 - Never commit secrets or `.env` files.
