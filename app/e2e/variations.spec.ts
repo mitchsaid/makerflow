@@ -180,9 +180,12 @@ test("going back to one price puts the sizes aside, and choosing prices for each
   await page.getByRole("radio", { name: /^One price/ }).click();
   await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(0);
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("300");
+  // A price typed meanwhile is the first size's price when the sizes come back.
+  await page.getByLabel("Price", { exact: true }).fill("350");
 
   await page.getByRole("radio", { name: /^A price for each/ }).click();
   await expect(page.getByLabel("Size 1", { exact: true })).toHaveValue("Small");
+  await expect(page.getByLabel("Size 1 price", { exact: true })).toHaveValue("350");
   await expect(page.getByLabel("Size 2 price", { exact: true })).toHaveValue("600");
 });
 

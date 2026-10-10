@@ -55,7 +55,7 @@ export function parseVariations(
   if (label === "") errors.label = "Say what you call them, like “Size” or “Tiers”.";
   else if (label.length > VARIATION_LABEL_MAX) errors.label = `Keep it to ${VARIATION_LABEL_MAX} characters or fewer.`;
 
-  if (rows.length === 1) errors.list = "Add at least one more, or remove this one and give the product a single price.";
+  if (rows.length === 1) errors.list = "Add at least one more, or choose “One price” instead.";
 
   const seen = new Set<string>();
   const variations: ParsedVariation[] = [];

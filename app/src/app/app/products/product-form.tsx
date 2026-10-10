@@ -124,7 +124,7 @@ export function ProductForm({
   const [sentOptions, setSentOptions] = useState<{ key: string; values: string[] }[]>([]);
   const [sentExtras, setSentExtras] = useState(0);
   // The sizes put aside when the maker goes back to one price, so changing their mind loses nothing typed.
-  const [aside, setAside] = useState<{ label: string; rows: ProductFormValues["variations"] } | null>(null);
+  const [aside, setAside] = useState<{ label: string; rows: ProductFormValues["variations"]; priceBySize: string[] } | null>(null);
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
@@ -183,13 +183,13 @@ export function ProductForm({
   });
   // The variations' problems, in the order they appear on the screen.
   const variationWord = values.variationLabel.trim() || "Variation";
-  if (errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
+  if (values.variations.length > 0 && errors.variations?.label) problems.push({ fieldId: fid("variationLabel"), label: "What you call them", message: errors.variations.label });
   values.variations.forEach((row, i) => {
     const e = errors.variations?.rows[row.key];
     if (e?.name) problems.push({ fieldId: fid(`variation-${row.key}-name`), label: `${variationWord} ${i + 1}`, message: e.name });
     if (e?.price) problems.push({ fieldId: fid(`variation-${row.key}-price`), label: `${variationWord} ${i + 1} price`, message: e.price });
   });
-  if (errors.variations?.list) problems.push({ fieldId: fid("variations"), label: "Variations", message: errors.variations.list });
+  if (values.variations.length > 0 && errors.variations?.list) problems.push({ fieldId: fid("variations"), label: "Variations", message: errors.variations.list });
   values.options.forEach((g, gi) => {
     const e = errors.options?.groups[g.key];
     if (!e) return;
@@ -200,7 +200,7 @@ export function ProductForm({
       const ve = e.rows[v.key];
       if (ve?.name) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-name`), label: `${title}: choice ${vi + 1}`, message: ve.name });
       if (ve?.price) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price`), label: `${title}: choice ${vi + 1} price`, message: ve.price });
-      for (const [vk, message] of Object.entries(ve?.prices ?? {})) {
+      for (const [vk, message] of values.variations.length > 0 ? Object.entries(ve?.prices ?? {}) : []) {
         const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
         problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price-${vk}`), label: `${title}: choice ${vi + 1} for ${variationName}`, message });
       }
@@ -215,7 +215,7 @@ export function ProductForm({
     if (e.name) problems.push({ fieldId: fid(`extra-${x.key}-name`), label: `${title}: name`, message: e.name });
     if (e.price) problems.push({ fieldId: fid(`extra-${x.key}-price`), label: `${title}: price`, message: e.price });
     if (e.textMax) problems.push({ fieldId: fid(`extra-${x.key}-textMax`), label: `${title}: longest`, message: e.textMax });
-    for (const [vk, message] of Object.entries(e.prices ?? {})) {
+    for (const [vk, message] of values.variations.length > 0 ? Object.entries(e.prices ?? {}) : []) {
       const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
       problems.push({ fieldId: fid(`extra-${x.key}-price-${vk}`), label: `${title} for ${variationName}`, message });
     }
@@ -253,7 +253,7 @@ export function ProductForm({
   useEffect(() => {
     if (!focusOnePrice.current) return;
     focusOnePrice.current = false;
-    document.querySelector<HTMLElement>('[data-pricing="one"]')?.focus();
+    document.getElementById(fid("pricing-one"))?.closest('[data-slot="field"]')?.querySelector<HTMLElement>('[role="radio"]')?.focus();
   });
   function choosePricing(each: boolean) {
     if (each === priced) return;
@@ -264,9 +264,21 @@ export function ProductForm({
         { key: newVariationKey(), id: "", name: "", price: "", usual: false },
       ];
       changeVariations({ label: aside?.label || values.variationLabel || variationSuggestions[0] || "Size", rows });
+      // What was typed in the price field meanwhile is the first size's price; "price depends on the size" comes back too.
+      const back = new Set(aside?.priceBySize ?? []);
+      setValues((v) => ({
+        ...v,
+        variations: aside && v.unitPrice.trim() !== "" ? v.variations.map((r, i) => (i === 0 ? { ...r, price: v.unitPrice } : r)) : v.variations,
+        options: v.options.map((g) => (back.has(g.key) ? { ...g, priceByVariation: true } : g)),
+        extras: v.extras.map((x) => (back.has(x.key) ? { ...x, priceByVariation: true } : x)),
+      }));
       setAside(null);
     } else {
-      setAside({ label: values.variationLabel, rows: values.variations });
+      setAside({
+        label: values.variationLabel,
+        rows: values.variations,
+        priceBySize: [...values.options, ...values.extras].filter((x) => x.priceByVariation).map((x) => x.key),
+      });
       changeVariations({ rows: [] });
     }
   }
@@ -356,7 +368,7 @@ export function ProductForm({
                 orientation="horizontal"
                 className="items-center rounded-xl border border-border px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
               >
-                <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} data-pricing={value} value={value} />
+                <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} value={value} />
                 <FieldLabel htmlFor={fid(value === "one" ? "pricing-one" : "pricing-each")} className="flex w-full flex-col items-start gap-0.5 text-base">
                   <span>{title}</span>
                   <span className="text-sm font-normal text-muted-foreground">{description}</span>
