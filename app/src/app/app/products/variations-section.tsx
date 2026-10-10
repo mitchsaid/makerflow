@@ -56,7 +56,7 @@ export function PricedVariations({
   return (
     <div className="space-y-4">
       <p className="text-base text-muted-foreground">
-        Each has its own price. On a quote you choose one.
+        On a quote you choose one.
       </p>
       <TextField
         id={fid("variationLabel")}
