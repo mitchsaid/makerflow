@@ -249,6 +249,12 @@ export function ProductForm({
         : {}),
     }));
   }
+  const focusOnePrice = useRef(false);
+  useEffect(() => {
+    if (!focusOnePrice.current) return;
+    focusOnePrice.current = false;
+    document.querySelector<HTMLElement>('[data-pricing="one"]')?.focus();
+  });
   function choosePricing(each: boolean) {
     if (each === priced) return;
     if (each) {
@@ -350,7 +356,7 @@ export function ProductForm({
                 orientation="horizontal"
                 className="items-center rounded-xl border border-border px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
               >
-                <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} value={value} />
+                <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} data-pricing={value} value={value} />
                 <FieldLabel htmlFor={fid(value === "one" ? "pricing-one" : "pricing-each")} className="flex w-full flex-col items-start gap-0.5 text-base">
                   <span>{title}</span>
                   <span className="text-sm font-normal text-muted-foreground">{description}</span>
@@ -368,7 +374,11 @@ export function ProductForm({
             priceLabel={priceLabel}
             currencySymbol={currencySymbol}
             fid={fid}
-            onChange={changeVariations}
+            onChange={(change) => {
+              // The last size removed takes the sizes away: focus goes to the answer that is left.
+              if (change.rows?.length === 0) focusOnePrice.current = true;
+              changeVariations(change);
+            }}
           />
         ) : (
           <TextField

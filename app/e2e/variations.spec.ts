@@ -30,7 +30,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   await page.getByRole("radio", { name: /^A price for each/ }).click();
   await expect(page.getByLabel("What do you call them?")).toHaveValue("Size");
   await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(2);
-  await expect(page.getByTestId("price-by-variation")).toBeVisible();
+  await expect(page.getByLabel("Price", { exact: true })).toHaveCount(0);
   await fillVariations(page, [["Small", "300"], ["Small", ""]]);
 
   // Problems are shown at their rows and in the summary, and nothing typed is lost.

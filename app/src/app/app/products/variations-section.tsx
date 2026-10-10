@@ -128,7 +128,8 @@ export function PricedVariations({
                   onClick={() => {
                     const next = rows.filter((r) => r.key !== row.key);
                     onChange({ rows: next });
-                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("pricing-one"));
+                    // With none left this section goes away, and the form puts focus on "One price".
+                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : null);
                   }}
                 >
                   <Trash2Icon aria-hidden="true" />
