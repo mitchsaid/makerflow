@@ -35,7 +35,7 @@ describe("parseVariations", () => {
 
   it("needs at least two, and refuses more than fifty or a list it can't read", () => {
     const one = parseVariations("Size", [row()]);
-    expect(!one.ok && one.errors.list).toMatch(/at least one more/);
+    expect(!one.ok && one.errors.list).toMatch(/at least two choices/);
     const many = parseVariations("Size", Array.from({ length: 51 }, (_, i) => row({ key: `k${i}`, name: `V${i}` })));
     expect(!many.ok && many.errors.list).toMatch(/50/);
     expect(parseVariations("Size", [{ nope: true }]).ok).toBe(false);
