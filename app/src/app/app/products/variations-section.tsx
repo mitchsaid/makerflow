@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SelectField, TextField } from "@/components/form-fields";
 import { Trash2Icon } from "lucide-react";
+import { ChoiceImage } from "@/components/choice-image";
 import { Button } from "@/components/ui/button";
 import type { VariationErrors, VariationFormRow } from "@/lib/products/variations";
 
@@ -24,6 +25,8 @@ export function PricedVariations({
   priceLabel,
   currencySymbol,
   fid,
+  onPendingChange,
+  onImage,
   onChange,
 }: {
   label: string;
@@ -33,6 +36,10 @@ export function PricedVariations({
   priceLabel: string;
   currencySymbol: string;
   fid: (key: string) => string;
+  /** A choice's picture is on its way (true) or has arrived (false), so the form can wait for it before saving. */
+  onPendingChange: (pending: boolean) => void;
+  /** A choice's picture chosen or removed. The form applies it by the row's key to what the form holds now. */
+  onImage: (rowKey: string, imageId: string) => void;
   onChange: (change: { label?: string; rows?: VariationFormRow[] }) => void;
 }) {
   // Where focus goes after adding or removing a row (once the row is on the screen).
@@ -47,6 +54,15 @@ export function PricedVariations({
   });
 
   // The choices are called by the variation's name once it has one ("Size 1"), "Choice" until then.
+  // What went wrong with a choice's picture, by row.
+  const [problems, setProblems] = useState<Record<string, string>>({});
+  const setProblem = (key: string, message: string | null) =>
+    setProblems((p) => {
+      const rest = { ...p };
+      delete rest[key];
+      return message ? { ...rest, [key]: message } : rest;
+    });
+
   const word = label.trim() || "Choice";
   const blank = (): VariationFormRow => ({ key: newVariationKey(), id: "", name: "", price: "", usual: false });
   const setRow = (key: string, change: Partial<VariationFormRow>) =>
@@ -67,60 +83,82 @@ export function PricedVariations({
         onChange={(v) => onChange({ label: v })}
       />
 
-      {/* One line each: the name, its price and a remove button, under shared headings. */}
-      <div className="space-y-2">
-        <div aria-hidden="true" className="grid grid-cols-[1fr_7.5rem_2.75rem] items-end gap-2 text-sm font-medium">
-          <span>Choice</span>
-          <span>{priceLabel}</span>
-          <span />
-        </div>
-        <ol className="space-y-2">
-          {rows.map((row, i) => {
-            const rowErrors = errors?.rows[row.key];
-            const title = row.name.trim() || `${word} ${i + 1}`;
-            return (
-              <li key={row.key} className="grid grid-cols-[1fr_7.5rem_2.75rem] items-start gap-2">
-                <TextField
-                  id={fid(`variation-${row.key}-name`)}
-                  label={`${word} ${i + 1}`}
-                  labelHidden
-                  autoComplete="off"
-                  maxLength={80}
-                  value={row.name}
-                  error={rowErrors?.name}
-                  onChange={(v) => setRow(row.key, { name: v })}
-                />
-                <TextField
-                  id={fid(`variation-${row.key}-price`)}
-                  label={priceLabel.replace(/^Price/, `${word} ${i + 1} price`)}
-                  labelHidden
-                  startText={currencySymbol}
-                  inputMode="decimal"
-                  autoComplete="off"
-                  value={row.price}
-                  error={rowErrors?.price}
-                  onChange={(v) => setRow(row.key, { price: v })}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  aria-label={`Remove ${title}`}
-                  onClick={() => {
-                    const next = rows.filter((r) => r.key !== row.key);
-                    onChange({ rows: next });
-                    // With none left this section goes away, and the form puts focus on the "No" answer.
-                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : null);
-                  }}
-                >
-                  <Trash2Icon aria-hidden="true" />
-                </Button>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+      {/* Each choice: its picture, its name and a remove button, then its price (and a way to remove the picture). */}
+      <ol className="space-y-3">
+        {rows.map((row, i) => {
+          const rowErrors = errors?.rows[row.key];
+          const title = row.name.trim() || `${word} ${i + 1}`;
+          const picture = row.imageId ?? "";
+          const problem = problems[row.key];
+          return (
+            <li key={row.key} className="grid grid-cols-[2.75rem_1fr_2.75rem] items-start gap-x-2 gap-y-2">
+              <ChoiceImage
+                id={fid(`variation-${row.key}-image`)}
+                label={title}
+                value={picture}
+                onChange={(imageId) => {
+                  setProblem(row.key, null);
+                  onImage(row.key, imageId);
+                }}
+                onProblem={(message) => setProblem(row.key, message)}
+                onPendingChange={onPendingChange}
+              />
+              <TextField
+                id={fid(`variation-${row.key}-name`)}
+                label={`${word} ${i + 1}`}
+                labelHidden
+                placeholder="Name"
+                autoComplete="off"
+                maxLength={80}
+                value={row.name}
+                error={rowErrors?.name}
+                onChange={(v) => setRow(row.key, { name: v })}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-destructive"
+                aria-label={`Remove ${title}`}
+                onClick={() => {
+                  const next = rows.filter((r) => r.key !== row.key);
+                  onChange({ rows: next });
+                  // With none left this section goes away, and the form puts focus on the "No" answer.
+                  setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : null);
+                }}
+              >
+                <Trash2Icon aria-hidden="true" />
+              </Button>
+              <div className="col-start-2 col-span-2 flex items-start gap-2">
+                <div className="w-40">
+                  <TextField
+                    id={fid(`variation-${row.key}-price`)}
+                    label={priceLabel.replace(/^Price/, `${word} ${i + 1} price`)}
+                    labelHidden
+                    placeholder="Price"
+                    startText={currencySymbol}
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={row.price}
+                    error={rowErrors?.price}
+                    onChange={(v) => setRow(row.key, { price: v })}
+                  />
+                </div>
+                {picture !== "" && (
+                  <Button type="button" variant="ghost" onClick={() => onImage(row.key, "")}>
+                    Remove picture<span className="sr-only"> of {title}</span>
+                  </Button>
+                )}
+              </div>
+              {problem && (
+                <p role="alert" className="col-start-2 col-span-2 text-sm text-destructive">
+                  {problem}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
 
       <SelectField
         id={fid("variationUsual")}

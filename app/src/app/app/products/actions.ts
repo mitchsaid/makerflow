@@ -44,7 +44,7 @@ function toPayload(p: ProductFields) {
     variations:
       p.variations === undefined
         ? null
-        : p.variations.map((v) => ({ ...(v.id ? { id: v.id } : {}), name: v.name, price_cents: v.priceCents, usual: v.usual })),
+        : p.variations.map((v) => ({ ...(v.id ? { id: v.id } : {}), name: v.name, price_cents: v.priceCents, usual: v.usual, ...(v.imageId === undefined ? {} : { image_id: v.imageId ?? "" }) })),
   };
 }
 

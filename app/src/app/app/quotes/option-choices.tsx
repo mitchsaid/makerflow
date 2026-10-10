@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { TextAreaField, TextField } from "@/components/form-fields";
+import { imageUrl } from "@/lib/images";
 import { extraAmount, type ExtraSummary } from "@/lib/products/extras";
 import type { OptionGroup } from "@/lib/products/options";
 import type { LineOption } from "@/lib/quotes";
@@ -116,7 +117,13 @@ export function OptionChoices({
                 >
                   <RadioGroupItem id={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} value={v.id} />
                   <FieldLabel htmlFor={i === 0 ? id(`option-${g.id}`) : id(`option-${g.id}-${v.id}`)} className="flex w-full items-baseline justify-between gap-3 text-base">
-                    <span>{v.name}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      {v.imageId && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={imageUrl(v.imageId, "thumb")} alt="" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
+                      )}
+                      <span>{v.name}</span>
+                    </span>
                     <span className="shrink-0 text-sm text-muted-foreground">{plus(amountOf(g, v), g.priceByVariation && !variationId)}</span>
                   </FieldLabel>
                 </Field>

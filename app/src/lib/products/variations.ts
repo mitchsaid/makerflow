@@ -1,5 +1,6 @@
 import type { BusinessType } from "../business-types";
 import { parseMoney, type Cents } from "../money";
+import { isImageId } from "../images";
 import type { ProductKind } from "./index";
 
 /**
@@ -12,12 +13,15 @@ export const VARIATION_LABEL_MAX = 40;
 export const VARIATION_NAME_MAX = 80;
 export const VARIATIONS_MAX = 50;
 
-export type ProductVariation = { id: string; name: string; priceCents: Cents; usual: boolean };
+/** `imageId`: the choice's own picture (an id from lib/images), or null for none. */
+export type ProductVariation = { id: string; name: string; priceCents: Cents; usual: boolean; imageId: string | null };
 
 /** One row of the form while it is being filled in. `id` is "" for a new one. */
-export type VariationFormRow = { key: string; id: string; name: string; price: string; usual: boolean };
+/** `imageId`: "" for no picture; absent from a form that does not know about pictures (they are left as they are). */
+export type VariationFormRow = { key: string; id: string; name: string; price: string; usual: boolean; imageId?: string };
 
-export type ParsedVariation = { id: string | null; name: string; priceCents: Cents; usual: boolean };
+/** `imageId`: undefined when the form did not carry pictures (they are left as they are). */
+export type ParsedVariation = { id: string | null; name: string; priceCents: Cents; usual: boolean; imageId?: string | null };
 
 export type VariationRowErrors = { name?: string; price?: string };
 export type VariationErrors = { label?: string; list?: string; rows: Record<string, VariationRowErrors> };
@@ -32,7 +36,8 @@ function isRow(value: unknown): value is VariationFormRow {
     typeof v.id === "string" &&
     typeof v.name === "string" &&
     typeof v.price === "string" &&
-    typeof v.usual === "boolean"
+    typeof v.usual === "boolean" &&
+    (v.imageId === undefined || typeof v.imageId === "string")
   );
 }
 
@@ -76,7 +81,13 @@ export function parseVariations(
       // Only one can be the usual one (the screen allows one; the first wins otherwise).
       const usual = row.usual && !usualTaken;
       if (usual) usualTaken = true;
-      variations.push({ id: UUID.test(row.id) ? row.id : null, name, priceCents: price.value, usual });
+      variations.push({
+        id: UUID.test(row.id) ? row.id : null,
+        name,
+        priceCents: price.value,
+        usual,
+        ...(row.imageId === undefined ? {} : { imageId: isImageId(row.imageId) ? row.imageId : null }),
+      });
     }
   }
 

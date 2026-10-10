@@ -409,6 +409,36 @@ describe("pictures in the snapshot", () => {
     expect(snap({ showPhotos: false }).lines.map((l) => l.photoImageId)).toEqual([null, null]);
   });
 
+  it("shows the picture of the chosen variation or choice on the line, else the product's photo", () => {
+    const VAR = "33333333-3333-4333-8333-333333333333";
+    const CHOICE = "44444444-4444-4444-8444-444444444444";
+    const build = (over: Partial<QuoteFormValues["lines"][number]>, choicePhotos: Map<string, string>) => {
+      const parsed = parseQuote(form({ lines: [line(over)], fulfilment: "none" }), INCLUSIVE);
+      if (!parsed.ok) throw new Error("should parse");
+      return buildQuoteSnapshot({
+        quote: parsed.quote,
+        number: "QT-0001",
+        version: 1,
+        business,
+        customer,
+        countryCode: "ZA",
+        currencyCode: "ZAR",
+        vat: INCLUSIVE,
+        locale: ZA_LOCALE,
+        bank: null,
+        productPhotos: new Map([[productId, "photo-1"]]),
+        choicePhotos,
+      }).lines[0].photoImageId;
+    };
+    const withVariation = { variationId: VAR, variationLabel: "Size", variationName: "Large" };
+    const withChoice = { options: [{ groupId: "55555555-5555-4555-8555-555555555555", group: "Flavour", kind: "one" as const, valueId: CHOICE, value: "Vanilla", text: "", amountCents: 0 }] };
+    // The variation's picture wins, then the choice's, then the product's.
+    expect(build({ ...withVariation, ...withChoice }, new Map([[VAR, "var-img"], [CHOICE, "choice-img"]]))).toBe("var-img");
+    expect(build({ ...withVariation, ...withChoice }, new Map([[CHOICE, "choice-img"]]))).toBe("choice-img");
+    expect(build({ ...withVariation, ...withChoice }, new Map())).toBe("photo-1");
+    expect(build({}, new Map([[VAR, "var-img"]]))).toBe("photo-1");
+  });
+
   it("freezes the logo, or none", () => {
     expect(snap({}, { logoImageId: "logo-1" }).logoImageId).toBe("logo-1");
     expect(snap({}).logoImageId).toBeNull();
