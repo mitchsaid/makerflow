@@ -204,7 +204,6 @@ test("a variation choice has its own picture: chosen, kept after saving, shown b
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
   await page.getByRole("radio", { name: "Yes" }).click();
   await page.getByLabel("Variation name", { exact: true }).fill("Size");
-  await page.getByRole("button", { name: "Add another choice" }).click();
   await page.getByLabel("Size 1", { exact: true }).fill("Small");
   await page.getByLabel("Size 1 price", { exact: true }).fill("300");
   await page.getByLabel("Size 2", { exact: true }).fill("Large");
@@ -254,13 +253,19 @@ test("a choice of another variation (a flavour) has its own picture too, shown b
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
   await page.getByLabel("Price", { exact: true }).fill("30");
+  // Other variations come under the first one.
+  await page.getByRole("radio", { name: "Yes" }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Type");
+  await page.getByLabel("Type 1", { exact: true }).fill("Standard");
+  await page.getByLabel("Type 2", { exact: true }).fill("Other");
+  await page.getByLabel("Type 2 price", { exact: true }).fill("30");
   await page.getByRole("button", { name: /^Add (a|another) variation$/ }).click();
   await page.getByLabel("Name of this variation").last().fill("Flavour");
   await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
   await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Red velvet");
 
-  // The product's own photo field comes first, then each choice's: this is Vanilla's.
-  await page.locator('input[type="file"]').nth(1).setInputFiles({ name: "v.jpg", mimeType: "image/jpeg", buffer: await picture(900, 900) });
+  // The product's own photo field comes first, then each choice's (Standard, Other, then Vanilla).
+  await page.locator('input[type="file"]').nth(3).setInputFiles({ name: "v.jpg", mimeType: "image/jpeg", buffer: await picture(900, 900) });
   await expect(page.getByRole("button", { name: "Vanilla: replace the picture" }).locator("img")).toBeVisible();
   await expect(page.getByRole("button", { name: "Red velvet: add a picture" })).toBeVisible();
 
@@ -282,7 +287,6 @@ test("pictures chosen for two choices at once both stay, and what is typed while
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
   await page.getByRole("radio", { name: "Yes" }).click();
   await page.getByLabel("Variation name", { exact: true }).fill("Size");
-  await page.getByRole("button", { name: "Add another choice" }).click();
   await page.getByLabel("Size 1", { exact: true }).fill("Small");
   await page.getByLabel("Size 2", { exact: true }).fill("Large");
 

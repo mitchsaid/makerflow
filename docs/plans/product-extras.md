@@ -15,7 +15,7 @@ Making an extra a product (so it could be quoted as its own line) was rejected: 
 ### Variations (slice 1)
 - One section, **Variations**, holding one or more lists. Two kinds of list, said in plain words when adding one:
   - **Each has its own price**, like sizes (Small R300, Medium R450, Large R600). At most one per product; it sets the product's price.
-  - **Adds to the price**, like flavour (Vanilla +R0, Red velvet +R50). As many as wanted, each with a usual one if wanted, and "Price depends on the size" when the product has sizes.
+  - **Adds to the price**, like flavour (Vanilla +R0, Red velvet +R50). As many as wanted, each with a default one if wanted, and "Price depends on the size" when the product has sizes.
 - "Choose one" options become these lists. Nothing changes in the database: the lists are the same rows, shown in one place.
 - On a quote: pick one from each list, as now.
 
@@ -59,11 +59,11 @@ Unit: variation list parsing and the form; extras parsing (wording, shared or pr
 
 ## Changed after first use (founder, 2026-10-10)
 - **No "list" concept.** (The buttons below were superseded by the next note: there is one "Add a variation" button, and the price question is asked first.) The variations that add to the price (flavour) are just more variations. There is one place to add a variation, with the price as the plain question: "Each has its own price" (like sizes) or "Adds to the price" (like flavour). Once one with its own prices exists, the button is "Add another variation". Nothing changed in the database.
-- **Variations are their own question, before the price (founder, 2026-10-10).** "How is it priced?" mixed two things: whether the product has variations and what it costs. The form reads: Basics (name, description, photo); **Variations**, which asks "Does this product come in any variations (e.g. size, material, flavour)?" (examples from the business type; the answer is just **No** or **Yes**); **Price**; **Other variations** (flavour, colour: they add to the price, one "Add a variation" button); Extras.
-  - **Yes** shows one variation with nothing pre-filled: its name (the business type's first suggestion as an example, no suggestion buttons) and its choices, each with a price, starting with one empty choice and "Add another choice". The sentence "On a quote you choose one." is gone.
+- **Variations are their own question, before the price (founder, 2026-10-10).** "How is it priced?" mixed two things: whether the product has variations and what it costs. The form reads: Basics (name, description, photo); **Variations**; **Price**; Extras.
+  - **Variations** asks "Does this product come in any variations (e.g. size, material, flavour)?" (examples from the business type; the answer is just **No** or **Yes**).
+  - **Yes** shows the first variation with nothing pre-filled and **two empty choices** to start: its name (the business type's first suggestion as an example, no suggestion buttons) and the choices, each with a price (and its own picture, see `variation-images.md`). **Add another choice** sits above the **Default** setting (what a quote starts with; renamed from "Usual"). Under it, after the default setting, an **Add a variation** button adds further variations (flavour, colour: they add to the price), each a card with its own choices and its own Default setting. There is no separate "Other variations" section any more.
   - **Price** shows the single price field for No, and a note ("The price is set on each choice above.") for Yes; unit and VAT show either way.
-  - Answering No carries the first choice's price into the price field and puts the choices aside until the form is saved (Yes again brings them back, with a price typed meanwhile as the first choice's price); the first price typed carries into the first choice the other way.
-  - Each choice can have its own picture: see `variation-images.md`.
+  - Answering No carries the first choice's price into the price field and puts everything aside until the form is saved: the first variation's choices and the other variations (Yes again brings them back, with a price typed meanwhile as the first choice's price). A product that only has other variations (an older one, or one whose first variation was removed) shows Yes with just those, and a button, "Add choices with their own prices", adds the first variation again. The first price typed carries into the first choice the other way.
 
 ## Not built
 "Often added with this" (adding Mugs suggests "Logo setup"); extras with a cost (a material) for costing; stock; a screen to rename or archive saved extras (an extra can be removed from every product by removing it from each).

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Section, SelectField, TextField } from "@/components/form-fields";
+import { SelectField, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Trash2Icon } from "lucide-react";
@@ -19,9 +19,10 @@ let keyCounter = 0;
 const nextKey = (prefix: string) => `${prefix}-${(keyCounter += 1)}`;
 
 /**
- * "Other variations": the ones that do not carry the price, like Flavour or Colour (docs/plans/product-extras.md).
- * You pick one of their choices, each can add an amount to the price (R0 is common), and an amount can be bigger
- * on a bigger size. (The one where each choice has its own price, like sizes, is the "Variations" section above.)
+ * The further variations, added under the first one with "Add a variation": the ones that do not carry the price,
+ * like Flavour or Colour (docs/plans/product-extras.md). You pick one of their choices, each can add an amount to
+ * the price (R0 is common), and an amount can be bigger on a bigger size. (The first variation, where each choice
+ * has its own price, is above them in the same "Variations" section.)
  * Each is a card; one is open at a time, and any with a problem stays open so the summary can take the person to it.
  */
 export function ListsSection({
@@ -83,10 +84,7 @@ export function ListsSection({
   }
 
   return (
-    <Section title="Other variations">
-      <p className="text-base text-muted-foreground">
-        Anything else they choose that does not have its own price, like flavour or colour.
-      </p>
+    <>
       {groups.length > 0 && (
         <ol className="space-y-3">
           {groups.map((g, gi) => {
@@ -283,10 +281,10 @@ export function ListsSection({
                     </Button>
                     <SelectField
                       id={fid(`option-${g.key}-usual`)}
-                      label={`Usual ${title.toLowerCase()}`}
+                      label={`Default ${title.toLowerCase()}`}
                       hint="Chosen for you on a quote. Without one, it's chosen each time."
                       value={g.values.find((x) => x.usual && x.name.trim() !== "")?.key ?? ""}
-                      placeholder="No usual one"
+                      placeholder="No default"
                       options={g.values.filter((x) => x.name.trim() !== "").map((x) => x.key)}
                       optionLabels={Object.fromEntries(g.values.map((x) => [x.key, x.name.trim()]))}
                       onChange={(key) => setGroup(g.key, { values: g.values.map((x) => ({ ...x, usual: x.key === key })) })}
@@ -328,6 +326,6 @@ export function ListsSection({
           <p className="text-sm text-muted-foreground">One you choose from, like Flavour or Colour. Each choice can add to the price.</p>
         </div>
       )}
-    </Section>
+    </>
   );
 }

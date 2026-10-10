@@ -15,7 +15,7 @@ export const newVariationKey = () => `new-${(rowKeyCounter += 1)}`;
  * What a product with variations that set its price looks like (docs/plans/product-extras.md): the maker names the
  * variation ("Size", "Tiers"; the business type's first suggestion is shown as an example), and each choice has
  * its own price. It replaces the product's single price (the first row starts with the typed price, and the one
- * left gives its price back when the last is removed). One choice can be the usual one, chosen for you on a quote.
+ * left gives its price back when the last is removed). One choice can be the default one, chosen for you on a quote.
  */
 export function PricedVariations({
   label,
@@ -67,7 +67,7 @@ export function PricedVariations({
   const blank = (): VariationFormRow => ({ key: newVariationKey(), id: "", name: "", price: "", usual: false });
   const setRow = (key: string, change: Partial<VariationFormRow>) =>
     onChange({ rows: rows.map((r) => (r.key === key ? { ...r, ...change } : r)) });
-  // A usual row whose name was cleared can't be shown in the list, so it reads as none until named.
+  // A default row whose name was cleared can't be shown in the list, so it reads as none until named.
   const usualKey = rows.find((r) => r.usual && r.name.trim() !== "")?.key ?? "none";
 
   return (
@@ -160,17 +160,6 @@ export function PricedVariations({
         })}
       </ol>
 
-      <SelectField
-        id={fid("variationUsual")}
-        label={`Usual ${word.toLowerCase()}`}
-        hint="Chosen for you when you add it to a quote. With none, you choose each time."
-        value={usualKey === "none" ? "" : usualKey}
-        onChange={(key) => onChange({ rows: rows.map((r) => ({ ...r, usual: r.key === key })) })}
-        placeholder="None: I choose each time"
-        options={rows.filter((r) => r.name.trim() !== "").map((r) => r.key)}
-        optionLabels={Object.fromEntries(rows.map((r) => [r.key, r.name.trim()]))}
-      />
-
       {errors?.list && (
         <p id={fid("variations")} tabIndex={-1} className="text-sm text-destructive">
           {errors.list}
@@ -188,6 +177,16 @@ export function PricedVariations({
       >
         Add another choice
       </Button>
+      <SelectField
+        id={fid("variationUsual")}
+        label={`Default ${word.toLowerCase()}`}
+        hint="Chosen for you when you add it to a quote. With none, you choose each time."
+        value={usualKey === "none" ? "" : usualKey}
+        onChange={(key) => onChange({ rows: rows.map((r) => ({ ...r, usual: r.key === key })) })}
+        placeholder="None: I choose each time"
+        options={rows.filter((r) => r.name.trim() !== "").map((r) => r.key)}
+        optionLabels={Object.fromEntries(rows.map((r) => [r.key, r.name.trim()]))}
+      />
     </div>
   );
 }

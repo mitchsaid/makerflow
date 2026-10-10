@@ -147,7 +147,7 @@ export function ProductForm({
   const [sentOptions, setSentOptions] = useState<{ key: string; values: string[] }[]>([]);
   const [sentExtras, setSentExtras] = useState(0);
   // The sizes put aside when the maker goes back to one price, so changing their mind loses nothing typed.
-  const [aside, setAside] = useState<{ label: string; rows: ProductFormValues["variations"]; priceBySize: string[] } | null>(null);
+  const [aside, setAside] = useState<{ label: string; rows: ProductFormValues["variations"]; options: ProductFormValues["options"]; priceBySize: string[] } | null>(null);
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
@@ -229,7 +229,7 @@ export function ProductForm({
       }
     });
   });
-  if (errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Variations", message: errors.options.list });
+  if ((values.variations.length > 0 || values.options.length > 0) && errors.options?.list) problems.push({ fieldId: fid("options-error"), label: "Variations", message: errors.options.list });
   // The extras' problems, in the order they appear.
   values.extras.forEach((x, xi) => {
     const e = errors.extras?.rows[x.key];
@@ -248,6 +248,8 @@ export function ProductForm({
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
   const priced = values.variations.length > 0;
+  // "Yes" to the question: it has variations of the kind that set the price, or others that add to it.
+  const hasVariations = priced || values.options.length > 0;
   // The question's examples come from what we know of the business ("size, material, flavour").
   const examples = variationSuggestions.slice(0, 3).map((w) => w.toLowerCase()).join(", ");
   // The price moves into the first choice when variations start, and back when the last one goes.
@@ -274,24 +276,39 @@ export function ProductForm({
         : {}),
     }));
   }
-  const focusOnePrice = useRef(false);
+  // Where focus goes after the last choice (or the last further variation) is removed and its part of the form goes:
+  // to the "No" answer when nothing is left, or to the button that adds the first variation again.
+  const focusAfter = useRef<"no" | "first" | null>(null);
   useEffect(() => {
-    if (!focusOnePrice.current) return;
-    focusOnePrice.current = false;
-    document.getElementById(fid("pricing-one"))?.closest('[data-slot="field"]')?.querySelector<HTMLElement>('[role="radio"]')?.focus();
+    const what = focusAfter.current;
+    if (!what) return;
+    focusAfter.current = null;
+    if (what === "first") document.getElementById(fid("add-first-variation"))?.focus();
+    else document.getElementById(fid("pricing-one"))?.closest('[data-slot="field"]')?.querySelector<HTMLElement>('[role="radio"]')?.focus();
   });
-  function choosePricing(each: boolean) {
-    if (each === priced) return;
-    if (each) {
-      // One empty choice to start (nothing pre-filled), or the ones put aside.
-      const rows = aside?.rows ?? [{ key: newVariationKey(), id: "", name: "", price: "", usual: false }];
-      changeVariations({ label: aside?.label ?? values.variationLabel, rows });
-      // What was typed in the price field meanwhile is the first size's price; "price depends on the size" comes back too.
+  // The variation that sets the price: two empty choices to start, or what was put aside (never an empty list).
+  function startFirstVariation() {
+    const rows =
+      aside && aside.rows.length > 0
+        ? aside.rows
+        : [
+            { key: newVariationKey(), id: "", name: "", price: "", usual: false },
+            { key: newVariationKey(), id: "", name: "", price: "", usual: false },
+          ];
+    changeVariations({ label: aside && aside.rows.length > 0 ? aside.label : values.variationLabel, rows });
+    focusAfter.current = null;
+  }
+  function choosePricing(yes: boolean) {
+    if (yes === hasVariations) return;
+    if (yes) {
+      // Two empty choices to start (nothing pre-filled), or what was put aside.
+      startFirstVariation();
+      // What was typed in the price field meanwhile is the first choice's price; "price depends on the size" comes back too.
       const back = new Set(aside?.priceBySize ?? []);
       setValues((v) => ({
         ...v,
         variations: aside && v.unitPrice.trim() !== "" ? v.variations.map((r, i) => (i === 0 ? { ...r, price: v.unitPrice } : r)) : v.variations,
-        options: v.options.map((g) => (back.has(g.key) ? { ...g, priceByVariation: true } : g)),
+        options: (aside?.options ?? v.options).map((g) => (back.has(g.key) ? { ...g, priceByVariation: true } : g)),
         extras: v.extras.map((x) => (back.has(x.key) ? { ...x, priceByVariation: true } : x)),
       }));
       setAside(null);
@@ -299,9 +316,11 @@ export function ProductForm({
       setAside({
         label: values.variationLabel,
         rows: values.variations,
+        options: values.options,
         priceBySize: [...values.options, ...values.extras].filter((x) => x.priceByVariation).map((x) => x.key),
       });
       changeVariations({ rows: [] });
+      setValues((v) => ({ ...v, options: [] }));
     }
   }
 
@@ -378,7 +397,7 @@ export function ProductForm({
           <FieldLegend variant="label" className="text-base">
             Does this {KIND_WORDS[values.kind].one} come in any variations (e.g. {examples})?
           </FieldLegend>
-          <RadioGroup value={priced ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
+          <RadioGroup value={hasVariations ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
             {(
               [
                 ["one", "No"],
@@ -410,9 +429,36 @@ export function ProductForm({
             onPendingChange={onChoicePending}
             onImage={setVariationImage}
             onChange={(change) => {
-              // The last size removed takes the sizes away: focus goes to the answer that is left.
-              if (change.rows?.length === 0) focusOnePrice.current = true;
+              // The last choice removed takes the first variation away: focus goes to what is left to press.
+              if (change.rows?.length === 0) focusAfter.current = values.options.length > 0 ? "first" : "no";
               changeVariations(change);
+            }}
+          />
+        )}
+        {hasVariations && !priced && (
+          // Only further variations are left (an older product, or the first one was removed): the first one can be added again.
+          <div className="space-y-2">
+            <p className="text-base text-muted-foreground">One variation sets the price: each of its choices has its own price.</p>
+            <Button id={fid("add-first-variation")} type="button" variant="outline" className="self-start" onClick={startFirstVariation}>
+              Add choices with their own prices
+            </Button>
+          </div>
+        )}
+        {hasVariations && (
+          <ListsSection
+            variations={namedVariations}
+            variationWord={values.variationLabel.trim() || "variation"}
+            groups={values.options}
+            errors={errors.options}
+            currencySymbol={currencySymbol}
+            fid={fid}
+            onPendingChange={onChoicePending}
+            onImage={setValueImage}
+            onChange={(options) => {
+              // The last further variation removed with nothing else left answers the question "No": focus goes there.
+              if (options.length === 0 && !priced) focusAfter.current = "no";
+              setEditedSinceSave(true);
+              setValues((v) => ({ ...v, options }));
             }}
           />
         )}
@@ -458,20 +504,6 @@ export function ProductForm({
         )}
       </Section>
 
-      <ListsSection
-        variations={namedVariations}
-        variationWord={values.variationLabel.trim() || "variation"}
-        groups={values.options}
-        errors={errors.options}
-        currencySymbol={currencySymbol}
-        fid={fid}
-        onPendingChange={onChoicePending}
-        onImage={setValueImage}
-        onChange={(options) => {
-          setEditedSinceSave(true);
-          setValues((v) => ({ ...v, options }));
-        }}
-      />
       <ExtrasSection
         rows={values.extras}
         errors={errors.extras}
