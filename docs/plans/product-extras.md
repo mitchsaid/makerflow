@@ -57,5 +57,9 @@ Unit: variation list parsing and the form; extras parsing (wording, shared or pr
 - The 40-extras limit counts new rows only, so a full product can still be saved; the conversion of old options is not limited (an old product could have up to 1000), and such a product is asked to come down to 40 the next time it is saved.
 - A zero price by size is kept as "0" when a product is opened again (it used to come back empty and ask again).
 
+## Changed after first use (founder, 2026-10-10)
+- **No "list" concept.** The variations that add to the price (flavour) are just more variations. There is one place to add a variation, with the price as the plain question: "Each has its own price" (like sizes) or "Adds to the price" (like flavour). Once one with its own prices exists, the button is "Add another variation". Nothing changed in the database.
+- **Variations are introduced around the price.** The form reads: Basics (name, description, photo), then Price (the price, with "Does the price change with size or version? Add variations below.", unit, VAT), then Variations, then Extras. Variations sit directly under the price they change.
+
 ## Not built
 "Often added with this" (adding Mugs suggests "Logo setup"); extras with a cost (a material) for costing; stock; a screen to rename or archive saved extras (an extra can be removed from every product by removing it from each).

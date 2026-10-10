@@ -6,11 +6,16 @@ import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VariationErrors, VariationFormRow } from "@/lib/products/variations";
 
+// New rows' keys come from one counter that is never reset (the product form starts the first rows too).
+let rowKeyCounter = 0;
+export const newVariationKey = () => `new-${(rowKeyCounter += 1)}`;
+
 /**
- * "Variations": versions of the product, each with its own price (docs/plans/product-choices.md). The maker
- * names the list ("Size", "Tiers") from suggestions or their own word. With variations the product's
- * single price goes; each row has its own (the first starts with the product's price, and the last one
- * left gives its price back when it is removed). One can be the usual one, chosen for you on a quote.
+ * "Variations": what the product comes in (docs/plans/product-extras.md). The one where each choice has its
+ * own price (sizes) is edited here: the maker names it ("Size", "Tiers") from suggestions or their own word,
+ * and with it the product's single price goes (the first row starts with the product's price, and the last
+ * one left gives its price back when it is removed). One choice can be the usual one, chosen for you on a
+ * quote. The others (flavour: they add to the price) are the children, with the one place to add a variation.
  */
 export function VariationsSection({
   label,
@@ -23,7 +28,8 @@ export function VariationsSection({
   onChange,
   children,
 }: {
-  children?: React.ReactNode;
+  /** The other variations (they add to the price) and the way to add a variation. */
+  children: React.ReactNode;
   label: string;
   rows: VariationFormRow[];
   suggestions: string[];
@@ -38,8 +44,6 @@ export function VariationsSection({
   const setFocusKey = (id: string | null) => {
     pendingFocus.current = id;
   };
-  const counter = useRef(0);
-  const newKey = () => `new-${(counter.current += 1)}`;
   useEffect(() => {
     if (!pendingFocus.current) return;
     document.getElementById(pendingFocus.current)?.focus();
@@ -47,7 +51,7 @@ export function VariationsSection({
   });
 
   const word = label.trim() || "variation";
-  const blank = (): VariationFormRow => ({ key: newKey(), id: "", name: "", price: "", usual: false });
+  const blank = (): VariationFormRow => ({ key: newVariationKey(), id: "", name: "", price: "", usual: false });
   const setRow = (key: string, change: Partial<VariationFormRow>) =>
     onChange({ rows: rows.map((r) => (r.key === key ? { ...r, ...change } : r)) });
   // A usual row whose name was cleared can't be shown in the list, so it reads as none until named.
@@ -56,25 +60,9 @@ export function VariationsSection({
   if (rows.length === 0) {
     return (
       <Section title="Variations">
-        <p className="text-base text-muted-foreground">What does it come in? Sizes, flavours or other versions.</p>
-        <div className="space-y-1">
-          <Button
-            id={fid("add-variations")}
-            type="button"
-            variant="outline"
-            className="self-start"
-            onClick={() => {
-              const first = blank();
-              onChange({ label: label || suggestions[0] || "Size", rows: [first, blank()] });
-              setFocusKey(fid(`variation-${first.key}-name`));
-            }}
-          >
-            Add variations
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            Versions that each have their own price, like Small, Medium and Large.
-          </p>
-        </div>
+        <p className="text-base text-muted-foreground">
+          Does the price change with size or version? Or does it come in flavours or colours?
+        </p>
         {children}
       </Section>
     );
@@ -155,7 +143,7 @@ export function VariationsSection({
                   onClick={() => {
                     const next = rows.filter((r) => r.key !== row.key);
                     onChange({ rows: next });
-                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("add-variations"));
+                    setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : fid("add-variation"));
                   }}
                 >
                   <Trash2Icon aria-hidden="true" />
@@ -194,7 +182,7 @@ export function VariationsSection({
       >
         Add another {word.toLowerCase()}
       </Button>
-      {children && <div className="space-y-4 border-t border-border pt-4">{children}</div>}
+      <div className="space-y-4 border-t border-border pt-4">{children}</div>
     </Section>
   );
 }

@@ -27,7 +27,7 @@ test("a product with sizes: each has its price, the usual one comes first, and t
   // The product: two rows to start, the list called "Size" (a suggestion), a third added.
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
-  await page.getByRole("button", { name: "Add variations" }).click();
+  await page.getByRole("button", { name: /^Each has its own price/ }).click();
   await expect(page.getByLabel("What do you call them?")).toHaveValue("Size");
   await expect(page.getByLabel(/^Size \d price$/)).toHaveCount(2);
   await expect(page.getByTestId("price-by-variation")).toBeVisible();
@@ -124,7 +124,7 @@ test("sizes added from inside a quote start the item with the usual one, and sav
   await sheet(page).getByRole("button", { name: /Candle/ }).click();
   await expect(sheet(page).getByLabel(/^Price/)).toHaveValue("100");
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
-  await sheet(page).getByRole("button", { name: "Add variations" }).click();
+  await sheet(page).getByRole("button", { name: /^Each has its own price/ }).click();
   await fillVariations(page, [["Small", "80"], ["Large", "150"]]);
   await sheet(page).getByLabel("Usual size").selectOption({ label: "Large" });
   await sheet(page).getByRole("button", { name: "Save changes" }).click();
@@ -152,7 +152,7 @@ test("the price typed first moves into the first size, and back when the sizes a
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
   await page.getByLabel("Price", { exact: true }).fill("350");
-  await page.getByRole("button", { name: "Add variations" }).click();
+  await page.getByRole("button", { name: /^Each has its own price/ }).click();
   await expect(page.getByLabel("Size 1 price", { exact: true })).toHaveValue("350");
   await expect(page.getByLabel("Size 2 price", { exact: true })).toHaveValue("");
 
@@ -160,7 +160,7 @@ test("the price typed first moves into the first size, and back when the sizes a
   await page.getByLabel("Size 1 price", { exact: true }).fill("400");
   await tap(page.getByRole("button", { name: "Remove Size 2" }));
   await tap(page.getByRole("button", { name: "Remove Size 1" }));
-  await expect(page.getByRole("button", { name: "Add variations" })).toBeFocused();
+  await expect(page.getByRole("button", { name: /^Each has its own price/ })).toBeFocused();
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("400");
 });
 
@@ -171,14 +171,14 @@ test("lists added before and after the sizes stay separate, and save as two list
   await page.getByLabel("Price", { exact: true }).fill("350");
 
   // A list first, then sizes (the lists move into the sizes' section), then a second list.
-  await page.getByRole("button", { name: "Add a list" }).click();
-  await page.getByLabel("List name").last().fill("Flavour");
+  await page.getByRole("button", { name: /^Adds to the price/ }).click();
+  await page.getByLabel("Variation name").last().fill("Flavour");
   await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
   await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Chocolate");
-  await page.getByRole("button", { name: "Add variations" }).click();
+  await page.getByRole("button", { name: /^Each has its own price/ }).click();
   await fillVariations(page, [["Small", "300"], ["Large", "500"]]);
-  await page.getByRole("button", { name: "Add another list" }).click();
-  await page.getByLabel("List name").last().fill("Filling");
+  await page.getByRole("button", { name: "Add another variation" }).click();
+  await page.getByLabel("Variation name").last().fill("Filling");
   await page.getByLabel("Filling: choice 1", { exact: true }).fill("Jam");
   await page.getByLabel("Filling: choice 2", { exact: true }).fill("Cream");
   await expect(page.getByRole("button", { name: /^(Edit|Done) (Flavour|Filling)$/ })).toHaveCount(2);

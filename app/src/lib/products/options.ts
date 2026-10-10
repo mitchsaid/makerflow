@@ -87,9 +87,9 @@ export function parseOptionGroups(
   variationKeys: readonly string[] = [],
 ): { ok: true; groups: ParsedOptionGroup[] } | { ok: false; errors: OptionErrors } {
   const errors: OptionErrors = { groups: {} };
-  if (!Array.isArray(input)) return { ok: false, errors: { ...errors, list: "The lists could not be read. Open the product again." } };
-  if (input.length > OPTIONS_MAX) return { ok: false, errors: { ...errors, list: `A product can have up to ${OPTIONS_MAX} lists.` } };
-  if (!input.every(isGroupRow)) return { ok: false, errors: { ...errors, list: "The lists could not be read. Open the product again." } };
+  if (!Array.isArray(input)) return { ok: false, errors: { ...errors, list: "The variations could not be read. Open the product again." } };
+  if (input.length > OPTIONS_MAX) return { ok: false, errors: { ...errors, list: `A product can have up to ${OPTIONS_MAX} variations that add to the price.` } };
+  if (!input.every(isGroupRow)) return { ok: false, errors: { ...errors, list: "The variations could not be read. Open the product again." } };
 
   const groups: ParsedOptionGroup[] = [];
   const groupNames = new Set<string>();
@@ -98,7 +98,7 @@ export function parseOptionGroups(
     const name = tidy(row.name);
     if (name === "") e.name = "Give it a name, like “Flavour” or “Filling”.";
     else if (name.length > OPTION_NAME_MAX) e.name = `Keep the name to ${OPTION_NAME_MAX} characters or fewer.`;
-    else if (groupNames.has(name.toLowerCase())) e.name = "Two lists have this name. Give each its own.";
+    else if (groupNames.has(name.toLowerCase())) e.name = "Two variations have this name. Give each its own.";
     groupNames.add(name.toLowerCase());
 
     const values: ParsedOptionGroup["values"] = [];

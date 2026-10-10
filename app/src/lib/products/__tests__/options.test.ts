@@ -42,7 +42,7 @@ describe("parseOptionGroups (the lists you pick one from)", () => {
 
   it("refuses two lists of the same name, too many, a list it can't read, or an extra kind", () => {
     const r = parseOptionGroups([group(), group({ key: "g2" })]);
-    expect(!r.ok && r.errors.groups.g2.name).toMatch(/Two lists/);
+    expect(!r.ok && r.errors.groups.g2.name).toMatch(/Two variations/);
     expect(parseOptionGroups(Array.from({ length: 21 }, (_, i) => group({ key: `g${i}`, name: `O${i}` }))).ok).toBe(false);
     expect(parseOptionGroups("nope").ok).toBe(false);
     expect(parseOptionGroups([{ ...group(), kind: "maybe" }]).ok).toBe(false);
