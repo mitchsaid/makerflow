@@ -292,7 +292,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Axe product", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit product");
       // Variations on the product, with a problem, then saved and chosen on a quote.
-      await page.getByRole("radio", { name: /^A price for each/ }).click();
+      await page.getByRole("radio", { name: /^Yes/ }).click();
       await page.getByRole("textbox", { name: "Size 1", exact: true }).fill("Small");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();

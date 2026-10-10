@@ -222,7 +222,7 @@ export function ProductForm({
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
 
-  // How it is priced is one question, asked before the price: one price, or a price for each size or version. The
+  // Whether it comes in sizes or versions is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
   const priced = values.variations.length > 0;
   // The price moves into the first row when sizes start, and back when the last one goes.
@@ -351,16 +351,16 @@ export function ProductForm({
         )}
       </Section>
 
-      <Section title="Price">
+      <Section title="Sizes and versions">
         <FieldSet>
           <FieldLegend variant="label" className="text-base">
-            How is it priced?
+            Does it come in different sizes or versions?
           </FieldLegend>
           <RadioGroup value={priced ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
             {(
               [
-                ["one", "One price", "The same whatever they choose."],
-                ["each", "A price for each size or version", `Like Small ${currencySymbol}300, Large ${currencySymbol}600.`],
+                ["one", "No", "It is one thing."],
+                ["each", "Yes", "Like Small, Medium and Large. Each has its own price."],
               ] as const
             ).map(([value, title, description]) => (
               <Field
@@ -377,7 +377,7 @@ export function ProductForm({
             ))}
           </RadioGroup>
         </FieldSet>
-        {priced ? (
+        {priced && (
           <PricedVariations
             label={values.variationLabel}
             rows={values.variations}
@@ -392,6 +392,12 @@ export function ProductForm({
               changeVariations(change);
             }}
           />
+        )}
+      </Section>
+
+      <Section title="Price">
+        {priced ? (
+          <p className="text-base text-muted-foreground">The price is set on each size or version above.</p>
         ) : (
           <TextField
             id={fid("unitPrice")}
@@ -411,7 +417,7 @@ export function ProductForm({
           value={values.unit}
           error={errors.unit}
           onChange={set("unit")}
-          hint="What one is, like kg, dozen or hour. The price above is per unit. Leave it empty for a plain count."
+          hint="What one is, like kg, dozen or hour. Prices are per unit. Leave it empty for a plain count."
         />
         {vatChoices && (
           <SelectField

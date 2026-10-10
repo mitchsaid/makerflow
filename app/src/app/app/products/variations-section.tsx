@@ -56,7 +56,7 @@ export function PricedVariations({
   return (
     <div className="space-y-4">
       <p className="text-base text-muted-foreground">
-        Each has its own price. On a quote you choose one.
+        On a quote you choose one.
       </p>
       <TextField
         id={fid("variationLabel")}
@@ -128,7 +128,7 @@ export function PricedVariations({
                   onClick={() => {
                     const next = rows.filter((r) => r.key !== row.key);
                     onChange({ rows: next });
-                    // With none left this section goes away, and the form puts focus on "One price".
+                    // With none left this section goes away, and the form puts focus on the "No" answer.
                     setFocusKey(next.length > 0 ? fid(`variation-${next[Math.max(0, i - 1)].key}-name`) : null);
                   }}
                 >
