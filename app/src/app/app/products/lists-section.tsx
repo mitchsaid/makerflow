@@ -5,6 +5,7 @@ import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Trash2Icon } from "lucide-react";
+import { ChoiceImage } from "@/components/choice-image";
 import { Button } from "@/components/ui/button";
 import {
   OPTIONS_MAX,
@@ -30,6 +31,7 @@ export function ListsSection({
   variations,
   variationWord,
   fid,
+  onPendingChange,
   onChange,
 }: {
   groups: OptionGroupFormRow[];
@@ -40,9 +42,19 @@ export function ListsSection({
   errors: OptionErrors | undefined;
   currencySymbol: string;
   fid: (key: string) => string;
+  /** A choice's picture is on its way (true) or has arrived (false), so the form can wait for it before saving. */
+  onPendingChange: (pending: boolean) => void;
   onChange: (groups: OptionGroupFormRow[]) => void;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // What went wrong with a choice's picture, by choice.
+  const [problems, setProblems] = useState<Record<string, string>>({});
+  const setProblem = (key: string, message: string | null) =>
+    setProblems((p) => {
+      const rest = { ...p };
+      delete rest[key];
+      return message ? { ...rest, [key]: message } : rest;
+    });
   const pendingFocus = useRef<string | null>(null);
   useEffect(() => {
     if (!pendingFocus.current) return;
@@ -136,18 +148,10 @@ export function ListsSection({
                         </FieldLabel>
                       </Field>
                     )}
-                    {/* One line each: the choice, what it adds and a remove button, under shared headings.
-                        Priced by size: the choice's line, then a price for each size under it. */}
+                    {/* Each choice: its picture, its name and a remove button, then what it adds (or, priced by size, a
+                        price for each size) and a way to remove the picture. */}
                     <div className="space-y-2">
-                      <div
-                        aria-hidden="true"
-                        className={`grid items-end gap-2 text-sm font-medium ${byVariation ? "grid-cols-[1fr_2.75rem]" : "grid-cols-[1fr_7.5rem_2.75rem]"}`}
-                      >
-                        <span>Choice</span>
-                        {!byVariation && <span>Adds</span>}
-                        <span />
-                      </div>
-                      <ol className={byVariation ? "space-y-4" : "space-y-2"}>
+                      <ol className="space-y-4">
                         {g.values.map((v, vi) => {
                           const ve = e?.rows[v.key];
                           const vTitle = v.name.trim() || `${title}: choice ${vi + 1}`;
@@ -168,11 +172,21 @@ export function ListsSection({
                               <Trash2Icon aria-hidden="true" />
                             </Button>
                           );
+                          const picture = v.imageId ?? "";
+                          const problem = problems[v.key];
+                          const setValue = (imageId: string) =>
+                            setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, imageId } : x)) });
+                          const removePicture = (
+                            <Button type="button" variant="ghost" onClick={() => setValue("")}>
+                              Remove picture<span className="sr-only"> of {vTitle}</span>
+                            </Button>
+                          );
                           const nameField = (
                             <TextField
                               id={fid(`option-${g.key}-value-${v.key}-name`)}
                               label={`${title}: choice ${vi + 1}`}
                               labelHidden
+                              placeholder="Name"
                               autoComplete="off"
                               maxLength={80}
                               value={v.name}
@@ -181,54 +195,69 @@ export function ListsSection({
                             />
                           );
                           return (
-                            <li key={v.key} className="space-y-2">
+                            <li key={v.key} className="grid grid-cols-[2.75rem_1fr_2.75rem] items-start gap-x-2 gap-y-2">
+                              <ChoiceImage
+                                id={fid(`option-${g.key}-value-${v.key}-image`)}
+                                label={vTitle}
+                                value={picture}
+                                onChange={(imageId) => {
+                                  setProblem(v.key, null);
+                                  setValue(imageId);
+                                }}
+                                onProblem={(message) => setProblem(v.key, message)}
+                                onPendingChange={onPendingChange}
+                              />
+                              {nameField}
+                              {remove}
                               {byVariation ? (
-                                <>
-                                  <div className="grid grid-cols-[1fr_2.75rem] items-start gap-2">
-                                    {nameField}
-                                    {remove}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 pl-3">
-                                    {variations.map((variation) => (
-                                      <div key={variation.key} className="space-y-1">
-                                        <span aria-hidden="true" className="block text-sm text-muted-foreground">
-                                          {variation.name}
-                                        </span>
-                                        <TextField
-                                          id={fid(`option-${g.key}-value-${v.key}-price-${variation.key}`)}
-                                          label={`${title}: choice ${vi + 1} adds for ${variation.name}`}
-                                          labelHidden
-                                          startText={`+${currencySymbol}`}
-                                          inputMode="decimal"
-                                          autoComplete="off"
-                                          value={v.prices?.[variation.key] ?? ""}
-                                          error={ve?.prices?.[variation.key]}
-                                          onChange={(price) =>
-                                            setGroup(g.key, {
-                                              values: g.values.map((x) => (x.key === v.key ? { ...x, prices: { ...(x.prices ?? {}), [variation.key]: price } } : x)),
-                                            })
-                                          }
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="grid grid-cols-[1fr_7.5rem_2.75rem] items-start gap-2">
-                                  {nameField}
-                                  <TextField
-                                    id={fid(`option-${g.key}-value-${v.key}-price`)}
-                                    label={`${title}: choice ${vi + 1} adds`}
-                                    labelHidden
-                                    startText={`+${currencySymbol}`}
-                                    inputMode="decimal"
-                                    autoComplete="off"
-                                    value={v.price}
-                                    error={ve?.price}
-                                    onChange={(price) => setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, price } : x)) })}
-                                  />
-                                  {remove}
+                                <div className="col-span-2 col-start-2 grid grid-cols-2 gap-x-3 gap-y-2">
+                                  {variations.map((variation) => (
+                                    <div key={variation.key} className="space-y-1">
+                                      <span aria-hidden="true" className="block text-sm text-muted-foreground">
+                                        {variation.name}
+                                      </span>
+                                      <TextField
+                                        id={fid(`option-${g.key}-value-${v.key}-price-${variation.key}`)}
+                                        label={`${title}: choice ${vi + 1} adds for ${variation.name}`}
+                                        labelHidden
+                                        startText={`+${currencySymbol}`}
+                                        inputMode="decimal"
+                                        autoComplete="off"
+                                        value={v.prices?.[variation.key] ?? ""}
+                                        error={ve?.prices?.[variation.key]}
+                                        onChange={(price) =>
+                                          setGroup(g.key, {
+                                            values: g.values.map((x) => (x.key === v.key ? { ...x, prices: { ...(x.prices ?? {}), [variation.key]: price } } : x)),
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  ))}
                                 </div>
+                              ) : (
+                                <div className="col-span-2 col-start-2 flex items-start gap-2">
+                                  <div className="w-40">
+                                    <TextField
+                                      id={fid(`option-${g.key}-value-${v.key}-price`)}
+                                      label={`${title}: choice ${vi + 1} adds`}
+                                      labelHidden
+                                      placeholder="Adds"
+                                      startText={`+${currencySymbol}`}
+                                      inputMode="decimal"
+                                      autoComplete="off"
+                                      value={v.price}
+                                      error={ve?.price}
+                                      onChange={(price) => setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, price } : x)) })}
+                                    />
+                                  </div>
+                                  {picture !== "" && removePicture}
+                                </div>
+                              )}
+                              {byVariation && picture !== "" && <div className="col-span-2 col-start-2">{removePicture}</div>}
+                              {problem && (
+                                <p role="alert" className="col-span-2 col-start-2 text-sm text-destructive">
+                                  {problem}
+                                </p>
                               )}
                             </li>
                           );

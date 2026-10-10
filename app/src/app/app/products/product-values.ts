@@ -64,7 +64,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
     photoImageId: p.photoImageId ?? "",
     vatStatus: p.vatStatus ?? "standard",
     variationLabel: p.variationLabel ?? "",
-    variations: p.variations.map((x) => ({ key: x.id, id: x.id, name: x.name, price: moneyToInput(x.priceCents, style), usual: x.usual })),
+    variations: p.variations.map((x) => ({ key: x.id, id: x.id, name: x.name, price: moneyToInput(x.priceCents, style), usual: x.usual, imageId: x.imageId ?? "" })),
     options: p.options.map((g) => ({
       key: g.id,
       id: g.id,
@@ -77,6 +77,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
         name: x.name,
         price: x.priceCents > 0 ? moneyToInput(x.priceCents, style) : "",
         usual: x.usual,
+        imageId: x.imageId ?? "",
         // By the variation's row key (a saved variation's key is its id). A zero is kept as "0": left empty, a
         // size asks what it adds.
         prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),

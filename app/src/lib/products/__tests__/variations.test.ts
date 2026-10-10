@@ -48,6 +48,19 @@ describe("parseVariations", () => {
   });
 });
 
+describe("pictures on choices", () => {
+  const IMG = "22222222-2222-4222-8222-222222222222";
+  it("carries a picture, takes a bad id as none, and leaves pictures alone when the form has no field", () => {
+    const r = parseVariations("Size", [row({ imageId: IMG }), row({ key: "k2", name: "Large", imageId: "not-an-id" }), row({ key: "k3", name: "Huge" })]);
+    expect(r.ok && r.variations.map((v) => v.imageId)).toEqual([IMG, null, undefined]);
+    expect(r.ok && "imageId" in r.variations[2]).toBe(false);
+  });
+  it("an empty picture means none", () => {
+    const r = parseVariations("Size", [row({ imageId: "" }), row({ key: "k2", name: "Large" })]);
+    expect(r.ok && r.variations[0].imageId).toBeNull();
+  });
+});
+
 describe("the product form with variations", () => {
   const form = (entries: Record<string, string>) => {
     const f = new FormData();

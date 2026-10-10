@@ -1,3 +1,4 @@
+import { isImageId } from "../images";
 import { parseMoney, type Cents } from "../money";
 
 /**
@@ -17,7 +18,7 @@ export const OPTION_VALUES_MAX = 50;
 export type OptionKind = "one" | "any" | "text";
 
 /** `prices`: by variation id, when the option's price depends on the variation (else empty). */
-export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean; prices: Record<string, Cents> };
+export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean; prices: Record<string, Cents>; imageId: string | null };
 export type OptionGroup = {
   id: string;
   name: string;
@@ -28,7 +29,7 @@ export type OptionGroup = {
 };
 
 /** One list on the form while it is being filled in. Ids are "" for new ones. `prices`: by the variation row's key, when the choice's price depends on the variation. */
-export type OptionValueFormRow = { key: string; id: string; name: string; price: string; usual: boolean; prices?: Record<string, string> };
+export type OptionValueFormRow = { key: string; id: string; name: string; price: string; usual: boolean; prices?: Record<string, string>; imageId?: string };
 export type OptionGroupFormRow = {
   key: string;
   id: string;
@@ -40,7 +41,7 @@ export type OptionGroupFormRow = {
 
 export type ParsedOptionGroup = Omit<OptionGroup, "id" | "values"> & {
   id: string | null;
-  values: { id: string | null; name: string; priceCents: Cents; usual: boolean; prices: { variationIndex: number; priceCents: Cents }[] }[];
+  values: { id: string | null; name: string; priceCents: Cents; usual: boolean; prices: { variationIndex: number; priceCents: Cents }[]; imageId?: string | null }[];
 };
 
 export type OptionGroupErrors = {
@@ -58,7 +59,7 @@ function isValueRow(value: unknown): value is OptionValueFormRow {
   const pricesOk =
     v.prices === undefined ||
     (typeof v.prices === "object" && v.prices !== null && !Array.isArray(v.prices) && Object.values(v.prices).every((p) => typeof p === "string"));
-  return typeof v.key === "string" && typeof v.id === "string" && typeof v.name === "string" && typeof v.price === "string" && typeof v.usual === "boolean" && pricesOk;
+  return typeof v.key === "string" && typeof v.id === "string" && typeof v.name === "string" && typeof v.price === "string" && typeof v.usual === "boolean" && (v.imageId === undefined || typeof v.imageId === "string") && pricesOk;
 }
 
 function isGroupRow(value: unknown): value is OptionGroupFormRow {
@@ -142,7 +143,14 @@ export function parseOptionGroups(
       else if (price.ok) {
         const usual = v.usual && !usualTaken;
         if (usual) usualTaken = true;
-        values.push({ id: UUID.test(v.id) ? v.id : null, name: vName, priceCents: price.value, usual, prices });
+        values.push({
+          id: UUID.test(v.id) ? v.id : null,
+          name: vName,
+          priceCents: price.value,
+          usual,
+          prices,
+          ...(v.imageId === undefined ? {} : { imageId: isImageId(v.imageId) ? v.imageId : null }),
+        });
       }
     }
 
@@ -176,6 +184,7 @@ export function optionsPayload(groups: readonly ParsedOptionGroup[]) {
       name: v.name,
       price_cents: v.priceCents,
       usual: v.usual,
+      ...(v.imageId === undefined ? {} : { image_id: v.imageId ?? "" }),
       ...(g.priceByVariation ? { prices: v.prices.map((p) => ({ variation_index: p.variationIndex, price_cents: p.priceCents })) } : {}),
     })),
   }));

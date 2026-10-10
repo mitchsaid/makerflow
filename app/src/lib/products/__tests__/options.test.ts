@@ -78,6 +78,25 @@ describe("parseOptionGroups (the lists you pick one from)", () => {
   });
 });
 
+describe("pictures on choices", () => {
+  const IMG = "22222222-2222-4222-8222-222222222222";
+  it("sends a picture, or none, for the choices of a form that has pictures, and nothing for one that has not", () => {
+    const r = parseOptionGroups([
+      group({
+        values: [
+          { key: "v1", id: ID, name: "Vanilla", price: "", usual: true, imageId: IMG },
+          { key: "v2", id: "", name: "Red velvet", price: "50", usual: false, imageId: "" },
+          { key: "v3", id: "", name: "Plain", price: "", usual: false },
+        ],
+      }),
+    ]);
+    const values = r.ok ? optionsPayload(r.groups)[0].values : [];
+    expect(values[0]).toMatchObject({ image_id: IMG });
+    expect(values[1]).toMatchObject({ image_id: "" });
+    expect(values[2]).not.toHaveProperty("image_id");
+  });
+});
+
 describe("a list priced by variation", () => {
   const byVariation = (prices: Record<string, string>) =>
     group({ name: "Gold", priceByVariation: true, values: [{ key: "v1", id: "", name: "Gold leaf", price: "", usual: false, prices }] });

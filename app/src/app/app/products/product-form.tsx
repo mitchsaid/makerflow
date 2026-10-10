@@ -111,10 +111,17 @@ export function ProductForm({
   // A photo is on its way (chosen, not finished uploading). Saving now would leave it out.
   const [uploading, setUploading] = useState(false);
   const [waiting, setWaiting] = useState(false);
+  // How many pictures of choices are on their way (each choice has its own).
+  const [choiceUploads, setChoiceUploads] = useState(0);
+  const onChoicePending = (busy: boolean) => {
+    setChoiceUploads((n) => Math.max(0, n + (busy ? 1 : -1)));
+    if (!busy) setWaiting(false);
+  };
+  const uploadingAny = uploading || choiceUploads > 0;
   useEffect(() => {
-    // A sheet over a quote must not close while either the save or a photo is on its way.
-    embeddedRef.current?.onPendingChange(pending || uploading);
-  }, [pending, uploading]);
+    // A sheet over a quote must not close while either the save or a picture is on its way.
+    embeddedRef.current?.onPendingChange(pending || uploadingAny);
+  }, [pending, uploadingAny]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
   // After a save, new variations take the ids the database gave them, so saving again keeps them (and the
@@ -293,7 +300,7 @@ export function ProductForm({
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
-    if (uploading) {
+    if (uploadingAny) {
       setWaiting(true);
       return;
     }
@@ -384,6 +391,7 @@ export function ProductForm({
             priceLabel={priceLabel}
             currencySymbol={currencySymbol}
             fid={fid}
+            onPendingChange={onChoicePending}
             onChange={(change) => {
               // The last size removed takes the sizes away: focus goes to the answer that is left.
               if (change.rows?.length === 0) focusOnePrice.current = true;
@@ -440,6 +448,7 @@ export function ProductForm({
         errors={errors.options}
         currencySymbol={currencySymbol}
         fid={fid}
+        onPendingChange={onChoicePending}
         onChange={(options) => {
           setEditedSinceSave(true);
           setValues((v) => ({ ...v, options }));
@@ -477,6 +486,12 @@ export function ProductForm({
       {state.status === "saved" && !embedded && !pending && !editedSinceSave && (
         <p role="status" className="text-sm font-medium">
           Saved.
+        </p>
+      )}
+
+      {waiting && choiceUploads > 0 && (
+        <p role="alert" className="text-sm text-destructive">
+          Wait for the pictures to finish uploading, then save.
         </p>
       )}
 
