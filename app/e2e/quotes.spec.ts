@@ -501,4 +501,9 @@ test("Preview with a customer but no items names the items", async ({ page }) =>
   await expect(page.getByTestId("form-summary")).toContainText("1 thing needs fixing");
   await expect(page.getByTestId("form-summary")).toContainText("Add at least one item to the quote.");
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
+  // The message is at the Items too, tied to the Add item button, and the summary link goes there.
+  await expect(page.getByRole("button", { name: "Add item" })).toHaveAccessibleDescription("Add at least one item to the quote.");
+  await expect(page.getByRole("button", { name: "Add item" })).toHaveAttribute("aria-invalid", "true");
+  await page.getByTestId("form-summary").getByRole("link", { name: /Items/ }).click();
+  await expect(page.getByRole("button", { name: "Add item" })).toBeFocused();
 });

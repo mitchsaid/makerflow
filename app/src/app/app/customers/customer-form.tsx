@@ -12,6 +12,7 @@ import type { CustomerFieldErrors } from "@/lib/customers";
 import { getLocalePack } from "@/lib/locale";
 import type { CustomerSaveState, CustomerSummaryOption } from "./actions";
 import type { CustomerFormValues } from "./customer-values";
+import { AddButton } from "@/components/add-button";
 
 const initialState: CustomerSaveState = { status: "idle" };
 
@@ -256,9 +257,9 @@ export function CustomerForm({
           </Section>
         </>
       ) : (
-        <Button type="button" variant="outline" onClick={() => setShowMore(true)}>
+        <AddButton onClick={() => setShowMore(true)}>
           Add address, delivery details or notes
-        </Button>
+        </AddButton>
       )}
 
       {state.status === "error" && state.message && (

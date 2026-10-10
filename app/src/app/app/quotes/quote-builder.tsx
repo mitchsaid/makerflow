@@ -16,7 +16,7 @@ import { DepositSection } from "./deposit-section";
 import { TermsSection } from "./terms-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   formatMoney,
@@ -497,9 +497,15 @@ export function QuoteBuilder({
             {expanded ? "Show fewer items" : `Show all ${values.lines.length} items`}
           </Button>
         )}
-        <AddButton id="add-item" onClick={() => openSheet({ kind: "pick" })}>
+        <AddButton
+          id="add-item"
+          aria-invalid={!!f.lines}
+          aria-describedby={f.lines ? "items-error" : undefined}
+          onClick={() => openSheet({ kind: "pick" })}
+        >
           Add item
         </AddButton>
+        {f.lines && <FieldError id="items-error">{f.lines}</FieldError>}
         {/* Only when an item has a photo to show; nothing to decide otherwise. */}
         {values.lines.some((l) => photoOf(l)) && (
           <Field orientation="horizontal" className="items-start py-2.5">
