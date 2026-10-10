@@ -334,7 +334,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Saved.")).toBeVisible();
       await page.getByRole("button", { name: /^Add (a|another) variation$/ }).click();
-      await page.getByLabel("Variation name").fill("Flavour");
+      await page.getByLabel("Variation name").last().fill("Flavour");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toContainText("Flavour: choice 1");
       await expectNoViolations(page, "product lists, with problems");
