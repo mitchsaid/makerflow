@@ -72,4 +72,4 @@ Option amounts are typed in the business's price-entry mode (including or exclud
 Unit: product choices parsing, line parsing with variations and options, the money order (per item, once, discounts, VAT in both modes), snapshot and document text in every layout, old snapshots. SQL: isolation, session required, limits, usual uniqueness, `save_product` keeping ids, a line's variation from another business refused. Browser: build a product with variations and options; quote it with usual and required choices; totals; the document; revise and quote again carry the choices. Accessibility: the product form sections and the item sheet.
 
 ## Later layers
-How recipes, costs, process and stock attach to variations, further variations and extras: `docs/plans/costs-and-recipes.md`.
+How the process (inputs and steps), costs and stock attach to variations, further variations and extras: `docs/plans/costs-and-recipes.md`.
