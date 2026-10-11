@@ -56,6 +56,14 @@ describe("what an amount of a material costs", () => {
     expect(materialCostCents(1000, "g", m, RATE)).toBe(33);
   });
 
+  it("never returns a silently wrong number for an amount money cannot hold", () => {
+    // 9 999 999 999 kg needed against 1 mg bought for the largest price: far beyond what money holds.
+    const tiny = { unit: "mg", boughtQuantityMilli: 1, priceCents: 99_999_999_999, vatTreatment: "none" } as const;
+    expect(materialCostCents(9_999_999_999, "kg", tiny, null)).toBeNull();
+    // At the edge it still works.
+    expect(materialCostCents(1, "mg", tiny, null)).toBe(99_999_999_999);
+  });
+
   it("handles large and tiny amounts without losing a cent", () => {
     const big = { unit: "kg", boughtQuantityMilli: 9_999_999_999, priceCents: 99_999_999_999, vatTreatment: "included" } as const;
     expect(materialCostCents(9_999_999_999, "kg", big, RATE)).toBe(Math.round(99_999_999_999 / 1.15));

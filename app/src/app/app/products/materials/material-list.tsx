@@ -86,7 +86,7 @@ export function MaterialList({
       )}
       {visible.length === 0 ? (
         <p className="text-muted-foreground" role="status">
-          No materials match “{query.trim()}”.
+          {query.trim() !== "" ? `No materials match “${query.trim()}”.` : "All your materials are archived. Tick Show archived to see them."}
         </p>
       ) : (
         <ul className="space-y-2" aria-label="Materials">

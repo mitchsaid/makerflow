@@ -12,6 +12,8 @@
 --   derived in the app from this and the locale pack's rate.
 -- * Names are unique per business (ignoring case and spaces) among materials that are not archived.
 -- * Materials are ARCHIVED, never deleted: processes and jobs will refer to them. There is no delete grant.
+-- * A business can have up to 2000 materials that are not archived: archiving one frees a slot, and restoring one
+--   into a full business is refused.
 --
 -- SECURITY-SENSITIVE: new table with row-level security and column grants. Needs human review before it is
 -- applied to any hosted project.
@@ -41,7 +43,8 @@ create trigger materials_set_updated_at
   before update on public.materials
   for each row execute function public.set_updated_at();
 
--- A business can keep a large but limited number of materials (a sign something has gone wrong beyond it).
+-- A business can keep a large but limited number of materials that are not archived (a sign something has gone wrong
+-- beyond it). Checked when one is added, and when one is restored from the archive.
 create function public.materials_limit()
 returns trigger
 language plpgsql
@@ -49,9 +52,13 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Only a row that becomes active counts: a new one, or one restored from the archive.
+  if new.archived_at is not null or (tg_op = 'UPDATE' and old.archived_at is null) then
+    return new;
+  end if;
   perform pg_advisory_xact_lock(hashtextextended('materials:' || new.organisation_id::text, 0));
-  if (select count(*) from public.materials where organisation_id = new.organisation_id) >= 2000 then
-    raise exception 'a business can have at most 2000 materials' using errcode = '54000';
+  if (select count(*) from public.materials where organisation_id = new.organisation_id and archived_at is null) >= 2000 then
+    raise exception 'a business can have at most 2000 materials that are not archived' using errcode = '54000';
   end if;
   return new;
 end;
@@ -60,7 +67,7 @@ $$;
 revoke execute on function public.materials_limit() from public, anon, authenticated;
 
 create trigger materials_limit
-  before insert on public.materials
+  before insert or update of archived_at on public.materials
   for each row execute function public.materials_limit();
 
 -- No delete, and the organisation can never be changed after creation.

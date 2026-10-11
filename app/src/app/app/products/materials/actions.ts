@@ -40,7 +40,7 @@ export async function createMaterial(_previous: MaterialSaveState, formData: For
     .select("id")
     .single();
   if (error?.code === "23505") return { status: "error", errors: { name: TAKEN } };
-  if (error?.code === "54000") return { status: "error", message: "You have reached the limit of 2000 materials. Archive some you no longer use." };
+  if (error?.code === "54000") return { status: "error", message: "You have reached the limit of 2000 materials. Archive some you no longer use to make room." };
   if (error || !data) {
     console.error("could not add material:", error?.code, error?.message);
     return { status: "error", message: GENERIC_ERROR };
@@ -86,6 +86,9 @@ export async function setMaterialArchived(id: string, archived: boolean): Promis
     .eq("id", id)
     .eq("organisation_id", organisation.id)
     .select("id");
+  if (error?.code === "54000") {
+    return { status: "error", message: "You already have 2000 materials that are not archived, so this one cannot be restored. Archive another first." };
+  }
   if (error?.code === "23505") {
     return { status: "error", message: "Another material has this name now. Give one of them a different name, then restore it." };
   }

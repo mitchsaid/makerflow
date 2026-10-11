@@ -155,6 +155,32 @@ begin
   end;
   reset role;
 
+  ----------------------------------------------------------------------
+  -- The limit: 2000 that are not archived; archiving frees a slot; restoring into a full business is refused
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  select count(*) into n from public.materials where organisation_id = org_a and archived_at is null;
+  insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents)
+    select org_a, 'Bulk ' || i, 'each', 1000, 100 from generate_series(1, 2000 - n) as i;
+  assert (select count(*) from public.materials where organisation_id = org_a and archived_at is null) = 2000, 'could not fill the business';
+  begin
+    insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents) values (org_a, 'One too many', 'each', 1000, 100);
+    raise exception 'a 2001st material was accepted';
+  exception when sqlstate '54000' then null;
+  end;
+  -- Archiving one frees a slot (archived ones are not counted), and the slot can be used.
+  update public.materials set archived_at = now() where name = 'Bulk 1';
+  insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents) values (org_a, 'Fits now', 'each', 1000, 100);
+  -- Restoring into a full business is refused too; the archived one stays archived.
+  begin
+    update public.materials set archived_at = null where name = 'Bulk 1';
+    raise exception 'a material was restored into a full business';
+  exception when sqlstate '54000' then null;
+  end;
+  assert (select archived_at is not null from public.materials where name = 'Bulk 1'), 'the refused restore changed the row';
+  reset role;
+
   raise notice 'materials tests passed';
 end
 $$;

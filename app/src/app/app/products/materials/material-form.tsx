@@ -168,7 +168,7 @@ export function MaterialForm({
             </p>
           </FieldSet>
         )}
-        <p role="status" className="text-base" data-testid="cost-preview">
+        <p className="text-base" data-testid="cost-preview">
           {preview === null
             ? "Fill in the unit, how much and what you paid to see what one costs."
             : `That works out at ${preview === 0 && price.ok && price.value > 0 ? `less than ${formatMoney(1, currencyCode, numberStyle)}` : formatMoney(preview, currencyCode, numberStyle)} per ${previewUnit}${vatRegistered ? ` (without ${taxName})` : ""}.`}

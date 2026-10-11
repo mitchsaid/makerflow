@@ -1,4 +1,4 @@
-import { parseMoney, parseQuantity, type Cents, type QuantityMilli } from "../money";
+import { MAX_CENTS, parseMoney, parseQuantity, type Cents, type QuantityMilli } from "../money";
 import { isUnitCode, sameKind, toBaseMilli, UNITS, type UnitCode } from "./units";
 
 /**
@@ -35,7 +35,8 @@ export type Material = {
  * What an amount of a material costs, in whole cents WITHOUT VAT (margins are worked out without VAT), rounded once
  * at the end. `needed` is in thousandths of `neededUnit`, which must be the same kind of unit as the material's.
  * `vatRateBp` is the standard rate in basis points (from the locale pack) when the business is VAT-registered,
- * otherwise null. Returns null when the units are different kinds (litres against a material bought by the kilo).
+ * otherwise null. Returns null when the units are different kinds (litres against a material bought by the kilo),
+ * or when the cost is more than money can hold.
  */
 export function materialCostCents(
   neededMilli: QuantityMilli,
@@ -50,7 +51,9 @@ export function materialCostCents(
   const numerator = toBaseMilli(neededMilli, neededUnit) * BigInt(material.priceCents) * (stripVat ? BigInt(10_000) : BigInt(1));
   const denominator = toBaseMilli(material.boughtQuantityMilli, material.unit) * (stripVat ? BigInt(10_000) + rate : BigInt(1));
   if (denominator === BigInt(0)) return null;
-  return Number((numerator * BigInt(2) + denominator) / (denominator * BigInt(2)));
+  const cents = (numerator * BigInt(2) + denominator) / (denominator * BigInt(2));
+  // An amount beyond what money can hold is no cost at all: never a silently wrong number.
+  return cents > BigInt(MAX_CENTS) ? null : Number(cents);
 }
 
 /** What one of the material's own unit costs (without VAT): "R15,00 per kg". Null if it cannot be worked out. */

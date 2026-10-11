@@ -144,3 +144,16 @@ test("each business only ever sees its own materials", async ({ page, browser })
   await expect(second.getByText("Private beeswax")).toHaveCount(0);
   await other.close();
 });
+
+test("when every material is archived, the list says so instead of looking empty or broken", async ({ page }) => {
+  await signUpAndOnboard(page, "mat-allarch", "All Archived Co");
+  await page.goto("/app/products/materials/new");
+  await fillMaterial(page, { name: "Old stock", unit: "each", quantity: "100", price: "50" });
+  await page.getByRole("button", { name: "Add material" }).click();
+  await page.getByRole("link", { name: /Old stock/ }).click();
+  await page.getByRole("button", { name: "Archive material" }).click();
+  await expect(page).toHaveURL(/\/app\/products\/materials$/);
+  await expect(page.getByText("All your materials are archived. Tick Show archived to see them.")).toBeVisible();
+  await page.getByRole("checkbox", { name: /Show archived/ }).check();
+  await expect(page.getByRole("link", { name: /Old stock/ })).toBeVisible();
+});
