@@ -138,9 +138,10 @@ export function visibleJobs(jobs: readonly JobSummary[], filter: JobFilter, quer
 export type JobOption = { group: string; kind: string; value: string | null; text: string | null; quantityMilli: number | null };
 
 export type JobDetail = JobSummary & {
-  quoteId: string;
+  /** The quote it was made from, or null for a job made by hand. */
+  quoteId: string | null;
   quoteNumber: string;
-  quoteVersion: number;
+  quoteVersion: number | null;
   deliveryAddress: string | null;
   customerId: string | null;
   customerContactPerson: string | null;

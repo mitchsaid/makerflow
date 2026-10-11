@@ -32,7 +32,7 @@ quote → **accepted** → **job** (make it, then collect or deliver) → **invo
 3. **Where it lives:** a **Jobs** tab replaces nothing today (Home, Quotes, Customers, Products, More). A fifth bottom tab fits; or Jobs sits as a switch on the Quotes tab (Quotes | Jobs). Recommendation: **a Jobs tab** once there is something to see, because jobs are what the maker opens every day.
 4. **Job numbers** are their own simple sequence (J-0001), per business, not gapless-critical (a job is not a legal document), so a job can be shown as "Job 12" in speech. Needs `job` added to the sequence kinds (a small migration).
 5. **Changing the quote after a job exists:** a quote with a job cannot be reopened ("Change the answer") while the job is Making or later; before that it asks to cancel the job first. A revised quote does not change a job by itself.
-6. **Jobs without a quote** (a walk-in order): later; the job's data does not depend on a quote being there, so it is possible without a redo.
+6. **Jobs without a quote** (a walk-in order): the job's data does not depend on a quote being there. Built on 2026-10-11, at the founder's request.
 7. **Per-item progress** (finish 3 of 5 items) and **assigning people**: later (employees, layer 11).
 
 ### Data (sketch)
@@ -75,11 +75,13 @@ SQL: isolation, session required, one job per accepted quote, allowed and refuse
 2. **Statuses** as proposed: Not started, Making, Ready (for collection or delivery), Out for delivery (delivery jobs only), Done, plus Cancelled.
 3. **Where jobs live:** a **Jobs tab**, with **Customers moved under More** on a phone (the desktop sidebar keeps both).
 4. **Deposit and the invoice:** **one invoice, with the deposit shown as a payment.** The deposit's VAT treatment still needs the tax adviser.
-5. Photos of finished work, a delivery time window, a driver: not yet answered; asked after slice 1.
+5. Photos of finished work, a delivery time window, a driver: **none of these** are needed for now.
+6. **Jobs without a quote** (founder, 2026-10-11, after slice 1): a job can be made by hand, so decision 6 below is no longer "later". Built (see below).
 
 ## Built: Jobs slice 1 (needs human review: migration `20261028100000_jobs.sql`)
 - **Database:** `jobs`, `job_items` (a frozen copy) and `job_events`, each with row-level security and the restrictive `session_required` policy. Two service-role-only functions: `create_job_from_quote` (needs an accepted quote with a customer; copies the latest sent version's snapshot; one active job per quote; the business's own count for the number) and `move_job_status` (only the allowed moves, each logged). A member can change only the job's `note`. The same migration replaces `record_quote_outcome` with one added rule: **a quote with an active job cannot be reopened** ("Change the answer") until the job is cancelled (decision 5 above, simplified to "active job" rather than by status).
 - **App:** a **Jobs** tab (list with To do / Done / All, search, late flag), a job page (what to make with variation and choices, customer with tap-to-call and email, delivery address, needed-by, the maker's note, one big next-step button plus smaller back/cancel/restore, activity log, link to the quote), and **Create a job** on an accepted quote (which then shows "Job J-000N"). Job numbers are shown "J-0001", counted per business (not `document_sequences`: a job is not a legal document).
+- **Jobs without a quote (built, needs human review: migration `20261029100000_jobs_without_quote.sql`):** a **New job** button on the Jobs tab opens a form (customer from the saved ones or added on the spot, one or more items with quantity, unit and details, the day needed, collection or delivery with the address, a note). `jobs.quote_id` and `quote_version` may now be empty (only together); a new service-role-only `create_job` function checks everything, copies the customer as the quote path does and shares the same numbering; `move_job_status` is replaced so a job with no quote has nothing to lock or check on restore. Such a job says "Added by hand, without a quote". Items are typed in (no product picker yet).
 - **Not yet (slice 2):** photos, the Home counts, "needed this week", a prompt right after "They accepted", per-item progress.
 
 ## Questions for the founder (asked and answered above)

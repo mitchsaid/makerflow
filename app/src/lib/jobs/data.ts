@@ -54,8 +54,8 @@ export async function getJobs(): Promise<JobSummary[]> {
 }
 
 type DetailRow = SummaryRow & {
-  quote_id: string;
-  quote_version: number;
+  quote_id: string | null;
+  quote_version: number | null;
   delivery_address: string | null;
   customer_id: string | null;
   customer_contact_person: string | null;

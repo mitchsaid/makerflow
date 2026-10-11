@@ -121,16 +121,22 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
 
       <section className="space-y-2" aria-labelledby="from-heading">
         <h2 id="from-heading" className="text-base font-semibold">
-          From the quote
+          {job.quoteId ? "From the quote" : "Where it came from"}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Made from{" "}
-          <Link href={`/app/quotes/${job.quoteId}?version=${job.quoteVersion}`} className="inline-flex min-h-11 items-center font-medium underline">
-            quote {job.quoteNumber}
-            {job.quoteVersion > 1 ? `, version ${job.quoteVersion}` : ""}
-          </Link>
-          . Changes to the quote or the customer afterwards do not change this job.
-        </p>
+        {job.quoteId ? (
+          <p className="text-sm text-muted-foreground">
+            Made from{" "}
+            <Link href={`/app/quotes/${job.quoteId}?version=${job.quoteVersion}`} className="inline-flex min-h-11 items-center font-medium underline">
+              quote {job.quoteNumber}
+              {job.quoteVersion && job.quoteVersion > 1 ? `, version ${job.quoteVersion}` : ""}
+            </Link>
+            . Changes to the quote or the customer afterwards do not change this job.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Added by hand, without a quote. Changes to the customer afterwards do not change this job.
+          </p>
+        )}
       </section>
 
       <Activity job={job} locale={locale.formatLocale} timeZone={locale.timeZone} />

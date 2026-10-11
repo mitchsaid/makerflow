@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
-import { nav, sentQuote } from "./quote-helpers";
+import { addCustomerInSheet, nav, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
 
@@ -120,6 +120,73 @@ test("Customers moved behind More and Jobs took the tab", async ({ page }) => {
   // No jobs yet: the empty state says how to make one.
   await nav(page).getByRole("link", { name: "Jobs" }).click();
   await expect(page.getByText("No jobs yet")).toBeVisible();
+});
+
+test("a job can be made without a quote", async ({ page }) => {
+  await signUpAndOnboard(page, "jobs-manual", "Manual Co");
+  await nav(page).getByRole("link", { name: "Jobs" }).click();
+  await expect(page.getByText("No jobs yet")).toBeVisible();
+  await page.getByRole("link", { name: "New job" }).click();
+  await expect(page.getByRole("heading", { name: "New job", level: 1 })).toBeVisible();
+
+  // Pressing Create with nothing filled in says what is missing, at the fields and in a summary.
+  await page.getByRole("button", { name: "Create job" }).click();
+  const summary = page.getByTestId("form-summary");
+  await expect(summary).toContainText("2 things need fixing");
+  await expect(summary).toContainText("Choose who this job is for");
+  await expect(summary).toContainText("Say what to make.");
+  await expect(page.getByText("Say what to make.")).toHaveCount(2);
+
+  // Messages belong to the item's place in the list, so taking an item away clears them rather than moving them.
+  await page.getByRole("button", { name: "Add another item" }).click();
+  await page.getByRole("button", { name: "Remove item 2" }).click();
+  await expect(summary).toHaveCount(0);
+  await page.getByRole("button", { name: "Create job" }).click();
+  await expect(summary).toContainText("2 things need fixing");
+
+  // Fix them; what was typed along the way stays.
+  await page.getByLabel("Item 1").fill("Oak shelf");
+  await page.getByLabel("Quantity").fill("0");
+  await page.getByRole("button", { name: "Create job" }).click();
+  await expect(summary).toContainText("The quantity must be more than zero.");
+  await expect(page.getByLabel("Item 1")).toHaveValue("Oak shelf");
+  await page.getByLabel("Quantity").fill("2");
+
+  await page.getByRole("button", { name: "Add another item" }).click();
+  await expect(page.getByLabel("Item 2")).toBeFocused();
+  await page.getByLabel("Item 2").fill("Brackets");
+  await page.getByLabel("Unit (optional)").nth(1).fill("pair");
+  await page.getByLabel("Quantity").nth(1).fill("4");
+  await page.getByLabel("Details (optional)").first().fill("120 cm, oiled");
+
+  await addCustomerInSheet(page, "Sam Jacobs", { phone: "021 555 0000" });
+  await page.getByLabel("Needed by (optional)").fill("2030-01-15");
+  await page.getByRole("radio", { name: "Delivery (you deliver)" }).check();
+  await page.getByLabel("Deliver to (optional)").fill("14 Oak Road");
+  await page.getByLabel("Note (optional)").fill("Match the desk");
+  await page.getByRole("button", { name: "Create job" }).click();
+
+  await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
+  const items = page.getByTestId("job-items");
+  await expect(items).toContainText("2 Oak shelf");
+  await expect(items).toContainText("120 cm, oiled");
+  await expect(items).toContainText("4 pair Brackets");
+  await expect(page.getByText("Sam Jacobs")).toBeVisible();
+  await expect(page.getByText("14 Oak Road")).toBeVisible();
+  await expect(page.getByTestId("job-needed-by")).toContainText("delivery");
+  await expect(page.getByLabel("Your note")).toHaveValue("Match the desk");
+  await expect(page.getByText("Added by hand, without a quote.")).toBeVisible();
+
+  // It moves along like any other job, and the list offers New job once there is one.
+  await page.getByRole("button", { name: "Start making" }).click();
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel this job" }).click();
+  await page.getByRole("button", { name: "Restore this job" }).click();
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
+  await nav(page).getByRole("link", { name: "Jobs" }).click();
+  await expect(page.getByRole("link", { name: /Sam Jacobs/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "New job" })).toBeVisible();
 });
 
 /** A sent quote for delivery, with the address typed on the quote. */

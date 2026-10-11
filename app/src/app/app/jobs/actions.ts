@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { isJobStatus } from "@/lib/jobs";
+import { parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -113,4 +114,50 @@ export async function saveJobNote(jobId: string, note: string): Promise<JobNoteS
   }
   revalidatePath(`/app/jobs/${jobId}`);
   return { status: "saved" };
+}
+
+export type NewJobResult = { status: "error"; errors?: NewJobErrors; message?: string };
+
+/**
+ * Makes a job by hand, without a quote. Checked again here (the screen checks too), then the customer is proven to be
+ * the person's own with their own session before the server-only function writes anything.
+ */
+export async function createManualJob(values: NewJobValues): Promise<NewJobResult> {
+  const { organisation, user } = await requireOrganisation();
+  const parsed = parseNewJob(values);
+  if (!parsed.ok) return { status: "error", errors: parsed.errors };
+  const job = parsed.value;
+
+  const supabase = await createClient();
+  const { data: own } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("id", job.customerId)
+    .eq("organisation_id", organisation.id)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (!own) return { status: "error", errors: { customerId: "That customer could not be found. Choose them again." } };
+
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { data: jobId, error } = await made.admin.rpc("create_job", {
+    p_org: organisation.id,
+    p_actor: user.id,
+    p_customer_id: job.customerId,
+    p_fulfilment: job.fulfilment,
+    p_delivery_address: job.deliveryAddress,
+    p_needed_by: job.neededBy,
+    p_note: job.note,
+    p_items: job.items,
+  });
+  if (error?.code === "22023") {
+    return { status: "error", message: "Something in this job was not accepted. Check the customer and the items, then try again." };
+  }
+  if (error || typeof jobId !== "string") {
+    console.error("could not create a job by hand:", error?.code, error?.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/jobs");
+  redirect(`/app/jobs/${jobId}`);
 }
