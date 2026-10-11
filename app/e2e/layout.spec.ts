@@ -37,6 +37,14 @@ test("on a phone, date fields and the rest of the new quote fit inside their car
   await expect(page.getByLabel("Valid until")).toBeVisible();
   await expect(page.getByLabel("Needed by (optional)")).toBeVisible();
   expect(await stickingOut(page)).toEqual([]);
+
+  // Each date field has its calendar icon (drawn by the field itself: the native one is not there on a phone), so
+  // it still looks like a date field after being made to fit.
+  for (const label of ["Quote date", "Valid until", "Needed by (optional)"]) {
+    const field = page.getByLabel(label);
+    await expect(field.locator("xpath=..").locator("svg")).toHaveCount(1);
+    await expect(field.locator("xpath=..").locator("svg")).toBeVisible();
+  }
 });
 
 test("on a phone, the other forms fit inside their cards too", async ({ page }) => {
