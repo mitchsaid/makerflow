@@ -11,11 +11,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import type { JobFulfilment } from "@/lib/jobs";
 import { emptyJobItem, NEW_JOB_LIMITS, parseNewJob, type NewJobErrors, type NewJobItemValues, type NewJobValues } from "@/lib/jobs/new-job";
-import { addressWhenCustomerChanges, addressWhenFulfilmentChanges } from "@/lib/quotes/delivery";
+import { addressWhenCustomerChanges, addressWhenFulfilmentChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
 import { CustomerPicker } from "../../quotes/customer-picker";
 import { createManualJob } from "../actions";
 
-const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
+const OFFLINE = "Couldn't reach the server, so we can't tell whether the job was made. Check the Jobs list, then try again if it is not there. Your changes are still here.";
 
 /**
  * A job without a quote: who it is for, what to make, when it is needed and how it gets to them. One scrolling form
@@ -53,7 +53,20 @@ export function NewJobForm({
     setValues((v) => ({ ...v, customerId, deliveryAddress: addressWhenCustomerChanges(v.deliveryAddress, saved, next) }));
   }
   function chooseFulfilment(fulfilment: JobFulfilment) {
+    setErrors((e) => {
+      const rest = { ...e };
+      delete rest.deliveryAddress;
+      return rest;
+    });
     setValues((v) => ({ ...v, fulfilment, deliveryAddress: addressWhenFulfilmentChanges(fulfilment, v.deliveryAddress, saved) }));
+  }
+  /** The picker adds or edits customers; when the chosen one's saved addresses change, the address typed here follows. */
+  function changeCustomers(update: (list: CustomerOption[]) => CustomerOption[]) {
+    const after = update(customers).find((c) => c.id === values.customerId)?.addresses ?? [];
+    setCustomers(update);
+    if (after !== saved && values.customerId !== "") {
+      setValues((v) => ({ ...v, deliveryAddress: addressWhenSavedAddressesChange(v.deliveryAddress, saved, after) }));
+    }
   }
   function changeItem(key: string, change: Partial<NewJobItemValues>) {
     setValues((v) => ({ ...v, items: v.items.map((item) => (item.key === key ? { ...item, ...change } : item)) }));
@@ -66,6 +79,9 @@ export function NewJobForm({
   }
   function removeItem(key: string) {
     setValues((v) => ({ ...v, items: v.items.filter((item) => item.key !== key) }));
+    // Messages are tied to the item's position, which has just moved: they come back if pressing Create finds them again.
+    setErrors({});
+    setServerMessage(null);
     setTimeout(() => document.getElementById("add-item")?.focus(), 0);
   }
 
@@ -83,6 +99,8 @@ export function NewJobForm({
       try {
         const result = await createManualJob(values);
         if (result.status === "error") {
+          // The customer is not theirs any more (archived elsewhere): back to the search box, where the message shows.
+          if (result.errors?.customerId) chooseCustomer("", []);
           setErrors(result.errors ?? {});
           setServerMessage(result.message ?? null);
           setTried((n) => n + 1);
@@ -122,7 +140,8 @@ export function NewJobForm({
         <CustomerPicker
           id="customer"
           customers={customers}
-          onCustomersChange={setCustomers}
+          onCustomersChange={changeCustomers}
+          subject="job"
           countryCode={countryCode}
           value={values.customerId}
           onChange={chooseCustomer}

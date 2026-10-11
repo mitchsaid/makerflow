@@ -54,4 +54,18 @@ describe("parseNewJob", () => {
     const items = Array.from({ length: 51 }, (_, i) => ({ ...emptyJobItem(String(i)), name: `Item ${i}` }));
     expect(parseNewJob(good({ items }))).toMatchObject({ ok: false, errors: { items: "A job can have up to 50 items." } });
   });
+
+  it("refuses a character the database cannot store, and bad ids and fulfilments", () => {
+    const r = parseNewJob(good({ note: "a\u0000b", items: [{ ...emptyJobItem("a"), name: "Sh\u0000elf" }] }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["item-0-name", "note"]);
+    expect(parseNewJob(good({ customerId: "not-an-id" }))).toMatchObject({ ok: false, errors: { customerId: MISSING_JOB_CUSTOMER } });
+    expect(parseNewJob(good({ fulfilment: "pigeon" as never }))).toMatchObject({ ok: false, errors: { fulfilment: expect.any(String) } });
+  });
+
+  it("checks the unit and the details lengths", () => {
+    const r = parseNewJob(good({ items: [{ ...emptyJobItem("a"), name: "X", unit: "u".repeat(21), description: "d".repeat(4001) }] }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["item-0-description", "item-0-unit"]);
+  });
 });

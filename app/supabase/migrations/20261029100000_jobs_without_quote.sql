@@ -72,7 +72,8 @@ begin
        or char_length(btrim(item ->> 'name')) not between 1 and 300
        or jsonb_typeof(item -> 'quantityMilli') is distinct from 'number'
        or (item ->> 'quantityMilli') !~ '^[0-9]{1,10}$'
-       or (item ->> 'quantityMilli')::bigint not between 1 and 9999999999
+       -- (the cast only runs once the text is known to be digits)
+       or (case when (item ->> 'quantityMilli') ~ '^[0-9]{1,10}$' then (item ->> 'quantityMilli')::bigint not between 1 and 9999999999 else true end)
        or (item -> 'description' is not null and jsonb_typeof(item -> 'description') not in ('string', 'null'))
        or char_length(coalesce(item ->> 'description', '')) > 4000
        or (item -> 'unit' is not null and jsonb_typeof(item -> 'unit') not in ('string', 'null'))

@@ -54,6 +54,13 @@ begin
   exception when insufficient_privilege then null;
   end;
   reset role;
+  set local role anon;
+  begin
+    perform public.create_job(org_a, a, cust_a, 'none', null, null, null, items);
+    raise exception 'FAIL: anon called create_job';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
 
   ----------------------------------------------------------------------
   -- Refusals write nothing
@@ -91,6 +98,38 @@ begin
       jsonb_build_array(jsonb_build_object('name', 'X', 'quantityMilli', 1.5)));
     raise exception 'FAIL: a fractional milli quantity was accepted';
   exception when sqlstate '22023' then null;
+  end;
+  -- Numbers that are not whole thousandths, too big, or not numbers; names that are not text; too many items
+  declare bad jsonb; many jsonb := (select jsonb_agg(jsonb_build_object('name', 'X' || g, 'quantityMilli', 1000)) from generate_series(1, 51) g);
+  begin
+    foreach bad in array array[
+      jsonb_build_object('name', 'X', 'quantityMilli', -5),
+      jsonb_build_object('name', 'X', 'quantityMilli', 1.0),
+      jsonb_build_object('name', 'X', 'quantityMilli', 10000000000),
+      jsonb_build_object('name', 'X', 'quantityMilli', '1000'),
+      jsonb_build_object('name', 'X', 'quantityMilli', null),
+      jsonb_build_object('name', null, 'quantityMilli', 1000),
+      jsonb_build_object('name', 7, 'quantityMilli', 1000),
+      jsonb_build_object('name', repeat('x', 301), 'quantityMilli', 1000),
+      jsonb_build_object('name', 'X', 'quantityMilli', 1000, 'unit', repeat('u', 21)),
+      to_jsonb('just text'::text)
+    ] loop
+      begin
+        perform public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_array(bad));
+        raise exception 'FAIL: a bad item was accepted: %', bad;
+      exception when sqlstate '22023' then null;
+      end;
+    end loop;
+    begin
+      perform public.create_job(org_a, a, cust_a, 'none', null, null, null, many);
+      raise exception 'FAIL: 51 items were accepted';
+    exception when sqlstate '22023' then null;
+    end;
+    begin
+      perform public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_object('name', 'X'));
+      raise exception 'FAIL: items that are not a list were accepted';
+    exception when sqlstate '22023' then null;
+    end;
   end;
   begin
     perform public.create_job(org_a, a, cust_a, 'none', '1 Long Street', null, null, items);

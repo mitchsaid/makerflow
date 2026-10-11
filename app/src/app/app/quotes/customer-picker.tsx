@@ -54,6 +54,7 @@ export function CustomerPicker({
   value,
   onChange,
   error,
+  subject = "quote",
 }: {
   id: string;
   customers: CustomerOption[];
@@ -66,6 +67,8 @@ export function CustomerPicker({
   /** The addresses come too: the list the quote keeps may not have this customer in it yet. */
   onChange: (customerId: string, addresses: SavedAddress[]) => void;
   error?: string;
+  /** What the customer is being chosen for, for the wording in the sheet: "quote" or "job". */
+  subject?: string;
 }) {
   const listId = useId();
   const setCustomers = onCustomersChange;
@@ -210,8 +213,8 @@ export function CustomerPicker({
           </SheetTitle>
           <SheetDescription className="text-base">
             {sheet?.kind === "edit"
-              ? "Changes are saved to the customer, not just this quote."
-              : "Only a name is needed. Your quote is kept as it is."}
+              ? `Changes are saved to the customer, not just this ${subject}.`
+              : `Only a name is needed. Your ${subject} is kept as it is.`}
           </SheetDescription>
         </SheetHeader>
         <div className="px-4 pt-4">

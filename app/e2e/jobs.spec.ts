@@ -137,6 +137,13 @@ test("a job can be made without a quote", async ({ page }) => {
   await expect(summary).toContainText("Say what to make.");
   await expect(page.getByText("Say what to make.")).toHaveCount(2);
 
+  // Messages belong to the item's place in the list, so taking an item away clears them rather than moving them.
+  await page.getByRole("button", { name: "Add another item" }).click();
+  await page.getByRole("button", { name: "Remove item 2" }).click();
+  await expect(summary).toHaveCount(0);
+  await page.getByRole("button", { name: "Create job" }).click();
+  await expect(summary).toContainText("2 things need fixing");
+
   // Fix them; what was typed along the way stays.
   await page.getByLabel("Item 1").fill("Oak shelf");
   await page.getByLabel("Quantity").fill("0");

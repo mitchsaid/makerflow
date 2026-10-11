@@ -43,6 +43,9 @@ export const emptyJobItem = (key: string): NewJobItemValues => ({ key, name: "",
 export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } | { ok: false; errors: NewJobErrors } {
   const errors: NewJobErrors = {};
   const text = (s: unknown) => (typeof s === "string" ? s.trim() : "");
+  // The database cannot store a NUL character (pasted text sometimes has one).
+  const hasNul = (s: unknown) => typeof s === "string" && s.includes("\u0000");
+  const NUL = "That text has a character that can't be saved. Delete it and type it again.";
 
   if (!UUID.test(text(values.customerId))) errors.customerId = MISSING_JOB_CUSTOMER;
 
@@ -50,13 +53,15 @@ export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } |
   if (fulfilment !== "none" && fulfilment !== "collection" && fulfilment !== "delivery") errors.fulfilment = "Choose collection, delivery or not decided yet.";
 
   const address = text(values.deliveryAddress);
-  if (address.length > NEW_JOB_LIMITS.address) errors.deliveryAddress = `Keep the address to ${NEW_JOB_LIMITS.address} characters or fewer. It is ${address.length} now.`;
+  if (hasNul(values.deliveryAddress)) errors.deliveryAddress = NUL;
+  else if (address.length > NEW_JOB_LIMITS.address) errors.deliveryAddress = `Keep the address to ${NEW_JOB_LIMITS.address} characters or fewer. It is ${address.length} now.`;
 
   const neededBy = text(values.neededBy);
   if (neededBy !== "" && !isIsoDay(neededBy)) errors.neededBy = "Choose the day from the calendar, or leave it empty.";
 
   const note = text(values.note);
-  if (note.length > NEW_JOB_LIMITS.note) errors.note = `Keep the note to ${NEW_JOB_LIMITS.note} characters or fewer. It is ${note.length} now.`;
+  if (hasNul(values.note)) errors.note = NUL;
+  else if (note.length > NEW_JOB_LIMITS.note) errors.note = `Keep the note to ${NEW_JOB_LIMITS.note} characters or fewer. It is ${note.length} now.`;
 
   const items: NewJob["items"] = [];
   const list = Array.isArray(values.items) ? values.items : [];
@@ -64,15 +69,18 @@ export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } |
   if (list.length > NEW_JOB_LIMITS.items) errors.items = `A job can have up to ${NEW_JOB_LIMITS.items} items.`;
   list.forEach((item, i) => {
     const name = text(item?.name);
-    if (name === "") errors[`item-${i}-name`] = "Say what to make.";
+    if (hasNul(item?.name)) errors[`item-${i}-name`] = NUL;
+    else if (name === "") errors[`item-${i}-name`] = "Say what to make.";
     else if (name.length > NEW_JOB_LIMITS.itemName) errors[`item-${i}-name`] = `Keep the name to ${NEW_JOB_LIMITS.itemName} characters or fewer.`;
     const quantity = parseQuantity(item?.quantity);
     if (!quantity.ok) errors[`item-${i}-quantity`] = quantity.error;
     const unit = text(item?.unit);
-    if (unit.length > NEW_JOB_LIMITS.unit) errors[`item-${i}-unit`] = `Keep the unit to ${NEW_JOB_LIMITS.unit} characters or fewer.`;
+    if (hasNul(item?.unit)) errors[`item-${i}-unit`] = NUL;
+    else if (unit.length > NEW_JOB_LIMITS.unit) errors[`item-${i}-unit`] = `Keep the unit to ${NEW_JOB_LIMITS.unit} characters or fewer.`;
     const description = text(item?.description);
-    if (description.length > NEW_JOB_LIMITS.description) errors[`item-${i}-description`] = `Keep the details to ${NEW_JOB_LIMITS.description} characters or fewer.`;
-    if (name !== "" && quantity.ok && unit.length <= NEW_JOB_LIMITS.unit) {
+    if (hasNul(item?.description)) errors[`item-${i}-description`] = NUL;
+    else if (description.length > NEW_JOB_LIMITS.description) errors[`item-${i}-description`] = `Keep the details to ${NEW_JOB_LIMITS.description} characters or fewer.`;
+    if (!errors[`item-${i}-name`] && quantity.ok && !errors[`item-${i}-unit`] && !errors[`item-${i}-description`]) {
       items.push({ name, description: description === "" ? null : description, quantityMilli: quantity.value, unit: unit === "" ? null : unit });
     }
   });
