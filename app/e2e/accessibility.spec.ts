@@ -79,6 +79,15 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("heading", { name: "Jobs", level: 1 })).toBeVisible();
       await expectNoViolations(page, "jobs, empty");
+      await page.getByRole("link", { name: "New job" }).first().click();
+      await expect(page.getByRole("heading", { name: "New job", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "new job");
+      await page.getByRole("button", { name: "Create job" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "new job, with errors");
+      await page.getByRole("radio", { name: "Delivery (you deliver)" }).check();
+      await expectNoViolations(page, "new job, delivery");
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
 
       await openMore(page);
       await expectNoViolations(page, "more");

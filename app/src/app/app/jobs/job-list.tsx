@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AddLink } from "@/components/add-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -42,12 +43,18 @@ export function JobList({
         <CardContent className="space-y-4">
           <p className="text-base font-medium">No jobs yet</p>
           <p className="text-muted-foreground">
-            When a customer accepts a quote, open it and choose &ldquo;Create a job&rdquo;. The items, the customer and
-            the day it is needed carry over, and you can follow it from making to collected or delivered.
+            Add a job for anything you are making, then follow it from making to collected or delivered. When a customer
+            accepts a quote, open it and choose &ldquo;Create a job&rdquo; and the items, the customer and the day it is
+            needed carry over.
           </p>
-          <Link href="/app/quotes" className={buttonVariants()}>
-            Go to your quotes
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <AddLink href="/app/jobs/new" variant="default">
+              New job
+            </AddLink>
+            <Link href="/app/quotes" className={buttonVariants({ variant: "outline" })}>
+              Go to your quotes
+            </Link>
+          </div>
         </CardContent>
       </Card>
     );

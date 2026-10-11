@@ -1,3 +1,4 @@
+import { AddLink } from "@/components/add-button";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getJobs } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
@@ -13,7 +14,14 @@ export default async function JobsPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-xl font-semibold">Jobs</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold">Jobs</h1>
+        {jobs.length > 0 && (
+          <AddLink href="/app/jobs/new" variant="default">
+            New job
+          </AddLink>
+        )}
+      </div>
       <JobList jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
     </main>
   );
