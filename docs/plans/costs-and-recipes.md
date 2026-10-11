@@ -1,5 +1,7 @@
 # Plan: costs, process and stock for one product with variations
 
+**Paused after slice 1 (founder, 2026-10-11): quotes, invoices and job tracking come first** (`docs/plans/jobs-and-invoices.md`); this plan resumes after them.
+
 Status: **proposal, updated 2026-10-11** after the founder's answers (VAT researched, batch size agreed, steps can depend on a choice, "recipe" becomes **process**). Nothing is built. Two small questions remain (end of this file). **Money, migrations and new tables: human review.** (The file keeps its first name, `costs-and-recipes`, so links keep working.)
 
 Builds on `docs/plans/product-choices.md` and `docs/plans/product-extras.md` (variations, further variations, extras), and replaces the "Costs and margin", "Production steps" and "Stock" placeholders in the product form. Delivery layers 6 and 8 in `docs/product-brief.md`; what the prototype did and got wrong is in `docs/prototype-discovery.md` (section 3, and items 4, 6 and 9 of section 5).
