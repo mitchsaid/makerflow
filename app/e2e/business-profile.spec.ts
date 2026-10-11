@@ -93,19 +93,19 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   expect(box!.width).toBeGreaterThan(viewport.width - 2); // full width
 
   // Five tabs on a phone; Business and Settings are behind "More".
-  await expect(nav.getByRole("link")).toHaveText(["Home", "Quotes", "Customers", "Products", "More"]);
+  await expect(nav.getByRole("link")).toHaveText(["Home", "Quotes", "Jobs", "Products", "More"]);
   await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
 
   // Selecting a tab must not nudge any label: record where each sits, then compare.
-  const names = ["Home", "Quotes", "Customers", "Products", "More"];
+  const names = ["Home", "Quotes", "Jobs", "Products", "More"];
   const labelBoxes = async () =>
     Promise.all(
       names.map((name) => nav.getByRole("link", { name }).locator("span span").last().boundingBox()),
     );
   const before = await labelBoxes();
-  await nav.getByRole("link", { name: "Customers" }).click();
-  await expect(page).toHaveURL(/\/app\/customers$/);
-  await expect(nav.getByRole("link", { name: "Customers" })).toHaveAttribute("aria-current", "page");
+  await nav.getByRole("link", { name: "Jobs" }).click();
+  await expect(page).toHaveURL(/\/app\/jobs$/);
+  await expect(nav.getByRole("link", { name: "Jobs" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current", "page");
 
   // The pages behind "More" keep "More" marked.
@@ -125,7 +125,7 @@ test("on a phone the navigation is a bottom tab bar with the current section mar
   await openSettings(page);
   await expect(page).toHaveURL(/\/app\/settings$/);
   await expect(nav.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
-  await expect(nav.getByRole("link", { name: "Customers" })).not.toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Jobs" })).not.toHaveAttribute("aria-current", "page");
 
   const after = await labelBoxes();
   for (const i of [0, 1, 2, 3, 4]) {

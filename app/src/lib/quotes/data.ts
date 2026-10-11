@@ -164,6 +164,7 @@ type QuoteRow = {
   quote_lines: LineRow[];
   quote_versions: VersionRow[];
   quote_events: EventRow[];
+  jobs: { id: string; number: number; status: string }[] | null;
 };
 
 /** A stored quote with its lines, as numbers. Turn it into form text with toFormValues(). */
@@ -231,6 +232,8 @@ export type StoredQuote = {
    * kept at the start of the revision exists (revisions begun before it was kept cannot).
    */
   canDiscardRevision: boolean;
+  /** The job being made from this quote (not a cancelled one), if there is one. */
+  job: { id: string; number: number; status: string } | null;
   /** The activity log, oldest first. */
   events: {
     id: string;
@@ -307,7 +310,8 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
          vat_number, company_registration_number, notes
        ),
        quote_versions ( version, sent_at, sent_via, snapshot ),
-       quote_events ( id, kind, version, via, on_date, how, note, has_base, created_at )`,
+       quote_events ( id, kind, version, via, on_date, how, note, has_base, created_at ),
+       jobs ( id, number, status )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -387,6 +391,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     versions: [...row.quote_versions]
       .sort((a, b) => b.version - a.version)
       .map((v) => ({ version: v.version, sentAt: v.sent_at, sentVia: v.sent_via, snapshot: v.snapshot })),
+    job: (row.jobs ?? []).find((j) => j.status !== "cancelled") ?? null,
     canDiscardRevision:
       row.status === "draft" &&
       row.version > 1 &&

@@ -1,5 +1,6 @@
 // Steps shared by the quote browser tests.
 import { expect, type Page } from "@playwright/test";
+import { openBusinessProfile } from "./helpers";
 
 export const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
 
@@ -65,4 +66,21 @@ export async function startSend(page: Page) {
     await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   }
   await page.getByRole("button", { name: "Send", exact: true }).click();
+}
+
+/** A quote for the customer with one item, sent (marked as sent). The business gets a phone first. */
+export async function sentQuote(page: Page, customer = "Thandi Nkosi") {
+  await openBusinessProfile(page);
+  await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await openQuotes(page);
+  await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await addCustomerInSheet(page, customer);
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await startSend(page);
+  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
 }

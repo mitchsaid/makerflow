@@ -1,6 +1,6 @@
 # Plan: job tracking and invoices (the next layers)
 
-Status: **proposal, 2026-10-11.** Founder's priority (2026-10-11): **quotes, invoices and job tracking come before more on margins and materials.** Costs, process and stock (`docs/plans/costs-and-recipes.md`) are paused after slice 1 (materials, built); they pick up again after the layers here. Nothing in this plan is built. Money, document numbering, immutability and migrations get human review.
+Status: **questionnaire answered 2026-10-11; Jobs slice 1 built (see "Founder's answers" and "Built" below).** Founder's priority (2026-10-11): **quotes, invoices and job tracking come before more on margins and materials.** Costs, process and stock (`docs/plans/costs-and-recipes.md`) are paused after slice 1 (materials, built); they pick up again after the layers here. Money, document numbering, immutability and migrations get human review.
 
 ## Where things stand
 - **Quotes are built end to end:** draft, preview (real PDF), send (share or download), numbered at first save, snapshots that never change, revisions, outcomes (accepted, declined, withdrawn, change the answer, quote again), deposits, terms, themes, pictures, delivery or collection. What is not built: emailing a quote, the customer's online accept link (needs a sending domain and a hosted page, layer 10).
@@ -70,7 +70,19 @@ SQL: isolation, session required, one job per accepted quote, allowed and refuse
 
 ---
 
-## Questions for the founder
+## Founder's answers (2026-10-11)
+1. **Order:** jobs first, then invoices.
+2. **Statuses** as proposed: Not started, Making, Ready (for collection or delivery), Out for delivery (delivery jobs only), Done, plus Cancelled.
+3. **Where jobs live:** a **Jobs tab**, with **Customers moved under More** on a phone (the desktop sidebar keeps both).
+4. **Deposit and the invoice:** **one invoice, with the deposit shown as a payment.** The deposit's VAT treatment still needs the tax adviser.
+5. Photos of finished work, a delivery time window, a driver: not yet answered; asked after slice 1.
+
+## Built: Jobs slice 1 (needs human review: migration `20261028100000_jobs.sql`)
+- **Database:** `jobs`, `job_items` (a frozen copy) and `job_events`, each with row-level security and the restrictive `session_required` policy. Two service-role-only functions: `create_job_from_quote` (needs an accepted quote with a customer; copies the latest sent version's snapshot; one active job per quote; the business's own count for the number) and `move_job_status` (only the allowed moves, each logged). A member can change only the job's `note`. The same migration replaces `record_quote_outcome` with one added rule: **a quote with an active job cannot be reopened** ("Change the answer") until the job is cancelled (decision 5 above, simplified to "active job" rather than by status).
+- **App:** a **Jobs** tab (list with To do / Done / All, search, late flag), a job page (what to make with variation and choices, customer with tap-to-call and email, delivery address, needed-by, the maker's note, one big next-step button plus smaller back/cancel/restore, activity log, link to the quote), and **Create a job** on an accepted quote (which then shows "Job J-000N"). Job numbers are shown "J-0001", counted per business (not `document_sequences`: a job is not a legal document).
+- **Not yet (slice 2):** photos, the Home counts, "needed this week", a prompt right after "They accepted", per-item progress.
+
+## Questions for the founder (asked and answered above)
 1. **Order:** jobs first, then invoices? (Recommended.) Or invoices first, if you would rather get a deposit invoice out before building the job screens.
 2. **Job statuses** as proposed? Anything you track today that is missing (for example "Waiting for materials" or "Waiting for the customer")?
 3. **Where jobs live:** a fifth bottom tab, or a switch on Quotes? (Recommended: a tab.)

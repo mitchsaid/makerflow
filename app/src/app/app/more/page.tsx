@@ -3,6 +3,11 @@ import { requireOrganisation } from "@/lib/auth/dal";
 
 const LINKS = [
   {
+    href: "/app/customers",
+    title: "Customers",
+    description: "The people you make things for, with their contact details and addresses.",
+  },
+  {
     href: "/app/business",
     title: "Business profile",
     description: "Your business name, contact details, address, VAT and bank details.",

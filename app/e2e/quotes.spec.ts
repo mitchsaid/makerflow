@@ -216,7 +216,8 @@ test("the chosen customer can be configured from the quote, and the customer is 
   // The customer is a real, saved customer.
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}/);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Customers" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "More" }).click();
+  await page.getByRole("link", { name: /^Customers/ }).click();
   const row = page.getByRole("link", { name: /Cape Cakes/ });
   await expect(row).toContainText("Business");
   await row.click();
