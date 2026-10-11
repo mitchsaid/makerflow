@@ -60,3 +60,5 @@ Designed with the founder in `docs/plans/product-choices.md`: variations (own pr
 ## Later: the product form's layout (founder, 2026-10-03)
 To be worked through together when the first layer beyond the basics is built. Starting point: **three tabs**, matching the concepts "what it is" (basics, variations and extras), "what goes in" (materials, time and other costs) and "how it's made" (production steps), not one tab per layer. Weigh against phone screens and the error standard when designing.
 
+## Costs, recipes, steps and stock (2026-10-11)
+Proposed in `docs/plans/costs-and-recipes.md`: one recipe per product with lines that apply to choices, stock as a ledger, materials and finished goods counted separately.
