@@ -76,13 +76,18 @@ for (const scheme of ["light", "dark"] as const) {
       await signUpAndOnboard(page, `a11y-${scheme}`, "Axe Co");
       await expectNoViolations(page, "home");
 
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
+      await expect(page.getByRole("heading", { name: "Jobs", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "jobs, empty");
+
       await openMore(page);
       await expectNoViolations(page, "more");
 
       await openSettings(page);
       await expectNoViolations(page, "settings");
 
-      await page.getByRole("link", { name: "Customers" }).click();
+      await openMore(page);
+      await page.getByRole("link", { name: /^Customers/ }).click();
       await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
       await expectNoViolations(page, "customers, empty");
 
@@ -238,6 +243,26 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
       await expect(page.getByTestId("outcome-banner")).toContainText("Accepted");
       await expectNoViolations(page, "accepted quote");
+
+      // Its job: the page, a step taken, the list; then cancelled so the quote can be reopened below.
+      await page.getByRole("button", { name: "Create a job" }).click();
+      await expect(page.getByRole("heading", { name: /^Job J-0001/, level: 1 })).toBeVisible();
+      await expectNoViolations(page, "job, not started");
+      await page.getByRole("button", { name: "Start making" }).click();
+      await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+      await page.getByLabel("Your note").fill("Check the colour");
+      await page.getByRole("button", { name: "Save note" }).click();
+      await expect(page.getByText("Note saved.")).toBeVisible();
+      await expectNoViolations(page, "job, making, with a note");
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
+      await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
+      await expectNoViolations(page, "jobs list");
+      await page.getByRole("link", { name: /J-0001/ }).click();
+      await page.getByRole("button", { name: "Cancel this job" }).click();
+      await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
+      await expectNoViolations(page, "job, cancelled");
+      await page.getByRole("link", { name: "quote QT-0001" }).click();
+      await expect(page.getByRole("button", { name: "Change the answer" })).toBeVisible();
       await page.getByRole("button", { name: "Change the answer" }).click();
       await expect(page.getByRole("button", { name: "They accepted" })).toBeVisible();
       await page.getByRole("button", { name: "Withdraw this quote" }).click();

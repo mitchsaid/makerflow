@@ -2,7 +2,9 @@ import { devices, expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 
 async function openCustomers(page: Page) {
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Customers" }).click();
+  // Customers sit behind "More" on a phone (the Jobs tab took its place).
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "More" }).click();
+  await page.getByRole("link", { name: /^Customers/ }).click();
   await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
 }
 

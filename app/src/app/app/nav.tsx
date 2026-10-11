@@ -13,15 +13,16 @@ type Item = {
 };
 
 /**
- * On a phone five tabs fit (founder chose Products as its own tab, 2026-10-03); Business and
- * Settings sit behind "More".
+ * On a phone five tabs fit: Home, Quotes, Jobs, Products and More (founder chose Products as its own
+ * tab, 2026-10-03, and Jobs over Customers, 2026-10-11). Customers, Business and Settings sit behind "More".
  * The desktop sidebar has room for everything and has no "More".
  */
 const ITEMS: Item[] = [
   { href: "/app", label: "Home", match: (p) => p === "/app", icon: HomeIcon },
   { href: "/app/quotes", label: "Quotes", match: (p) => p.startsWith("/app/quotes"), icon: QuotesIcon },
-  { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon },
+  { href: "/app/jobs", label: "Jobs", match: (p) => p.startsWith("/app/jobs"), icon: JobsIcon },
   { href: "/app/products", label: "Products", match: (p) => p.startsWith("/app/products"), icon: ProductsIcon },
+  { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon, only: "desktop" },
   { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
   { href: "/app/documents", label: "Quotes and invoices", match: (p) => p.startsWith("/app/documents"), icon: DocumentsIcon, only: "desktop" },
   { href: "/app/settings", label: "Settings", match: (p) => p.startsWith("/app/settings"), icon: SettingsIcon, only: "desktop" },
@@ -30,6 +31,7 @@ const ITEMS: Item[] = [
     label: "More",
     match: (p) =>
       p.startsWith("/app/more") ||
+      p.startsWith("/app/customers") ||
       p.startsWith("/app/business") ||
       p.startsWith("/app/documents") ||
       p.startsWith("/app/settings"),
@@ -134,6 +136,17 @@ function MoreIcon() {
       <circle cx="5" cy="12" r="1.2" />
       <circle cx="12" cy="12" r="1.2" />
       <circle cx="19" cy="12" r="1.2" />
+    </svg>
+  );
+}
+
+function JobsIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="4" width="14" height="17" rx="2" />
+      <path d="M9 4V3h6v1" />
+      <path d="m9 13 2 2 4-4" />
     </svg>
   );
 }

@@ -1,25 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
-import { addCustomerInSheet, fillItem, openQuotes, startSend } from "./quote-helpers";
+import { signUpAndOnboard } from "./helpers";
+import { openQuotes, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
-
-/** A quote for the customer with one item, sent (marked as sent). The business gets a phone first. */
-async function sentQuote(page: Page, customer = "Thandi Nkosi") {
-  await openBusinessProfile(page);
-  await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
-  await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByText("Saved.")).toBeVisible();
-  await openQuotes(page);
-  await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
-  await fillItem(page, 1, "Wedding cake", "1", "800");
-  await addCustomerInSheet(page, customer);
-  await page.getByRole("button", { name: "Save draft" }).click();
-  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
-  await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
-  await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
-}
 
 test("the customer accepts, the maker changes the answer, then they decline", async ({ page }) => {
   await signUpAndOnboard(page, "out-answer", "Answer Co");
@@ -55,7 +38,7 @@ test("the customer accepts, the maker changes the answer, then they decline", as
   // An accepted quote is not answered again or revised until the maker changes the answer.
   await expect(page.getByRole("button", { name: "They accepted" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Revise this quote" })).toHaveCount(0);
-  await expect(page.getByTestId("coming-soon").filter({ hasText: "Create a job" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create a job" })).toBeVisible();
 
   // It shows in the list under its own filter.
   await openQuotes(page);

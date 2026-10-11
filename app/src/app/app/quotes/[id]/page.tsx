@@ -17,6 +17,7 @@ import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
 import { themeFromStored } from "@/lib/quotes/themes";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { currentOutcome, outcomeSentence } from "@/lib/quotes/outcome";
+import { jobNumberText } from "@/lib/jobs";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
 import { DesignSection } from "../design-section";
@@ -25,6 +26,7 @@ import { ChangeAnswerButton, OutcomeButtons, QuoteAgainButton } from "../quote-o
 import { QuoteDocumentView } from "../quote-document-view";
 import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
+import { CreateJobButton } from "../create-job-button";
 import { DeleteDraftButton } from "./delete-draft-button";
 import { DiscardRevisionButton } from "./discard-revision-button";
 
@@ -192,12 +194,23 @@ export default async function QuotePage({
           What you can do next
         </h2>
         {canRevise && <OutcomeButtons quoteId={quote.id} number={quote.number} today={today} />}
-        {isLatest && answered && <ChangeAnswerButton quoteId={quote.id} />}
+        {isLatest && answered && !quote.job && <ChangeAnswerButton quoteId={quote.id} />}
         {isLatest && quote.status === "accepted" && (
-          <ComingSoonSection
-            title="Create a job"
-            description="Turn the accepted quote into a job, with the items, the deposit and the dates carried over."
-          />
+          quote.job ? (
+            <Card>
+              <CardContent className="space-y-1">
+                <h3 className="text-base font-medium">Job {jobNumberText(quote.job.number)}</h3>
+                <p className="text-sm text-muted-foreground">
+                  This quote is being made as a job, so its answer is locked. To change the answer, cancel the job first.{" "}
+                  <Link href={`/app/jobs/${quote.job.id}`} className="inline-flex min-h-11 items-center font-medium underline">
+                    Open the job
+                  </Link>
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <CreateJobButton quoteId={quote.id} />
+          )
         )}
         {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
         {canRevise && (
