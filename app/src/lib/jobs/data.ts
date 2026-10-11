@@ -48,7 +48,7 @@ export async function getJobs(): Promise<JobSummary[]> {
     .from("jobs")
     .select("id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, job_items ( name, quantity_milli, unit, sort_order )")
     .order("created_at", { ascending: false })
-    .limit(2000);
+    .limit(1000);
   if (error) throw new Error(`Could not load jobs: ${error.message}`);
   return (data as unknown as SummaryRow[]).map(summary);
 }

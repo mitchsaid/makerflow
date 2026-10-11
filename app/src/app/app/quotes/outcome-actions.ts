@@ -66,7 +66,7 @@ async function applyOutcome(
       };
     }
     if (error.code === "55006") {
-      return { status: "error", message: "This quote has a job. Cancel the job first if you need to change the answer." };
+      return { status: "error", message: "This quote has a job. Open the job and cancel it first (a finished job goes back to ready, then cancel) if you need to change the answer." };
     }
     console.error("could not record quote outcome:", error.code, error.message);
     return { status: "error", message: GENERIC_ERROR };

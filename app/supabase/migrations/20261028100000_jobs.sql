@@ -244,14 +244,26 @@ set search_path = ''
 as $$
 declare
   j public.jobs%rowtype;
+  q public.quotes%rowtype;
+  qid uuid;
   allowed boolean;
 begin
   if p_to not in ('not_started', 'in_progress', 'ready', 'out_for_delivery', 'done', 'cancelled') then
     raise exception 'unknown status' using errcode = '22023';
   end if;
+  -- The quote is locked first (as creating a job does), so a restore and a reopen of the quote cannot cross.
+  select quote_id into qid from public.jobs where id = p_job_id and organisation_id = p_org;
+  if not found then
+    raise exception 'job not found' using errcode = 'P0002';
+  end if;
+  select * into q from public.quotes where id = qid and organisation_id = p_org for update;
   select * into j from public.jobs where id = p_job_id and organisation_id = p_org for update;
   if not found then
     raise exception 'job not found' using errcode = 'P0002';
+  end if;
+  -- A cancelled job comes back only while its quote is still the accepted version it was made from.
+  if j.status = 'cancelled' and p_to = 'not_started' and (q.status <> 'accepted' or q.version <> j.quote_version) then
+    raise exception 'the quote has changed since this job was made' using errcode = 'P0002';
   end if;
 
   allowed := case j.status

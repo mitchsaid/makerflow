@@ -76,7 +76,7 @@ export async function moveJob(jobId: string, to: string): Promise<JobActionResul
   if (!made.admin) return { status: "error", message: made.message };
   const { error } = await made.admin.rpc("move_job_status", { p_org: organisation.id, p_job_id: jobId, p_actor: user.id, p_to: to });
   if (error?.code === "P0002") {
-    return { status: "error", message: "This job has changed since you opened it. Refresh the page to see where it stands." };
+    return { status: "error", message: "This job, or its quote, has changed since you opened it, so that move isn't possible now. Refresh the page to see where it stands." };
   }
   if (error?.code === "23505") {
     return { status: "error", message: "This quote has another job now, so this one can't be restored." };

@@ -30,6 +30,8 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   // The quote now points to its job instead of offering to make another.
   await page.getByRole("link", { name: "quote QT-0001" }).click();
   await expect(page.getByRole("button", { name: "Create a job" })).toHaveCount(0);
+  // While the job is active the answer is locked.
+  await expect(page.getByRole("button", { name: "Change the answer" })).toHaveCount(0);
   await page.getByRole("link", { name: "Open the job" }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001/, level: 1 })).toBeVisible();
 

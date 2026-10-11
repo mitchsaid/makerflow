@@ -243,6 +243,22 @@ begin
     raise exception 'FAIL: a cancelled job was restored beside another active one';
   exception when unique_violation then null;
   end;
+
+  -- A job cannot be restored once its quote is no longer accepted (reopened and declined here)
+  perform public.move_job_status(org_a, job2, a, 'ready');
+  perform public.move_job_status(org_a, job2, a, 'cancelled');
+  perform public.record_quote_outcome(org_a, q_col, a, 'reopened', null, null, null);
+  perform public.record_quote_outcome(org_a, q_col, a, 'declined', date '2026-10-07', 'phone', null);
+  begin
+    perform public.move_job_status(org_a, job_col, a, 'not_started');
+    raise exception 'FAIL: a job was restored on a declined quote';
+  exception when sqlstate 'P0002' then null;
+  end;
+  begin
+    perform public.move_job_status(org_a, job2, a, 'not_started');
+    raise exception 'FAIL: a job was restored on a declined quote (2)';
+  exception when sqlstate 'P0002' then null;
+  end;
   reset role;
 
   ----------------------------------------------------------------------

@@ -80,7 +80,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
           <CardContent className="space-y-1">
             <p className="text-base font-medium">
               {job.customerId ? (
-                <Link href={`/app/customers/${job.customerId}`} className="underline">
+                <Link href={`/app/customers/${job.customerId}`} className="inline-flex min-h-11 items-center underline">
                   {job.customerName}
                 </Link>
               ) : (
@@ -125,7 +125,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         </h2>
         <p className="text-sm text-muted-foreground">
           Made from{" "}
-          <Link href={`/app/quotes/${job.quoteId}?version=${job.quoteVersion}`} className="font-medium underline">
+          <Link href={`/app/quotes/${job.quoteId}?version=${job.quoteVersion}`} className="inline-flex min-h-11 items-center font-medium underline">
             quote {job.quoteNumber}
             {job.quoteVersion > 1 ? `, version ${job.quoteVersion}` : ""}
           </Link>
