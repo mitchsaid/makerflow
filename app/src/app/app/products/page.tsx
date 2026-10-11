@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getLocalePack } from "@/lib/locale";
 import type { ProductKind } from "@/lib/products";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
 import { ProductList } from "./product-list";
-import { KIND_WORDS, listHref, newHref } from "./product-values";
+import { ProductsSwitch } from "./products-switch";
+import { KIND_WORDS, newHref } from "./product-values";
 import { AddLink } from "@/components/add-button";
 
 /**
@@ -36,20 +36,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/app/pro
           </AddLink>
         )}
       </div>
-      <nav aria-label="Products or services" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-        {(["product", "service"] as const).map((k) => (
-          <Link
-            key={k}
-            href={listHref(k)}
-            aria-current={k === kind ? "page" : undefined}
-            className={`flex min-h-11 items-center justify-center rounded-md text-base font-medium ${
-              k === kind ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {k === "product" ? "Products" : "Services"}
-          </Link>
-        ))}
-      </nav>
+      <ProductsSwitch active={kind} />
       <ProductList
         key={kind}
         kind={kind}

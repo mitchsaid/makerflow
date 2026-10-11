@@ -1,0 +1,194 @@
+"use client";
+
+import { useActionState, useState, useTransition } from "react";
+import { FormSummary, type FormProblem } from "@/components/form-feedback";
+import { Section, SelectField, TextField } from "@/components/form-fields";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { costPerUnitCents, type MaterialFieldErrors, type VatTreatment } from "@/lib/materials";
+import { isUnitCode, UNIT_CHOICES, UNITS } from "@/lib/materials/units";
+import { formatMoney, parseMoney, parseQuantity, type NumberStyle } from "@/lib/money";
+import type { MaterialSaveState } from "./actions";
+
+export type MaterialFormValues = {
+  name: string;
+  unit: string;
+  quantity: string;
+  price: string;
+  vatTreatment: VatTreatment;
+  supplier: string;
+};
+
+export const EMPTY_MATERIAL: MaterialFormValues = { name: "", unit: "", quantity: "", price: "", vatTreatment: "included", supplier: "" };
+
+type Action = (previous: MaterialSaveState, formData: FormData) => Promise<MaterialSaveState>;
+
+const VAT_CHOICES: { value: VatTreatment; title: (tax: string) => string; description: (tax: string) => string }[] = [
+  { value: "included", title: (t) => `Includes ${t}`, description: (t) => `What the shop charged, with ${t} in it.` },
+  { value: "excluded", title: (t) => `Excludes ${t}`, description: (t) => `${t} was added on top of this price.` },
+  { value: "none", title: (t) => `No ${t} charged`, description: (t) => `The supplier is not a ${t} vendor, so this is the whole cost.` },
+];
+
+/**
+ * Add or edit a material: what it is, a unit, how much was bought and what was paid. The cost of one unit is worked
+ * out as it is typed. A VAT-registered business also says what the price paid includes; costs and margins are
+ * always worked out without VAT.
+ */
+export function MaterialForm({
+  action,
+  initial,
+  mode,
+  vatRateBp,
+  taxName,
+  currencyCode,
+  numberStyle,
+  currencySymbol,
+}: {
+  action: Action;
+  initial: MaterialFormValues;
+  mode: "add" | "edit";
+  /** The standard VAT rate when the business is VAT-registered, else null (the price paid is the cost). */
+  vatRateBp: number | null;
+  taxName: string;
+  currencyCode: string;
+  numberStyle: NumberStyle;
+  currencySymbol: string;
+}) {
+  const vatRegistered = vatRateBp !== null;
+  const [state, formAction, pending] = useActionState(action, { status: "idle" } as MaterialSaveState);
+  const [, startTransition] = useTransition();
+  const [values, setValues] = useState<MaterialFormValues>(initial);
+  const set = <K extends keyof MaterialFormValues>(key: K) => (value: MaterialFormValues[K]) => setValues((v) => ({ ...v, [key]: value }));
+
+  const errors: MaterialFieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
+  const problems: FormProblem[] = (
+    [
+      ["name", "Name", errors.name],
+      ["unit", "Unit", errors.unit],
+      ["quantity", "How much you bought", errors.quantity],
+      ["price", "What you paid", errors.price],
+      ["vat-included", `Does the price include ${taxName}`, errors.vatTreatment],
+      ["supplier", "Supplier", errors.supplier],
+    ] as const
+  ).flatMap(([id, label, message]) => (message ? [{ fieldId: id, label, message }] : []));
+
+  // What one unit costs, as far as it can be told from what is typed (shown without VAT for a registered business).
+  const quantity = parseQuantity(values.quantity);
+  const price = parseMoney(values.price);
+  const preview =
+    quantity.ok && price.ok && isUnitCode(values.unit)
+      ? costPerUnitCents(
+          { unit: values.unit, boughtQuantityMilli: quantity.value, priceCents: price.value, vatTreatment: values.vatTreatment },
+          vatRateBp,
+        )
+      : null;
+  const previewUnit = isUnitCode(values.unit) ? UNITS[values.unit].short : "";
+
+  // Submitted by hand (see the business profile form for why).
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      <Section title="The material">
+        <TextField id="name" label="Name" hint="Like “Cake flour” or “Silver wire”." autoComplete="off" maxLength={120} value={values.name} error={errors.name} onChange={set("name")} />
+        <TextField
+          id="supplier"
+          label="Supplier (optional)"
+          autoComplete="off"
+          maxLength={120}
+          value={values.supplier}
+          error={errors.supplier}
+          onChange={set("supplier")}
+        />
+      </Section>
+
+      <Section title="What you bought">
+        <SelectField
+          id="unit"
+          label="Unit"
+          hint="What you measure it in when you use it. You can use any unit of the same kind in a product later (grams of something bought by the kilo)."
+          value={values.unit}
+          error={errors.unit}
+          onChange={set("unit")}
+          placeholder="Choose a unit"
+          options={UNIT_CHOICES.flatMap((g) => g.units)}
+          optionLabels={Object.fromEntries(UNIT_CHOICES.flatMap((g) => g.units).map((u) => [u, UNITS[u].label]))}
+        />
+        <TextField
+          id="quantity"
+          label="How much you bought"
+          hint="In that unit, like 12,5 for 12,5 kg."
+          inputMode="decimal"
+          autoComplete="off"
+          value={values.quantity}
+          error={errors.quantity}
+          onChange={set("quantity")}
+        />
+        <TextField
+          id="price"
+          label="What you paid for it"
+          hint="The whole price for that much."
+          startText={currencySymbol}
+          inputMode="decimal"
+          autoComplete="off"
+          value={values.price}
+          error={errors.price}
+          onChange={set("price")}
+        />
+        {vatRegistered && (
+          <FieldSet data-invalid={!!errors.vatTreatment}>
+            <FieldLegend variant="label" className="text-base">
+              Does that price include {taxName}?
+            </FieldLegend>
+            <input type="hidden" name="vatTreatment" value={values.vatTreatment} />
+            <RadioGroup value={values.vatTreatment} onValueChange={(v) => set("vatTreatment")(v as VatTreatment)} className="gap-2">
+              {VAT_CHOICES.map((c) => (
+                <Field
+                  key={c.value}
+                  orientation="horizontal"
+                  className="items-center rounded-xl border border-border px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                >
+                  <RadioGroupItem id={`vat-${c.value}`} value={c.value} />
+                  <FieldLabel htmlFor={`vat-${c.value}`} className="flex w-full flex-col items-start gap-0.5 text-base">
+                    <span>{c.title(taxName)}</span>
+                    <span className="text-sm font-normal text-muted-foreground">{c.description(taxName)}</span>
+                  </FieldLabel>
+                </Field>
+              ))}
+            </RadioGroup>
+            <p className="text-sm text-muted-foreground" data-testid="vat-note">
+              Costs and margins are worked out without {taxName}, so {taxName} you claim back is not counted as a cost. We don&apos;t work out
+              what you can claim: that is for you and your adviser.
+            </p>
+          </FieldSet>
+        )}
+        <p className="text-base" data-testid="cost-preview">
+          {preview === null
+            ? "Fill in the unit, how much and what you paid to see what one costs."
+            : `That works out at ${preview === 0 && price.ok && price.value > 0 ? `less than ${formatMoney(1, currencyCode, numberStyle)}` : formatMoney(preview, currencyCode, numberStyle)} per ${previewUnit}${vatRegistered ? ` (without ${taxName})` : ""}.`}
+        </p>
+      </Section>
+
+      <FormSummary problems={problems} trigger={state} />
+      {state.status === "error" && state.message && (
+        <p role="alert" className="text-sm text-destructive">
+          {state.message}
+        </p>
+      )}
+      {state.status === "saved" && !pending && (
+        <p role="status" className="text-sm font-medium">
+          Saved.
+        </p>
+      )}
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+        {pending ? "Saving…" : mode === "edit" ? "Save changes" : "Add material"}
+      </Button>
+    </form>
+  );
+}
