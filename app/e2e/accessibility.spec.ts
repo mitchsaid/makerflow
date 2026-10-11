@@ -281,6 +281,26 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("product-added")).toBeVisible();
       await expectNoViolations(page, "products, with a product");
+
+      // Materials: the empty list, the form with its problems, the list with one, and the edit screen.
+      await page.goto("/app/products/materials");
+      await expectNoViolations(page, "materials, empty");
+      await page.getByRole("link", { name: "Add your first material" }).click();
+      await expectNoViolations(page, "new material");
+      await page.getByRole("button", { name: "Add material" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "new material, with problems");
+      await page.getByLabel("Name", { exact: true }).fill("Cake flour");
+      await page.getByLabel("Unit", { exact: true }).selectOption("kg");
+      await page.getByLabel("How much you bought").fill("12,5");
+      await page.getByLabel("What you paid for it").fill("187,50");
+      await page.getByRole("button", { name: "Add material" }).click();
+      await expect(page.getByTestId("material-added")).toBeVisible();
+      await expectNoViolations(page, "materials, with a material");
+      await page.getByRole("link", { name: /Cake flour/ }).click();
+      await expect(page.getByRole("heading", { name: "Cake flour", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "edit material");
+      await page.goto("/app/products");
       await page.getByRole("navigation", { name: "Products or services" }).getByRole("link", { name: "Services" }).click();
       await expect(page.getByText("No services yet")).toBeVisible();
       await expectNoViolations(page, "services, empty");
