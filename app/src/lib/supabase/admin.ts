@@ -22,20 +22,3 @@ export function createAdminClient() {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }
-
-/** What a person sees when this site has not been given its server key. It says what is missing and who can fix it. */
-export const SERVER_KEY_MISSING_MESSAGE =
-  "MakerFlow's server key isn't set on this site yet, so nothing was changed. Whoever runs the site needs to add SUPABASE_SECRET_KEY (the steps are in docs/runbooks/server-secret-key.md).";
-
-/**
- * The server's own database access, or the message to show when this site has no server key (also logged, with what
- * was being attempted). Every action that changes state through a server-only database function starts here.
- */
-export function adminOrMessage(attempt: string): { admin: ReturnType<typeof createAdminClient>; message?: undefined } | { admin?: undefined; message: string } {
-  try {
-    return { admin: createAdminClient() };
-  } catch (error) {
-    console.error(`the server key is missing, so ${attempt} could not run:`, (error as Error).message);
-    return { message: SERVER_KEY_MISSING_MESSAGE };
-  }
-}

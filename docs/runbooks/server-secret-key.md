@@ -1,6 +1,6 @@
 # Giving the server its Supabase secret key
 
-Everything that changes a quote's or job's state runs on our server with the Supabase **secret key**, which the browser never sees: sending, revising and discarding a revision, recording the customer's answer, creating a job (from a quote or by hand) and moving a job along. Without the key the rest of the app still works (you can browse and edit drafts), but those actions answer "MakerFlow's server key isn't set on this site yet, so nothing was changed. Whoever runs the site needs to add SUPABASE_SECRET_KEY", and nothing is changed.
+Sending a quote (and revising one) runs on our server with the Supabase **secret key**, which the browser never sees. Without it the app still works, but Send answers "Sending isn't switched on for this version of MakerFlow yet".
 
 **Never paste the key into chat, code, a GitHub issue or a commit.** If it ever is, rotate it.
 
@@ -10,7 +10,7 @@ Everything that changes a quote's or job's state runs on our server with the Sup
 3. In Vercel, open the MakerFlow project > **Settings > Environment Variables**.
 4. Add a variable named `SUPABASE_SECRET_KEY`, paste the key as the value, tick only the environment that matches the project (Preview/Development for dev, Production for prod). Leave **Sensitive** on.
 5. Redeploy (Deployments > the latest > Redeploy) so the server picks it up.
-6. Test: create a job, or send a quote, on the app. If it still says the server key isn't set, the variable is missing in the environment that site uses, or the redeploy did not happen.
+6. Test: send a quote on the app. It should lead to the sent quote; if it says sending isn't switched on, the variable is missing in that environment.
 
 Dev and prod must use their own project's key, never each other's.
 
