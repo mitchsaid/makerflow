@@ -5,7 +5,7 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import { getLocalePack } from "@/lib/locale";
 import { todayIn } from "@/lib/quotes/dates";
 import { parseOutcome, type OutcomeErrors, type OutcomeFormValues, type OutcomeKind } from "@/lib/quotes/outcome";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { adminOrMessage } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -18,7 +18,6 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong. Please try again.";
-const NOT_SET_UP = "This version of MakerFlow can't record that yet, so nothing was changed. We've been told.";
 const KINDS: readonly string[] = ["accepted", "declined", "withdrawn"];
 
 export type OutcomeResult =
@@ -42,14 +41,9 @@ async function applyOutcome(
     .maybeSingle();
   if (!own) return { status: "error", message: "That quote could not be found." };
 
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (error) {
-    console.error("the server key for quote outcomes is missing:", (error as Error).message);
-    return { status: "error", message: NOT_SET_UP };
-  }
-  const { error } = await admin.rpc("record_quote_outcome", {
+  const made = adminOrMessage("recording a quote answer");
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("record_quote_outcome", {
     p_org: organisation.id,
     p_quote_id: quoteId,
     p_actor: user.id,

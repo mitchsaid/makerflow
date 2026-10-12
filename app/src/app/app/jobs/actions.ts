@@ -8,7 +8,7 @@ import { parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/ne
 import { jobItemPhoto } from "@/lib/jobs/photos";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { adminOrMessage } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -19,18 +19,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong. Please try again.";
-const NOT_SET_UP = "This version of MakerFlow can't do that yet, so nothing was changed. We've been told.";
 
 export type JobActionResult = { status: "done" } | { status: "error"; message: string };
-
-function adminOrMessage() {
-  try {
-    return { admin: createAdminClient() };
-  } catch (error) {
-    console.error("the server key for jobs is missing:", (error as Error).message);
-    return { message: NOT_SET_UP };
-  }
-}
 
 /** Makes a job from an accepted quote and opens it. */
 export async function createJob(quoteId: string): Promise<JobActionResult> {
@@ -41,7 +31,7 @@ export async function createJob(quoteId: string): Promise<JobActionResult> {
   const { data: own } = await supabase.from("quotes").select("id").eq("id", quoteId).eq("organisation_id", organisation.id).maybeSingle();
   if (!own) return { status: "error", message: "That quote could not be found." };
 
-  const made = adminOrMessage();
+  const made = adminOrMessage("a job change");
   if (!made.admin) return { status: "error", message: made.message };
   const { data: jobId, error } = await made.admin.rpc("create_job_from_quote", {
     p_org: organisation.id,
@@ -76,7 +66,7 @@ export async function moveJob(jobId: string, to: string): Promise<JobActionResul
   const { data: own } = await supabase.from("jobs").select("id").eq("id", jobId).eq("organisation_id", organisation.id).maybeSingle();
   if (!own) return { status: "error", message: "That job could not be found." };
 
-  const made = adminOrMessage();
+  const made = adminOrMessage("a job change");
   if (!made.admin) return { status: "error", message: made.message };
   const { error } = await made.admin.rpc("move_job_status", { p_org: organisation.id, p_job_id: jobId, p_actor: user.id, p_to: to });
   if (error?.code === "P0002") {
@@ -143,7 +133,7 @@ export async function createManualJob(values: NewJobValues): Promise<NewJobResul
     .maybeSingle();
   if (!own) return { status: "error", errors: { customerId: "That customer could not be found. Choose them again." } };
 
-  const made = adminOrMessage();
+  const made = adminOrMessage("a job change");
   if (!made.admin) return { status: "error", message: made.message };
   const { data: jobId, error } = await made.admin.rpc("create_job", {
     p_org: organisation.id,

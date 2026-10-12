@@ -12,7 +12,7 @@ import { findStoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { prepareQuote } from "@/lib/quotes/prepare";
 import type { SendProblem } from "@/lib/quotes/send-checks";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { adminOrMessage } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { optionalValidated } from "@/lib/form-values";
 import { validateEmail, validatePhone } from "@/lib/validation";
@@ -27,17 +27,6 @@ import { saveQuoteDraft } from "./actions";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong. Please try again.";
-const NOT_SET_UP = "Sending isn't switched on for this version of MakerFlow yet, so nothing was sent. We've been told.";
-
-/** The server's own database access, or null (logged) when this server has not been given its key. */
-function serverClient() {
-  try {
-    return createAdminClient();
-  } catch (error) {
-    console.error("the server key for sending quotes is missing:", (error as Error).message);
-    return null;
-  }
-}
 
 export type ContactDetails = { canEdit: boolean; phone: string; email: string };
 
@@ -124,8 +113,9 @@ export async function sendQuote(quoteId: string, via: "shared" | "marked"): Prom
   }
 
   // The person's session has proved the draft is theirs to send. From here the server key acts.
-  const admin = serverClient();
-  if (!admin) return { status: "error", message: NOT_SET_UP };
+  const made = adminOrMessage("a quote change");
+  if (!made.admin) return { status: "error", message: made.message };
+  const admin = made.admin;
   const { error } = await admin.rpc("send_quote", {
     p_org: workspace.organisation.id,
     p_quote_id: stored.id,
@@ -170,8 +160,9 @@ export async function reviseQuote(quoteId: string): Promise<{ status: "error"; m
   // A sent quote's rows are exactly what was sent, so this is the copy to go back to.
   const base = own.status === "sent" ? toFormValues(own, getLocalePack(workspace.profile.countryCode).numberStyle) : null;
 
-  const admin = serverClient();
-  if (!admin) return { status: "error", message: NOT_SET_UP };
+  const made = adminOrMessage("a quote change");
+  if (!made.admin) return { status: "error", message: made.message };
+  const admin = made.admin;
   const { error } = await admin.rpc("revise_quote", {
     p_org: workspace.organisation.id,
     p_quote_id: quoteId,
@@ -231,8 +222,9 @@ export async function discardRevision(quoteId: string): Promise<{ status: "error
   };
 
   // The server key first: nothing is put back unless the move back can follow.
-  const admin = serverClient();
-  if (!admin) return { status: "error", message: NOT_SET_UP };
+  const made = adminOrMessage("a quote change");
+  if (!made.admin) return { status: "error", message: made.message };
+  const admin = made.admin;
 
   const saved = await saveQuoteDraft(quoteId, restored);
   if (saved.status !== "saved") {
