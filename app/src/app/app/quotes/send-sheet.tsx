@@ -31,20 +31,23 @@ const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label
 };
 
 /**
- * Pressing Send on the preview opens this. It looks at the saved quote and either lists exactly
- * what is missing (the business's phone or email can be added right here, and the send
- * carries on) or asks how it is being sent: share the PDF, or mark it as sent because it
- * went another way. Sending freezes the quote and keeps its number.
+ * Pressing Share on the preview (or "Mark as sent" after a download) opens this. It looks at the saved quote and
+ * either lists exactly what is missing (the business's phone or email can be added right here, and it carries
+ * on) or asks how it is being sent: share the PDF, or mark it as sent because it went another way. Either way
+ * the quote is then sent: it is frozen and keeps its number.
  */
 export function SendQuoteSheet({
   quoteId,
   open,
+  emphasis = "share",
   onOpenChange,
   returnFocusId,
   onFix,
 }: {
   quoteId: string;
   open: boolean;
+  /** Which choice comes first: sharing the PDF, or marking the quote as sent (after a download). */
+  emphasis?: "share" | "marked";
   onOpenChange: (open: boolean) => void;
   /** Where focus goes when the sheet closes without sending. */
   returnFocusId: string;
@@ -67,6 +70,7 @@ export function SendQuoteSheet({
         {/* Mounted only while the sheet is open, so every opening starts with a fresh check. */}
         <SendFlow
           quoteId={quoteId}
+          emphasis={emphasis}
           onBusyChange={setBusy}
           onGoTo={onFix}
         />
@@ -77,10 +81,12 @@ export function SendQuoteSheet({
 
 function SendFlow({
   quoteId,
+  emphasis,
   onBusyChange,
   onGoTo,
 }: {
   quoteId: string;
+  emphasis: "share" | "marked";
   onBusyChange: (busy: boolean) => void;
   onGoTo: (fieldId: string) => void;
 }) {
@@ -146,7 +152,13 @@ function SendFlow({
     <>
       <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
         <SheetTitle className="text-lg">
-          {view?.status === "problems" ? "Before you can send this quote" : "Send this quote"}
+          {view?.status === "problems"
+            ? emphasis === "marked"
+              ? "Before you can mark this quote as sent"
+              : "Before you can share this quote"
+            : emphasis === "marked"
+              ? "Mark this quote as sent"
+              : "Share this quote"}
         </SheetTitle>
         <SheetDescription className="text-base">
           {view?.status === "ready"
@@ -183,28 +195,43 @@ function SendFlow({
               </Alert>
             )}
             <p className="text-base">
-              Sending locks this version of the quote, so what your customer gets can&apos;t change by
-              accident. If something needs to change afterwards, you can revise it: it keeps the
-              number {view.number}.
+              {emphasis === "marked"
+                ? "Mark it as sent once your customer has it. "
+                : canShare
+                  ? "Sharing the PDF marks the quote as sent. "
+                  : "Downloading the PDF here marks the quote as sent. "}
+              That locks this version, so what your customer gets can&apos;t change by accident. If something needs to
+              change afterwards, you can revise it: it keeps the number {view.number}.
             </p>
-            <div className="space-y-2">
-              <Button type="button" size="lg" className="w-full" disabled={sending !== null} onClick={() => send("shared")}>
-                {sending === "shared" ? "Sending…" : canShare ? "Send and share the PDF" : "Send and download the PDF"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                {canShare
-                  ? "Opens your phone's share options, like WhatsApp or email, with the PDF attached."
-                  : "Saves the PDF so you can attach it to an email or message."}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Button type="button" size="lg" variant="outline" className="w-full" disabled={sending !== null} onClick={() => send("marked")}>
-                {sending === "marked" ? "Saving…" : "Mark as sent"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                For a quote you have already sent another way, or will. It is locked the same way.
-              </p>
-            </div>
+            {(emphasis === "marked" ? ["marked", "shared"] : ["shared", "marked"]).map((choice, index) =>
+              choice === "shared" ? (
+                <div key="shared" className="space-y-2">
+                  <Button type="button" size="lg" variant={index === 0 ? "default" : "outline"} className="w-full" disabled={sending !== null} onClick={() => send("shared")}>
+                    {sending === "shared"
+                      ? canShare
+                        ? "Sharing…"
+                        : "Saving…"
+                      : canShare
+                        ? "Share the PDF"
+                        : "Download the PDF and mark as sent"}
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    {canShare
+                      ? "Opens your phone's share options, like WhatsApp or email, with the PDF attached."
+                      : "Saves the PDF so you can attach it to an email or message."}
+                  </p>
+                </div>
+              ) : (
+                <div key="marked" className="space-y-2">
+                  <Button type="button" size="lg" variant={index === 0 ? "default" : "outline"} className="w-full" disabled={sending !== null} onClick={() => send("marked")}>
+                    {sending === "marked" ? "Saving…" : "Mark as sent"}
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    For a quote you have already sent another way, such as after downloading it. Nothing is shared.
+                  </p>
+                </div>
+              ),
+            )}
             <div className="space-y-2 pt-2">
               <ComingSoonSection
                 title="Email it to your customer"

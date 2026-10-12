@@ -114,7 +114,7 @@ export function DepositSection({
                 <span className="font-semibold">{money(amounts.balanceCents)}</span>
               </p>
               {amounts.tooBig && (
-                <FieldError>The deposit is more than the quote total. Lower it before you send the quote.</FieldError>
+                <FieldError>The deposit is more than the quote total. Lower it before you share the quote.</FieldError>
               )}
             </div>
           )}

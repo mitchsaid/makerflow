@@ -141,8 +141,8 @@ test("a theme is remixed from a starter, changed part by part with the preview f
 
   // Send it in Market stall.
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?sent=marked$/);
   await expect(page.getByTestId("current-design")).toHaveText("Market stall");
   const sentUrl = page.url().split("?")[0];

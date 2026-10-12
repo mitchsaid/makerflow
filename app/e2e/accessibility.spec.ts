@@ -9,6 +9,17 @@ async function expectNoViolations(page: Page, where: string) {
   // The page title streams in just after the page itself; checking before it arrives reports a
   // missing title that is not really missing.
   await expect(page).toHaveTitle(/.+/);
+  // During a soft navigation the old title is swapped for the new one; wait until it has stayed put for a moment.
+  await expect
+    .poll(
+      async () => {
+        const first = await page.title();
+        await page.waitForTimeout(150);
+        return first.trim() !== "" && (await page.title()) === first;
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
   // Sheets fade in; colours measured halfway through a fade are not the colours people see.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
   const { violations } = await new AxeBuilder({ page })
@@ -236,8 +247,12 @@ for (const scheme of ["light", "dark"] as const) {
       // The strip of themes, scrolled to the middle of the screen, clear of the bar that stays above the tab bar.
       await page.getByTestId("theme-option").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
       await expectNoViolations(page, "quote preview, themes");
-      await page.getByRole("button", { name: "Send", exact: true }).click();
-      await expect(page.getByRole("dialog", { name: "Before you can send this quote" })).toBeVisible();
+      await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download" }).click()]);
+      await expect(page.getByTestId("after-download")).toBeVisible();
+      await expectNoViolations(page, "quote preview, after a download");
+      await page.getByTestId("after-download").getByRole("button", { name: "Not yet" }).click();
+      await page.getByRole("button", { name: "Share", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Before you can share this quote" })).toBeVisible();
       await expectNoViolations(page, "send sheet, something missing");
       await page.getByRole("dialog").getByLabel(/^Phone/).fill("bad");
       await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
@@ -245,9 +260,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "send sheet, contact error");
       await page.getByRole("dialog").getByLabel(/^Phone/).fill("011 555 0101");
       await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
-      await expect(page.getByRole("dialog", { name: "Send this quote" })).toContainText("QT-0001");
+      await expect(page.getByRole("dialog", { name: "Share this quote" })).toContainText("QT-0001");
       await expectNoViolations(page, "send sheet, ready");
-      await page.getByRole("dialog").getByRole("button", { name: "Mark as sent" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Mark as sent", exact: true }).click();
       await expect(page.getByTestId("sent-banner")).toBeVisible();
       await expectNoViolations(page, "sent quote");
 
@@ -272,6 +287,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Your note").fill("Check the colour");
       await page.getByRole("button", { name: "Save note" }).click();
       await expect(page.getByText("Note saved.")).toBeVisible();
+      // "Note saved." shows a moment before the button is back: a disabled (faded) button fails the contrast check.
+      await expect(page.getByRole("button", { name: "Save note" })).toBeEnabled();
       await expectNoViolations(page, "job, making, with a note");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
@@ -457,7 +474,10 @@ for (const scheme of ["light", "dark"] as const) {
       // A VAT-registered business gets the VAT choice on each item.
       await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
       await page.getByLabel("VAT number").fill("4123456789");
+      // Wait for this save itself, not just for a "Saved." that an earlier form on the page may still be showing.
+      const savedDetails = page.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/app/business");
       await page.getByRole("button", { name: "Save details" }).click();
+      await savedDetails;
       await expect(page.getByText("Saved.").first()).toBeVisible();
       await page.goto("/app/quotes/new");
       await page.getByRole("button", { name: "Add item" }).click();
