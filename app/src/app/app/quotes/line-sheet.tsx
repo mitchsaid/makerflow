@@ -89,6 +89,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
 }
 
 export function LineSheet({
+  mode = "quote",
   open,
   view,
   products,
@@ -105,6 +106,11 @@ export function LineSheet({
   onProductSaved,
   focusOnClose,
 }: {
+  /**
+   * What the item is for. A "job" item is picked, configured and removed the same way as a quote's, but has no
+   * price, discount or VAT: just what to make (the product, its variation and choices, the quantity and details).
+   */
+  mode?: "quote" | "job";
   open: boolean;
   view: LineSheetView | null;
   products: ProductSummary[];
@@ -131,6 +137,8 @@ export function LineSheet({
   const [saving, setSaving] = useState(false);
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const symbol = currencySymbol(currencyCode, numberStyle);
+  const job = mode === "job";
+  const subject = job ? "job" : "quote";
 
   const title =
     view?.kind === "pick"
@@ -150,10 +158,16 @@ export function LineSheet({
     view?.kind === "pick"
       ? "Choose one of your products or services, add a new one, or type a one-off item."
       : view?.kind === "configure"
-        ? "Set the quantity and price for this quote. Your quote is kept as it is."
+        ? job
+          ? "Set the quantity and details for this job."
+          : "Set the quantity and price for this quote. Your quote is kept as it is."
         : view?.kind === "product" && view.mode === "edit"
-          ? `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}. Lines already on quotes keep their own price.`
-          : "A name and a price are enough to start. Your quote is kept as it is.";
+          ? job
+            ? `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}.`
+            : `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}. Lines already on quotes keep their own price.`
+          : job
+            ? "A name and a price are enough to start. It is saved to your products and added to this job."
+            : "A name and a price are enough to start. Your quote is kept as it is.";
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && !saving && onClose()}>
@@ -174,6 +188,8 @@ export function LineSheet({
             <PickView
               products={products}
               money={money}
+              subject={subject}
+              showPrices={!job}
               onChoose={(p) => onView({ kind: "configure", line: lineFromProduct(p, newKey(), numberStyle), isNew: true })}
               onAdd={(productKind) => onView({ kind: "product", mode: "add", productKind })}
               onOneOff={() =>
@@ -202,6 +218,7 @@ export function LineSheet({
               key={view.line.key}
               line={view.line}
               isNew={view.isNew}
+              job={job}
               product={products.find((p) => p.id === view.line.productId)}
               priceLabel={priceLabel}
               vatChoices={vatChoices}
@@ -339,12 +356,17 @@ function followVariation(line: LineFormValues, before: ProductSummary, after: Pr
 function PickView({
   products,
   money,
+  subject,
+  showPrices,
   onChoose,
   onAdd,
   onOneOff,
 }: {
   products: ProductSummary[];
   money: (cents: number) => string;
+  /** "quote" or "job", for the words. */
+  subject: string;
+  showPrices: boolean;
   onChoose: (product: ProductSummary) => void;
   onAdd: (kind: ProductKind) => void;
   onOneOff: () => void;
@@ -389,10 +411,14 @@ function PickView({
                   >
                     <span className="flex items-baseline justify-between gap-3">
                       <span className="font-medium">{p.name}</span>
-                      <span className="shrink-0">
-                        {p.variations.length > 0 ? "from " : ""}{money(p.unitPriceCents)}
-                        {p.unit ? ` / ${p.unit}` : ""}
-                      </span>
+                      {showPrices ? (
+                        <span className="shrink-0">
+                          {p.variations.length > 0 ? "from " : ""}{money(p.unitPriceCents)}
+                          {p.unit ? ` / ${p.unit}` : ""}
+                        </span>
+                      ) : (
+                        p.unit && <span className="shrink-0 text-muted-foreground">per {p.unit}</span>
+                      )}
                     </span>
                     {p.description && (
                       <span className="truncate text-sm font-normal text-muted-foreground">{p.description}</span>
@@ -406,7 +432,7 @@ function PickView({
       ))}
       {active.length === 0 && (
         <p className="text-muted-foreground">
-          Nothing saved yet. Add a product or a service to reuse it on every quote, or type a
+          Nothing saved yet. Add a product or a service to reuse it on every {subject}, or type a
           one-off item.
         </p>
       )}
@@ -418,7 +444,7 @@ function PickView({
           Add new service
         </AddButton>
         <Button type="button" variant="outline" onClick={onOneOff}>
-          One-off item (just for this quote)
+          One-off item (just for this {subject})
         </Button>
       </div>
       <ComingSoonSection
@@ -432,6 +458,7 @@ function PickView({
 function ConfigureView({
   line: initialLine,
   isNew,
+  job,
   product,
   priceLabel,
   vatChoices,
@@ -445,6 +472,8 @@ function ConfigureView({
 }: {
   line: LineFormValues;
   isNew: boolean;
+  /** An item for a job: no price, discount or VAT. */
+  job: boolean;
   product: ProductSummary | undefined;
   priceLabel: string;
   vatChoices: VatChoice[] | null;
@@ -519,7 +548,8 @@ function ConfigureView({
     event.preventDefault();
     // This form sits inside the quote's form in the React tree: never save the quote with it.
     event.stopPropagation();
-    const result = parseLine(line);
+    // A job item has no price: the parser still wants one, so it is given a neutral one that is never kept.
+    const result = parseLine(job ? { ...line, unitPrice: "0", discountKind: "none", discountValue: "", vatStatus: "standard" } : line);
     setAttempt((n) => n + 1);
     // A product with variations needs one chosen, and its required options answered (the database cannot
     // know: lines keep their own copy).
@@ -543,12 +573,12 @@ function ConfigureView({
       ["options", "Options and extras"],
       ["quantity", "Quantity"],
       ["unit", "Unit"],
-      ["unitPrice", priceLabel],
+      ...(job ? [] : ([["unitPrice", priceLabel]] as const)),
       ["description", "Description"],
-      ["discountValue", "Discount"],
+      ...(job ? [] : ([["discountValue", "Discount"]] as const)),
     ] as const
   ).flatMap(([field, label]) => {
-    const message = errors[field];
+    const message = errors[field as keyof LineErrors];
     return message ? [{ fieldId: id(field), label, message }] : [];
   });
   for (const g of optionGroups) {
@@ -621,7 +651,7 @@ function ConfigureView({
               chooseVariation(key);
             }}
             options={[
-              ...variations.map((v) => ({ key: v.id, name: v.name, priceText: money(v.priceCents), imageId: v.imageId ?? undefined })),
+              ...variations.map((v) => ({ key: v.id, name: v.name, priceText: job ? "" : money(v.priceCents), imageId: v.imageId ?? undefined })),
               ...(keptOwn
                 ? [{ key: "kept", name: line.variationName ?? "", priceText: "", note: `No longer on the ${product ? KIND_WORDS[product.kind].one : "product"}. Kept as it was.` }]
                 : []),
@@ -640,17 +670,19 @@ function ConfigureView({
           />
           <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />
         </div>
-        <TextField
-          id={id("unitPrice")}
-          label={line.unit.trim() ? `${priceLabel} per ${line.unit.trim()}` : priceLabel}
-          startText={symbol}
-          inputMode="decimal"
-          autoComplete="off"
-          value={line.unitPrice}
-          error={errors.unitPrice}
-          onChange={set("unitPrice")}
-        />
-        {product && priceDiffers && referencePrice !== undefined && (
+        {!job && (
+          <TextField
+            id={id("unitPrice")}
+            label={line.unit.trim() ? `${priceLabel} per ${line.unit.trim()}` : priceLabel}
+            startText={symbol}
+            inputMode="decimal"
+            autoComplete="off"
+            value={line.unitPrice}
+            error={errors.unitPrice}
+            onChange={set("unitPrice")}
+          />
+        )}
+        {!job && product && priceDiffers && referencePrice !== undefined && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">
               {chosen
@@ -670,12 +702,13 @@ function ConfigureView({
         <TextAreaField
           id={id("description")}
           label="Description (optional)"
-          hint="Shown on the quote under the name."
+          hint={job ? "Size, colour, wording: anything you need at the bench." : "Shown on the quote under the name."}
           maxLength={1000}
           value={line.description}
           error={errors.description}
           onChange={set("description")}
         />
+        {!job && (
         <SelectField
           id={id("discountKind")}
           label="Discount on this item"
@@ -691,7 +724,8 @@ function ConfigureView({
           options={["percent", "fixed"]}
           optionLabels={{ percent: "A percentage", fixed: "An amount" }}
         />
-        {line.discountKind !== "none" && (
+        )}
+        {!job && line.discountKind !== "none" && (
           <TextField
             id={id("discountValue")}
             label={line.discountKind === "percent" ? "Item discount (%)" : "Item discount amount"}
@@ -703,7 +737,7 @@ function ConfigureView({
             onChange={set("discountValue")}
           />
         )}
-        {vatChoices && (
+        {!job && vatChoices && (
           <SelectField
             id={id("vatStatus")}
             label="VAT on this item"
@@ -727,6 +761,7 @@ function ConfigureView({
             variationId={line.variationId ?? ""}
             errors={optionErrors}
             money={money}
+            showPrices={!job}
             onChange={(options) => {
               setLine((l) => ({ ...l, options }));
               // A problem goes away once it is fixed.
@@ -738,7 +773,7 @@ function ConfigureView({
               {errors.options}
             </p>
           )}
-          {sum && (
+          {!job && sum && (
             <p className="text-base" data-testid="line-sum">
               {sum}
             </p>
@@ -756,7 +791,7 @@ function ConfigureView({
             </Button>
           ) : (
             <div ref={removeQuestion} className="space-y-3 rounded-xl border border-destructive/50 p-3 scroll-mb-28" role="alertdialog" aria-label="Remove this item?">
-              <p className="text-base">Take {line.name.trim() || "this item"} off the quote?</p>
+              <p className="text-base">Take {line.name.trim() || "this item"} off the {job ? "job" : "quote"}?</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="destructive" onClick={onRemove}>
                   Yes, remove it
@@ -780,7 +815,7 @@ function ConfigureView({
 
       <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-border bg-popover px-4 py-3 sm:flex-row">
         <Button type="submit" className="w-full sm:w-auto">
-          {isNew ? "Add to quote" : "Save item"}
+          {isNew ? (job ? "Add to job" : "Add to quote") : "Save item"}
         </Button>
         <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onBack}>
           {isNew ? "Back" : "Cancel"}

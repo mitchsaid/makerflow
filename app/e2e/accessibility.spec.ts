@@ -85,6 +85,16 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Create job" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "new job, with errors");
+      await page.getByRole("button", { name: "Add item" }).click();
+      await expect(page.getByRole("dialog", { name: "Add an item" })).toBeVisible();
+      await expectNoViolations(page, "new job, add an item");
+      await page.getByRole("dialog").getByRole("button", { name: "One-off item (just for this job)" }).click();
+      await expect(page.getByRole("dialog", { name: "One-off item" })).toBeVisible();
+      await expectNoViolations(page, "new job, one-off item");
+      await page.getByRole("dialog").getByLabel("Name", { exact: true }).fill("Shelf");
+      await page.getByRole("dialog").getByRole("button", { name: "Add to job" }).click();
+      await expect(page.getByTestId("job-form-item")).toHaveCount(1);
+      await expectNoViolations(page, "new job, with an item");
       await page.getByRole("radio", { name: "Delivery (you deliver)" }).check();
       await expectNoViolations(page, "new job, delivery");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();

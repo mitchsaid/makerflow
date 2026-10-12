@@ -122,8 +122,23 @@ test("Customers moved behind More and Jobs took the tab", async ({ page }) => {
   await expect(page.getByText("No jobs yet")).toBeVisible();
 });
 
-test("a job can be made without a quote", async ({ page }) => {
+test("a job can be made without a quote, adding items the way a quote does", async ({ page }) => {
+  test.setTimeout(180_000);
   await signUpAndOnboard(page, "jobs-manual", "Manual Co");
+
+  // A product with sizes, to pick like on a quote.
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByRole("radio", { name: /^Yes/ }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  for (const [i, [name, price]] of [["Small", "300"], ["Large", "600"]].entries()) {
+    const row = page.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Size ${i + 1}`, exact: true }) });
+    await row.getByLabel(`Size ${i + 1}`, { exact: true }).fill(name);
+    await row.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
+  }
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+
   await nav(page).getByRole("link", { name: "Jobs" }).click();
   await expect(page.getByText("No jobs yet")).toBeVisible();
   await page.getByRole("link", { name: "New job" }).click();
@@ -134,30 +149,58 @@ test("a job can be made without a quote", async ({ page }) => {
   const summary = page.getByTestId("form-summary");
   await expect(summary).toContainText("2 things need fixing");
   await expect(summary).toContainText("Choose who this job is for");
-  await expect(summary).toContainText("Say what to make.");
-  await expect(page.getByText("Say what to make.")).toHaveCount(2);
+  await expect(summary).toContainText("Add at least one item to make.");
 
-  // Messages belong to the item's place in the list, so taking an item away clears them rather than moving them.
-  await page.getByRole("button", { name: "Add another item" }).click();
-  await page.getByRole("button", { name: "Remove item 2" }).click();
-  await expect(summary).toHaveCount(0);
-  await page.getByRole("button", { name: "Create job" }).click();
-  await expect(summary).toContainText("2 things need fixing");
+  // Items come from the same sheet as a quote's: your products and services, or a one-off item. No prices.
+  await page.getByRole("button", { name: "Add item" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add an item");
+  await expect(sheet(page).getByTestId("coming-soon")).toContainText("Import from Shopify or a CSV");
+  await expect(sheet(page).getByRole("button", { name: /Wedding cake/ })).not.toContainText("R");
+  await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add Wedding cake");
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveCount(0);
+  await expect(sheet(page).getByLabel("Discount on this item")).toHaveCount(0);
+  const size = sheet(page).getByRole("group", { name: "Choose a size" });
+  await expect(size).not.toContainText("R");
+  // The product has no usual size, so one must be chosen, as on a quote; a quantity of zero is refused too.
+  await sheet(page).getByLabel("Quantity").fill("0");
+  await sheet(page).getByRole("button", { name: "Add to job" }).click();
+  await expect(sheet(page).getByTestId("form-summary")).toContainText("Choose a size.");
+  await expect(sheet(page).getByTestId("form-summary")).toContainText("The quantity must be more than zero.");
+  await size.getByRole("radio", { name: /Large/ }).check();
+  await sheet(page).getByLabel("Quantity").fill("2");
+  await sheet(page).getByLabel("Description (optional)").fill("120 cm, oiled");
+  await sheet(page).getByRole("button", { name: "Add to job" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  const rows = page.getByTestId("job-form-item");
+  await expect(rows.nth(0)).toContainText("Wedding cake");
+  await expect(rows.nth(0)).toContainText("2 · Large");
+  await expect(rows.nth(0)).not.toContainText("one-off");
 
-  // Fix them; what was typed along the way stays.
-  await page.getByLabel("Item 1").fill("Oak shelf");
-  await page.getByLabel("Quantity").fill("0");
-  await page.getByRole("button", { name: "Create job" }).click();
-  await expect(summary).toContainText("The quantity must be more than zero.");
-  await expect(page.getByLabel("Item 1")).toHaveValue("Oak shelf");
-  await page.getByLabel("Quantity").fill("2");
+  // A one-off item.
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: "One-off item (just for this job)" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("One-off item");
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Brackets");
+  await sheet(page).getByLabel("Quantity").fill("4");
+  await sheet(page).getByLabel("Unit (optional)").fill("pair");
+  await sheet(page).getByRole("button", { name: "Add to job" }).click();
+  await expect(rows.nth(1)).toContainText("Brackets");
+  await expect(rows.nth(1)).toContainText("4 pair");
+  await expect(rows.nth(1)).toContainText("one-off item");
 
-  await page.getByRole("button", { name: "Add another item" }).click();
-  await expect(page.getByLabel("Item 2")).toBeFocused();
-  await page.getByLabel("Item 2").fill("Brackets");
-  await page.getByLabel("Unit (optional)").nth(1).fill("pair");
-  await page.getByLabel("Quantity").nth(1).fill("4");
-  await page.getByLabel("Details (optional)").first().fill("120 cm, oiled");
+  // An item is changed, and taken off after being asked.
+  await rows.nth(1).getByRole("button", { name: /Edit/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Edit item");
+  await sheet(page).getByLabel("Quantity").fill("6");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(rows.nth(1)).toContainText("6 pair");
+  await rows.nth(1).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("button", { name: "Remove this item" }).click();
+  await expect(sheet(page).getByRole("alertdialog", { name: "Remove this item?" })).toContainText("off the job");
+  await sheet(page).getByRole("button", { name: "Yes, remove it" }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(sheet(page)).toHaveCount(0);
 
   await addCustomerInSheet(page, "Sam Jacobs", { phone: "021 555 0000" });
   await page.getByLabel("Needed by (optional)").fill("2030-01-15");
@@ -169,9 +212,9 @@ test("a job can be made without a quote", async ({ page }) => {
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
   const items = page.getByTestId("job-items");
-  await expect(items).toContainText("2 Oak shelf");
+  await expect(items).toContainText("2 Wedding cake");
+  await expect(items).toContainText("Size: Large");
   await expect(items).toContainText("120 cm, oiled");
-  await expect(items).toContainText("4 pair Brackets");
   await expect(page.getByText("Sam Jacobs")).toBeVisible();
   await expect(page.getByText("14 Oak Road")).toBeVisible();
   await expect(page.getByTestId("job-needed-by")).toContainText("delivery");

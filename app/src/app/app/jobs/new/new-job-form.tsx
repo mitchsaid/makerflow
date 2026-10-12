@@ -4,45 +4,78 @@ import { useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
-import { UnitField } from "@/components/unit-field";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { FieldError, Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import type { BusinessType } from "@/lib/business-types";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
+import { imageUrl } from "@/lib/images";
 import type { JobFulfilment } from "@/lib/jobs";
-import { emptyJobItem, NEW_JOB_LIMITS, parseNewJob, type NewJobErrors, type NewJobItemValues, type NewJobValues } from "@/lib/jobs/new-job";
+import { jobItemPhoto } from "@/lib/jobs/photos";
+import { NEW_JOB_LIMITS, parseNewJob, type NewJobErrors, type NewJobLine, type NewJobValues } from "@/lib/jobs/new-job";
+import { priceEntryLabel, type LocalePack } from "@/lib/locale";
+import type { VatSettings } from "@/lib/money";
+import type { NumberStyle } from "@/lib/money/format";
+import type { ProductSummary } from "@/lib/products";
+import type { LineFormValues } from "@/lib/quotes";
 import { addressWhenCustomerChanges, addressWhenFulfilmentChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
+import { quantityText } from "@/lib/quotes/units";
+import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import { CustomerPicker } from "../../quotes/customer-picker";
+import { LineSheet, type LineSheetView } from "../../quotes/line-sheet";
 import { createManualJob } from "../actions";
 
 const OFFLINE = "Couldn't reach the server, so we can't tell whether the job was made. Check the Jobs list, then try again if it is not there. Your changes are still here.";
 
 /**
  * A job without a quote: who it is for, what to make, when it is needed and how it gets to them. One scrolling form
- * like the quote's. "Create job" is always enabled: pressing it with something missing lists what to fix, at the
- * fields and in a summary that jumps to the first one, and nothing typed is lost.
+ * like the quote's, and items are added the way a quote's are (the same sheet, without prices). "Create job" is
+ * always enabled: pressing it with something missing lists what to fix, at the fields and in a summary that jumps to
+ * the first one, and nothing typed is lost.
  */
 export function NewJobForm({
   customers: initialCustomers,
+  products: initialProducts,
   countryCode,
+  numberStyle,
+  currencyCode,
+  vat,
+  taxName,
+  vatStatuses,
+  businessTypes,
 }: {
   customers: CustomerOption[];
+  products: ProductSummary[];
   countryCode: string;
+  numberStyle: NumberStyle;
+  currencyCode: string;
+  /** For adding a new product from inside the item sheet (its price and VAT). */
+  vat: VatSettings;
+  taxName: string;
+  vatStatuses: LocalePack["tax"]["statuses"];
+  businessTypes: BusinessType[] | null;
 }) {
   const nextKey = useRef(1);
   const [customers, setCustomers] = useState(initialCustomers);
+  const [products, setProducts] = useState(initialProducts);
   const [values, setValues] = useState<NewJobValues>({
     customerId: "",
     fulfilment: "none",
     deliveryAddress: "",
     neededBy: "",
     note: "",
-    items: [emptyJobItem("item-0")],
+    items: [],
   });
   const [errors, setErrors] = useState<NewJobErrors>({});
   const [serverMessage, setServerMessage] = useState<string | null>(null);
   const [tried, setTried] = useState(0);
   const [pending, startTransition] = useTransition();
+
+  // The item sheet: choosing what to add, configuring an item, or a product form.
+  const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const focusAfterSheet = useRef<string | null>(null);
+  const newKey = () => `n-${nextKey.current++}`;
 
   const saved: SavedAddress[] = customers.find((c) => c.id === values.customerId)?.addresses ?? [];
 
@@ -52,6 +85,14 @@ export function NewJobForm({
   function chooseCustomer(customerId: string, next: SavedAddress[]) {
     setValues((v) => ({ ...v, customerId, deliveryAddress: addressWhenCustomerChanges(v.deliveryAddress, saved, next) }));
   }
+  /** The picker adds or edits customers; when the chosen one's saved addresses change, the address typed here follows. */
+  function changeCustomers(change: (list: CustomerOption[]) => CustomerOption[]) {
+    const after = change(customers).find((c) => c.id === values.customerId)?.addresses ?? [];
+    setCustomers(change);
+    if (after !== saved && values.customerId !== "") {
+      setValues((v) => ({ ...v, deliveryAddress: addressWhenSavedAddressesChange(v.deliveryAddress, saved, after) }));
+    }
+  }
   function chooseFulfilment(fulfilment: JobFulfilment) {
     setErrors((e) => {
       const rest = { ...e };
@@ -60,29 +101,48 @@ export function NewJobForm({
     });
     setValues((v) => ({ ...v, fulfilment, deliveryAddress: addressWhenFulfilmentChanges(fulfilment, v.deliveryAddress, saved) }));
   }
-  /** The picker adds or edits customers; when the chosen one's saved addresses change, the address typed here follows. */
-  function changeCustomers(update: (list: CustomerOption[]) => CustomerOption[]) {
-    const after = update(customers).find((c) => c.id === values.customerId)?.addresses ?? [];
-    setCustomers(update);
-    if (after !== saved && values.customerId !== "") {
-      setValues((v) => ({ ...v, deliveryAddress: addressWhenSavedAddressesChange(v.deliveryAddress, saved, after) }));
-    }
+
+  function openSheet(view: LineSheetView) {
+    focusAfterSheet.current = null;
+    setSheetView(view);
+    setSheetOpen(true);
   }
-  function changeItem(key: string, change: Partial<NewJobItemValues>) {
-    setValues((v) => ({ ...v, items: v.items.map((item) => (item.key === key ? { ...item, ...change } : item)) }));
+  function saveLine(line: LineFormValues, isNew: boolean) {
+    setValues((v) => ({ ...v, items: isNew ? [...v.items, line] : v.items.map((l) => (l.key === line.key ? line : l)) }));
+    // That item's message (if any) was about what it was before.
+    setErrors((e) => {
+      const rest = { ...e };
+      delete rest[`line:${line.key}`];
+      delete rest.items;
+      return rest;
+    });
+    // Back on the form, keyboard focus goes to the item that was just added or changed.
+    focusAfterSheet.current = `line-${line.key}-edit`;
+    setSheetOpen(false);
   }
-  function addItem() {
-    const key = `item-${nextKey.current++}`;
-    setValues((v) => ({ ...v, items: [...v.items, emptyJobItem(key)] }));
-    // The new item's name is the next thing to type.
-    setTimeout(() => document.querySelector<HTMLInputElement>(`[data-item-key="${key}"] input`)?.focus(), 0);
+  function removeLine(key: string) {
+    const index = values.items.findIndex((l) => l.key === key);
+    if (index < 0) return;
+    setValues((v) => ({ ...v, items: v.items.filter((l) => l.key !== key) }));
+    setErrors((e) => {
+      const rest = { ...e };
+      delete rest[`line:${key}`];
+      return rest;
+    });
+    // Focus moves to the next item, or to "Add item" when it was the last one.
+    const next = values.items[index + 1] ?? values.items[index - 1];
+    const target = next && next.key !== key ? `line-${next.key}-edit` : "add-item";
+    focusAfterSheet.current = target;
+    setTimeout(() => document.getElementById(target)?.focus(), 0);
+    setSheetOpen(false);
   }
-  function removeItem(key: string) {
-    setValues((v) => ({ ...v, items: v.items.filter((item) => item.key !== key) }));
-    // Messages are tied to the item's position, which has just moved: they come back if pressing Create finds them again.
-    setErrors({});
-    setServerMessage(null);
-    setTimeout(() => document.getElementById("add-item")?.focus(), 0);
+  function productSaved(product: ProductSummary) {
+    setProducts((list) =>
+      list.some((p) => p.id === product.id)
+        ? // An edit never changes whether a product is archived.
+          list.map((p) => (p.id === product.id ? { ...product, archived: p.archived } : p))
+        : [...list, product],
+    );
   }
 
   function onSubmit(event: React.FormEvent) {
@@ -119,11 +179,8 @@ export function NewJobForm({
   const problems: FormProblem[] = [];
   if (errors.customerId) problems.push({ fieldId: "customer", label: "Customer name", message: errors.customerId });
   values.items.forEach((item, i) => {
-    const label = `Item ${i + 1}`;
-    if (errors[`item-${i}-name`]) problems.push({ fieldId: `item-${item.key}-name`, label: `${label}: name`, message: errors[`item-${i}-name`] });
-    if (errors[`item-${i}-quantity`]) problems.push({ fieldId: `item-${item.key}-quantity`, label: `${label}: quantity`, message: errors[`item-${i}-quantity`] });
-    if (errors[`item-${i}-unit`]) problems.push({ fieldId: `item-${item.key}-unit`, label: `${label}: unit`, message: errors[`item-${i}-unit`] });
-    if (errors[`item-${i}-description`]) problems.push({ fieldId: `item-${item.key}-description`, label: `${label}: details`, message: errors[`item-${i}-description`] });
+    const message = errors[`line:${item.key}`];
+    if (message) problems.push({ fieldId: `line-${item.key}-edit`, label: `Item ${i + 1}: ${item.name.trim() || "item"}`, message });
   });
   if (errors.items) problems.push({ fieldId: "add-item", label: "Items", message: errors.items });
   if (errors.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: errors.neededBy });
@@ -150,63 +207,53 @@ export function NewJobForm({
       </Section>
 
       <Section title="What to make">
-        <ul className="space-y-6" aria-label="Items to make">
-          {values.items.map((item, i) => (
-            <li key={item.key} data-item-key={item.key} className="space-y-3">
-              <TextField
-                id={`item-${item.key}-name`}
-                label={`Item ${i + 1}`}
-                autoComplete="off"
-                maxLength={NEW_JOB_LIMITS.itemName + 50}
-                value={item.name}
-                error={errors[`item-${i}-name`]}
-                onChange={(name) => changeItem(item.key, { name })}
+        {values.items.length === 0 && (
+          <p className="text-muted-foreground">No items yet. Add one of your products or services, or a one-off item.</p>
+        )}
+        {values.items.length > 0 && (
+          <ul className="space-y-2" aria-label="Items on this job">
+            {values.items.map((item, index) => (
+              <ItemRow
+                key={item.key}
+                item={item}
+                number={index + 1}
+                error={errors[`line:${item.key}`]}
+                numberStyle={numberStyle}
+                photoId={jobItemPhoto(item, products)}
+                onEdit={() => openSheet({ kind: "configure", line: item, isNew: false })}
               />
-              <div className="grid grid-cols-2 gap-3">
-                <TextField
-                  id={`item-${item.key}-quantity`}
-                  label="Quantity"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  value={item.quantity}
-                  error={errors[`item-${i}-quantity`]}
-                  onChange={(quantity) => changeItem(item.key, { quantity })}
-                />
-                <UnitField
-                  id={`item-${item.key}-unit`}
-                  value={item.unit}
-                  error={errors[`item-${i}-unit`]}
-                  onChange={(unit) => changeItem(item.key, { unit })}
-                />
-              </div>
-              <TextAreaField
-                id={`item-${item.key}-description`}
-                label="Details (optional)"
-                hint="Size, colour, wording: anything you need at the bench."
-                rows={2}
-                maxLength={NEW_JOB_LIMITS.description + 100}
-                value={item.description}
-                error={errors[`item-${i}-description`]}
-                onChange={(description) => changeItem(item.key, { description })}
-              />
-              {values.items.length > 1 && (
-                <Button type="button" variant="outline" onClick={() => removeItem(item.key)}>
-                  Remove item {i + 1}
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-        {errors.items && (
-          <p id="items-error" role="alert" className="text-sm text-destructive">
-            {errors.items}
-          </p>
+            ))}
+          </ul>
         )}
         {values.items.length < NEW_JOB_LIMITS.items && (
-          <AddButton id="add-item" onClick={addItem}>
-            Add another item
+          <AddButton
+            id="add-item"
+            aria-invalid={!!errors.items}
+            aria-describedby={errors.items ? "items-error" : undefined}
+            onClick={() => openSheet({ kind: "pick" })}
+          >
+            Add item
           </AddButton>
         )}
+        {errors.items && <FieldError id="items-error">{errors.items}</FieldError>}
+        <LineSheet
+          mode="job"
+          open={sheetOpen}
+          view={sheetView}
+          products={products}
+          numberStyle={numberStyle}
+          currencyCode={currencyCode}
+          priceLabel={priceEntryLabel(vat, taxName)}
+          vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
+          businessTypes={businessTypes}
+          newKey={newKey}
+          onView={openSheet}
+          onClose={() => setSheetOpen(false)}
+          onSaveLine={saveLine}
+          onRemoveLine={removeLine}
+          onProductSaved={productSaved}
+          focusOnClose={() => focusAfterSheet.current}
+        />
       </Section>
 
       <Section title="When and how">
@@ -266,5 +313,61 @@ export function NewJobForm({
         {pending ? "Creating the job…" : "Create job"}
       </Button>
     </form>
+  );
+}
+
+/** One item on the form, as a row that opens it for changes (the same as a quote's). */
+function ItemRow({
+  item,
+  number,
+  error,
+  numberStyle,
+  photoId,
+  onEdit,
+}: {
+  item: NewJobLine;
+  number: number;
+  error?: string;
+  numberStyle: NumberStyle;
+  /** The picture of what was chosen, if there is one. */
+  photoId: string | null;
+  onEdit: () => void;
+}) {
+  const quantity = Number(item.quantity.replace(",", "."));
+  const name = item.name.trim() || `Item ${number}`;
+  const count = item.options?.length ?? 0;
+  return (
+    <li data-testid="job-form-item">
+      <Button
+        id={`line-${item.key}-edit`}
+        type="button"
+        variant="outline"
+        aria-describedby={error ? `line-${item.key}-error` : undefined}
+        onClick={onEdit}
+        className="h-auto min-h-14 w-full justify-start gap-3 px-3 py-2 text-left font-normal"
+      >
+        {photoId && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl(photoId, "thumb")} alt="" loading="lazy" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
+        )}
+        <span className="min-w-0">
+          <span className="block truncate text-base font-medium">
+            <span className="sr-only">Edit </span>
+            {name}
+          </span>
+          <span className="block truncate text-sm text-muted-foreground">
+            {Number.isFinite(quantity) && quantity > 0 ? quantityText(Math.round(quantity * 1000), item.unit.trim() || null, numberStyle) : item.quantity}
+            {item.variationName && ` · ${item.variationName}`}
+            {count > 0 && ` · ${count} ${count === 1 ? "option" : "options"}`}
+            {!item.productId && " · one-off item"}
+          </span>
+        </span>
+      </Button>
+      {error && (
+        <p className="px-1 pt-1 text-sm text-destructive" id={`line-${item.key}-error`}>
+          {error}
+        </p>
+      )}
+    </li>
   );
 }

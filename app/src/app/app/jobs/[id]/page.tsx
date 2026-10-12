@@ -5,6 +5,7 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import { isOverdueJob, jobNumberText, jobStatusLabel, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
+import { imageUrl } from "@/lib/images";
 import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { JobNote } from "../job-note";
@@ -49,7 +50,12 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
           <CardContent>
             <ul className="space-y-3" data-testid="job-items">
               {job.fullItems.map((item, index) => (
-                <li key={index} className="space-y-0.5">
+                <li key={index} className="flex gap-3">
+                  {item.photoImageId && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imageUrl(item.photoImageId, "thumb")} alt="" loading="lazy" className="size-14 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
+                  )}
+                  <div className="min-w-0 space-y-0.5">
                   <p className="text-base font-medium">
                     {quantityText(item.quantityMilli, item.unit, locale.numberStyle)} {item.name}
                   </p>
@@ -65,6 +71,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
                     </p>
                   ))}
                   {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+                  </div>
                 </li>
               ))}
             </ul>

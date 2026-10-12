@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { isJobStatus } from "@/lib/jobs";
 import { parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
+import { jobItemPhoto } from "@/lib/jobs/photos";
+import { getProducts } from "@/lib/products/data";
+import { forOrganisation } from "@/lib/scope";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -124,7 +127,9 @@ export type NewJobResult = { status: "error"; errors?: NewJobErrors; message?: s
  */
 export async function createManualJob(values: NewJobValues): Promise<NewJobResult> {
   const { organisation, user } = await requireOrganisation();
-  const parsed = parseNewJob(values);
+  // Pictures come from the business's own products, never from what the browser sent.
+  const products = forOrganisation(await getProducts(), organisation.id);
+  const parsed = parseNewJob(values, (line) => jobItemPhoto(line, products));
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
   const job = parsed.value;
 
@@ -148,6 +153,7 @@ export async function createManualJob(values: NewJobValues): Promise<NewJobResul
     p_delivery_address: job.deliveryAddress,
     p_needed_by: job.neededBy,
     p_note: job.note,
+    // (Everything but the known fields is dropped by the database; here they are already only the known ones.)
     p_items: job.items,
   });
   if (error?.code === "22023") {

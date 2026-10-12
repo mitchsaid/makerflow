@@ -23,6 +23,7 @@ export function OptionChoices({
   chosen,
   errors,
   money,
+  showPrices = true,
   variationId,
   onChange,
 }: {
@@ -35,10 +36,12 @@ export function OptionChoices({
   /** By list or extra id: what is missing ("Choose a flavour."). */
   errors: Record<string, string>;
   money: (cents: number) => string;
+  /** False on a job: it has no prices to show. */
+  showPrices?: boolean;
   onChange: (options: LineOption[]) => void;
 }) {
   const id = (part: string) => `${idPrefix}${part}`;
-  const plus = (cents: number, from = false) => (cents > 0 ? `${from ? "from " : ""}+${money(cents)} each` : "");
+  const plus = (cents: number, from = false) => (showPrices && cents > 0 ? `${from ? "from " : ""}+${money(cents)} each` : "");
 
   // An extra is on the item when its copy is: of the extra's current kind (ticked, or ticked with wording).
   const entryOf = (x: ExtraSummary) => chosen.find((o) => o.kind !== "one" && o.valueId === x.id && (o.kind === "text") === x.asksForWording);
@@ -159,7 +162,7 @@ export function OptionChoices({
                     <FieldLabel htmlFor={fieldId} className="flex w-full items-baseline justify-between gap-3 text-base">
                       <span>{x.name}</span>
                       <span className="shrink-0 text-sm text-muted-foreground">
-                        {quantity === null ? plus(amount, from) : `${quantity / 1000} × ${money(amount)}`}
+                        {quantity === null ? plus(amount, from) : showPrices ? `${quantity / 1000} × ${money(amount)}` : ""}
                       </span>
                     </FieldLabel>
                   </Field>
@@ -210,9 +213,9 @@ export function OptionChoices({
               <li key={`${o.groupId}-${o.valueId}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
                 <span className="text-base">
                   {o.group}: {o.kind === "text" ? `“${o.text}”` : o.value}
-                  {o.amountCents > 0 && (
+                  {(showPrices ? o.amountCents > 0 : o.quantityMilli != null) && (
                     <span className="block text-sm text-muted-foreground">
-                      {o.quantityMilli == null ? plus(o.amountCents) : `${o.quantityMilli / 1000} × ${money(o.amountCents)}`}
+                      {o.quantityMilli == null ? plus(o.amountCents) : showPrices ? `${o.quantityMilli / 1000} × ${money(o.amountCents)}` : `${o.quantityMilli / 1000} ×`}
                     </span>
                   )}
                 </span>
