@@ -24,9 +24,10 @@ declare
   cust_old uuid;
   j1 uuid;
   j2 uuid;
+  j3 uuid;
   items jsonb := jsonb_build_array(
-    jsonb_build_object('name', 'Oak shelf', 'description', '120 cm, oiled', 'quantityMilli', 2000, 'unit', null),
-    jsonb_build_object('name', 'Brackets', 'quantityMilli', 4000, 'unit', 'pair'));
+    jsonb_build_object('kind', 'custom', 'name', 'Oak shelf', 'description', '120 cm, oiled', 'quantityMilli', 2000, 'unit', null),
+    jsonb_build_object('kind', 'custom', 'name', 'Brackets', 'quantityMilli', 4000, 'unit', 'pair'));
 begin
   insert into auth.users (id, email) values (a, 'ja29@example.test'), (b, 'jb29@example.test');
   perform pg_temp.as_user(a);
@@ -83,35 +84,44 @@ begin
   end;
   begin
     perform public.create_job(org_a, a, cust_a, 'none', null, null, null,
-      items || jsonb_build_array(jsonb_build_object('name', '  ', 'quantityMilli', 1000)));
+      items || jsonb_build_array(jsonb_build_object('kind', 'custom', 'name', '  ', 'quantityMilli', 1000)));
     raise exception 'FAIL: an item with no name was accepted';
   exception when sqlstate '22023' then null;
   end;
   begin
     perform public.create_job(org_a, a, cust_a, 'none', null, null, null,
-      jsonb_build_array(jsonb_build_object('name', 'X', 'quantityMilli', 0)));
+      jsonb_build_array(jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', 0)));
     raise exception 'FAIL: a zero quantity was accepted';
   exception when sqlstate '22023' then null;
   end;
   begin
     perform public.create_job(org_a, a, cust_a, 'none', null, null, null,
-      jsonb_build_array(jsonb_build_object('name', 'X', 'quantityMilli', 1.5)));
+      jsonb_build_array(jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', 1.5)));
     raise exception 'FAIL: a fractional milli quantity was accepted';
   exception when sqlstate '22023' then null;
   end;
   -- Numbers that are not whole thousandths, too big, or not numbers; names that are not text; too many items
-  declare bad jsonb; many jsonb := (select jsonb_agg(jsonb_build_object('name', 'X' || g, 'quantityMilli', 1000)) from generate_series(1, 51) g);
+  declare bad jsonb; many jsonb := (select jsonb_agg(jsonb_build_object('kind', 'custom', 'name', 'X' || g, 'quantityMilli', 1000)) from generate_series(1, 51) g);
   begin
     foreach bad in array array[
-      jsonb_build_object('name', 'X', 'quantityMilli', -5),
-      jsonb_build_object('name', 'X', 'quantityMilli', 1.0),
-      jsonb_build_object('name', 'X', 'quantityMilli', 10000000000),
-      jsonb_build_object('name', 'X', 'quantityMilli', '1000'),
-      jsonb_build_object('name', 'X', 'quantityMilli', null),
-      jsonb_build_object('name', null, 'quantityMilli', 1000),
-      jsonb_build_object('name', 7, 'quantityMilli', 1000),
-      jsonb_build_object('name', repeat('x', 301), 'quantityMilli', 1000),
-      jsonb_build_object('name', 'X', 'quantityMilli', 1000, 'unit', repeat('u', 21)),
+      jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', -5),
+      jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', 1.0),
+      jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', 10000000000),
+      jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', '1000'),
+      jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', null),
+      jsonb_build_object('kind', 'custom', 'name', null, 'quantityMilli', 1000),
+      jsonb_build_object('kind', 'custom', 'name', 7, 'quantityMilli', 1000),
+      jsonb_build_object('kind', 'custom', 'name', repeat('x', 301), 'quantityMilli', 1000),
+      jsonb_build_object('kind', 'custom', 'name', 'X', 'quantityMilli', 1000, 'unit', repeat('u', 21)),
+      jsonb_build_object('kind', 'pigeon', 'name', 'X', 'quantityMilli', 1000),
+      jsonb_build_object('name', 'X', 'quantityMilli', 1000),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'variationLabel', 'Size'),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'variationName', 'Large'),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'options', jsonb_build_object('a', 1)),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'options', jsonb_build_array(jsonb_build_object('group', 'Flavour', 'kind', 'pigeon', 'value', 'V'))),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'options', jsonb_build_array(jsonb_build_object('group', '', 'kind', 'one', 'value', 'V'))),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'options', jsonb_build_array(jsonb_build_object('group', 'G', 'kind', 'any', 'value', 'V', 'quantityMilli', 0))),
+      jsonb_build_object('kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'photoImageId', 'not-an-id'),
       to_jsonb('just text'::text)
     ] loop
       begin
@@ -126,7 +136,7 @@ begin
     exception when sqlstate '22023' then null;
     end;
     begin
-      perform public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_object('name', 'X'));
+      perform public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_object('kind', 'custom', 'name', 'X'));
       raise exception 'FAIL: items that are not a list were accepted';
     exception when sqlstate '22023' then null;
     end;
@@ -141,6 +151,13 @@ begin
     raise exception 'FAIL: an unknown fulfilment was accepted';
   exception when sqlstate '22023' then null;
   end;
+  -- A picture of another business is refused by the database, and nothing is left behind
+  begin
+    perform public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_array(jsonb_build_object(
+      'kind', 'product', 'name', 'X', 'quantityMilli', 1000, 'photoImageId', gen_random_uuid())));
+    raise exception 'FAIL: a picture that is not this business''s was accepted';
+  exception when foreign_key_violation then null;
+  end;
   reset role;
   assert (select count(*) from public.jobs where organisation_id = org_a) = 0, 'a refused job left something behind';
 
@@ -150,7 +167,25 @@ begin
   set local role service_role;
   j1 := public.create_job(org_a, a, cust_a, 'delivery', '12 Long Street', date '2026-11-20', '  Match the desk  ', items);
   j2 := public.create_job(org_a, a, cust_a, 'collection', null, null, null, items);
+  -- An item like a quote's: a product with its variation and choices (only the known fields are kept)
+  j3 := public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_array(jsonb_build_object(
+    'kind', 'product', 'name', 'Wedding cake', 'description', '3 tiers', 'quantityMilli', 1000, 'unit', null,
+    'variationLabel', 'Size', 'variationName', 'Large', 'photoImageId', null, 'sneaky', 'dropped',
+    'options', jsonb_build_array(
+      jsonb_build_object('group', 'Flavour', 'kind', 'one', 'value', 'Vanilla', 'text', null, 'quantityMilli', null, 'amountCents', 999),
+      jsonb_build_object('group', 'Message on the cake', 'kind', 'text', 'value', null, 'text', 'Happy 40th'),
+      jsonb_build_object('group', 'Extras', 'kind', 'any', 'value', 'Sprinkles', 'quantityMilli', 2000)))));
   reset role;
+
+  assert (select kind = 'product' and variation_label = 'Size' and variation_name = 'Large' and photo_image_id is null and description = '3 tiers'
+          from public.job_items where job_id = j3), 'the product item is wrong';
+  assert (select jsonb_array_length(options) = 3
+              and options -> 0 = '{"group": "Flavour", "kind": "one", "value": "Vanilla", "text": null, "quantityMilli": null}'::jsonb
+              and options -> 1 ->> 'text' = 'Happy 40th'
+              and (options -> 2 ->> 'quantityMilli')::int = 2000
+              and not (options -> 0 ? 'amountCents')
+          from public.job_items where job_id = j3), 'the choices were not kept as given, or kept more than they should';
+  assert (select not (to_jsonb(i) ? 'sneaky') from public.job_items i where job_id = j3), 'an unknown field was kept';
 
   assert (select quote_id is null and quote_version is null and number = 1 and status = 'not_started' and fulfilment = 'delivery'
           and delivery_address = '12 Long Street' and needed_by = date '2026-11-20' and note = 'Match the desk'

@@ -148,6 +148,7 @@ export async function createManualJob(values: NewJobValues): Promise<NewJobResul
     p_delivery_address: job.deliveryAddress,
     p_needed_by: job.neededBy,
     p_note: job.note,
+    // (Everything but the known fields is dropped by the database; here they are already only the known ones.)
     p_items: job.items,
   });
   if (error?.code === "22023") {

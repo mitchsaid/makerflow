@@ -1,15 +1,19 @@
-import { parseQuantity, type QuantityMilli } from "@/lib/money";
+import { parseLine, type LineFormValues } from "@/lib/quotes";
 import { isIsoDay } from "@/lib/quotes/dates";
+import type { QuantityMilli } from "@/lib/money";
 import type { JobFulfilment } from "./index";
 
 /**
- * A job made by hand, without a quote (a walk-in order, a repeat, work agreed over WhatsApp). What the maker types is
- * checked here, on the screen and again on the server; the database checks it a third time.
+ * A job made by hand, without a quote (a walk-in order, a repeat, work agreed over WhatsApp). Its items are added the
+ * same way a quote's are (the same sheet: a product or service with its variation and choices, or a one-off item),
+ * only without prices. What the maker typed is checked here, on the screen and again on the server; the database
+ * checks it a third time.
  */
 
-export const NEW_JOB_LIMITS = { items: 50, itemName: 300, description: 4000, unit: 20, address: 1000, note: 2000 } as const;
+export const NEW_JOB_LIMITS = { items: 50, address: 1000, note: 2000 } as const;
 
-export type NewJobItemValues = { key: string; name: string; quantity: string; unit: string; description: string };
+/** An item on the form: the quote's own item values, and the picture of what was chosen (if the product has one). */
+export type NewJobLine = LineFormValues & { photoImageId?: string | null };
 
 export type NewJobValues = {
   customerId: string;
@@ -17,7 +21,19 @@ export type NewJobValues = {
   deliveryAddress: string;
   neededBy: string;
   note: string;
-  items: NewJobItemValues[];
+  items: NewJobLine[];
+};
+
+export type NewJobItem = {
+  kind: "product" | "service" | "custom";
+  name: string;
+  description: string | null;
+  quantityMilli: QuantityMilli;
+  unit: string | null;
+  variationLabel: string | null;
+  variationName: string | null;
+  options: { group: string; kind: string; value: string | null; text: string | null; quantityMilli: number | null }[];
+  photoImageId: string | null;
 };
 
 export type NewJob = {
@@ -26,18 +42,16 @@ export type NewJob = {
   deliveryAddress: string | null;
   neededBy: string | null;
   note: string | null;
-  items: { name: string; description: string | null; quantityMilli: QuantityMilli; unit: string | null }[];
+  items: NewJobItem[];
 };
 
-/** Field id → message. Item fields are `item-<n>-name` and `item-<n>-quantity` (n from 0). */
+/** Field id → message. An item's problem is under `line:<its key>` (one message per item). */
 export type NewJobErrors = Record<string, string>;
 
 export const MISSING_JOB_CUSTOMER = "Choose who this job is for, or add them as a new customer.";
 export const MISSING_JOB_ITEMS = "Add at least one item to make.";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const emptyJobItem = (key: string): NewJobItemValues => ({ key, name: "", quantity: "1", unit: "", description: "" });
 
 /** The problems with these values, in the order they appear on the screen; none means it can be saved. */
 export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } | { ok: false; errors: NewJobErrors } {
@@ -63,26 +77,36 @@ export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } |
   if (hasNul(values.note)) errors.note = NUL;
   else if (note.length > NEW_JOB_LIMITS.note) errors.note = `Keep the note to ${NEW_JOB_LIMITS.note} characters or fewer. It is ${note.length} now.`;
 
-  const items: NewJob["items"] = [];
+  const items: NewJobItem[] = [];
   const list = Array.isArray(values.items) ? values.items : [];
   if (list.length === 0) errors.items = MISSING_JOB_ITEMS;
   if (list.length > NEW_JOB_LIMITS.items) errors.items = `A job can have up to ${NEW_JOB_LIMITS.items} items.`;
   list.forEach((item, i) => {
-    const name = text(item?.name);
-    if (hasNul(item?.name)) errors[`item-${i}-name`] = NUL;
-    else if (name === "") errors[`item-${i}-name`] = "Say what to make.";
-    else if (name.length > NEW_JOB_LIMITS.itemName) errors[`item-${i}-name`] = `Keep the name to ${NEW_JOB_LIMITS.itemName} characters or fewer.`;
-    const quantity = parseQuantity(item?.quantity);
-    if (!quantity.ok) errors[`item-${i}-quantity`] = quantity.error;
-    const unit = text(item?.unit);
-    if (hasNul(item?.unit)) errors[`item-${i}-unit`] = NUL;
-    else if (unit.length > NEW_JOB_LIMITS.unit) errors[`item-${i}-unit`] = `Keep the unit to ${NEW_JOB_LIMITS.unit} characters or fewer.`;
-    const description = text(item?.description);
-    if (hasNul(item?.description)) errors[`item-${i}-description`] = NUL;
-    else if (description.length > NEW_JOB_LIMITS.description) errors[`item-${i}-description`] = `Keep the details to ${NEW_JOB_LIMITS.description} characters or fewer.`;
-    if (!errors[`item-${i}-name`] && quantity.ok && !errors[`item-${i}-unit`] && !errors[`item-${i}-description`]) {
-      items.push({ name, description: description === "" ? null : description, quantityMilli: quantity.value, unit: unit === "" ? null : unit });
+    const key = typeof item?.key === "string" && item.key !== "" ? item.key : `#${i}`;
+    // A job item has no price: the quote's item check wants one, so it is given a neutral one that is never kept.
+    const r = parseLine({ ...item, unitPrice: "0", discountKind: "none", discountValue: "", vatStatus: "standard" });
+    if (!r.ok) {
+      const e = r.errors;
+      errors[`line:${key}`] = e.name ?? e.variation ?? e.options ?? e.quantity ?? e.unit ?? e.description ?? "This item could not be read. Remove it and add it again.";
+      return;
     }
+    const nul = [r.line.name, r.line.description, r.line.unit, ...r.line.options.map((o) => o.text)].some(hasNul);
+    if (nul) {
+      errors[`line:${key}`] = NUL;
+      return;
+    }
+    const photo = typeof item.photoImageId === "string" && UUID.test(item.photoImageId) ? item.photoImageId : null;
+    items.push({
+      kind: r.line.kind === "service" ? "service" : r.line.kind === "product" ? "product" : "custom",
+      name: r.line.name,
+      description: r.line.description,
+      quantityMilli: r.line.quantityMilli,
+      unit: r.line.unit,
+      variationLabel: r.line.variation?.label ?? null,
+      variationName: r.line.variation?.name ?? null,
+      options: r.line.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, quantityMilli: o.quantityMilli })),
+      photoImageId: r.line.productId ? photo : null,
+    });
   });
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
