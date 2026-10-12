@@ -10,6 +10,7 @@ Last updated: 2026-10-09. Keep it current; it is how a fresh session (local or c
 - Cost-conscious: free tiers while testing, paid only when real users depend on it.
 - Verify claims and say what is unverified. Own mistakes plainly. Never guess at prices or product behaviour: check the docs.
 - Pull requests: the founder's standing instruction (2026-10-07) is to **merge to dev and deploy the database to dev** once CI is green and the review agent's findings are dealt with, without asking each time, unless there is a good reason to check first (for example something destructive, a security or money question that needs a decision, or a change of direction). Auth, RLS, money, tax and migrations still get human review afterwards: say so in the summary. A PR is opened for each slice so CI and the review agent run.
+- **Reuse before building** (founder, 2026-10-12): when jobs without a quote were first built with hand-made item fields instead of the quote's item sheet, the founder asked why. Now: plans list the existing interactions they reuse (`docs/plans/README.md`), CLAUDE.md has the rule, and the review agent is briefed with `docs/runbooks/pr-review.md`, which asks "does this duplicate an existing screen or component?" first.
 - Never put secrets in chat, commits or docs. Hosted keys, passwords and connection strings live only in GitHub and Vercel secret settings.
 - The founder uses a separate (personal) Claude account for MakerFlow and a work account elsewhere. Never touch `~/.claude`, shell profiles or Claude settings outside this repo.
 

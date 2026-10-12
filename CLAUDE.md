@@ -20,13 +20,14 @@ Read `docs/project-context.md` first (current state, working agreements, next st
 - Advanced features are offered through friendly, dismissable prompts and never forced on the user.
 - Thin slices keep the full feature's interaction: unbuilt parts are visible but inactive placeholder sections ("coming soon"), never a stand-in interaction to be replaced later. Placeholders show in production the same as on dev for now. See `docs/product-brief.md`, principle 9.
 - Forms: primary buttons stay enabled; clicking with problems shows them at the fields and in a summary that jumps to the first one; errors appear only after interaction; messages say how to fix it; typed data is never lost. See `docs/adr/0005-form-errors.md`.
+- **Reuse the existing interaction.** Before building a screen or control, find how the app already asks for or shows the same thing (an item, a customer, an address, a date, a product, a photo) and use that component, giving it a mode if it is tied to its first use. Copying one, or writing a simpler stand-in, needs a reason written in the plan. See `docs/plans/README.md` (the "Interactions reused" table).
 - Actions that add something use `AddButton` / `AddLink` (`app/src/components/add-button.tsx`): a plus, then the label. See `docs/adr/0008-add-actions.md`; a unit test fails if a plain button says "Add …".
 - Design mobile-first. UI is built from `app/src/components/ui` (shadcn/ui, see `docs/adr/0003-ui-components.md`): no hand-written buttons, inputs or cards; tap targets at least 44 px, input text at least 16 px; new screens get a case in `e2e/accessibility.spec.ts`.
 - Speed is a feature (the app is used as an installed PWA). Each protected page makes one query for its main data (plus the parallel session check), loads through `getWorkspace()`, and is checked with `pnpm perf`. See `docs/adr/0002-performance.md`.
 - Never commit secrets or `.env` files.
 
 ## Working style
-- Plan first for anything larger than a small fix. Build in thin vertical slices, each with tests.
+- Plan first for anything larger than a small fix, following `docs/plans/README.md` (it includes a table of which existing interactions the feature reuses). Build in thin vertical slices, each with tests.
 - Auth, RLS policies, money and tax logic, and migrations get human review. Say so when you touch them.
 - Do not create a pull request unless asked.
 
