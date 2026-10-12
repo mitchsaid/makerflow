@@ -276,6 +276,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Your note").fill("Check the colour");
       await page.getByRole("button", { name: "Save note" }).click();
       await expect(page.getByText("Note saved.")).toBeVisible();
+      // "Note saved." shows a moment before the button is back: a disabled (faded) button fails the contrast check.
+      await expect(page.getByRole("button", { name: "Save note" })).toBeEnabled();
       await expectNoViolations(page, "job, making, with a note");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
