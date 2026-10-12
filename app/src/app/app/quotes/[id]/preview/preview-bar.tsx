@@ -3,16 +3,47 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { waitForDesignSave } from "../../design-saves";
 import { SendQuoteSheet } from "../../send-sheet";
 
-/** Stays in view above the tab bar: back to editing, download, and send. */
+/**
+ * Stays in view above the tab bar: back to editing, download, and share. A download does not lock the quote (the
+ * maker may only be checking it, or sending it by hand), so right after one the bar asks, once and dismissably,
+ * whether it has been sent: "Mark as sent" opens the same sheet as Share, with that choice first.
+ */
 export function PreviewBar({ quoteId }: { quoteId: string }) {
   const router = useRouter();
-  const [sendOpen, setSendOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState<null | "share" | "marked">(null);
+  const [downloaded, setDownloaded] = useState(false);
   return (
     <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
+      {downloaded && (
+        <Alert className="mx-auto mb-3 max-w-2xl" data-testid="after-download">
+          <AlertDescription className="space-y-2">
+            <span className="block">
+              Downloaded. Once you have sent it to your customer, mark the quote as sent: it is locked so it cannot
+              change by accident, and you can record their answer.
+            </span>
+            <span className="flex flex-wrap gap-2">
+              <Button
+                id="after-download-mark"
+                type="button"
+                onClick={async () => {
+                  await waitForDesignSave();
+                  setSendOpen("marked");
+                }}
+              >
+                Mark as sent
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setDownloaded(false)}>
+                Not yet
+              </Button>
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="mx-auto flex max-w-2xl items-center gap-2">
         <Link href={`/app/quotes/${quoteId}`} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Edit
@@ -25,6 +56,7 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
             const href = event.currentTarget.href;
             await waitForDesignSave();
             window.location.assign(href);
+            setDownloaded(true);
           }}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
@@ -33,15 +65,16 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
         <Button id="send-quote" type="button" size="lg" className="flex-1" onClick={async () => {
             // Never send a look that is a tap behind: the server reads what is saved.
             await waitForDesignSave();
-            setSendOpen(true);
+            setSendOpen("share");
           }}>
-          Send
+          Share
         </Button>
       </div>
       <SendQuoteSheet
         quoteId={quoteId}
-        open={sendOpen}
-        onOpenChange={setSendOpen}
+        open={sendOpen !== null}
+        emphasis={sendOpen ?? "share"}
+        onOpenChange={(open) => !open && setSendOpen(null)}
         returnFocusId="send-quote"
         // What needs fixing is on the edit screen: go there and land on it.
         onFix={(fieldId) => router.push(`/app/quotes/${quoteId}?focus=${encodeURIComponent(fieldId)}`)}

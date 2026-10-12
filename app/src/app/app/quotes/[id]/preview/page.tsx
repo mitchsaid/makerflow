@@ -46,8 +46,8 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
       </div>
       <Alert>
         <AlertDescription>
-          This is how your quote will look. Check it, then send it or download it. Nothing is sent until you
-          press Send.
+          This is how your quote will look. Check it, then share it or download it. Nothing is sent from MakerFlow,
+          and the quote is only locked as sent when you share it or mark it as sent.
         </AlertDescription>
       </Alert>
 

@@ -65,7 +65,7 @@ export async function startSend(page: Page) {
     await page.getByRole("button", { name: "Preview", exact: true }).click();
     await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   }
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
 }
 
 /** A quote for the customer with one item, sent (marked as sent). The business gets a phone first. */

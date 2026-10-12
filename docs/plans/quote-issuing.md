@@ -49,3 +49,7 @@ Decisions (all the recommended options): the preview shows **the real PDF drawn 
 - The pages are pictures, so the same snapshot is kept as text for screen readers (the former on-screen document, now visually hidden).
 - When a fix is needed (no customer, no items...), the Send sheet takes you back to the edit screen and lands on the field.
 - Not built: choosing a design, logo and colours (need a place to store them per business); zooming the preview (it fits the screen width; use Download for the full-size document).
+
+## Changed 2026-10-12: Share, not Send; Mark as sent after a download
+Founder: makers often download the PDF and send it themselves, and "Send" reads as "MakerFlow emails it". So on the preview the button is now **Share** (it shares the PDF, or downloads it where the browser cannot share, and marks the quote as sent), the sheet is "Share this quote", and "Mark as sent" is still there for a quote sent another way. Right after a **Download** the bar asks, once and dismissably, whether it has been sent; **Mark as sent** there opens the same sheet with that choice first (so the same checks, and the same lock). When MakerFlow can email, **Email** becomes a real option in that sheet (it is the "coming soon" section there now), rather than a button that does something else.
+

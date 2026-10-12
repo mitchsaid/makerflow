@@ -96,8 +96,8 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   await section.getByLabel("Amount").fill("900");
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(sheet(page)).toHaveAccessibleName("Before you can send this quote");
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Before you can share this quote");
   await expect(sheet(page).getByRole("list", { name: "What is missing" })).toContainText("The deposit is more than the quote total");
   await page.keyboard.press("Escape");
   await expect(sheet(page)).toHaveCount(0);
