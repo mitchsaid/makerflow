@@ -9,6 +9,17 @@ async function expectNoViolations(page: Page, where: string) {
   // The page title streams in just after the page itself; checking before it arrives reports a
   // missing title that is not really missing.
   await expect(page).toHaveTitle(/.+/);
+  // During a soft navigation the old title is swapped for the new one; wait until it has stayed put for a moment.
+  await expect
+    .poll(
+      async () => {
+        const first = await page.title();
+        await page.waitForTimeout(150);
+        return first.trim() !== "" && (await page.title()) === first;
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
   // Sheets fade in; colours measured halfway through a fade are not the colours people see.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
   const { violations } = await new AxeBuilder({ page })
@@ -463,7 +474,10 @@ for (const scheme of ["light", "dark"] as const) {
       // A VAT-registered business gets the VAT choice on each item.
       await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
       await page.getByLabel("VAT number").fill("4123456789");
+      // Wait for this save itself, not just for a "Saved." that an earlier form on the page may still be showing.
+      const savedDetails = page.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/app/business");
       await page.getByRole("button", { name: "Save details" }).click();
+      await savedDetails;
       await expect(page.getByText("Saved.").first()).toBeVisible();
       await page.goto("/app/quotes/new");
       await page.getByRole("button", { name: "Add item" }).click();
