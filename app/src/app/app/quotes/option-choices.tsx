@@ -213,9 +213,9 @@ export function OptionChoices({
               <li key={`${o.groupId}-${o.valueId}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
                 <span className="text-base">
                   {o.group}: {o.kind === "text" ? `“${o.text}”` : o.value}
-                  {showPrices && o.amountCents > 0 && (
+                  {(showPrices ? o.amountCents > 0 : o.quantityMilli != null) && (
                     <span className="block text-sm text-muted-foreground">
-                      {o.quantityMilli == null ? plus(o.amountCents) : `${o.quantityMilli / 1000} × ${money(o.amountCents)}`}
+                      {o.quantityMilli == null ? plus(o.amountCents) : showPrices ? `${o.quantityMilli / 1000} × ${money(o.amountCents)}` : `${o.quantityMilli / 1000} ×`}
                     </span>
                   )}
                 </span>

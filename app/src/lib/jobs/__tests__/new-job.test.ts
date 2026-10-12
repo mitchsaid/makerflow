@@ -39,7 +39,6 @@ const cake = (over: Partial<NewJobLine> = {}): NewJobLine =>
     options: [
       { groupId: "55555555-5555-4555-8555-555555555555", group: "Flavour", kind: "one", valueId: "66666666-6666-4666-8666-666666666666", value: "Vanilla", text: "", amountCents: 500 },
     ],
-    photoImageId: PHOTO,
     ...over,
   });
 
@@ -60,7 +59,7 @@ describe("parseNewJob", () => {
   });
 
   it("takes a product item with its variation, choices and picture, as the quote does, without any amounts", () => {
-    const r = parseNewJob(good({ items: [cake()] }));
+    const r = parseNewJob(good({ items: [cake()] }), () => PHOTO);
     expect(r).toMatchObject({
       ok: true,
       value: {
@@ -79,9 +78,11 @@ describe("parseNewJob", () => {
     if (r.ok) expect(JSON.stringify(r.value)).not.toContain("amountCents");
   });
 
-  it("keeps a picture only on an item from a product", () => {
-    const r = parseNewJob(good({ items: [oneOff("a", { photoImageId: PHOTO })] }));
-    expect(r).toMatchObject({ ok: true, value: { items: [{ photoImageId: null }] } });
+  it("takes the picture only from the server's own lookup, and only for an item from a product", () => {
+    // A picture sent by the browser on the item is ignored.
+    const sent = { ...cake(), photoImageId: "99999999-9999-4999-8999-999999999999" } as NewJobLine;
+    expect(parseNewJob(good({ items: [sent] }))).toMatchObject({ ok: true, value: { items: [{ photoImageId: null }] } });
+    expect(parseNewJob(good({ items: [oneOff("a")] }), () => PHOTO)).toMatchObject({ ok: true, value: { items: [{ photoImageId: null }] } });
   });
 
   it("asks for a customer and for items, naming how to fix each", () => {
@@ -135,5 +136,21 @@ describe("parseNewJob", () => {
     const bad: LineFormValues = { ...cake(), productId: "nope" };
     expect(parseNewJob(good({ items: [bad] }))).toMatchObject({ ok: false, errors: { "line:c": expect.any(String) } });
     expect(parseNewJob(good({ items: [oneOff("a", { variationName: "Large", variationLabel: "Size" })] })).ok).toBe(false);
+  });
+
+  it("refuses an item with more than 50 choices and extras, at the item", () => {
+    const many = Array.from({ length: 51 }, (_, i) => ({ groupId: "", group: `Extras`, kind: "any" as const, valueId: "", value: `Extra ${i}`, text: "", amountCents: 0 }));
+    const r = parseNewJob(good({ items: [cake({ options: many })] }));
+    expect(r).toMatchObject({ ok: false, errors: { "line:c": expect.stringContaining("up to 50") } });
+  });
+
+  it("answers a forged item with a message, not an error", () => {
+    const forged = cake({ options: [null as never] });
+    expect(parseNewJob(good({ items: [forged] }))).toMatchObject({ ok: false, errors: { "line:c": expect.any(String) } });
+  });
+
+  it("refuses a character the database cannot store in a choice or a variation too", () => {
+    const withNul = cake({ variationName: "Lar\u0000ge" });
+    expect(parseNewJob(good({ items: [withNul] }))).toMatchObject({ ok: false, errors: { "line:c": expect.any(String) } });
   });
 });

@@ -10,10 +10,10 @@ import type { JobFulfilment } from "./index";
  * checks it a third time.
  */
 
-export const NEW_JOB_LIMITS = { items: 50, address: 1000, note: 2000 } as const;
+export const NEW_JOB_LIMITS = { items: 50, optionsPerItem: 50, address: 1000, note: 2000 } as const;
 
-/** An item on the form: the quote's own item values, and the picture of what was chosen (if the product has one). */
-export type NewJobLine = LineFormValues & { photoImageId?: string | null };
+/** An item on the form: the quote's own item values. */
+export type NewJobLine = LineFormValues;
 
 export type NewJobValues = {
   customerId: string;
@@ -53,8 +53,14 @@ export const MISSING_JOB_ITEMS = "Add at least one item to make.";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** The problems with these values, in the order they appear on the screen; none means it can be saved. */
-export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } | { ok: false; errors: NewJobErrors } {
+/**
+ * The problems with these values, in the order they appear on the screen; none means it can be saved.
+ * `photoFor` gives an item's picture from the business's own products (see jobItemPhoto); without it there are none.
+ */
+export function parseNewJob(
+  values: NewJobValues,
+  photoFor: (line: LineFormValues) => string | null = () => null,
+): { ok: true; value: NewJob } | { ok: false; errors: NewJobErrors } {
   const errors: NewJobErrors = {};
   const text = (s: unknown) => (typeof s === "string" ? s.trim() : "");
   // The database cannot store a NUL character (pasted text sometimes has one).
@@ -84,18 +90,28 @@ export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } |
   list.forEach((item, i) => {
     const key = typeof item?.key === "string" && item.key !== "" ? item.key : `#${i}`;
     // A job item has no price: the quote's item check wants one, so it is given a neutral one that is never kept.
-    const r = parseLine({ ...item, unitPrice: "0", discountKind: "none", discountValue: "", vatStatus: "standard" });
+    let r: ReturnType<typeof parseLine>;
+    try {
+      r = parseLine({ ...item, unitPrice: "0", discountKind: "none", discountValue: "", vatStatus: "standard" });
+    } catch {
+      // Only a hand-built request gets here (a choice that is not an object, and so on).
+      errors[`line:${key}`] = "This item could not be read. Remove it and add it again.";
+      return;
+    }
     if (!r.ok) {
       const e = r.errors;
       errors[`line:${key}`] = e.name ?? e.variation ?? e.options ?? e.quantity ?? e.unit ?? e.description ?? "This item could not be read. Remove it and add it again.";
       return;
     }
-    const nul = [r.line.name, r.line.description, r.line.unit, ...r.line.options.map((o) => o.text)].some(hasNul);
-    if (nul) {
+    if (r.line.options.length > NEW_JOB_LIMITS.optionsPerItem) {
+      errors[`line:${key}`] = `An item can have up to ${NEW_JOB_LIMITS.optionsPerItem} choices and extras. Remove some of them.`;
+      return;
+    }
+    const words = [r.line.name, r.line.description, r.line.unit, r.line.variation?.label, r.line.variation?.name, ...r.line.options.flatMap((o) => [o.group, o.value, o.text])];
+    if (words.some(hasNul)) {
       errors[`line:${key}`] = NUL;
       return;
     }
-    const photo = typeof item.photoImageId === "string" && UUID.test(item.photoImageId) ? item.photoImageId : null;
     items.push({
       kind: r.line.kind === "service" ? "service" : r.line.kind === "product" ? "product" : "custom",
       name: r.line.name,
@@ -105,7 +121,7 @@ export function parseNewJob(values: NewJobValues): { ok: true; value: NewJob } |
       variationLabel: r.line.variation?.label ?? null,
       variationName: r.line.variation?.name ?? null,
       options: r.line.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, quantityMilli: o.quantityMilli })),
-      photoImageId: r.line.productId ? photo : null,
+      photoImageId: r.line.productId ? photoFor(item) : null,
     });
   });
 

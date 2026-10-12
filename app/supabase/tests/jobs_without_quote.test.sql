@@ -25,6 +25,8 @@ declare
   j1 uuid;
   j2 uuid;
   j3 uuid;
+  j4 uuid;
+  img_a uuid := gen_random_uuid();
   items jsonb := jsonb_build_array(
     jsonb_build_object('kind', 'custom', 'name', 'Oak shelf', 'description', '120 cm, oiled', 'quantityMilli', 2000, 'unit', null),
     jsonb_build_object('kind', 'custom', 'name', 'Brackets', 'quantityMilli', 4000, 'unit', 'pair'));
@@ -186,6 +188,15 @@ begin
               and not (options -> 0 ? 'amountCents')
           from public.job_items where job_id = j3), 'the choices were not kept as given, or kept more than they should';
   assert (select not (to_jsonb(i) ? 'sneaky') from public.job_items i where job_id = j3), 'an unknown field was kept';
+
+  -- A picture of this business is kept
+  insert into public.images (id, organisation_id, kind, content_type, width, height, display_bytes, thumb_bytes)
+    values (img_a, org_a, 'product', 'image/jpeg', 10, 10, 100, 50);
+  set local role service_role;
+  j4 := public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_array(jsonb_build_object(
+    'kind', 'product', 'name', 'Tray', 'quantityMilli', 1000, 'photoImageId', img_a)));
+  reset role;
+  assert (select photo_image_id = img_a from public.job_items where job_id = j4), 'the picture was not kept';
 
   assert (select quote_id is null and quote_version is null and number = 1 and status = 'not_started' and fulfilment = 'delivery'
           and delivery_address = '12 Long Street' and needed_by = date '2026-11-20' and note = 'Match the desk'

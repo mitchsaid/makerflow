@@ -159,11 +159,15 @@ export function LineSheet({
       ? "Choose one of your products or services, add a new one, or type a one-off item."
       : view?.kind === "configure"
         ? job
-          ? "Set the quantity and details for this job. Your job is kept as it is."
+          ? "Set the quantity and details for this job."
           : "Set the quantity and price for this quote. Your quote is kept as it is."
         : view?.kind === "product" && view.mode === "edit"
-          ? `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}. Lines already on quotes keep their own price.`
-          : `A name and a price are enough to start. Your ${subject} is kept as it is.`;
+          ? job
+            ? `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}.`
+            : `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}. Lines already on quotes keep their own price.`
+          : job
+            ? "A name and a price are enough to start. It is saved to your products and added to this job."
+            : "A name and a price are enough to start. Your quote is kept as it is.";
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && !saving && onClose()}>

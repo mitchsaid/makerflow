@@ -11,6 +11,7 @@ import type { BusinessType } from "@/lib/business-types";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { imageUrl } from "@/lib/images";
 import type { JobFulfilment } from "@/lib/jobs";
+import { jobItemPhoto } from "@/lib/jobs/photos";
 import { NEW_JOB_LIMITS, parseNewJob, type NewJobErrors, type NewJobLine, type NewJobValues } from "@/lib/jobs/new-job";
 import { priceEntryLabel, type LocalePack } from "@/lib/locale";
 import type { VatSettings } from "@/lib/money";
@@ -25,20 +26,6 @@ import { LineSheet, type LineSheetView } from "../../quotes/line-sheet";
 import { createManualJob } from "../actions";
 
 const OFFLINE = "Couldn't reach the server, so we can't tell whether the job was made. Check the Jobs list, then try again if it is not there. Your changes are still here.";
-
-/** The picture of what was chosen on an item: its variation's, else its first choice's, else the product's own. */
-function photoOf(line: LineFormValues, products: readonly ProductSummary[]): string | null {
-  const product = line.productId ? products.find((p) => p.id === line.productId) : undefined;
-  if (!product) return null;
-  const variation = product.variations.find((v) => v.id === line.variationId);
-  if (variation?.imageId) return variation.imageId;
-  for (const o of line.options ?? []) {
-    if (o.kind !== "one") continue;
-    const value = product.options.find((g) => g.id === o.groupId)?.values.find((v) => v.id === o.valueId);
-    if (value?.imageId) return value.imageId;
-  }
-  return product.photoImageId ?? null;
-}
 
 /**
  * A job without a quote: who it is for, what to make, when it is needed and how it gets to them. One scrolling form
@@ -121,8 +108,7 @@ export function NewJobForm({
     setSheetOpen(true);
   }
   function saveLine(line: LineFormValues, isNew: boolean) {
-    const item: NewJobLine = { ...line, photoImageId: photoOf(line, products) };
-    setValues((v) => ({ ...v, items: isNew ? [...v.items, item] : v.items.map((l) => (l.key === item.key ? item : l)) }));
+    setValues((v) => ({ ...v, items: isNew ? [...v.items, line] : v.items.map((l) => (l.key === line.key ? line : l)) }));
     // That item's message (if any) was about what it was before.
     setErrors((e) => {
       const rest = { ...e };
@@ -233,6 +219,7 @@ export function NewJobForm({
                 number={index + 1}
                 error={errors[`line:${item.key}`]}
                 numberStyle={numberStyle}
+                photoId={jobItemPhoto(item, products)}
                 onEdit={() => openSheet({ kind: "configure", line: item, isNew: false })}
               />
             ))}
@@ -335,12 +322,15 @@ function ItemRow({
   number,
   error,
   numberStyle,
+  photoId,
   onEdit,
 }: {
   item: NewJobLine;
   number: number;
   error?: string;
   numberStyle: NumberStyle;
+  /** The picture of what was chosen, if there is one. */
+  photoId: string | null;
   onEdit: () => void;
 }) {
   const quantity = Number(item.quantity.replace(",", "."));
@@ -356,9 +346,9 @@ function ItemRow({
         onClick={onEdit}
         className="h-auto min-h-14 w-full justify-start gap-3 px-3 py-2 text-left font-normal"
       >
-        {item.photoImageId && (
+        {photoId && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl(item.photoImageId, "thumb")} alt="" loading="lazy" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
+          <img src={imageUrl(photoId, "thumb")} alt="" loading="lazy" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
         )}
         <span className="min-w-0">
           <span className="block truncate text-base font-medium">
@@ -368,7 +358,7 @@ function ItemRow({
           <span className="block truncate text-sm text-muted-foreground">
             {Number.isFinite(quantity) && quantity > 0 ? quantityText(Math.round(quantity * 1000), item.unit.trim() || null, numberStyle) : item.quantity}
             {item.variationName && ` · ${item.variationName}`}
-            {count > 0 && ` · ${count} ${count === 1 ? "choice" : "choices"}`}
+            {count > 0 && ` · ${count} ${count === 1 ? "option" : "options"}`}
             {!item.productId && " · one-off item"}
           </span>
         </span>
