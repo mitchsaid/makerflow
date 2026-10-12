@@ -68,6 +68,13 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   expect(download.headers()["content-disposition"]).toContain("QT-0001-draft.pdf");
   expect((await download.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
 
+  // The download asked whether it was sent. This business has no phone or email yet, so "Mark as sent" lists
+  // what is missing, in its own words (not "share").
+  await page.getByTestId("after-download").getByRole("button", { name: "Mark as sent", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Before you can mark this quote as sent" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
   // Edit goes back to the draft with everything as it was.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page).toHaveURL(quoteUrl);
@@ -111,18 +118,34 @@ test("after a download the preview asks whether it was sent, and Mark as sent lo
   // A download does not lock the quote, but asks, once and dismissably, whether it has been sent.
   await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download" }).click()]);
   const asked = page.getByTestId("after-download");
-  await expect(asked).toContainText("Once you have sent it to your customer, mark the quote as sent");
+  await expect(asked).toContainText("Have you sent it to your customer? Mark the quote as sent");
   await asked.getByRole("button", { name: "Not yet" }).click();
   await expect(asked).toHaveCount(0);
+  // Focus goes back to the way on, not to nowhere.
+  await expect(page.getByRole("button", { name: "Share", exact: true })).toBeFocused();
 
   await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download" }).click()]);
-  await page.getByRole("button", { name: "Mark as sent" }).first().click();
+  await page.getByRole("button", { name: "Mark as sent", exact: true }).first().click();
   const marking = page.getByRole("dialog", { name: "Mark this quote as sent" });
+  await expect(marking).toBeVisible();
+  // Closing it without choosing keeps the prompt, puts focus back on its button, and does not turn the sheet into
+  // the Share one while it fades out.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("after-download")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark as sent", exact: true }).first()).toBeFocused();
+  // Share opens it the other way round: Share first.
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Share this quote" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("button").filter({ hasText: /Mark as sent|Download the PDF|Share the PDF/ }).first()).toHaveText(/Share the PDF|Download the PDF and mark as sent/);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Mark as sent", exact: true }).first().click();
   await expect(marking).toBeVisible();
   // Marking as sent comes first here; sharing is still offered.
   await expect(marking.getByRole("button").filter({ hasText: /Mark as sent|Download the PDF|Share the PDF/ }).first()).toHaveText("Mark as sent");
   await expect(marking.getByRole("button", { name: /Share the PDF|Download the PDF/ })).toBeVisible();
-  await marking.getByRole("button", { name: "Mark as sent" }).click();
+  await marking.getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?sent=marked$/);
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
 });
@@ -159,7 +182,7 @@ test("sending lists what is missing, carries on once contact details are added, 
   await expect(sheet(page)).toContainText(/R\s?800,00/);
   await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(2);
 
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?sent=marked$/);
   await expect(page.getByTestId("sent-banner")).toContainText("QT-0001 is marked as sent and locked");
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
@@ -297,7 +320,7 @@ test("where files can't be shared, the PDF is downloaded instead", async ({ page
 
   await startSend(page);
   const download = page.waitForEvent("download");
-  await sheet(page).getByRole("button", { name: "Download the PDF" }).click();
+  await sheet(page).getByRole("button", { name: "Download the PDF and mark as sent" }).click();
   expect((await download).suggestedFilename()).toBe("QT-0001.pdf");
   await expect(page).toHaveURL(/\?sent=shared$/);
   await expect(page.getByRole("button", { name: "Download PDF" })).toBeVisible();
@@ -308,7 +331,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
   await addBusinessPhone(page);
   await saveQuote(page, "Thandi Nkosi", "800");
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
 
@@ -327,7 +350,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("900"));
   await startSend(page);
   await expect(sheet(page)).toHaveAccessibleName("Share this quote");
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("quote-document")).toContainText("QT-0001 · version 2");
@@ -358,7 +381,7 @@ test("a revision can be discarded after asking: the quote goes back to the versi
   await addBusinessPhone(page);
   await saveQuote(page, "Thandi Nkosi", "800");
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
 
@@ -465,7 +488,7 @@ test("items can be zero-rated or exempt: the totals, the preview and the sent qu
   // Sent, it is frozen that way.
   await page.goto(quoteUrl);
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   await expect(page.getByTestId("quote-document")).toContainText("Zero-rated");
   await expect(page.getByTestId("quote-document")).toContainText(/R\s?215,00/);
@@ -504,7 +527,7 @@ test("the list filters by status and a quote with no customer still shows its nu
   await addBusinessPhone(page);
   await saveQuote(page);
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
 
   await openQuotes(page);

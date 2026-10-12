@@ -251,7 +251,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
       await expect(page.getByRole("dialog", { name: "Share this quote" })).toContainText("QT-0001");
       await expectNoViolations(page, "send sheet, ready");
-      await page.getByRole("dialog").getByRole("button", { name: "Mark as sent" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Mark as sent", exact: true }).click();
       await expect(page.getByTestId("sent-banner")).toBeVisible();
       await expectNoViolations(page, "sent quote");
 

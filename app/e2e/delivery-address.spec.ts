@@ -76,7 +76,7 @@ test("a delivery uses the customer's saved address, or another one, and it print
 
   // Send it: the address is on the frozen document.
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
   const document = page.getByTestId("quote-document");
   await expect(document).toContainText("Deliver to");
@@ -116,7 +116,7 @@ test("a customer with nothing saved gets a plain box, a too-long address says ho
   // No address at all is fine to send.
   await box.fill("");
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("quote-document")).not.toContainText("Deliver to");
 });

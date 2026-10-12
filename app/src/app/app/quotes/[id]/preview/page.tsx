@@ -15,7 +15,7 @@ import { PreviewBar } from "./preview-bar";
 
 /**
  * The step after a draft: the quote as it will look (its real PDF, drawn on screen), with the
- * design it uses, and the way on: back to editing, download, or send.
+ * design it uses, and the way on: back to editing, download, or share.
  */
 export default async function QuotePreviewPage({ params }: PageProps<"/app/quotes/[id]/preview">) {
   const { id } = await params;

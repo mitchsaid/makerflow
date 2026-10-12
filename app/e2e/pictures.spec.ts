@@ -178,7 +178,7 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   // Send it. Then the product gets a different photo and the business a different logo: the sent
   // version keeps the pictures it was sent with.
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
   const before = await page.request.get(`${quoteUrl}/pdf`);
   expect(await imagesIn(before)).toBe(bothCount);

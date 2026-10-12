@@ -15,7 +15,9 @@ import { SendQuoteSheet } from "../../send-sheet";
  */
 export function PreviewBar({ quoteId }: { quoteId: string }) {
   const router = useRouter();
-  const [sendOpen, setSendOpen] = useState<null | "share" | "marked">(null);
+  // Whether the sheet is open and which choice it puts first are kept apart, so it does not change while it fades out.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [mode, setMode] = useState<"share" | "marked">("share");
   const [downloaded, setDownloaded] = useState(false);
   return (
     <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
@@ -23,8 +25,8 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
         <Alert className="mx-auto mb-3 max-w-2xl" data-testid="after-download">
           <AlertDescription className="space-y-2">
             <span className="block">
-              Downloaded. Once you have sent it to your customer, mark the quote as sent: it is locked so it cannot
-              change by accident, and you can record their answer.
+              Have you sent it to your customer? Mark the quote as sent: it is locked so it cannot change by accident,
+              and you can record their answer.
             </span>
             <span className="flex flex-wrap gap-2">
               <Button
@@ -32,12 +34,21 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
                 type="button"
                 onClick={async () => {
                   await waitForDesignSave();
-                  setSendOpen("marked");
+                  setMode("marked");
+                  setSheetOpen(true);
                 }}
               >
                 Mark as sent
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setDownloaded(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setDownloaded(false);
+                  // The prompt held focus: give it back to the way on.
+                  setTimeout(() => document.getElementById("send-quote")?.focus(), 0);
+                }}
+              >
                 Not yet
               </Button>
             </span>
@@ -65,17 +76,19 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
         <Button id="send-quote" type="button" size="lg" className="flex-1" onClick={async () => {
             // Never send a look that is a tap behind: the server reads what is saved.
             await waitForDesignSave();
-            setSendOpen("share");
+            setMode("share");
+            setSheetOpen(true);
           }}>
           Share
         </Button>
       </div>
       <SendQuoteSheet
         quoteId={quoteId}
-        open={sendOpen !== null}
-        emphasis={sendOpen ?? "share"}
-        onOpenChange={(open) => !open && setSendOpen(null)}
-        returnFocusId="send-quote"
+        open={sheetOpen}
+        emphasis={mode}
+        onOpenChange={setSheetOpen}
+        // Back to the button that opened it (the prompt's, if it is still there).
+        returnFocusId={mode === "marked" && downloaded ? "after-download-mark" : "send-quote"}
         // What needs fixing is on the edit screen: go there and land on it.
         onFix={(fieldId) => router.push(`/app/quotes/${quoteId}?focus=${encodeURIComponent(fieldId)}`)}
       />

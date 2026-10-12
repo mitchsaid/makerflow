@@ -108,7 +108,7 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
   await openDocuments(page);

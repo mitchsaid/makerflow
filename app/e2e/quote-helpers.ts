@@ -81,6 +81,6 @@ export async function sentQuote(page: Page, customer = "Thandi Nkosi") {
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   await startSend(page);
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
 }

@@ -110,7 +110,7 @@ test("a sent quote keeps the bank details it showed when they change later", asy
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await page.getByRole("button", { name: "Share", exact: true }).click();
-  await sheet(page).getByRole("button", { name: "Mark as sent" }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
 
