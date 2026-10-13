@@ -20,7 +20,7 @@ Scope of this read: `types.ts`, `hooks/useAppState.ts` (all business logic), `li
 | Customers | Individuals and businesses (VAT number, CIPC number, billing and shipping address, default pricing tier). Customer statements with ageing buckets. |
 | Quotes | Line items from products or custom items, item and quote discounts, VAT, fulfilment (collection or delivery with a price), expiry, and a document template. Statuses: draft, sent, viewed, accepted, expired, declined. **Internal financials panel** shows revenue, cost and margin per line and per quote. |
 | Invoices | Tax invoices with VAT, due date, and statuses: unpaid, paid, overdue, partially credited, credited. **Credit notes** with reason codes, a link to the parent invoice, and optional restock. |
-| Jobs | Created from a quote, or directly, or as `stock_creation`. Statuses: Awaiting quote acceptance, Not Started, In Progress, Ready for Collection, Ready for Delivery, Being Delivered, Done. Per-item tracking (consolidated, batch, or per-unit) and stage progress. Completing work **deducts material stock** and can consume finished-goods stock. |
+| Jobs | **Read in full for the logic and the detail screen (`Jobs.tsx` list, detail, `useAppState` job functions); the stage editor, material breakdown and modals were skimmed.** See "Jobs, verified" below. Created from a quote, or directly, or as `stock_creation`. Statuses: Awaiting quote acceptance, Not Started, In Progress, Ready for Collection, Ready for Delivery, Being Delivered, Done. Per-item tracking (consolidated, batch, or per-unit) and stage progress. Completing work **deducts material stock** and can consume finished-goods stock. |
 | Buyer view | A simulated customer-facing page for a quote or invoice: view, accept, decline with reason, submit proof of payment. |
 | Document templates | Gallery and customiser for branded documents (fonts, colours, banner, table and total styles, logo mode). This is the "beautiful, branded" part of the vision. |
 | Profile | Business details, logo, banking details, VAT registration and rate. |
@@ -83,3 +83,30 @@ Answers were given by the founder and are recorded in `product-brief.md`, sectio
 
 ## 8. Deeper reads
 - Quotes: `docs/prototype-quotes-analysis.md` (2026-10-02).
+
+## 9. Jobs, verified (2026-10-13)
+
+Read for real after the founder noticed the first Jobs slice was planned from the section 2 summary only. Source: `Jobs.tsx` (list, detail), `types.ts` (`Job`, `JobTaskItem`), `useAppState.ts` (`convertQuoteToJob`, `createJobDirect`, `updateJobStatus`, `updateJobTask*`, `applyDeductionsForUpdatedJobs`).
+
+**What the prototype does**
+- **Progress is per item, in units.** Each item has `completedCount` and `stockCount`; "left to make" = quantity − made − from stock. A tick-box marks the whole item done; a − / + stepper (tap to type) counts units. The list row shows "2/3 completed (66%)" and a mini card per item with its specs (variations and extras as chips).
+- **Three ways to track an item:** whole (the stepper), batches, or one by one (a tick per unit), plus optional **stages** (e.g. cut, sand, finish) taken from the product's default stages and reusable stage templates.
+- **Status follows the work.** Finishing every item moves the job to Ready for Collection or Ready for Delivery (by fulfilment); starting work moves a not-started job to In Progress. Moving the job by hand to Ready/Done marks every item done.
+- **Stock.** "Add from stock" takes finished units from product stock (and "return" puts them back); those units count as made and need no materials.
+- **Materials are deducted as units are finished** (from the product's material requirements), restored if work is un-ticked, with low-stock warnings. This is the link to costs.
+- **Job types:** customer order and **stock creation** (making for the shelf, number prefix STK, no customer).
+- **Statuses:** the list above plus *Awaiting quote acceptance* (a job placed before the quote is accepted; everything is locked until then). Collection and delivery have different "ready" steps; delivery adds Being Delivered.
+- **Screens:** stat cards by status, status dropdown right in each list row, a Manage button, delete job (with confirm), job page with an order card (status dropdown, progress bar), customer card (email, phone, address), auto-saved notes, a "smart completion" banner when all items are done, add an item to an existing job.
+- Numbers are `JOB-2026-001` (per year, derived from the list length, which can repeat after a delete).
+
+**What is built that the prototype lacks:** gapless per-business numbers, a log of status changes, a frozen copy of the customer and items, quotes that cannot be reopened under an active job, restore only while the quote is still accepted, server-side state changes, photo per item, tap-to-call.
+
+**Not built yet (candidates; none decided)**
+1. Per-item progress ("made 2 of 3") with a tick for done, progress on the list rows.
+2. A prompt to mark the job ready when all items are done (the prototype moves it automatically; MakerFlow principle is to offer, not force).
+3. Status change from the list row; stat cards.
+4. Add an item to an existing job.
+5. Stock jobs (making for the shelf) and "use finished stock".
+6. Material deduction on completion (belongs with the costs slices; needs product material requirements first).
+7. Batches, one-by-one and stages (advanced; offer later, layered in).
+8. Awaiting quote acceptance; delete (we cancel instead, since numbers are gapless).
