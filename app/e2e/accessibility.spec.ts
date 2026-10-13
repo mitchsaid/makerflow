@@ -247,12 +247,13 @@ for (const scheme of ["light", "dark"] as const) {
       // The strip of themes, scrolled to the middle of the screen, clear of the bar that stays above the tab bar.
       await page.getByTestId("theme-option").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
       await expectNoViolations(page, "quote preview, themes");
-      await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download" }).click()]);
-      await expect(page.getByTestId("after-download")).toBeVisible();
-      await expectNoViolations(page, "quote preview, after a download");
-      await page.getByTestId("after-download").getByRole("button", { name: "Not yet" }).click();
-      await page.getByRole("button", { name: "Share", exact: true }).click();
-      await expect(page.getByRole("dialog", { name: "Before you can share this quote" })).toBeVisible();
+      await page.getByRole("button", { name: "Email", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Email this quote" })).toBeVisible();
+      await expectNoViolations(page, "email sheet");
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Before you can mark this quote as sent" })).toBeVisible();
       await expectNoViolations(page, "send sheet, something missing");
       await page.getByRole("dialog").getByLabel(/^Phone/).fill("bad");
       await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
@@ -260,7 +261,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "send sheet, contact error");
       await page.getByRole("dialog").getByLabel(/^Phone/).fill("011 555 0101");
       await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
-      await expect(page.getByRole("dialog", { name: "Share this quote" })).toContainText("QT-0001");
+      await expect(page.getByRole("dialog", { name: "Mark this quote as sent" })).toContainText("QT-0001");
       await expectNoViolations(page, "send sheet, ready");
       await page.getByRole("dialog").getByRole("button", { name: "Mark as sent", exact: true }).click();
       await expect(page.getByTestId("sent-banner")).toBeVisible();

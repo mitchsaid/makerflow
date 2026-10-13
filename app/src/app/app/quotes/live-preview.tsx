@@ -45,7 +45,6 @@ const waiting = new Map<number, { resolve: (data: Uint8Array | null) => void; re
 /** Draws the document in the worker; falls back to the main thread where a worker can't be had. */
 async function drawDocument(
   snapshot: QuoteSnapshot,
-  draft: boolean,
   images: Map<string, PdfImage>,
   logo: PdfImage | null,
   background: PdfImage | null,
@@ -75,7 +74,7 @@ async function drawDocument(
   }
   if (worker && !failed) {
     const id = ++nextId;
-    const request: PdfWorkerRequest = { id, snapshot, draft, images: [...images], logo, background };
+    const request: PdfWorkerRequest = { id, snapshot, images: [...images], logo, background };
     try {
       return await new Promise<Uint8Array | null>((resolve, reject) => {
         waiting.set(id, { resolve, reject });
@@ -86,7 +85,7 @@ async function drawDocument(
     }
   }
   const { renderQuotePdfInBrowser } = await import("@/lib/quotes/pdf/browser");
-  return renderQuotePdfInBrowser(snapshot, { draft, images, logo, background });
+  return renderQuotePdfInBrowser(snapshot, { images, logo, background });
 }
 
 /**
@@ -97,12 +96,10 @@ async function drawDocument(
  */
 export function LivePdfPreview({
   snapshot,
-  draft,
   label,
   firstPageOnly = false,
 }: {
   snapshot: QuoteSnapshot;
-  draft: boolean;
   label: string;
   /** Draw only the first page (the studio keeps it small and pinned). */
   firstPageOnly?: boolean;
@@ -135,7 +132,7 @@ export function LivePdfPreview({
           const found = photos[i];
           if (found) images.set(id, found);
         });
-        const data = await drawDocument(current, draft, images, logo, background);
+        const data = await drawDocument(current, images, logo, background);
         if (cancelled || data === null) return;
         const count = await drawPdfPages(host, { data }, label, () => cancelled, () => setStatus("ready"), firstPageOnly ? 1 : Infinity);
         if (count !== null) {
@@ -153,7 +150,7 @@ export function LivePdfPreview({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [input, draft, label, firstPageOnly]);
+  }, [input, label, firstPageOnly]);
 
   return (
     <div className="space-y-3" aria-busy={status === "loading"}>

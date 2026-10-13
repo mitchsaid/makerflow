@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote } from "@/lib/quotes/data";
@@ -15,7 +14,7 @@ import { PreviewBar } from "./preview-bar";
 
 /**
  * The step after a draft: the quote as it will look (its real PDF, drawn on screen), with the
- * design it uses, and the way on: back to editing, download, or share.
+ * design it uses, and the way on: back to editing, download, email, or mark it as sent.
  */
 export default async function QuotePreviewPage({ params }: PageProps<"/app/quotes/[id]/preview">) {
   const { id } = await params;
@@ -44,13 +43,6 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
           />
         </h1>
       </div>
-      <Alert>
-        <AlertDescription>
-          This is how your quote will look. Check it, then share it or download it. Nothing is sent from MakerFlow,
-          and the quote is only locked as sent when you share it or mark it as sent.
-        </AlertDescription>
-      </Alert>
-
       {/* The same document as text, for people who can't read the pictures of the pages. */}
       <section className="sr-only" aria-label="The quote as text">
         <QuoteDocumentView snapshot={snapshot} />

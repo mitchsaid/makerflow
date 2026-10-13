@@ -22,7 +22,6 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
 
   const versionParam = request.nextUrl.searchParams.get("version");
   let snapshot;
-  let draft = false;
   if (versionParam !== null) {
     if (!/^\d{1,4}$/.test(versionParam)) return notFound();
     snapshot = stored.versions.find((v) => v.version === Number(versionParam))?.snapshot;
@@ -32,7 +31,6 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
       return new Response("This draft can't be shown yet. Open it and save it again.", { status: 422 });
     }
     snapshot = prepared.value.snapshot;
-    draft = true;
   } else {
     snapshot = stored.versions[0]?.snapshot;
   }
@@ -52,7 +50,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
 
   let pdf: Buffer;
   try {
-    pdf = await renderQuotePdf(snapshot, { draft, images: photos, logo, background });
+    pdf = await renderQuotePdf(snapshot, { images: photos, logo, background });
   } catch (error) {
     // The preview shows its own message; nothing about the quote is lost.
     console.error("could not draw the quote PDF:", error);
@@ -66,7 +64,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${disposition}; filename="${safeName}${draft ? "-draft" : ""}.pdf"`,
+      "Content-Disposition": `${disposition}; filename="${safeName}.pdf"`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     },
