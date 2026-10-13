@@ -117,6 +117,11 @@ All four are built as planned. Differences and details: adding an item has its o
 ### Tests
 SQL: server only; refusals write nothing (other business, not an item of the job, over the quantity, wrong status, bad shape, 51st item); progress starts a Not started job; adding to a Ready job steps it back; `create_job` still refuses everything it did. Unit: item progress helpers (counts, step size, all made, summary line). Browser: count an item, the job starts, all made shows the prompt, mark ready from the prompt; add an item to a job; move from the list; accessibility cases for the new parts.
 
+## Missed from the prototype (Jobs)
+Jobs slice 1 was planned without reading the prototype's Jobs screen (see "Prototype read" in `docs/plans/README.md`). Reading it afterwards (`docs/prototype-discovery.md`, section 9) found these behaviours the plan never listed. Built in slice 2: counting what is made per item, progress on the list rows, adding an item to an existing job, moving a job from the list, and a prompt when everything is made (the prototype moved the job by itself; MakerFlow offers). Still open: stock jobs and using finished stock, batch, one-by-one and stage tracking, material deduction as units are finished (the costs slices), "Awaiting quote acceptance", and deleting a job (MakerFlow cancels instead, so numbers stay gapless). Cost: one extra slice and a founder question ("did you review the prototype?") that the plan should have answered.
+
+**Before the invoice plan (Part 2): read the prototype's Invoices, credit notes, payments and Buyer view in full, and add the "Prototype read" table here.** The summary in `docs/prototype-discovery.md` is not a read.
+
 ## Questions for the founder (asked and answered above)
 1. **Order:** jobs first, then invoices? (Recommended.) Or invoices first, if you would rather get a deposit invoice out before building the job screens.
 2. **Job statuses** as proposed? Anything you track today that is missing (for example "Waiting for materials" or "Waiting for the customer")?

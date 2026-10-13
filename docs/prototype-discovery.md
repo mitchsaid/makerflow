@@ -2,7 +2,24 @@
 
 Reference notes on the AI Studio prototype in `/prototype`. The prototype is a **spec and a source of UI ideas, not a foundation**. The production app is built fresh in `/app`.
 
-Scope of this read: `types.ts`, `hooks/useAppState.ts` (all business logic), `lib/costUtils.ts`, `App.tsx`, `BuyerView.tsx`, parts of `Dashboard.tsx`, and a grep sweep of the rest. The big screen components (`Quotes`, `Invoices`, `Products`, `Jobs`, `Materials`, `Customers`, each 1,000–4,000 lines) were **not read line by line**. Anything about their internals is marked *unverified*.
+Scope of this read: `types.ts`, `hooks/useAppState.ts` (all business logic), `lib/costUtils.ts`, `App.tsx`, `BuyerView.tsx`, parts of `Dashboard.tsx`, and a grep sweep of the rest. The big screen components (`Quotes`, `Invoices`, `Products`, `Jobs`, `Materials`, `Customers`, each 1,000–4,000 lines) were **not read line by line**. Anything about their internals is marked *unverified*. The coverage table below says what has been read since.
+
+## Coverage: what has been read, and how
+
+Update this table whenever a feature's prototype code is read (`docs/plans/README.md`, "Prototype read"). **"Read in full" means every line of the screen component and the state functions it calls.** Anything else is *summary only* and must be read before a plan for that feature is written.
+
+| Area | Status | Where it is written down |
+|---|---|---|
+| Types, `useAppState` (logic), `costUtils`, `App.tsx`, `BuyerView.tsx` | Read (see the scope note at the top) | This file |
+| Quotes | Read in depth | `docs/prototype-quotes-analysis.md` |
+| Jobs | Logic, list and detail screens read in full (2026-10-13); the stage editor, the material breakdown and the modals only skimmed | Section 9 below |
+| Products and Services | Parts read (`Products.tsx` for the onboarding and products plans); not in full | `docs/plans/products.md`, `docs/plans/onboarding.md` |
+| Invoices, credit notes, payments | **Summary only. Read before the invoice plan.** | Section 2 table only |
+| Materials, costing screens | `costUtils` read; `Materials.tsx` summary only | Section 3 |
+| Customers, statements | Summary only | Section 2 table only |
+| Dashboard | Parts read | Section 6 |
+| Document templates | `quoteTemplates.ts` read for the quote looks; the customiser screen not in full | `docs/plans/quote-looks.md` |
+| Time tracker, scratchpad | Summary only | Section 2 table only |
 
 ## 1. What the prototype is
 

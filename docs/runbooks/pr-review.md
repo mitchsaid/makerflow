@@ -10,6 +10,7 @@ Every slice gets a pull request so CI and a review agent run (docs/project-conte
 4. **Forms and screens.** `docs/adr/0005-form-errors.md` (enabled primary buttons, summary and field errors, nothing typed is lost, focus), `AddButton` / `AddLink`, 44 px targets, 16 px input text, one query per page, loading skeleton, a case in `e2e/accessibility.spec.ts`.
 5. **Regressions.** When shared code gets a new mode, every other caller behaves exactly as before.
 6. **Tests.** The failing cases a reviewer can name that no test covers.
+7. **The prototype.** If the feature has a counterpart in `prototype/`, does the plan have a "Prototype read" table, and is it complete? Open the prototype's screen and state functions for this feature yourself and list the behaviours the table does not mention (statuses, row and detail actions, things that happen by themselves, effects on stock, costs or invoices, ways to create one, what it deletes). Each is a question for the founder, not a bug: report it as "the prototype does X, the plan is silent".
 
 ## What it will not catch
 
