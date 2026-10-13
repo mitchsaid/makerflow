@@ -7,7 +7,7 @@ import { prepareQuote } from "@/lib/quotes/prepare";
 import { themeFromStored } from "@/lib/quotes/themes";
 
 /**
- * The quote as a PDF. A draft gives a preview of what is saved, marked as a draft. A sent
+ * The quote as a PDF. A draft gives what is saved, with no mark on it (the maker may send it by hand). A sent
  * quote gives the frozen document of its latest version (or the one asked for with
  * ?version=), drawn from the stored snapshot only. Only people in the business can see it.
  * ?download=1 asks the browser to save it instead of showing it.

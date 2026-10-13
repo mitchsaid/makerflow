@@ -112,7 +112,7 @@ function SendFlow({
     setMessage(null);
     working(true);
     try {
-      const result = await sendQuote(quoteId, "marked");
+      const result = await sendQuote(quoteId);
       if (result.status === "problems") {
         setView({ status: "problems", problems: result.problems, contact: result.contact });
         working(false);

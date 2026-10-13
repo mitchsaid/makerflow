@@ -116,11 +116,10 @@ test("the preview offers Download, Email and Mark as sent; Download changes noth
   await expect(bar.getByRole("button", { name: "Mark as sent", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^(Send|Share)$/ })).toHaveCount(0);
   await expect(page.getByText("This is how your quote will look")).toHaveCount(0);
-  await expect(page.getByTestId("after-download")).toHaveCount(0);
 
   // Download saves the PDF and changes nothing: no question follows, and the quote is still a draft.
   await Promise.all([page.waitForEvent("download"), bar.getByRole("link", { name: "Download" }).click()]);
-  await expect(page.getByTestId("after-download")).toHaveCount(0);
+  await expect(page.getByText("Have you sent it to your customer?")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /^Preview of quote QT-0001 Draft$/, level: 1 })).toBeVisible();
 
   // Email is not built: it says so, and what to do meanwhile, then gives focus back.

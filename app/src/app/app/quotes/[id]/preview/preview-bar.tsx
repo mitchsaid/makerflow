@@ -20,7 +20,7 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
   return (
     <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
       <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2 sm:flex sm:items-center">
-        <Link href={`/app/quotes/${quoteId}`} className={buttonVariants({ variant: "outline", size: "lg" })}>
+        <Link href={`/app/quotes/${quoteId}`} className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}>
           Edit
         </Link>
         <a
@@ -33,18 +33,18 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
             await waitForDesignSave();
             window.location.assign(href);
           }}
-          className={buttonVariants({ variant: "outline", size: "lg" })}
+          className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}
         >
           Download
         </a>
-        <Button id="email-quote" type="button" variant="outline" size="lg" onClick={() => setEmailOpen(true)}>
+        <Button id="email-quote" type="button" variant="outline" size="lg" className="px-3" onClick={() => setEmailOpen(true)}>
           Email
         </Button>
         <Button
           id="mark-sent"
           type="button"
           size="lg"
-          className="sm:flex-1"
+          className="px-3 sm:flex-1"
           onClick={async () => {
             await waitForDesignSave();
             setMarkOpen(true);
