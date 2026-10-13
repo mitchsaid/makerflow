@@ -49,11 +49,17 @@ export default async function DocumentSettingsPage() {
           <CardTitle className="text-lg">Quote themes</CardTitle>
           <CardDescription className="text-base">
             How your quotes look: colours, fonts, the top of the page, how items are shown and the total. Start from
-            a starter, remix it, or build your own from scratch. Your logo is on the{" "}
-            <Link href="/app/business#logo" className="underline">
-              Business profile
-            </Link>
-            .
+            a starter, remix it, or build your own from scratch.
+            {canEdit && (
+              <>
+                {" "}
+                Your logo is on the{" "}
+                <Link href="/app/business#logo" className="underline">
+                  Business profile
+                </Link>
+                .
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

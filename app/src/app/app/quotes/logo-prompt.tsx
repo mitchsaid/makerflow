@@ -1,67 +1,82 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { dismissLogoPrompt } from "../business/logo-actions";
 import { LogoForm } from "../business/logo-form";
-import { LOGO_PROMPT_COOKIE } from "./logo-prompt-cookie";
+
+/** Where focus goes when the card or the sheet goes away: the page's own heading (see the preview page). */
+const PAGE_TITLE = "preview-title";
+const focusTitle = () => setTimeout(() => document.getElementById(PAGE_TITLE)?.focus(), 0);
 
 /**
- * On the quote preview, while the business has no logo: a friendly card that offers to add one right here (the
- * Business profile's own "Your logo" section, in a sheet). Saving closes the sheet and the quote redraws with the
- * logo on it. "Not now" hides the card on this device (a cookie, so the server leaves it out and the page does not
- * jump); it only decides whether to ask again.
+ * On the quote preview, for people who can set the logo: while the business has none (and they have not said "Not
+ * now"), a friendly card offers to add one right here. It opens the Business profile's own logo form in a sheet.
+ * Saving closes the sheet and the quote redraws with the logo on it (the save refreshes the page). "Not now" is
+ * remembered for this person, as the business-type prompt is.
+ *
+ * This component stays on the page after the logo is saved, so the sheet can finish closing and hand focus back.
  */
-export function LogoPrompt({ businessName }: { businessName: string }) {
-  const router = useRouter();
+export function LogoPrompt({ businessName, askForLogo }: { businessName: string; askForLogo: boolean }) {
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [hidden, setHidden] = useState(false);
-  if (hidden) return null;
+  const [, startTransition] = useTransition();
 
   return (
     <>
-      <Alert data-testid="logo-prompt">
-        <AlertTitle>Add your logo</AlertTitle>
-        <AlertDescription className="space-y-3">
-          <span className="block">It is printed at the top of your quotes, so they look like yours.</span>
-          <span className="flex flex-wrap gap-2">
-            <AddButton id="add-logo" variant="default" onClick={() => setOpen(true)}>
-              Add your logo
-            </AddButton>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                document.cookie = `${LOGO_PROMPT_COOKIE}=1; path=/app; max-age=31536000; samesite=lax`;
-                setHidden(true);
-              }}
-            >
-              Not now
-            </Button>
-          </span>
-        </AlertDescription>
-      </Alert>
-      <Sheet open={open} onOpenChange={setOpen}>
+      {askForLogo && !hidden && (
+        <Alert role="region" aria-label="Add your logo" data-testid="logo-prompt">
+          <AlertTitle>Add your logo</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <span className="block">It is printed at the top of your quotes, so they look like yours.</span>
+            <span className="flex flex-wrap gap-2">
+              <AddButton id="add-logo" variant="default" onClick={() => setOpen(true)}>
+                Add your logo
+              </AddButton>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setHidden(true);
+                  focusTitle();
+                  // Quietly remembered; if that fails the card simply comes back next time.
+                  startTransition(async () => {
+                    await dismissLogoPrompt().catch(() => undefined);
+                  });
+                }}
+              >
+                Not now
+              </Button>
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && !saving && setOpen(false)}>
         <SheetContent
           side="right"
           className="h-dvh gap-0 overflow-y-auto"
-          finalFocus={() => document.getElementById("add-logo") ?? true}
+          finalFocus={() => document.getElementById(askForLogo ? "add-logo" : PAGE_TITLE) ?? document.getElementById(PAGE_TITLE) ?? true}
         >
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
             <SheetTitle className="text-lg">Add your logo</SheetTitle>
-            <SheetDescription className="text-base">You can change it any time on your Business profile.</SheetDescription>
+            <SheetDescription className="text-base">
+              Saved to your Business profile, where you can change it any time.
+            </SheetDescription>
           </SheetHeader>
-          <div className="px-4 py-4">
+          <div className="px-4 pt-4">
             <LogoForm
+              key={open ? "open" : "closed"}
               initial=""
               businessName={businessName}
-              onSaved={() => {
-                setOpen(false);
-                // The quote on screen is drawn from the saved business: draw it again with the logo.
-                router.refresh();
+              embedded={{
+                onPendingChange: setSaving,
+                onCancel: () => setOpen(false),
+                // The page redraws from the save itself (it revalidates), with the logo on the quote and no card.
+                onDone: () => setOpen(false),
               }}
             />
           </div>

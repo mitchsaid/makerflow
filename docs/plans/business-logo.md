@@ -21,21 +21,26 @@ Read in full: `prototype/src/components/Profile.tsx` (385 lines), and every use 
 | The template customiser chooses "Logo + Name", "Just Logo" or "Just Name" | **Kept**: already built as the theme's "Top" logo option | `docs/plans/quote-themes.md` |
 | Customer statements print the logo | **Later**: statements are not built | |
 | Nothing nudges the maker to add a logo (it starts empty) | **Added**: a friendly, dismissable prompt on the quote preview while there is no logo | The founder's ask |
+| With no logo, a document that is set to show one draws a placeholder tile with the business name's first letter in the accent colour | **Dropped**: MakerFlow draws the business name alone (no empty box on a customer's document) | A placeholder letter on a sent quote looks like a mistake; the nudge asks for the real logo instead. A question for the founder if he disagrees |
+| Logos are cropped to a 64 px rounded square on documents (56 px on statements) | **Changed**: the logo keeps its own shape (wide logos stay wide) | Already decided in `quote-looks.md` |
+| Customer statements ignore the display mode and always show logo plus name | **Later**: with statements | |
+| Saving the profile re-brands every quote and invoice, even sent ones (no snapshots) | **Changed**: a sent quote keeps the logo it was sent with (frozen); new quotes use the current one | Issued documents never change |
+| The prototype's demo companies ship sample logos | **Open question for the founder**: should the public demo account's organisations have a logo, or show the nudge? Nothing is built for it | The demo account (`docs/product-brief.md`, section 4) is a later feature |
 
 ## What the maker sees
 1. **Business profile** has a "Your logo" section (owners and admins), right after the business details: the picture, "Choose a picture" / "Remove", and "Save logo". It is the same section that used to be under Quotes and invoices, which no longer has it (a line there says where it went, so nobody hunts for it).
-2. **On the quote preview**, while the business has no logo and the person can change it, a card above the quote says: "Add your logo. It is printed at the top of your quotes." with **Add your logo** and **Not now**. "Add your logo" opens a sheet with the same "Your logo" section; saving it closes the sheet and the quote redraws with the logo on it. "Not now" hides the card on this device (a cookie the server reads, so the page does not jump; not the database: it only decides whether to nag).
+2. **On the quote preview**, while the business has no logo and the person can change it, a card above the quote says: "Add your logo. It is printed at the top of your quotes." with **Add your logo** and **Not now**. "Add your logo" opens a sheet with the same "Your logo" section; saving it closes the sheet and the quote redraws with the logo on it. "Not now" hides the card for this person (kept in `prompt_dismissals`, as the business-type prompt is, so it follows them to another device; focus moves to the page heading).
 3. People who cannot change the logo (not an owner or admin) see no card.
 
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
 | --- | --- | --- |
-| Choose, preview, remove and save the logo | `LogoForm` with `ImageField` and `saveLogo` (`documents/logo-form.tsx`) | Moved to `business/` and reused as is; one new optional `onSaved` callback so the sheet can close |
-| A dismissable prompt | The card style of the first-quote setup prompt (`quotes/quote-setup.tsx`) | `Alert` with two buttons; unlike the setup prompt, "Not now" is a cookie on this device and not a database column, because it only decides whether to ask again (a new device asks once more) |
-| A sheet with a form in it | `Sheet` as in `send-sheet.tsx` and `email-sheet.tsx` | As is |
+| Choose, preview, remove and save the logo | `LogoForm` with `ImageField` and `saveLogo` (`business/logo-form.tsx`, moved from `documents/`) | Moved to `business/` and reused as is; one new optional `onSaved` callback so the sheet can close |
+| A dismissable prompt | The business-type prompt's way of remembering "Not now" (`prompt_dismissals`, `dismissBusinessTypePrompt`), now `dismissLogoPrompt` | Same table and same shape (a `LOGO_PROMPT` key); the card is an `Alert` region with two buttons |
+| A sheet with a form from the Business profile in it | The bank details sheet on a quote (`quotes/bank-details-section.tsx`, `BankDetailsForm` `embedded`) | `LogoForm` gets the same `embedded` mode: no card of its own, a Cancel button, and the sheet cannot be closed while a picture uploads or saves. Not a copy: one form, two places |
 
 ## Tests
-Browser: set the logo from the Business profile (choose, save, see it, remove); the Quotes and invoices page points there; the preview shows the card when there is no logo, adding the logo from its sheet closes it and the card goes; "Not now" hides it after a reload; a person who is not an owner or admin sees no card (not browser-tested: it needs a second member; it is the same owner-or-admin check that guards the section). Accessibility: the Business profile with the logo section, and the prompt and its sheet on the preview. The pictures spec that set the logo under Quotes and invoices now sets it on the Business profile.
+Browser: set the logo from the Business profile (choose, save, see it, remove); the Quotes and invoices page points there; the preview shows the card when there is no logo, adding the logo from its sheet closes it and the card goes; "Not now" hides it after a reload; a person who is not an owner or admin sees no card (`shouldAskForLogo` is unit-tested: no logo, can edit, not dismissed; a browser test would need a second member). Focus is tested after Cancel, after saving and after "Not now"; the quote is checked to be drawn again after saving. Accessibility: the Business profile with the logo section, and the prompt and its sheet on the preview. The pictures spec that set the logo under Quotes and invoices now sets it on the Business profile.
 
 ## Not planned yet
 Logo on invoices and statements (when they exist); a crop or a square version; several logos.

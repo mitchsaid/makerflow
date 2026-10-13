@@ -16,9 +16,10 @@ Update this table whenever a feature's prototype code is read (`docs/plans/READM
 | Products and Services | Parts read (`Products.tsx` for the onboarding and products plans); not in full | `docs/plans/products.md`, `docs/plans/onboarding.md` |
 | Invoices, credit notes, payments | **Summary only. Read before the invoice plan.** | Section 2 table only |
 | Materials, costing screens | `costUtils` read; `Materials.tsx` summary only | Section 3 |
-| Customers, statements | Summary only | Section 2 table only |
+| Customers, statements | Summary only (statements' logo use read) | Section 2 table only |
 | Dashboard | Parts read | Section 6 |
-| Document templates | `quoteTemplates.ts` read for the quote looks; the customiser screen not in full | `docs/plans/quote-looks.md` |
+| Document templates | `quoteTemplates.ts` read for the quote looks; the customiser screen not in full (its logo options read 2026-10-13) | `docs/plans/quote-looks.md`, `docs/plans/business-logo.md` |
+| Profile (business details, logo, bank, VAT) | `Profile.tsx` read in full (2026-10-13) | `docs/plans/business-logo.md` (the logo); the rest was built from earlier plans |
 | Time tracker, scratchpad | Summary only | Section 2 table only |
 
 ## 1. What the prototype is

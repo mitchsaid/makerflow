@@ -1,15 +1,13 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote } from "@/lib/quotes/data";
-import { canEditBusinessProfile } from "@/lib/business-profile";
+import { canEditBusinessProfile, shouldAskForLogo } from "@/lib/business-profile";
 import { getThemes } from "@/lib/quotes/theme-data";
 import { prepareQuote } from "@/lib/quotes/prepare";
 import { getLocalePack } from "@/lib/locale";
 import { DraftPreview } from "../../design-section";
-import { LOGO_PROMPT_COOKIE } from "../../logo-prompt-cookie";
 import { LogoPrompt } from "../../logo-prompt";
 import { QuoteDocumentView } from "../../quote-document-view";
 import { StatusChip } from "../../status-chip";
@@ -30,18 +28,20 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
   if (!prepared.ok) redirect(`/app/quotes/${id}`);
   const { snapshot } = prepared.value;
   const locale = getLocalePack(workspace.profile.countryCode);
-  // Nudge towards a logo while there is none, to people who can set one, unless they said "Not now" on this device.
-  const askForLogo =
-    !workspace.profile.logoImageId &&
-    canEditBusinessProfile(workspace.role) &&
-    (await cookies()).get(LOGO_PROMPT_COOKIE)?.value !== "1";
+  // Nudge towards a logo while there is none, to people who can set one, unless they said "Not now".
+  const canEdit = canEditBusinessProfile(workspace.role);
+  const askForLogo = shouldAskForLogo({
+    hasLogo: !!workspace.profile.logoImageId,
+    canEdit,
+    dismissedPrompts: workspace.dismissedPrompts,
+  });
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="space-y-1">
         <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
           Quotes
         </Link>
-        <h1 className="flex flex-wrap items-center gap-3 text-xl font-semibold">
+        <h1 id="preview-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
           <span>Preview of quote {quote.number}</span>{" "}
           <StatusChip
             status={quote.status}
@@ -51,7 +51,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
           />
         </h1>
       </div>
-      {askForLogo && <LogoPrompt businessName={workspace.organisation.name} />}
+      {canEdit && <LogoPrompt businessName={workspace.organisation.name} askForLogo={askForLogo} />}
 
       {/* The same document as text, for people who can't read the pictures of the pages. */}
       <section className="sr-only" aria-label="The quote as text">
@@ -65,7 +65,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
         label={`Quote ${quote.number}`}
         saved={saved}
         initialOwn={{ id: quote.themeId, starter: quote.themeStarter }}
-        canEdit={canEditBusinessProfile(workspace.role)}
+        canEdit={canEdit}
       />
       <PreviewBar quoteId={id} />
     </main>
