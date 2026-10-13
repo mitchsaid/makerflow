@@ -244,6 +244,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Preview", exact: true }).click();
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "quote preview");
+      // No logo yet, so the preview offers one: the card (checked above) and its sheet.
+      await page.getByRole("button", { name: "Add your logo" }).click();
+      await expect(page.getByRole("dialog", { name: "Add your logo" })).toBeVisible();
+      await expectNoViolations(page, "quote preview, add your logo");
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       // The strip of themes, scrolled to the middle of the screen, clear of the bar that stays above the tab bar.
       await page.getByTestId("theme-option").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
       await expectNoViolations(page, "quote preview, themes");
@@ -536,14 +542,15 @@ for (const scheme of ["light", "dark"] as const) {
       }
       await page.getByRole("button", { name: "Save theme" }).click();
       await expect(page.getByTestId("theme-save-status")).toHaveText("Saved.");
-      await openDocuments(page);
-      // The logo: chosen, then saved.
+      await openBusinessProfile(page);
+      // The logo: chosen, then saved (it lives on the Business profile).
       const logo = await sharp({ create: { width: 400, height: 150, channels: 3, background: "#1e3a8a" } }).png().toBuffer();
       await page.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: logo });
       await expect(page.getByTestId("logoImage-preview")).toBeVisible();
-      await expectNoViolations(page, "quotes and invoices, logo chosen");
+      await expectNoViolations(page, "business profile, logo chosen");
       await page.getByRole("button", { name: "Save logo" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
+      await openDocuments(page);
       // The default deposit: with an error, then saved.
       await page.getByRole("checkbox", { name: "Ask for a deposit on new quotes" }).check();
       await page.getByRole("button", { name: "Save deposit" }).click();

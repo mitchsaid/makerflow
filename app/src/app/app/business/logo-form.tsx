@@ -8,10 +8,20 @@ import { Button } from "@/components/ui/button";
 import { saveLogo, type LogoState } from "./logo-actions";
 
 /**
- * Quotes and invoices > Your logo. It is printed at the top of your quotes. Choose a picture, then
- * save; removing it only stops using it, quotes already sent keep theirs.
+ * Business profile > Your logo. It is printed at the top of your quotes. Choose a picture, then save;
+ * removing it only stops using it, quotes already sent keep theirs. The quote preview opens this same section in
+ * a sheet while there is no logo (`onSaved` closes it).
  */
-export function LogoForm({ initial, businessName }: { initial: string; businessName: string }) {
+export function LogoForm({
+  initial,
+  businessName,
+  onSaved,
+}: {
+  initial: string;
+  businessName: string;
+  /** Called once the logo is saved. */
+  onSaved?: () => void;
+}) {
   const [logo, setLogo] = useState(initial);
   const [state, setState] = useState<LogoState>({ status: "idle" });
   const [editedSinceSave, setEditedSinceSave] = useState(false);
@@ -27,7 +37,9 @@ export function LogoForm({ initial, businessName }: { initial: string; businessN
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        setState(await saveLogo(logo));
+        const result = await saveLogo(logo);
+        setState(result);
+        if (result.status === "saved") onSaved?.();
       } catch {
         setEditedSinceSave(true);
         setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Check your connection and try again." });
@@ -39,8 +51,8 @@ export function LogoForm({ initial, businessName }: { initial: string; businessN
     <form onSubmit={submit} className="space-y-4" noValidate id="logo">
       <Section title="Your logo">
         <p className="text-base text-muted-foreground">
-          Printed at the top of your quotes. A PNG with a see-through background looks best; a square or wide
-          picture both work.
+          Printed at the top of your quotes, and your invoices when they come. A PNG with a see-through background
+          looks best; a square or wide picture both work.
         </p>
         {state.status === "error" && (
           <Alert variant="destructive" role="alert">

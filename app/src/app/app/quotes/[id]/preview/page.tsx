@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -8,6 +9,8 @@ import { getThemes } from "@/lib/quotes/theme-data";
 import { prepareQuote } from "@/lib/quotes/prepare";
 import { getLocalePack } from "@/lib/locale";
 import { DraftPreview } from "../../design-section";
+import { LOGO_PROMPT_COOKIE } from "../../logo-prompt-cookie";
+import { LogoPrompt } from "../../logo-prompt";
 import { QuoteDocumentView } from "../../quote-document-view";
 import { StatusChip } from "../../status-chip";
 import { PreviewBar } from "./preview-bar";
@@ -27,6 +30,11 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
   if (!prepared.ok) redirect(`/app/quotes/${id}`);
   const { snapshot } = prepared.value;
   const locale = getLocalePack(workspace.profile.countryCode);
+  // Nudge towards a logo while there is none, to people who can set one, unless they said "Not now" on this device.
+  const askForLogo =
+    !workspace.profile.logoImageId &&
+    canEditBusinessProfile(workspace.role) &&
+    (await cookies()).get(LOGO_PROMPT_COOKIE)?.value !== "1";
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="space-y-1">
@@ -43,6 +51,8 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
           />
         </h1>
       </div>
+      {askForLogo && <LogoPrompt businessName={workspace.organisation.name} />}
+
       {/* The same document as text, for people who can't read the pictures of the pages. */}
       <section className="sr-only" aria-label="The quote as text">
         <QuoteDocumentView snapshot={snapshot} />
