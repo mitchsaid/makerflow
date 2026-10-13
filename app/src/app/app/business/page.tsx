@@ -9,6 +9,7 @@ import { formatMoment } from "@/lib/quotes/dates";
 import { bankFormValues } from "@/lib/bank/form";
 import { BankDetailsForm } from "./bank-details-form";
 import { BusinessTypesForm } from "./business-types-form";
+import { LogoForm } from "./logo-form";
 import { BusinessProfileForm, type FormValues } from "./business-profile-form";
 
 export default async function BusinessProfilePage() {
@@ -46,6 +47,8 @@ export default async function BusinessProfilePage() {
           </CardHeader>
         </Card>
       )}
+
+      {canEditBusinessProfile(role) && <LogoForm initial={profile.logoImageId ?? ""} businessName={organisation.name} />}
 
       {canEditBusinessProfile(role) && <BusinessTypesForm initial={[...(profile.businessTypes ?? [])]} />}
 

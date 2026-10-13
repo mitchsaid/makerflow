@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { openBusinessProfile, openDocuments, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, startSend } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -122,8 +122,8 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   await signUpAndOnboard(page, "pic-quote", "Pictures Co");
   await addBusinessPhone(page);
 
-  // The logo, under Quotes and invoices.
-  await openDocuments(page);
+  // The logo, on the Business profile.
+  await openBusinessProfile(page);
   await chooseFile(page, await picture(1200, 400, "png"), "logo.png", "image/png");
   await expect(page.getByTestId("logoImage-preview")).toBeVisible();
   await page.getByRole("button", { name: "Save logo" }).click();
@@ -188,7 +188,7 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   await page.getByRole("button", { name: /^Remove/ }).click();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
-  await openDocuments(page);
+  await openBusinessProfile(page);
   await page.getByRole("button", { name: /^Remove/ }).click();
   await page.getByRole("button", { name: "Save logo" }).click();
   await expect(page.getByText("Saved.").first()).toBeVisible();

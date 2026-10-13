@@ -35,7 +35,7 @@ export type BusinessProfile = {
   /** What a new quote starts with for its sign-off and "how to pay". Edited under Quote wording. */
   defaultSignOff: string | null;
   paymentInstructions: string | null;
-  /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set under Quotes and invoices. */
+  /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set on the Business profile. */
   logoImageId: string | null;
 };
 
@@ -151,3 +151,10 @@ export function missingForInvoice(profile: ContactFacts, locale: LocalePack): Fi
 export function canEditBusinessProfile(role: string | null): boolean {
   return role === "owner" || role === "admin";
 }
+
+/** The friendly "Add your logo" card on the quote preview (remembered in prompt_dismissals when dismissed). */
+export const LOGO_PROMPT = "logo";
+
+/** Offer the logo on a quote: there is none yet, this person can set one, and they have not said "Not now". */
+export const shouldAskForLogo = (o: { hasLogo: boolean; canEdit: boolean; dismissedPrompts: readonly string[] }): boolean =>
+  !o.hasLogo && o.canEdit && !o.dismissedPrompts.includes(LOGO_PROMPT);

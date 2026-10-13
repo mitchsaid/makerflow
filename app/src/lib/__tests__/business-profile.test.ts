@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   canEditBusinessProfile,
+  LOGO_PROMPT,
+  shouldAskForLogo,
   missingForInvoice,
   missingForQuote,
   parseBusinessProfileForm,
@@ -180,5 +182,22 @@ describe("canEditBusinessProfile", () => {
     expect(canEditBusinessProfile("admin")).toBe(true);
     expect(canEditBusinessProfile("staff")).toBe(false);
     expect(canEditBusinessProfile(null)).toBe(false);
+  });
+});
+
+describe("shouldAskForLogo", () => {
+  const base = { hasLogo: false, canEdit: true, dismissedPrompts: [] as string[] };
+  it("asks while there is no logo, to someone who can set one", () => {
+    expect(shouldAskForLogo(base)).toBe(true);
+  });
+  it("does not ask once there is a logo", () => {
+    expect(shouldAskForLogo({ ...base, hasLogo: true })).toBe(false);
+  });
+  it("does not ask someone who cannot change the logo", () => {
+    expect(shouldAskForLogo({ ...base, canEdit: false })).toBe(false);
+  });
+  it("does not ask after Not now, and other dismissed prompts do not count", () => {
+    expect(shouldAskForLogo({ ...base, dismissedPrompts: [LOGO_PROMPT] })).toBe(false);
+    expect(shouldAskForLogo({ ...base, dismissedPrompts: ["business_types"] })).toBe(true);
   });
 });

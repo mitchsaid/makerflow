@@ -16,7 +16,7 @@ Reference for the look (not code to copy): `prototype/src/data/quoteTemplates.ts
 ### What the maker sees
 - **Product photo:** the Photo "coming soon" card on the product form becomes real. Take or choose a picture; it is cropped square and shown on the form. Replace or remove it. Services have no photo (as before).
 - **On the quote:** a small square thumbnail beside each item that is a product with a photo, on the PDF and on the on-screen document. A **Show product photos** switch on each quote (on by default). Items without a photo, one-off items and services show no thumbnail, and the text lines up the same either way.
-- **Logo:** a **Logo** card on the Quotes and invoices page (how documents look is there, not in the Business profile; see CLAUDE.md). Upload, replace, remove. It prints at the top of the quote, beside the business name.
+- **Logo:** a **Logo** card on the Quotes and invoices page *(moved 2026-10-13 to the Business profile, because the logo is a fact about the business; see `docs/plans/business-logo.md`)*. Upload, replace, remove. It prints at the top of the quote, beside the business name.
 - Plain errors: a file that is not a picture, or too large to read, says what to do; the previous picture is kept.
 
 ### Decisions
@@ -37,7 +37,7 @@ Reference for the look (not code to copy): `prototype/src/data/quoteTemplates.ts
 - `POST /app/images` route (multipart), `GET /app/images/[id]`.
 - Product form: photo field (client resize, upload, preview, replace, remove). Product list shows a small photo when there is one.
 - Quote snapshot: each line may carry `photoImageId`; the snapshot's business carries `logoImageId`; the document code loads those renditions and the PDF draws them.
-- Quotes and invoices page: the Logo card.
+- Quotes and invoices page: the Logo card *(now on the Business profile)*.
 
 ### Tests
 Unit (pipeline on real sample images: rotation, size, metadata stripped, transparency kept, rejects non-images and huge files), SQL (members only, immutable, same-business references), browser (upload a product photo and a logo; photo on the quote; switch off; sent quote keeps it after the product's photo changes), accessibility.
