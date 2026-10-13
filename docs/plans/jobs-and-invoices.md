@@ -85,6 +85,38 @@ SQL: isolation, session required, one job per accepted quote, allowed and refuse
 - **Job items follow the quote's way (founder, 2026-10-12; needs human review: migration `20261030100000_job_items_like_quote_items.sql`, a replaced `create_job`):** an item is added through the same item sheet as on a quote (`LineSheet` in a `job` mode): pick a product or service, with its variation and choices and the quantity and details, add a new product on the spot, or type a one-off item. The sheet has no price, discount or VAT in this mode, and shows no prices. A job item keeps the product's kind, the variation's words, the choices (words and how many, no amounts) and the picture of what was chosen; the job page shows the picture. The database checks every field and stores only the known ones.
 - **Not yet (slice 2):** photos, the Home counts, "needed this week", a prompt right after "They accepted", per-item progress.
 
+## Jobs slice 2: progress, a "mark it ready" prompt, more items, status from the list (founder, 2026-10-13)
+
+Why: the prototype's Jobs screen was read properly on 2026-10-13 (`docs/prototype-discovery.md`, section 9). The founder chose items 1 to 4 of the gaps found. Needs human review: migration `20261031100000_job_progress.sql`.
+
+### What the maker sees
+1. **Progress on each item.** On a job that is Not started or Making, each item shows "Made 2 of 5" with a minus, a plus, and an "All made" tick (a done item shows "All made", struck through like a ticked list). The counts keep the item's own units (2.5 metres works). The job page shows "1 of 3 items made" with a bar; list rows show the same line. Ticking the first unit on a Not started job starts it (Making, logged), as the prototype does. Once a job is Ready or later the counts are not shown (they are not touched either); stepping back to Making shows them again.
+2. **A prompt, not an automatic move.** When every item is made on a Making job, the page says "Everything is made. Ready to hand it over?" above the same big next-step button (the list row's button does the same). Nothing moves by itself. (The prototype moved the job on its own; MakerFlow offers.)
+3. **Add an item to a job** that is Not started, Making or Ready, with the same item sheet as on a quote, in `job` mode. A Ready job goes back to Making (it has something new to make), logged. The item says "Added later" and the activity log says "Added Wedding cake". Not on Out for delivery, Done or Cancelled jobs. At most 50 items per job.
+4. **Move a job from the list.** Each active row has one button with its next step ("Start making", "Mark ready for collection", ...), beside (not inside) the row's link. Steps back and cancelling stay on the job page.
+
+### Interactions reused and new interactions
+| What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
+| --- | --- | --- |
+| Add an item to a job | Item sheet (`quotes/line-sheet.tsx`, `job` mode) | Reused as is; the new "Add an item" button on the job page opens the same sheet and sends one item |
+| The step to take next | `JobSteps` and `nextJobStep` | Reused: the list row calls the same `moveJob` action with the same labels |
+| Add button wording | `AddButton` (ADR 0008) | Reused for "Add an item" |
+| Job status chip, item lines, quantities | `JobStatusChip`, `quantityText`, `formatQuantity` | Reused |
+| Counting what is made | None (no counter exists in the app) | **New**: a small counter (minus, a typed number, plus, and "All made"). Typed numbers use the quote's quantity parser. Reason: nothing in the app counts a part of a quantity; the prototype's counter is the model |
+| A progress line / bar | None (no progress bar in `components/ui`) | **New**: a plain text line "1 of 3 items made" and a bar made of a div with `role="progressbar"`; not a library component |
+
+### Data
+- `job_items.made_milli` (bigint, 0 up to the item's quantity) and `job_items.added_later` (boolean).
+- `job_events` gets a third kind, `item_added`, with the item's name in a new `detail` column; its shape rule becomes "status events have a from-status, the others do not".
+- Server-only functions (service role), like `move_job_status`: `set_job_item_made(org, job, item, made_milli, actor)` and `add_job_item(org, job, actor, item)`. Both lock the job row, refuse the wrong statuses (55006), and write events. The item checks that `create_job` did inline move into one helper, `job_item_clean`, which `create_job` and `add_job_item` both call, so there is one copy of the rules.
+- Members still cannot write items or events directly.
+
+### Built (2026-10-13; needs human review: migration `20261031100000_job_progress.sql`)
+All four are built as planned. Differences and details: adding an item has its own page, `/app/jobs/[id]/add-item` (the job page keeps its one query; this page loads the job and the products beside the session check), which opens the item sheet at once; if the save fails the item is kept with the reason and "Try again" reopens it as typed. Counts show "Saving…" while they are on their way to the server (quick taps are sent one after another). The job page's "Where it stands" says "Everything is made. Ready for the next step?" above the usual button. `pnpm perf` was not run: its script still looks for a Customers tab that moved under More in Jobs slice 1 (needs a small fix of its own).
+
+### Tests
+SQL: server only; refusals write nothing (other business, not an item of the job, over the quantity, wrong status, bad shape, 51st item); progress starts a Not started job; adding to a Ready job steps it back; `create_job` still refuses everything it did. Unit: item progress helpers (counts, step size, all made, summary line). Browser: count an item, the job starts, all made shows the prompt, mark ready from the prompt; add an item to a job; move from the list; accessibility cases for the new parts.
+
 ## Questions for the founder (asked and answered above)
 1. **Order:** jobs first, then invoices? (Recommended.) Or invoices first, if you would rather get a deposit invoice out before building the job screens.
 2. **Job statuses** as proposed? Anything you track today that is missing (for example "Waiting for materials" or "Waiting for the customer")?

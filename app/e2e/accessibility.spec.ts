@@ -290,6 +290,16 @@ for (const scheme of ["light", "dark"] as const) {
       // "Note saved." shows a moment before the button is back: a disabled (faded) button fails the contrast check.
       await expect(page.getByRole("button", { name: "Save note" })).toBeEnabled();
       await expectNoViolations(page, "job, making, with a note");
+      // Counting what is made, and adding an item to the job through the quote's item sheet.
+      await page.getByRole("button", { name: /^One more made of/ }).first().click();
+      await expect(page.getByTestId("job-progress")).toContainText("made");
+      await expectNoViolations(page, "job, making, with counts");
+      await page.getByRole("link", { name: "Add an item" }).click();
+      await expect(page.getByRole("dialog")).toHaveAccessibleName("Add an item");
+      await expectNoViolations(page, "job, add an item");
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expectNoViolations(page, "job, add an item page");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await expectNoViolations(page, "jobs list");

@@ -101,7 +101,7 @@ Read for real after the founder noticed the first Jobs slice was planned from th
 
 **What is built that the prototype lacks:** gapless per-business numbers, a log of status changes, a frozen copy of the customer and items, quotes that cannot be reopened under an active job, restore only while the quote is still accepted, server-side state changes, photo per item, tap-to-call.
 
-**Not built yet (candidates; none decided)**
+**Not built yet.** Items 1 to 4 were chosen by the founder on 2026-10-13 and are built (Jobs slice 2, `docs/plans/jobs-and-invoices.md`); the rest are candidates, none decided.
 1. Per-item progress ("made 2 of 3") with a tick for done, progress on the list rows.
 2. A prompt to mark the job ready when all items are done (the prototype moves it automatically; MakerFlow principle is to offer, not force).
 3. Status change from the list row; stat cards.

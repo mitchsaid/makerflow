@@ -10,7 +10,7 @@ import { moveJob } from "./actions";
 const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
 
 /** The next step as one big button, and the other moves (back, cancel, restore) as smaller ones. Each is one tap. */
-export function JobSteps({ jobId, status, fulfilment }: { jobId: string; status: JobStatus; fulfilment: JobFulfilment }) {
+export function JobSteps({ jobId, status, fulfilment, allMade }: { jobId: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -36,6 +36,11 @@ export function JobSteps({ jobId, status, fulfilment }: { jobId: string; status:
         <Alert variant="destructive" role="alert">
           <AlertDescription>{message}</AlertDescription>
         </Alert>
+      )}
+      {status === "in_progress" && allMade && (
+        <p className="text-base font-medium" role="status" data-testid="all-made-prompt">
+          Everything is made. Ready for the next step?
+        </p>
       )}
       {next && (
         <Button type="button" size="lg" className="w-full sm:w-auto" disabled={pending} onClick={() => move(next.to)}>
