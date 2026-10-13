@@ -10,7 +10,7 @@ import { isJobStatus, type JobDetail, type JobFulfilment, type JobOption, type J
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type ItemRow = { name: string; quantity_milli: number | string; unit: string | null; sort_order: number };
+type ItemRow = { name: string; quantity_milli: number | string; made_milli: number | string; unit: string | null; sort_order: number };
 type SummaryRow = {
   id: string;
   organisation_id: string;
@@ -36,7 +36,7 @@ function summary(row: SummaryRow): JobSummary {
     customerName: row.customer_name,
     items: [...(row.job_items ?? [])]
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((i) => ({ name: i.name, quantityMilli: Number(i.quantity_milli), unit: i.unit })),
+      .map((i) => ({ name: i.name, quantityMilli: Number(i.quantity_milli), madeMilli: Number(i.made_milli), unit: i.unit })),
     createdAt: row.created_at,
   };
 }
@@ -46,7 +46,7 @@ export async function getJobs(): Promise<JobSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("jobs")
-    .select("id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, job_items ( name, quantity_milli, unit, sort_order )")
+    .select("id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, job_items ( name, quantity_milli, made_milli, unit, sort_order )")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw new Error(`Could not load jobs: ${error.message}`);
@@ -65,6 +65,8 @@ type DetailRow = SummaryRow & {
   quotes: { number: string } | { number: string }[] | null;
   job_items:
     | (ItemRow & {
+        id: string;
+        added_later: boolean;
         description: string | null;
         variation_label: string | null;
         variation_name: string | null;
@@ -72,14 +74,14 @@ type DetailRow = SummaryRow & {
         photo_image_id: string | null;
       })[]
     | null;
-  job_events: { kind: "created" | "status"; from_status: string | null; to_status: string; created_at: string }[] | null;
+  job_events: { kind: "created" | "status" | "item_added"; from_status: string | null; to_status: string; detail: string | null; created_at: string }[] | null;
 };
 
 const COLUMNS = `id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, quote_id, quote_version,
   delivery_address, customer_id, customer_contact_person, customer_phone, customer_email, note,
   quotes ( number ),
-  job_items ( name, description, quantity_milli, unit, sort_order, variation_label, variation_name, options, photo_image_id ),
-  job_events ( kind, from_status, to_status, created_at )`;
+  job_items ( id, name, description, quantity_milli, made_milli, added_later, unit, sort_order, variation_label, variation_name, options, photo_image_id ),
+  job_events ( kind, from_status, to_status, detail, created_at )`;
 
 function options(value: unknown): JobOption[] {
   if (!Array.isArray(value)) return [];
@@ -113,9 +115,12 @@ function detail(row: DetailRow): JobDetail {
     customerEmail: row.customer_email,
     note: row.note,
     fullItems: items.map((i) => ({
+      id: i.id,
       name: i.name,
       description: i.description,
       quantityMilli: Number(i.quantity_milli),
+      madeMilli: Number(i.made_milli),
+      addedLater: i.added_later,
       unit: i.unit,
       variationLabel: i.variation_label,
       variationName: i.variation_name,
@@ -123,11 +128,12 @@ function detail(row: DetailRow): JobDetail {
       photoImageId: i.photo_image_id,
     })),
     events: [...(row.job_events ?? [])]
-      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.kind === "created" ? -1 : 1))
+      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.kind === "created" ? -1 : b.kind === "created" ? 1 : 0))
       .map((e) => ({
         kind: e.kind,
         fromStatus: e.from_status && isJobStatus(e.from_status) ? e.from_status : null,
         toStatus: status(e.to_status),
+        detail: e.detail,
         createdAt: e.created_at,
       })),
   };

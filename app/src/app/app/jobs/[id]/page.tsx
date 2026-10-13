@@ -2,13 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { isOverdueJob, jobNumberText, jobStatusLabel, type JobDetail } from "@/lib/jobs";
+import { AddLink } from "@/components/add-button";
+import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
 import { imageUrl } from "@/lib/images";
 import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
+import { ItemProgress } from "../item-progress";
 import { JobNote } from "../job-note";
+import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
 import { JobSteps } from "../job-steps";
 
@@ -22,6 +25,8 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   const locale = getLocalePack(profile.countryCode);
   const today = todayIn(locale.timeZone);
   const overdue = isOverdueJob(job, today);
+  const counting = takesCounts(job.status);
+  const progress = jobProgress(job.fullItems);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -39,18 +44,20 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         <h2 id="next-heading" className="text-base font-semibold">
           Where it stands
         </h2>
-        <JobSteps jobId={job.id} status={job.status} fulfilment={job.fulfilment} />
+        <JobSteps jobId={job.id} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
       </section>
 
       <section className="space-y-2" aria-labelledby="make-heading">
         <h2 id="make-heading" className="text-base font-semibold">
           To make
         </h2>
+        {counting && <JobProgressBar progress={progress} />}
         <Card>
           <CardContent>
-            <ul className="space-y-3" data-testid="job-items">
-              {job.fullItems.map((item, index) => (
-                <li key={index} className="flex gap-3">
+            <ul className="space-y-4" data-testid="job-items">
+              {job.fullItems.map((item) => (
+                <li key={item.id} className="space-y-3">
+                  <div className="flex gap-3">
                   {item.photoImageId && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imageUrl(item.photoImageId, "thumb")} alt="" loading="lazy" className="size-14 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
@@ -71,12 +78,31 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
                     </p>
                   ))}
                   {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+                  {item.addedLater && <p className="text-sm text-muted-foreground">Added later</p>}
                   </div>
+                  </div>
+                  {counting && (
+                    <ItemProgress
+                      jobId={job.id}
+                      itemId={item.id}
+                      name={item.name}
+                      quantityMilli={item.quantityMilli}
+                      madeMilli={item.madeMilli}
+                      unit={item.unit}
+                      numberStyle={locale.numberStyle}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
+        {takesNewItems(job.status) &&
+          (job.fullItems.length < MAX_JOB_ITEMS ? (
+            <AddLink href={`/app/jobs/${job.id}/add-item`}>Add an item</AddLink>
+          ) : (
+            <p className="text-sm text-muted-foreground">A job can have up to {MAX_JOB_ITEMS} items.</p>
+          ))}
       </section>
 
       <section className="space-y-2" aria-labelledby="who-heading">
@@ -168,7 +194,13 @@ function Activity({ job, locale, timeZone }: { job: JobDetail; locale: string; t
           <ol className="space-y-2" data-testid="job-activity">
             {job.events.map((e, index) => (
               <li key={index} className="flex flex-wrap items-baseline justify-between gap-x-4 text-base">
-                <span>{e.kind === "created" ? "Job created" : `Moved to ${jobStatusLabel(e.toStatus, job.fulfilment).toLowerCase()}`}</span>
+                <span>
+                  {e.kind === "created"
+                    ? "Job created"
+                    : e.kind === "item_added"
+                      ? `Added ${e.detail ?? "an item"}`
+                      : `Moved to ${jobStatusLabel(e.toStatus, job.fulfilment).toLowerCase()}`}
+                </span>
                 <span className="text-sm text-muted-foreground">{formatMoment(e.createdAt, locale, timeZone)}</span>
               </li>
             ))}

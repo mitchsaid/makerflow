@@ -4,6 +4,9 @@
  * list: migration 20261028100000_jobs.sql).
  */
 
+import { formatQuantity, parseQuantity, type NumberStyle, type QuantityMilli } from "../money";
+import type { ValidationResult } from "../validation";
+
 export const JOB_STATUSES = ["not_started", "in_progress", "ready", "out_for_delivery", "done", "cancelled"] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 export type JobFulfilment = "none" | "collection" | "delivery";
@@ -104,7 +107,7 @@ export type JobSummary = {
   neededBy: string | null;
   customerName: string;
   /** The items, in order, as "Wedding cake" and "12 dozen Cupcakes" would be built from. */
-  items: { name: string; quantityMilli: number; unit: string | null }[];
+  items: { name: string; quantityMilli: number; madeMilli: number; unit: string | null }[];
   createdAt: string;
 };
 
@@ -149,14 +152,70 @@ export type JobDetail = JobSummary & {
   customerEmail: string | null;
   note: string | null;
   fullItems: {
+    id: string;
     name: string;
     description: string | null;
     quantityMilli: number;
+    madeMilli: number;
+    /** Added to the job after it was made, not carried over from the quote or the first form. */
+    addedLater: boolean;
     unit: string | null;
     variationLabel: string | null;
     variationName: string | null;
     options: JobOption[];
     photoImageId: string | null;
   }[];
-  events: { kind: "created" | "status"; fromStatus: JobStatus | null; toStatus: JobStatus; createdAt: string }[];
+  events: {
+    kind: "created" | "status" | "item_added";
+    fromStatus: JobStatus | null;
+    toStatus: JobStatus;
+    /** For "item_added": the item's name. */
+    detail: string | null;
+    createdAt: string;
+  }[];
 };
+
+/** The most items one job can hold (the database refuses more). */
+export const MAX_JOB_ITEMS = 50;
+
+/** Counts of what is made show while a job is being made; once it is ready or later they are not shown (nor changed). */
+export const takesCounts = (status: JobStatus): boolean => status === "not_started" || status === "in_progress";
+
+/** An item can be added until the job leaves the maker's hands. */
+export const takesNewItems = (status: JobStatus): boolean => status === "not_started" || status === "in_progress" || status === "ready";
+
+export const isItemMade = (item: { quantityMilli: number; madeMilli: number }): boolean => item.madeMilli >= item.quantityMilli;
+
+export type JobProgress = { made: number; total: number; allMade: boolean };
+
+/** How many items are completely made. An item with some but not all made is not counted. */
+export function jobProgress(items: readonly { quantityMilli: number; madeMilli: number }[]): JobProgress {
+  const made = items.filter(isItemMade).length;
+  return { made, total: items.length, allMade: items.length > 0 && made === items.length };
+}
+
+/** "1 of 3 items made", "All 3 items made", "1 of 1 item made"... */
+export function progressText(progress: JobProgress): string {
+  const noun = progress.total === 1 ? "item" : "items";
+  if (progress.allMade && progress.total > 1) return `All ${progress.total} ${noun} made`;
+  return `${progress.made} of ${progress.total} ${noun} made`;
+}
+
+/** One tap on plus or minus: one whole unit, or what is left of a part unit; down from a part unit to the whole one below. */
+export function stepMade(madeMilli: QuantityMilli, quantityMilli: QuantityMilli, direction: 1 | -1): QuantityMilli {
+  if (direction === 1) return Math.min(quantityMilli, madeMilli + 1000);
+  const remainder = madeMilli % 1000;
+  return Math.max(0, madeMilli - (remainder === 0 ? 1000 : remainder));
+}
+
+/** What was typed in the "made" box: from none up to all of the item. */
+export function parseMade(input: string, quantityMilli: QuantityMilli, style: NumberStyle): ValidationResult<QuantityMilli> {
+  // Zero is a fine count here (nothing made yet), though it is not a quantity.
+  if (/^\s*0+(?:[.,]0*)?\s*$/.test(input)) return { ok: true, value: 0 };
+  const parsed = parseQuantity(input);
+  if (!parsed.ok) return parsed;
+  if (parsed.value > quantityMilli) {
+    return { ok: false, error: `That is more than the ${formatQuantity(quantityMilli, style)} ordered. Enter a number up to ${formatQuantity(quantityMilli, style)}.` };
+  }
+  return parsed;
+}

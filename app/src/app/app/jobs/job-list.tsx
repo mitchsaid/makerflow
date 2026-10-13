@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { isActiveJob, isOverdueJob, jobNumberText, visibleJobs, type JobFilter, type JobSummary } from "@/lib/jobs";
+import { isActiveJob, isOverdueJob, jobNumberText, jobProgress, progressText, takesCounts, visibleJobs, type JobFilter, type JobSummary } from "@/lib/jobs";
 import { formatQuantity, type NumberStyle } from "@/lib/money/format";
 import { formatDay } from "@/lib/quotes/dates";
+import { JobQuickStep } from "./job-quick-step";
 import { JobStatusChip } from "./job-status-chip";
 
 const FILTERS: { key: JobFilter; label: string }[] = [
@@ -111,11 +112,12 @@ export function JobList({
         <ul className="space-y-2">
           {visible.map((j) => {
             const overdue = isOverdueJob(j, today);
+            const progress = jobProgress(j.items);
             return (
-              <li key={j.id}>
+              <li key={j.id} className="rounded-xl bg-card ring-1 ring-foreground/10">
                 <Link
                   href={`/app/jobs/${j.id}`}
-                  className="block rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="block rounded-xl px-4 py-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate text-base font-medium">{j.customerName}</span>
@@ -133,7 +135,20 @@ export function JobList({
                       <span className="text-muted-foreground">No day set</span>
                     )}
                   </span>
+                  {takesCounts(j.status) && (
+                    <span className="mt-1 block text-sm text-muted-foreground" data-testid="job-row-progress">
+                      {progressText(progress)}
+                    </span>
+                  )}
                 </Link>
+                <JobQuickStep
+                  jobId={j.id}
+                  number={j.number}
+                  customerName={j.customerName}
+                  status={j.status}
+                  fulfilment={j.fulfilment}
+                  allMade={progress.allMade}
+                />
               </li>
             );
           })}

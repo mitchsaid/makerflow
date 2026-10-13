@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { isJobStatus } from "@/lib/jobs";
-import { parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
+import type { LineFormValues } from "@/lib/quotes";
+import { parseJobLine, parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
 import { jobItemPhoto } from "@/lib/jobs/photos";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
@@ -165,5 +166,93 @@ export async function createManualJob(values: NewJobValues): Promise<NewJobResul
   }
 
   revalidatePath("/app/jobs");
+  redirect(`/app/jobs/${jobId}`);
+}
+
+/**
+ * Records how much of an item is made (from none up to all of it, in thousandths). The first unit made starts a job
+ * that had not started. Jobs that are Ready or later take no counts.
+ */
+export async function setItemMade(jobId: string, itemId: string, madeMilli: number): Promise<JobActionResult> {
+  const { organisation, user } = await requireOrganisation();
+  if (!UUID.test(jobId) || !UUID.test(itemId) || !Number.isSafeInteger(madeMilli)) return { status: "error", message: GENERIC_ERROR };
+
+  const supabase = await createClient();
+  const { data: own } = await supabase.from("job_items").select("id").eq("id", itemId).eq("job_id", jobId).eq("organisation_id", organisation.id).maybeSingle();
+  if (!own) return { status: "error", message: "That job could not be found." };
+
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("set_job_item_made", {
+    p_org: organisation.id,
+    p_job_id: jobId,
+    p_item_id: itemId,
+    p_made_milli: madeMilli,
+    p_actor: user.id,
+  });
+  if (error?.code === "55006") {
+    return { status: "error", message: "This job has moved on, so its items can't be counted now. Refresh the page to see where it stands." };
+  }
+  if (error?.code === "22023") {
+    return { status: "error", message: "That is more than was ordered. Enter a number from none up to all of the item." };
+  }
+  if (error?.code === "P0002") {
+    return { status: "error", message: "That item could not be found. Refresh the page to see where the job stands." };
+  }
+  if (error) {
+    console.error("could not count what is made:", error.code, error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/jobs");
+  revalidatePath(`/app/jobs/${jobId}`);
+  return { status: "done" };
+}
+
+export type AddJobItemResult = { status: "error"; message: string };
+
+/**
+ * Adds one item to a job that exists, checked the way a job's items are when it is made. Its picture comes from the
+ * business's own products, never from what the browser sent. Ends by opening the job.
+ */
+export async function addJobItem(jobId: string, line: LineFormValues): Promise<AddJobItemResult> {
+  const { organisation, user } = await requireOrganisation();
+  if (!UUID.test(jobId)) return { status: "error", message: "That job could not be found." };
+
+  const products = forOrganisation(await getProducts(), organisation.id);
+  const parsed = parseJobLine(line, (l) => jobItemPhoto(l, products));
+  if (!parsed.ok) return { status: "error", message: parsed.error };
+
+  const supabase = await createClient();
+  const { data: own } = await supabase.from("jobs").select("id").eq("id", jobId).eq("organisation_id", organisation.id).maybeSingle();
+  if (!own) return { status: "error", message: "That job could not be found." };
+
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("add_job_item", {
+    p_org: organisation.id,
+    p_job_id: jobId,
+    p_actor: user.id,
+    p_item: parsed.value,
+  });
+  if (error?.code === "55006") {
+    return { status: "error", message: "This job has moved on, so it can't take new items now. Refresh the page to see where it stands." };
+  }
+  if (error?.code === "54000") {
+    return { status: "error", message: "A job can have up to 50 items. Start another job for the rest." };
+  }
+  if (error?.code === "22023" || error?.code === "23503") {
+    return { status: "error", message: "Something in this item was not accepted. Check it, then try again." };
+  }
+  if (error?.code === "P0002") {
+    return { status: "error", message: "That job could not be found." };
+  }
+  if (error) {
+    console.error("could not add an item to a job:", error.code, error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/jobs");
+  revalidatePath(`/app/jobs/${jobId}`);
   redirect(`/app/jobs/${jobId}`);
 }

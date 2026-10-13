@@ -232,6 +232,130 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await expect(page.getByRole("link", { name: "New job" })).toBeVisible();
 });
 
+/** Makes a job by hand with these one-off items (name, quantity, unit) and opens it. */
+async function jobWithItems(page: Page, items: [string, string, string][], customer = "Sam Jacobs") {
+  await nav(page).getByRole("link", { name: "Jobs" }).click();
+  await page.getByRole("link", { name: "New job" }).click();
+  await expect(page.getByRole("heading", { name: "New job", level: 1 })).toBeVisible();
+  for (const [name, quantity, unit] of items) {
+    await page.getByRole("button", { name: "Add item" }).click();
+    await sheet(page).getByRole("button", { name: "One-off item (just for this job)" }).click();
+    await sheet(page).getByLabel("Name", { exact: true }).fill(name);
+    await sheet(page).getByLabel("Quantity").fill(quantity);
+    if (unit) await sheet(page).getByLabel("Unit (optional)").fill(unit);
+    await sheet(page).getByRole("button", { name: "Add to job" }).click();
+    await expect(sheet(page)).toHaveCount(0);
+  }
+  await addCustomerInSheet(page, customer);
+  await page.getByRole("button", { name: "Create job" }).click();
+  await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
+}
+
+test("counting what is made starts the job, and offers the next step when everything is made", async ({ page }) => {
+  test.setTimeout(180_000);
+  await signUpAndOnboard(page, "jobs-progress", "Progress Co");
+  await jobWithItems(page, [["Shelf", "2", ""], ["Brackets", "4", "pair"]]);
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
+  const progress = page.getByTestId("job-progress");
+  await expect(progress).toContainText("0 of 2 items made");
+  const shelf = page.getByTestId("item-progress").nth(0);
+  const brackets = page.getByTestId("item-progress").nth(1);
+  await expect(shelf).toContainText("Made 0 of 2");
+  await expect(brackets).toContainText("Made 0 of 4 pair");
+  await expect(page.getByTestId("all-made-prompt")).toHaveCount(0);
+
+  // The first unit made starts the job; the count shows at once and is kept.
+  await shelf.getByRole("button", { name: "One more made of Shelf" }).click();
+  await expect(shelf).toContainText("Made 1 of 2");
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("job-activity")).toContainText("Moved to making");
+  await shelf.getByRole("button", { name: "One more made of Shelf" }).click();
+  await expect(progress).toContainText("1 of 2 items made");
+  await expect(shelf).toContainText("All made");
+  await expect(shelf.getByRole("button", { name: "One more made of Shelf" })).toBeDisabled();
+
+  // A number can be typed; too many is refused with what to type, and the count stays.
+  const typed = brackets.getByLabel("How many of Brackets are made");
+  await typed.fill("9");
+  await typed.press("Enter");
+  await expect(brackets.getByRole("alert")).toContainText("more than the 4 ordered");
+  await expect(brackets).toContainText("Made 0 of 4 pair");
+  await typed.fill("3");
+  await typed.press("Enter");
+  await expect(brackets).toContainText("Made 3 of 4 pair");
+  // (The count shows at once; wait for it to be saved before leaving the page.)
+  await expect(brackets).not.toContainText("Saving");
+  await page.reload();
+  await expect(page.getByTestId("item-progress").nth(1)).toContainText("Made 3 of 4 pair");
+
+  // Everything made: the page offers the next step, but nothing moves by itself.
+  await page.getByTestId("item-progress").nth(1).getByRole("checkbox", { name: /All made for Brackets/ }).check();
+  await expect(page.getByTestId("job-progress")).toContainText("All 2 items made");
+  await expect(page.getByTestId("all-made-prompt")).toContainText("Everything is made.");
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+
+  // From the list: the row shows the progress, and its button takes the same step.
+  await nav(page).getByRole("link", { name: "Jobs" }).click();
+  const row = page.getByRole("listitem").filter({ hasText: "Sam Jacobs" });
+  await expect(row.getByTestId("job-row-progress")).toContainText("All 2 items made");
+  await row.getByRole("button", { name: /^Mark ready for J-0001/ }).click();
+  await expect(row.getByTestId("job-status-chip")).toHaveText("Ready");
+  await expect(row.getByTestId("job-row-progress")).toHaveCount(0);
+
+  // Ready jobs show no counts; stepping back brings them back as they were.
+  await row.getByRole("link").click();
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("item-progress")).toHaveCount(0);
+  await page.getByRole("button", { name: "Back to making" }).click();
+  await expect(page.getByTestId("item-progress").nth(1)).toContainText("All made");
+});
+
+test("an item can be added to a job that exists, the way a quote's items are added", async ({ page }) => {
+  test.setTimeout(180_000);
+  await signUpAndOnboard(page, "jobs-add-item", "Add Item Co");
+  await jobWithItems(page, [["Shelf", "2", ""]]);
+  await page.getByRole("button", { name: "Start making" }).click();
+  await page.getByRole("button", { name: "Mark ready", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
+
+  await page.getByRole("link", { name: "Add an item" }).click();
+  // (The sheet is open over the page, so the heading is found by its tag.)
+  await expect(page.locator("h1")).toHaveText("Add an item to job J-0001");
+  // The same sheet as a quote's: pick, or a one-off item. No prices.
+  await expect(sheet(page)).toHaveAccessibleName("Add an item");
+  await sheet(page).getByRole("button", { name: "One-off item (just for this job)" }).click();
+  await expect(sheet(page).getByLabel(/^Price/)).toHaveCount(0);
+  // Asking for nothing is refused, at the field and in a summary.
+  await sheet(page).getByRole("button", { name: "Add to job" }).click();
+  await expect(sheet(page).getByTestId("form-summary")).toContainText("Say what this item is");
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Ribbon");
+  await sheet(page).getByLabel("Quantity").fill("3");
+  await sheet(page).getByLabel("Unit (optional)").fill("m");
+  await sheet(page).getByRole("button", { name: "Add to job" }).click();
+
+  // Back on the job, which was ready and now has something to make.
+  await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+  const items = page.getByTestId("job-items");
+  await expect(items).toContainText("3 m Ribbon");
+  await expect(items).toContainText("Added later");
+  await expect(page.getByTestId("job-progress")).toContainText("0 of 2 items made");
+  await expect(page.getByTestId("job-activity")).toContainText("Added Ribbon");
+  await expect(page.getByTestId("job-activity")).toContainText("Moved to making");
+
+  // The new item is counted like the others.
+  await page.getByRole("button", { name: "One more made of Ribbon" }).click();
+  await expect(page.getByTestId("item-progress").nth(1)).toContainText("Made 1 of 3 m");
+
+  // A finished job takes no more.
+  await page.getByRole("button", { name: "Mark ready", exact: true }).click();
+  await page.getByRole("button", { name: "Mark done", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Done$/, level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add an item" })).toHaveCount(0);
+  await page.goto(`${new URL(page.url()).pathname}/add-item`);
+  await expect(page.getByText("This job has moved on, so it can’t take new items now.")).toBeVisible();
+});
+
 /** A sent quote for delivery, with the address typed on the quote. */
 async function sentQuoteForDelivery(page: Page) {
   const { openBusinessProfile } = await import("./helpers");
