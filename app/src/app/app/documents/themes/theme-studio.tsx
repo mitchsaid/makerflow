@@ -204,7 +204,7 @@ export function ThemeStudio({
         </div>
         <div className="mx-auto flex justify-center [--preview-height:min(30dvh,280px)] md:[--preview-height:min(48dvh,460px)]" style={{ height: PREVIEW_HEIGHT }}>
           <div className="overflow-hidden" style={{ height: PREVIEW_HEIGHT, width: `calc(${PREVIEW_HEIGHT} / 1.4142)` }} data-testid="studio-preview">
-            <LivePdfPreview snapshot={shown} draft={false} label="Preview" firstPageOnly />
+            <LivePdfPreview snapshot={shown} label="Preview" firstPageOnly />
           </div>
         </div>
         <div
@@ -387,7 +387,7 @@ export function ThemeStudio({
             <SheetTitle>Full preview</SheetTitle>
             <SheetDescription>Every page of the sample quote in this theme.</SheetDescription>
           </SheetHeader>
-          {fullOpen && <LivePdfPreview snapshot={shown} draft={false} label="Full preview" />}
+          {fullOpen && <LivePdfPreview snapshot={shown} label="Full preview" />}
         </SheetContent>
       </Sheet>
     </div>

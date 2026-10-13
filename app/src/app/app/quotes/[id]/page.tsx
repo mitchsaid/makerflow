@@ -127,14 +127,6 @@ export default async function QuotePage({
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       {header}
 
-      {query.sent === "shared" && (
-        <Alert data-testid="sent-banner">
-          <AlertDescription>
-            {quote.number} is sent and locked. If your share options closed before you chose an app, use
-            Share PDF below.
-          </AlertDescription>
-        </Alert>
-      )}
       {query.sent === "marked" && (
         <Alert data-testid="sent-banner">
           <AlertDescription>{quote.number} is marked as sent and locked.</AlertDescription>

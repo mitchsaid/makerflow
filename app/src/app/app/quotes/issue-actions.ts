@@ -100,13 +100,13 @@ export async function checkQuoteForSending(quoteId: string): Promise<SendSheetSt
 }
 
 /**
- * Sends the saved draft: checks it again, freezes it as the next version with its snapshot,
- * and records how it was sent. "shared" means the person is sharing or downloading the PDF
- * from the app; "marked" means they sent it some other way.
+ * Marks the saved draft as sent: checks it again and freezes it as the next version with its snapshot. It is
+ * recorded as "marked" (the person sent it some other way). Versions sent while the app still shared the PDF from
+ * the send sheet are recorded as "shared", and are still read that way.
  */
-export async function sendQuote(quoteId: string, via: "shared" | "marked"): Promise<SendResult> {
+export async function sendQuote(quoteId: string): Promise<SendResult> {
   const workspace = await requireOrganisation();
-  if (!UUID.test(quoteId) || (via !== "shared" && via !== "marked")) {
+  if (!UUID.test(quoteId)) {
     return { status: "error", message: GENERIC_ERROR };
   }
 
@@ -130,7 +130,7 @@ export async function sendQuote(quoteId: string, via: "shared" | "marked"): Prom
     p_org: workspace.organisation.id,
     p_quote_id: stored.id,
     p_actor: workspace.user.id,
-    p_via: via,
+    p_via: "marked",
     p_expected_updated_at: stored.updatedAt,
     p_snapshot: snapshot,
     p_net_cents: parsed.totals.netCents,

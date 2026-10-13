@@ -121,7 +121,7 @@ export function DraftPreview({
 
   return (
     <>
-      <LivePdfPreview snapshot={shown} draft label={label} />
+      <LivePdfPreview snapshot={shown} label={label} />
       <section className="space-y-3" aria-labelledby="design-heading">
         <h2 id="design-heading" className="text-base font-semibold">
           Theme

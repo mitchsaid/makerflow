@@ -13,7 +13,8 @@ import { pdfFamily } from "./fonts";
  * a document never change, only how they are laid out.
  *
  * One scale keeps every design consistent. Type: 8 (section labels), 9 (small print, descriptions),
- * 10 (body), 12 (grand total, quote title), 16 (business name), 20 (document title). Space: 20 between
+ * 10 (body, and the grand total like the subtotal), 12 (the quote's own title), 16 (business name and the document title
+ * beside it, 18 for both when centred). Space: 20 between
  * sections, 16 around the table and parties, 8 to 12 inside a block, 2 to 6 between rows, with 44 as the
  * page margin. A design changes colour, headings, the top of the page, the table, the totals, the
  * corners and the paper, and nothing about what goes where.
@@ -69,7 +70,6 @@ export function makeStyles(theme: Theme) {
       color: theme.ink,
       backgroundColor: theme.paper,
     },
-    banner: { backgroundColor: "#fff4d6", color: "#6b4e00", padding: 6, marginBottom: 16, fontSize: 9, textAlign: "center" },
 
     // A line of colour across the very top of every page (header "bar").
     topBar: { position: "absolute", top: 0, left: 0, right: 0, height: 7, backgroundColor: theme.accent },
@@ -93,7 +93,7 @@ export function makeStyles(theme: Theme) {
     // Centred: everything stacked in the middle.
     centredHeader: { alignItems: "center", textAlign: "center" },
     centredName: { fontSize: 18, fontWeight: 700, fontFamily: heading, marginBottom: 4, textAlign: "center" },
-    centredTitle: { fontSize: 20, fontWeight: 700, fontFamily: heading, marginTop: 10, textAlign: "center", color: onBand ? theme.onAccent : neutral ? theme.ink : theme.accentInk },
+    centredTitle: { fontSize: 18, fontWeight: 700, fontFamily: heading, marginTop: 10, textAlign: "center", color: onBand ? theme.onAccent : neutral ? theme.ink : theme.accentInk },
     centredNumber: { fontWeight: 700, marginTop: 2, textAlign: "center" },
     // On a band the logo sits on a white tile, so a dark logo never disappears into the colour.
     logoTile: { marginBottom: 12, alignSelf: centred ? "center" : "flex-start", backgroundColor: "#ffffff", padding: 6, borderRadius: Math.max(theme.radius, 2) },
@@ -104,7 +104,7 @@ export function makeStyles(theme: Theme) {
     // A long name wraps inside this box and never pushes the title off the page.
     businessNameBox: { flexShrink: 1, maxWidth: "62%", paddingRight: 12 },
     businessName: { fontSize: 16, fontWeight: 700, fontFamily: heading },
-    title: { fontSize: 20, fontWeight: 700, flexShrink: 0, fontFamily: heading, color: onBand ? theme.onAccent : neutral ? theme.ink : theme.accentInk },
+    title: { fontSize: 16, fontWeight: 700, flexShrink: 0, fontFamily: heading, color: onBand ? theme.onAccent : neutral ? theme.ink : theme.accentInk },
     number: { fontWeight: 700 },
     partiesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
     party: { width: "55%" },
@@ -216,7 +216,6 @@ export function makeStyles(theme: Theme) {
       borderRadius: theme.totals === "rule" ? 0 : theme.totals === "pill" ? 20 : theme.radius,
       color: theme.totals === "solid" || theme.totals === "pill" ? theme.onAccent : theme.totals === "tint" ? theme.accentInk : theme.ink,
       fontWeight: 700,
-      fontSize: 12,
       fontFamily: totalFont,
     },
     depositBlock: {

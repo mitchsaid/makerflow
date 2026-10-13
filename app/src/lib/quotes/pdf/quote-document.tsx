@@ -75,13 +75,11 @@ const pdfSource = (image: PdfImage) => {
 
 export function QuoteDocument({
   snapshot: s,
-  draft = false,
   images,
   logo,
   background,
 }: {
   snapshot: QuoteSnapshot;
-  draft?: boolean;
   /** The product photos named in the snapshot (small copies), by image id. A missing one is left out. */
   images?: ReadonlyMap<string, PdfImage>;
   /** The business's logo, if the snapshot names one and it could be loaded. */
@@ -92,7 +90,6 @@ export function QuoteDocument({
   const theme = themeFromStored(s);
   const styles = makeStyles(theme);
   const headCell = theme.layout === "table" && theme.rows === "sheet" ? styles.cellGrid : undefined;
-  const draftBanner = <Text style={styles.banner}>DRAFT PREVIEW. This quote has not been sent yet and can still change.</Text>;
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
   const lineTotal = s.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
@@ -175,9 +172,6 @@ export function QuoteDocument({
         {theme.header === "bar" ? <View style={styles.topBar} fixed /> : null}
 
         <View>
-          {/* On a band the colour must start at the very top of the page, so the draft banner goes beneath it. */}
-          {draft && theme.header !== "band" ? draftBanner : null}
-
           {/* The business, the kind of document and the number: on a band of colour, in a frame, or plain on the page. */}
           <View style={theme.header === "band" ? styles.band : theme.header === "boxed" ? styles.boxedHeader : undefined}>
             {showLogo ? (
@@ -220,8 +214,6 @@ export function QuoteDocument({
               </>
             )}
           </View>
-
-          {draft && theme.header === "band" ? <View style={{ marginTop: 12 }}>{draftBanner}</View> : null}
 
           <View style={styles.partiesRow}>
             <View style={styles.party}>

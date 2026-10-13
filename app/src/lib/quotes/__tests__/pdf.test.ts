@@ -9,6 +9,7 @@ import { parseQuote, type QuoteFormValues } from "../index";
 import { FONT_LIST } from "../font-list";
 import { BLANK_SPEC, HEADERS, LAYOUTS, LOGO_MODES, ROWS, STARTERS, TABLE_HEADS, TOTALS, resolveTheme, themeFromStored, type ThemeSpec } from "../themes";
 import { renderQuotePdf } from "../pdf/render";
+import { makeStyles } from "../pdf/styles";
 import { buildQuoteSnapshot } from "../snapshot";
 import { vatView } from "../vat-view";
 
@@ -90,7 +91,7 @@ describe("the quote PDF", () => {
     expect(pdf.length).toBeGreaterThan(1500);
   });
 
-  it("renders a draft preview and a long quote across pages", async () => {
+  it("renders a short and a long quote, the long one across pages", async () => {
     const lines = Array.from({ length: 70 }, (_, i): QuoteFormValues["lines"][number] => ({
       key: `l${i}`,
       kind: "custom",
@@ -103,7 +104,7 @@ describe("the quote PDF", () => {
       discountKind: "none",
       discountValue: "",
     }));
-    const short = await renderQuotePdf(snapshot(vats.inclusive), { draft: true });
+    const short = await renderQuotePdf(snapshot(vats.inclusive));
     const long = await renderQuotePdf(snapshot(vats.inclusive, { lines }));
     expect(long.length).toBeGreaterThan(short.length);
     // Several pages: the page-tree count is stored in plain text.
@@ -251,10 +252,25 @@ describe("themes", () => {
     }
   }, 30000);
 
-  it("marks a draft in every header style, the band included", async () => {
+  it("sets the document title as large as the business name, and the total as large as the subtotal", () => {
     for (const header of HEADERS) {
-      const pdf = await renderQuotePdf(withTheme({ header }), { draft: true });
-      expect(await textOf(pdf), header).toContain("DRAFT PREVIEW");
+      for (const headerAlign of ["left", "center"] as const) {
+        const styles = makeStyles(themeFromStored(withTheme({ header, headerAlign })));
+        if (headerAlign === "center") expect(styles.centredTitle.fontSize, header).toBe(styles.centredName.fontSize);
+        else expect(styles.title.fontSize, header).toBe(styles.businessName.fontSize);
+        // The grand total sets no size of its own, so it takes the page's, which the subtotal rows use too.
+        expect((styles.grandRow as { fontSize?: number }).fontSize, header).toBeUndefined();
+        expect((styles.totalRow as { fontSize?: number }).fontSize, header).toBeUndefined();
+      }
+    }
+  });
+
+  it("carries no draft warning in any header style, the band included", async () => {
+    for (const header of HEADERS) {
+      const pdf = await renderQuotePdf(withTheme({ header }));
+      const text = await textOf(pdf);
+      expect(text, header).not.toMatch(/DRAFT|not been sent/i);
+      expect(text, header).toContain("Quotation");
     }
   }, 30000);
 
