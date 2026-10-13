@@ -115,6 +115,16 @@ for (const scheme of ["light", "dark"] as const) {
 
       await openSettings(page);
       await expectNoViolations(page, "settings");
+      // The delete card's sheet, with its error (nothing is deleted: the wrong text is typed).
+      await page.getByRole("button", { name: "Delete my account" }).click();
+      await expect(page.getByRole("dialog", { name: "Delete your account?" })).toBeVisible();
+      await expectNoViolations(page, "settings, delete your account");
+      await page.getByRole("dialog").getByLabel("Your email address").fill("not-me@example.test");
+      await page.getByRole("dialog").getByRole("button", { name: "Delete my account" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "settings, delete your account, with an error");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
 
       await openMore(page);
       await page.getByRole("link", { name: /^Customers/ }).click();

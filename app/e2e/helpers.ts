@@ -116,6 +116,8 @@ export function localSupabase() {
   return {
     url: get("NEXT_PUBLIC_SUPABASE_URL"),
     key: get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+    /** The LOCAL stack's server key (a demo credential), for tests that check what the database or storage holds. */
+    secretKey: get("SUPABASE_SECRET_KEY"),
   };
 }
 

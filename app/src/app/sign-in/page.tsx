@@ -16,7 +16,7 @@ const ERRORS: Record<string, string> = {
 export default async function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   if (await getUser()) redirect("/app");
 
-  const { error } = await searchParams;
+  const { error, account } = await searchParams;
   const errorMessage = typeof error === "string" ? ERRORS[error] : undefined;
   const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === "true";
 
@@ -28,6 +28,12 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
           New here? Enter your email and we&apos;ll set you up.
         </p>
       </div>
+
+      {account === "deleted" && (
+        <Alert role="status" data-testid="account-deleted">
+          <AlertDescription>Your account has been deleted. You can create a new one below.</AlertDescription>
+        </Alert>
+      )}
 
       {errorMessage && (
         <Alert variant="destructive">

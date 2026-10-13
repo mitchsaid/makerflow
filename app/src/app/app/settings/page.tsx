@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { signOut } from "../actions";
+import { DeleteAccount } from "./delete-account";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -53,6 +54,8 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {user.email && <DeleteAccount email={user.email} />}
     </main>
   );
 }
