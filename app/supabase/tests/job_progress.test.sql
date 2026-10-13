@@ -250,6 +250,12 @@ begin
   assert (select count(*) from public.job_events where job_id = j1 and kind = 'status' and from_status = 'ready'
             and to_status = 'in_progress' and actor_id = a) = 1, 'going back to making was not logged';
 
+  -- "Added" sorts before "moved back to making", though both happened in one transaction
+  assert (select a.created_at < b.created_at
+          from public.job_events a, public.job_events b
+          where a.job_id = j1 and a.kind = 'item_added' and b.job_id = j1 and b.kind = 'status'
+            and b.from_status = 'ready' and b.to_status = 'in_progress'), 'the item and the move back share a time';
+
   -- The new item can be counted like the others, and the earlier counts are untouched
   set local role service_role;
   perform public.set_job_item_made(org_a, j1, new_item, 1000, a);

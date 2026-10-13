@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import type { ProductSummary } from "@/lib/products";
 import type { LineFormValues } from "@/lib/quotes";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import { LineSheet, type LineSheetView } from "../../../quotes/line-sheet";
+import { useItemSheetProducts } from "../../../quotes/use-item-sheet-products";
 import { addJobItem } from "../../actions";
 
 const OFFLINE = "Couldn't reach the server, so we can't tell whether the item was added. Check the job, then try again if it is not there.";
@@ -40,13 +41,11 @@ export function AddJobItemForm({
   vatStatuses: LocalePack["tax"]["statuses"];
   businessTypes: BusinessType[] | null;
 }) {
-  const nextKey = useRef(1);
-  const [products, setProducts] = useState(initialProducts);
+  const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
   const [sheetView, setSheetView] = useState<LineSheetView | null>({ kind: "pick" });
   const [sheetOpen, setSheetOpen] = useState(true);
   const [failed, setFailed] = useState<{ line: LineFormValues; message: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const newKey = () => `n-${nextKey.current++}`;
 
   function openSheet(view: LineSheetView) {
     setSheetView(view);
@@ -67,15 +66,6 @@ export function AddJobItemForm({
         setFailed({ line, message: OFFLINE });
       }
     });
-  }
-
-  function productSaved(product: ProductSummary) {
-    setProducts((list) =>
-      list.some((p) => p.id === product.id)
-        ? // An edit never changes whether a product is archived.
-          list.map((p) => (p.id === product.id ? { ...product, archived: p.archived } : p))
-        : [...list, product],
-    );
   }
 
   return (

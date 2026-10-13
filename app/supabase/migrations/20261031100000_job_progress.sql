@@ -326,8 +326,9 @@ begin
   -- A job that was ready has something new to make, so it goes back to making.
   if j.status = 'ready' then
     update public.jobs set status = 'in_progress' where id = j.id;
-    insert into public.job_events (organisation_id, job_id, kind, from_status, to_status, actor_id)
-    values (p_org, j.id, 'status', 'ready', 'in_progress', p_actor);
+    -- (clock_timestamp, not the transaction's time, so this line sorts after "item added" above it)
+    insert into public.job_events (organisation_id, job_id, kind, from_status, to_status, actor_id, created_at)
+    values (p_org, j.id, 'status', 'ready', 'in_progress', p_actor, clock_timestamp());
   end if;
   return iid;
 end;

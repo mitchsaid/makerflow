@@ -45,11 +45,14 @@ export function ItemProgress({
   // What the server has: the last count that was saved, to go back to if a save is refused.
   const saved = useRef(madeMilli);
   const queue = useRef<Promise<void>>(Promise.resolve());
+  // Saves queued before a refused one were built on it, so they are dropped when it fails.
+  const generation = useRef(0);
   const waiting = useRef(0);
 
-  // A fresh count from the server (after a refresh) replaces what is shown.
+  // A fresh count from the server (after a refresh) replaces what is shown, but never while saves are on their way:
+  // a refresh started by another item can hand back a half-way count.
   const [seen, setSeen] = useState(madeMilli);
-  if (madeMilli !== seen) {
+  if (madeMilli !== seen && !saving) {
     setSeen(madeMilli);
     setMade(madeMilli);
     setText(quantityToInput(madeMilli, numberStyle));
@@ -67,19 +70,21 @@ export function ItemProgress({
     setError(undefined);
     waiting.current += 1;
     setSaving(true);
+    const mine = generation.current;
+    const fail = (message: string) => {
+      generation.current += 1;
+      setError(message);
+      setMade(saved.current);
+      setText(quantityToInput(saved.current, numberStyle));
+    };
     queue.current = queue.current.then(async () => {
       try {
+        if (mine !== generation.current) return;
         const result = await setItemMade(jobId, itemId, next);
         if (result.status === "done") saved.current = next;
-        else {
-          setError(result.message);
-          setMade(saved.current);
-          setText(quantityToInput(saved.current, numberStyle));
-        }
+        else fail(result.message);
       } catch {
-        setError(OFFLINE);
-        setMade(saved.current);
-        setText(quantityToInput(saved.current, numberStyle));
+        fail(OFFLINE);
       } finally {
         waiting.current -= 1;
         if (waiting.current === 0) setSaving(false);
@@ -149,7 +154,7 @@ export function ItemProgress({
         >
           <PlusIcon aria-hidden="true" />
         </Button>
-        <Field orientation="horizontal" className="w-auto items-center py-1.5">
+        <Field orientation="horizontal" className="min-h-11 w-auto items-center py-1.5">
           <Checkbox
             id={`${idBase}-all`}
             checked={done}

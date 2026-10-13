@@ -1,34 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { otherJobSteps, nextJobStep, type JobFulfilment, type JobStatus } from "@/lib/jobs";
-import { moveJob } from "./actions";
-
-const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
+import { useMoveJob } from "./use-move-job";
 
 /** The next step as one big button, and the other moves (back, cancel, restore) as smaller ones. Each is one tap. */
 export function JobSteps({ jobId, status, fulfilment, allMade }: { jobId: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean }) {
-  const router = useRouter();
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { move, pending, message } = useMoveJob(jobId);
   const next = nextJobStep(status, fulfilment);
   const others = otherJobSteps(status, fulfilment);
-
-  function move(to: JobStatus) {
-    setMessage(null);
-    startTransition(async () => {
-      try {
-        const result = await moveJob(jobId, to);
-        if (result.status === "done") router.refresh();
-        else setMessage(result.message);
-      } catch {
-        setMessage(OFFLINE);
-      }
-    });
-  }
 
   return (
     <div className="space-y-3">

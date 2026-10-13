@@ -128,7 +128,7 @@ function detail(row: DetailRow): JobDetail {
       photoImageId: i.photo_image_id,
     })),
     events: [...(row.job_events ?? [])]
-      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.kind === "created" ? -1 : 1))
+      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.kind === "created" ? -1 : b.kind === "created" ? 1 : 0))
       .map((e) => ({
         kind: e.kind,
         fromStatus: e.from_status && isJobStatus(e.from_status) ? e.from_status : null,

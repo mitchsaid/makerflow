@@ -45,6 +45,7 @@ import { MISSING_CUSTOMER, MISSING_ITEMS } from "@/lib/quotes/send-checks";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { CustomerPicker } from "./customer-picker";
+import { useItemSheetProducts } from "./use-item-sheet-products";
 import { LineSheet, type LineSheetView } from "./line-sheet";
 import { AddButton } from "@/components/add-button";
 
@@ -130,7 +131,6 @@ export function QuoteBuilder({
   const [pending, startTransition] = useTransition();
   // Long quotes show the first few items and a "Show all" button.
   const [expanded, setExpanded] = useState(false);
-  const nextKey = useRef(1);
 
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const symbol = currencySymbol(currencyCode, numberStyle);
@@ -175,12 +175,11 @@ export function QuoteBuilder({
     setValues((v) => ({ ...v, deliveryAddress }));
   }
   // The item sheet: choosing what to add, configuring a line, or a product form.
-  const [products, setProducts] = useState(initialProducts);
+  const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
   const [policyLibrary, setPolicyLibrary] = useState(initialPolicyLibrary);
   const [bankDetails, setBankDetails] = useState(initialBankDetails);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const newKey = () => `n-${nextKey.current++}`;
   // Where focus goes when the sheet closes: the line just added or changed, else the default.
   const focusAfterSheet = useRef<string | null>(null);
 
@@ -213,14 +212,6 @@ export function QuoteBuilder({
     const target = next && next.key !== key ? `line-${next.key}-edit` : "add-item";
     focusAfterSheet.current = target;
     setTimeout(() => document.getElementById(target)?.focus(), 0);
-  }
-  function productSaved(product: ProductSummary) {
-    setProducts((list) =>
-      list.some((p) => p.id === product.id)
-        ? // An edit never changes whether a product is archived.
-          list.map((p) => (p.id === product.id ? { ...product, archived: p.archived } : p))
-        : [...list, product],
-    );
   }
 
   useEffect(() => {

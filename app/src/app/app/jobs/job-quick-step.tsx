@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { jobNumberText, nextJobStep, type JobFulfilment, type JobStatus } from "@/lib/jobs";
-import { moveJob } from "./actions";
-
-const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
+import { useMoveJob } from "./use-move-job";
 
 /**
  * The job's next step as one button on its row in the list, the same step (and the same server action) as the big
@@ -28,34 +25,18 @@ export function JobQuickStep({
   fulfilment: JobFulfilment;
   allMade: boolean;
 }) {
-  const router = useRouter();
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { move, pending, message } = useMoveJob(jobId);
   const next = nextJobStep(status, fulfilment);
   if (!next) return null;
-
-  function move() {
-    if (!next) return;
-    setMessage(null);
-    startTransition(async () => {
-      try {
-        const result = await moveJob(jobId, next.to);
-        if (result.status === "done") router.refresh();
-        else setMessage(result.message);
-      } catch {
-        setMessage(OFFLINE);
-      }
-    });
-  }
 
   return (
     <div className="space-y-2 px-4 pb-3">
       {message && (
-        <p role="alert" className="text-sm text-destructive">
-          {message}
-        </p>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
       )}
-      <Button type="button" variant={status === "in_progress" && allMade ? "default" : "outline"} disabled={pending} onClick={move}>
+      <Button type="button" variant={status === "in_progress" && allMade ? "default" : "outline"} disabled={pending} onClick={() => move(next.to)}>
         {next.label}
         <span className="sr-only">
           {" "}
