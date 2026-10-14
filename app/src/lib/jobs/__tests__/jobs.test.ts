@@ -16,6 +16,10 @@ import {
   takesCounts,
   takesNewItems,
   visibleJobs,
+  jobDueCounts,
+  isDueThisWeekJob,
+  parseJobFilter,
+  shouldNudgeCreateJob,
   type JobFulfilment,
   type JobSummary,
 } from "../index";
@@ -102,6 +106,8 @@ const job = (over: Partial<JobSummary> & { number: number }): JobSummary => ({
   ...over,
 });
 
+const TODAY = "2026-10-14";
+
 describe("overdue", () => {
   it("is a day that has passed on a job that is not finished", () => {
     expect(isOverdueJob({ status: "in_progress", neededBy: "2026-10-01" }, "2026-10-02")).toBe(true);
@@ -109,6 +115,38 @@ describe("overdue", () => {
     expect(isOverdueJob({ status: "done", neededBy: "2026-10-01" }, "2026-10-02")).toBe(false);
     expect(isOverdueJob({ status: "cancelled", neededBy: "2026-10-01" }, "2026-10-02")).toBe(false);
     expect(isOverdueJob({ status: "not_started", neededBy: null }, "2026-10-02")).toBe(false);
+  });
+});
+
+describe("needed this week", () => {
+  it("is today up to the sixth day after it, on a job that is not finished", () => {
+    expect(isDueThisWeekJob({ status: "in_progress", neededBy: "2026-10-14" }, TODAY)).toBe(true);
+    expect(isDueThisWeekJob({ status: "in_progress", neededBy: "2026-10-20" }, TODAY)).toBe(true);
+    expect(isDueThisWeekJob({ status: "in_progress", neededBy: "2026-10-21" }, TODAY)).toBe(false);
+    expect(isDueThisWeekJob({ status: "in_progress", neededBy: "2026-10-13" }, TODAY)).toBe(false);
+    expect(isDueThisWeekJob({ status: "done", neededBy: "2026-10-15" }, TODAY)).toBe(false);
+    expect(isDueThisWeekJob({ status: "cancelled", neededBy: "2026-10-15" }, TODAY)).toBe(false);
+    expect(isDueThisWeekJob({ status: "not_started", neededBy: null }, TODAY)).toBe(false);
+  });
+  it("counts late and this week apart, active jobs only, and never counts a job twice", () => {
+    const rows = [
+      { status: "not_started", neededBy: "2026-10-01" },
+      { status: "ready", neededBy: "2026-10-13" },
+      { status: "in_progress", neededBy: "2026-10-14" },
+      { status: "in_progress", neededBy: "2026-10-20" },
+      { status: "in_progress", neededBy: "2026-10-21" },
+      { status: "in_progress", neededBy: null },
+      { status: "done", neededBy: "2026-10-01" },
+      { status: "cancelled", neededBy: "2026-10-15" },
+    ] as const;
+    expect(jobDueCounts(rows, TODAY)).toEqual({ late: 2, thisWeek: 2, active: 6 });
+    expect(jobDueCounts([], TODAY)).toEqual({ late: 0, thisWeek: 0, active: 0 });
+  });
+  it("reads the filter a Jobs address asks for", () => {
+    expect(parseJobFilter("late")).toBe("late");
+    expect(parseJobFilter("week")).toBe("week");
+    expect(parseJobFilter("nonsense")).toBeNull();
+    expect(parseJobFilter(undefined)).toBeNull();
   });
 });
 
@@ -121,15 +159,26 @@ describe("the list", () => {
     job({ number: 5, status: "cancelled" }),
   ];
   it("shows active jobs by the day they are needed, undated last, then the finished ones for All", () => {
-    expect(visibleJobs(jobs, "active", "").map((j) => j.number)).toEqual([2, 1, 3]);
-    expect(visibleJobs(jobs, "done", "").map((j) => j.number)).toEqual([4]);
-    expect(visibleJobs(jobs, "all", "").map((j) => j.number)).toEqual([2, 1, 3, 5, 4]);
+    expect(visibleJobs(jobs, "active", "", TODAY).map((j) => j.number)).toEqual([2, 1, 3]);
+    expect(visibleJobs(jobs, "done", "", TODAY).map((j) => j.number)).toEqual([4]);
+    expect(visibleJobs(jobs, "all", "", TODAY).map((j) => j.number)).toEqual([2, 1, 3, 5, 4]);
+  });
+  it("shows only the late jobs, or only those needed this week", () => {
+    const dated = [
+      job({ number: 1, neededBy: "2026-10-01" }),
+      job({ number: 2, neededBy: "2026-10-14" }),
+      job({ number: 3, neededBy: "2026-10-18" }),
+      job({ number: 4, neededBy: "2026-11-30" }),
+      job({ number: 5, status: "done", neededBy: "2026-10-02" }),
+    ];
+    expect(visibleJobs(dated, "late", "", TODAY).map((j) => j.number)).toEqual([1]);
+    expect(visibleJobs(dated, "week", "", TODAY).map((j) => j.number)).toEqual([2, 3]);
   });
   it("searches the customer, the number and the items", () => {
-    expect(visibleJobs(jobs, "all", "sipho").map((j) => j.number)).toEqual([1]);
-    expect(visibleJobs(jobs, "all", "wedding").map((j) => j.number)).toEqual([2]);
-    expect(visibleJobs(jobs, "all", "J-0003").map((j) => j.number)).toEqual([3]);
-    expect(visibleJobs(jobs, "all", "3").map((j) => j.number)).toEqual([3]);
+    expect(visibleJobs(jobs, "all", "sipho", TODAY).map((j) => j.number)).toEqual([1]);
+    expect(visibleJobs(jobs, "all", "wedding", TODAY).map((j) => j.number)).toEqual([2]);
+    expect(visibleJobs(jobs, "all", "J-0003", TODAY).map((j) => j.number)).toEqual([3]);
+    expect(visibleJobs(jobs, "all", "3", TODAY).map((j) => j.number)).toEqual([3]);
   });
 });
 
@@ -191,5 +240,23 @@ describe("what is made", () => {
   it("takes counts while it is being made, and new items until it is handed over", () => {
     expect(JOB_STATUSES.filter(takesCounts)).toEqual(["not_started", "in_progress"]);
     expect(JOB_STATUSES.filter(takesNewItems)).toEqual(["not_started", "in_progress", "ready"]);
+  });
+});
+
+describe("the Create a job card after an acceptance", () => {
+  const base = { status: "accepted", isLatest: true, hasJob: false, nudgeParam: "job", dismissedPrompts: [] as string[] };
+  it("shows right after an acceptance, on a quote with no job", () => {
+    expect(shouldNudgeCreateJob(base)).toBe(true);
+  });
+  it("stays away unless the address asks for it, or the quote has moved on", () => {
+    expect(shouldNudgeCreateJob({ ...base, nudgeParam: undefined })).toBe(false);
+    expect(shouldNudgeCreateJob({ ...base, nudgeParam: "other" })).toBe(false);
+    expect(shouldNudgeCreateJob({ ...base, status: "declined" })).toBe(false);
+    expect(shouldNudgeCreateJob({ ...base, isLatest: false })).toBe(false);
+    expect(shouldNudgeCreateJob({ ...base, hasJob: true })).toBe(false);
+  });
+  it("is gone for good once this person said not to ask again", () => {
+    expect(shouldNudgeCreateJob({ ...base, dismissedPrompts: ["logo", "create-job"] })).toBe(false);
+    expect(shouldNudgeCreateJob({ ...base, dismissedPrompts: ["logo"] })).toBe(true);
   });
 });

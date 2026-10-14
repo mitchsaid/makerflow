@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createJob } from "../jobs/actions";
@@ -8,9 +8,22 @@ import { createJob } from "../jobs/actions";
 const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
 
 /** On an accepted quote: turns it into a job to make. Ends by opening the new job. */
-export function CreateJobButton({ quoteId }: { quoteId: string }) {
+export function CreateJobButton({
+  quoteId,
+  compact = false,
+  onPendingChange,
+}: {
+  quoteId: string;
+  compact?: boolean;
+  /** Tells a card around the button when the job is being made, so it can hold its other buttons. */
+  onPendingChange?: (pending: boolean) => void;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [pending, onPendingChange]);
 
   function create() {
     setMessage(null);
@@ -37,10 +50,12 @@ export function CreateJobButton({ quoteId }: { quoteId: string }) {
       <AddButton size="lg" variant="default" disabled={pending} onClick={create}>
         {pending ? "Creating the job…" : "Create a job"}
       </AddButton>
-      <p className="text-sm text-muted-foreground">
-        Turns this accepted quote into a job to make, with the items, the customer and the day it is needed carried
-        over. You can then follow it from making to collected or delivered.
-      </p>
+      {!compact && (
+        <p className="text-sm text-muted-foreground">
+          Turns this accepted quote into a job to make, with the items, the customer and the day it is needed carried
+          over. You can then follow it from making to collected or delivered.
+        </p>
+      )}
     </div>
   );
 }

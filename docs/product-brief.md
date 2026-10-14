@@ -90,6 +90,11 @@ Design implications already in mind:
 - Demo organisations are blocked from sending real email and from any payment features.
 - The demo grows with the product: it starts with what exists (profile, customers, invoices) and gains quotes, jobs and costing as those layers ship.
 
+Founder decisions (2026-10-14):
+- **Several demo accounts, one per kind of business: three to five** (for example a baker, a woodworker, a seamstress, a ceramicist, a printer), so a visitor can pick the one closest to their own trade. Each is its own demo business with sample customers, products, materials, quotes and jobs that make sense for that trade. The builder takes the kind of business as an input; the sample content for each kind lives with the builder (a dev-and-demo content file, never in a normal product path).
+- **Every demo business has a logo** (a made-up one, stored the usual way as a picture in the `pictures` bucket and `images` table), so the logo card on the Business profile and the logo on quotes show up in the demo as they do for a real business, and the "Add your logo" prompt does not appear there.
+- Still to decide when the demo is built: how a visitor picks (a short row of business types on the landing page is the proposal).
+
 ## 5. Delivery layers (proposal)
 
 Founder priority (set 2026-09-30): **quotes are the first document to build**, because a quote comes first in a maker's workflow of work. Everything before it is kept as lean as possible.

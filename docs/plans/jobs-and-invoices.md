@@ -117,6 +117,56 @@ All four are built as planned. Differences and details: adding an item has its o
 ### Tests
 SQL: server only; refusals write nothing (other business, not an item of the job, over the quantity, wrong status, bad shape, 51st item); progress starts a Not started job; adding to a Ready job steps it back; `create_job` still refuses everything it did. Unit: item progress helpers (counts, step size, all made, summary line). Browser: count an item, the job starts, all made shows the prompt, mark ready from the prompt; add an item to a job; move from the list; accessibility cases for the new parts.
 
+## Jobs slice 3: Home counts and a "Create a job?" nudge (founder, 2026-10-14)
+
+Status: planned and built 2026-10-14. **No database change** (no migration), so no migration review. Money and tax are not touched.
+
+### Prototype read
+Read in full: `Dashboard.tsx` (lines 1 to 583, the whole Home screen: the welcome banner and Create New menu, the three money cards, Recent Quotes, the quick links, the Testing Area), the quote-accepted flow in `Quotes.tsx` (`handleQuoteAcceptedStateTrigger`, `handleConfirmJobConversionPrompt`, the "Convert to Job?" modal, the Job entry in the Convert menu), `convertQuoteToJob` in `useAppState.ts`, and the "Production Stats Summary Cards" and status filter in `Jobs.tsx` (lines 1690 to 1800).
+
+| The prototype does | MakerFlow: kept, changed, later, or dropped | Why |
+| --- | --- | --- |
+| The Home screen has **no job numbers at all**: only money cards (collected, outstanding, overdue invoices), Recent Quotes and a "Job Progress" link | **Added, not from the prototype**: "Needed this week" and "Late" job counts on Home | The founder's request; a job has a needed-by day here, the prototype's jobs have none |
+| Money cards on Home (collected, outstanding, overdue) | **Later**, with invoices | There are no invoices yet |
+| Recent Quotes table on Home | **Later**: Home grows as the layers do; not part of this slice | Out of scope |
+| Create New menu (Quote, Invoice, Job, Product) | **Later**: the tabs and each page's own Add button cover it for now | Out of scope |
+| Welcome banner "Hi, {name}!" with a subtitle | **Changed**: the business name is the heading; no subtitle | Less text on a phone |
+| A quote can be marked accepted from any status (draft, sent, viewed, expired, declined) | **Dropped**: "They accepted" is only offered on a sent quote; "Change the answer" reopens a declined or accepted one | An answer belongs to something that was sent |
+| A success toast ("Quote accepted & Job created successfully!") | **Changed**: the card, or the new job opening, is the confirmation | |
+| A notification on every quote status change | **Later**: notifications are not built | |
+| A dropdown filtering the Jobs list by each exact status | **Later**, with the stat cards | Not asked for |
+| Quick links to Catalogue, Customers, Job Progress | **Dropped**: the tab bar does this | |
+| Jobs list shows stat cards: In Progress, Ready (Collection), Ready (Delivery), Being Delivered, Done | **Later**: the list's filter buttons with counts do the job today (To do, Done, All, now Late and This week); counts by exact status are a candidate | Not asked for |
+| Accepting a quote opens a modal "Convert to Job?" with "No, Just Accept" and "Yes, Create Job" | **Changed**: after "They accepted" is saved, a friendly card at the top of the quote offers "Create a job"; "Not now" closes it | The brief: advanced steps are offered by dismissable prompts, never forced; the quote still shows the plain "Create a job" section |
+| A "Don't ask again (always use this choice)" checkbox, remembered in the browser for either answer (yes always creates the job, no never asks) | **Changed**: "Don't ask me again" is remembered for this person in this business (the `prompt_dismissals` table, like the logo prompt); an automatic "always create the job" is **dropped** | Never silently create things; a stored choice in the browser is per device |
+| Convert menu on a quote: Invoice or Job, any time | **Kept** as the existing "Create a job" section on an accepted quote; invoices come later | |
+| `convertQuoteToJob` when a job exists already: sets it back to Not Started | **Dropped**: one job per accepted quote; a second attempt says so (already handled by `create_job_from_quote`) | Numbers and history stay honest |
+| A notification "Job … created from Quote …" | **Later**: notifications are not built | |
+| Delete a job | **Dropped** (cancel instead, so numbers stay gapless; recorded earlier) | |
+
+### What the maker sees
+1. **Home** shows a **Jobs** card instead of the "You're all set up" placeholder: two big numbers, **Late** (needed on a day that has passed, not finished) and **Needed this week** (needed today or in the next six days, not finished). Each is a link that opens the Jobs list already filtered to those jobs. With no active jobs the card says "Nothing to make right now" and offers **New job**. When there are jobs but none are late or due this week it says "Nothing is due in the next week." with a link to the list.
+2. The **Jobs list** gets two more filter buttons, **Late (n)** and **This week (n)**, beside To do, Done and All. The page reads `?show=late` or `?show=week` so Home can link to them; the buttons still switch locally with no round trip.
+3. **After "They accepted" is saved**, the quote page shows a card at the top, under the outcome banner: "Create a job for QT-0001? You can follow it from making to collected or delivered." with **Create a job** (the same button as the section lower down), **Not now** and a smaller **Don't ask me again**. "Not now" only removes the card. "Don't ask me again" is remembered for this person in this business and is never shown again after an acceptance (the plain Create a job section stays on every accepted quote). The card is shown straight after the answer is recorded (and again on a reload until it is closed), and never on a quote that already has a job or when the answer was not "accepted".
+
+### Decisions (made, to confirm)
+1. **"This week" is the next seven days from today** (today plus six), not the calendar week, so on a Sunday it does not read zero. The two counts never overlap: late is before today.
+2. **Only active jobs count** (not done, not cancelled) and only those with a needed-by day. A job with no day set is in neither count.
+3. **Home asks one question** for jobs: the status and needed-by day of active jobs only (no items), so it stays light. The counting is a small pure function (`jobDueCounts`); the Jobs list uses the same two predicates (`isOverdueJob`, `isDueThisWeekJob`).
+4. **The nudge is a card, not a popup**, and lives in the page (`?next=job` on the address after the answer is saved), so it survives the page refresh that follows recording an answer and a reload shows it once more until dismissed. Closing it removes the address part. (Known quirk: the address, not the answer, drives the card, so going Back to it after cancelling the job shows it again; harmless.)
+5. **No new table or column:** the dismissal uses `prompt_dismissals` (key `create-job`).
+
+### Interactions reused
+| Need | Reused | Notes |
+| --- | --- | --- |
+| A friendly dismissable card with "Not now" remembered per person | The `LogoPrompt` pattern (`Alert` card, a dismiss action writing `prompt_dismissals`, `dismissedPrompts` from `requireOrganisation()`) | A separate component, because it has two ways to dismiss; a new prompt key |
+| Make a job from a quote | `CreateJobButton` and `createJob` | Given a compact mode (no long explanation) for the card |
+| Filter buttons with counts | the Jobs list's filter group | Two more entries |
+| Showing a day | `formatDay` (on the list rows; Home shows counts only) | |
+
+### Tests
+Unit: the due counts (late, this week, boundaries today and day seven, active only, no day), the two new list filters, the `?show=` parsing. Browser: Home shows both counts and links to the filtered list; with no jobs it offers New job; after "They accepted" the card appears, "Create a job" opens the new job, "Not now" removes the card and it does not come back on reload, "Don't ask me again" is remembered and the next acceptance shows no card; the card does not show on a quote that has a job; accessibility cases for Home and the card.
+
 ## Missed from the prototype (Jobs)
 Jobs slice 1 was planned without reading the prototype's Jobs screen (see "Prototype read" in `docs/plans/README.md`). Reading it afterwards (`docs/prototype-discovery.md`, section 9) found these behaviours the plan never listed. Built in slice 2: counting what is made per item, progress on the list rows, adding an item to an existing job, moving a job from the list, and a prompt when everything is made (the prototype moved the job by itself; MakerFlow offers). Still open: stock jobs and using finished stock, batch, one-by-one and stage tracking, material deduction as units are finished (the costs slices), "Awaiting quote acceptance", and deleting a job (MakerFlow cancels instead, so numbers stay gapless). Cost: one extra slice and a founder question ("did you review the prototype?") that the plan should have answered.
 

@@ -17,7 +17,8 @@ Update this table whenever a feature's prototype code is read (`docs/plans/READM
 | Invoices, credit notes, payments | **Summary only. Read before the invoice plan.** | Section 2 table only |
 | Materials, costing screens | `costUtils` read; `Materials.tsx` summary only | Section 3 |
 | Customers, statements | Summary only (statements' logo use read) | Section 2 table only |
-| Dashboard | Parts read; the demo-data controls and reset confirm modals read in full (2026-10-13) | Section 6, `docs/plans/delete-account.md` |
+| Dashboard | **Read in full (2026-10-14)**: the whole Home screen (it has no job numbers), plus the demo-data controls and reset modals (2026-10-13) | Section 6, `docs/plans/delete-account.md`, `docs/plans/jobs-and-invoices.md` (Jobs slice 3) |
+| Quote accepted flow (`Quotes.tsx`: "Convert to Job?" modal, Convert menu) and `convertQuoteToJob` | Read in full (2026-10-14) | `docs/plans/jobs-and-invoices.md` (Jobs slice 3) |
 | Reset functions (`clearAllData`, `loadCompanyPreset`, `resetToDefaults`) and the `App.tsx` ErrorBoundary | Read in full (2026-10-13) | `docs/plans/delete-account.md` |
 | Document templates | `quoteTemplates.ts` read for the quote looks; the customiser screen not in full (its logo options read 2026-10-13) | `docs/plans/quote-looks.md`, `docs/plans/business-logo.md` |
 | Profile (business details, logo, bank, VAT) | `Profile.tsx` read in full (2026-10-13) | `docs/plans/business-logo.md` (the logo); the rest was built from earlier plans |

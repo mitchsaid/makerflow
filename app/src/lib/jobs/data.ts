@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
-import { isJobStatus, type JobDetail, type JobFulfilment, type JobOption, type JobStatus, type JobSummary } from "./index";
+import { isActiveJob, isJobStatus, JOB_STATUSES, type JobDetail, type JobFulfilment, type JobOption, type JobStatus, type JobSummary } from "./index";
 
 /**
  * Job reads. Row-level security limits every query to businesses the signed-in person belongs to; pages keep only the
@@ -51,6 +51,25 @@ export async function getJobs(): Promise<JobSummary[]> {
     .limit(1000);
   if (error) throw new Error(`Could not load jobs: ${error.message}`);
   return (data as unknown as SummaryRow[]).map(summary);
+}
+
+/**
+ * For Home: the status and needed-by day of the active jobs, and nothing else. One light query. It runs beside the
+ * workspace check, so it cannot name the business yet: the page keeps only the current business's rows (lib/scope.ts).
+ */
+export async function getActiveJobDates(): Promise<{ status: JobStatus; neededBy: string | null; organisationId: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("organisation_id, status, needed_by")
+    .in("status", JOB_STATUSES.filter(isActiveJob))
+    .limit(1000);
+  if (error) throw new Error(`Could not load jobs: ${error.message}`);
+  return (data as unknown as { organisation_id: string; status: string; needed_by: string | null }[]).map((r) => ({
+    organisationId: r.organisation_id,
+    status: status(r.status),
+    neededBy: r.needed_by,
+  }));
 }
 
 type DetailRow = SummaryRow & {

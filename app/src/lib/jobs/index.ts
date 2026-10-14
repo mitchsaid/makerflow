@@ -5,6 +5,7 @@
  */
 
 import { formatQuantity, parseQuantity, type NumberStyle, type QuantityMilli } from "../money";
+import { addDays } from "../quotes/dates";
 import type { ValidationResult } from "../validation";
 
 export const JOB_STATUSES = ["not_started", "in_progress", "ready", "out_for_delivery", "done", "cancelled"] as const;
@@ -98,6 +99,22 @@ export const isActiveJob = (status: JobStatus): boolean => status !== "done" && 
 export const isOverdueJob = (job: { status: JobStatus; neededBy: string | null }, today: string): boolean =>
   isActiveJob(job.status) && job.neededBy !== null && job.neededBy < today;
 
+/** "Needed this week": needed today or in the next six days, and not finished. (Not the calendar week, so a Sunday is not empty.) */
+export const WEEK_DAYS = 7;
+export const isDueThisWeekJob = (job: { status: JobStatus; neededBy: string | null }, today: string): boolean =>
+  isActiveJob(job.status) && job.neededBy !== null && job.neededBy >= today && job.neededBy <= addDays(today, WEEK_DAYS - 1);
+
+export type JobDueCounts = { late: number; thisWeek: number; active: number };
+
+/** What Home shows: how many active jobs are late, how many are needed this week (never both), and how many are active. */
+export function jobDueCounts(jobs: readonly { status: JobStatus; neededBy: string | null }[], today: string): JobDueCounts {
+  return {
+    late: jobs.filter((j) => isOverdueJob(j, today)).length,
+    thisWeek: jobs.filter((j) => isDueThisWeekJob(j, today)).length,
+    active: jobs.filter((j) => isActiveJob(j.status)).length,
+  };
+}
+
 export type JobSummary = {
   id: string;
   organisationId: string;
@@ -111,10 +128,14 @@ export type JobSummary = {
   createdAt: string;
 };
 
-export type JobFilter = "active" | "done" | "all";
+export type JobFilter = "active" | "late" | "week" | "done" | "all";
+
+/** The filter a Jobs address asks for (`?show=late`), or null. */
+export const parseJobFilter = (value: unknown): JobFilter | null =>
+  value === "active" || value === "late" || value === "week" || value === "done" || value === "all" ? value : null;
 
 /** The jobs to show: active ones first by the day they are needed (no day last), then the finished ones, newest first. */
-export function visibleJobs(jobs: readonly JobSummary[], filter: JobFilter, query: string): JobSummary[] {
+export function visibleJobs(jobs: readonly JobSummary[], filter: JobFilter, query: string, today: string): JobSummary[] {
   const q = query.trim().toLowerCase();
   const matches = (j: JobSummary) =>
     q === "" ||
@@ -122,7 +143,20 @@ export function visibleJobs(jobs: readonly JobSummary[], filter: JobFilter, quer
     jobNumberText(j.number).toLowerCase().includes(q) ||
     String(j.number) === q ||
     j.items.some((i) => i.name.toLowerCase().includes(q));
-  const keep = (j: JobSummary) => (filter === "all" ? true : filter === "active" ? isActiveJob(j.status) : j.status === "done");
+  const keep = (j: JobSummary) => {
+    switch (filter) {
+      case "all":
+        return true;
+      case "active":
+        return isActiveJob(j.status);
+      case "late":
+        return isOverdueJob(j, today);
+      case "week":
+        return isDueThisWeekJob(j, today);
+      case "done":
+        return j.status === "done";
+    }
+  };
   return jobs
     .filter((j) => keep(j) && matches(j))
     .sort((a, b) => {
@@ -219,3 +253,27 @@ export function parseMade(input: string, quantityMilli: QuantityMilli, style: Nu
   }
   return parsed;
 }
+
+/** The friendly "Create a job?" card straight after "They accepted" (remembered in prompt_dismissals when dismissed for good). */
+export const CREATE_JOB_PROMPT = "create-job";
+
+/** The address part that asks for that card once, right after an answer is recorded. */
+export const CREATE_JOB_NUDGE_PARAM = "next";
+export const CREATE_JOB_NUDGE_VALUE = "job";
+
+/**
+ * Offer to make a job: the latest version was just accepted (the address says so), it has no job, and this person has
+ * not said "Don't ask me again".
+ */
+export const shouldNudgeCreateJob = (o: {
+  status: string;
+  isLatest: boolean;
+  hasJob: boolean;
+  nudgeParam: unknown;
+  dismissedPrompts: readonly string[];
+}): boolean =>
+  o.status === "accepted" &&
+  o.isLatest &&
+  !o.hasJob &&
+  o.nudgeParam === CREATE_JOB_NUDGE_VALUE &&
+  !o.dismissedPrompts.includes(CREATE_JOB_PROMPT);
