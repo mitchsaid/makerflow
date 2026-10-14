@@ -49,7 +49,7 @@ export default async function WorkspacePage() {
                 <p className="text-base text-muted-foreground">Nothing is due in the next week.</p>
               )}
               <Link href="/app/jobs" className="inline-flex min-h-11 items-center font-medium underline">
-                All {counts.active} jobs to do
+                {counts.active === 1 ? "See the job to do" : `See all ${counts.active} jobs to do`}
               </Link>
             </>
           )}

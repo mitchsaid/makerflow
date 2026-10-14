@@ -130,7 +130,11 @@ Read in full: `Dashboard.tsx` (lines 1 to 583, the whole Home screen: the welcom
 | Money cards on Home (collected, outstanding, overdue) | **Later**, with invoices | There are no invoices yet |
 | Recent Quotes table on Home | **Later**: Home grows as the layers do; not part of this slice | Out of scope |
 | Create New menu (Quote, Invoice, Job, Product) | **Later**: the tabs and each page's own Add button cover it for now | Out of scope |
-| Welcome banner "Hi, {name}" | **Kept** (the business name is the heading already) | |
+| Welcome banner "Hi, {name}!" with a subtitle | **Changed**: the business name is the heading; no subtitle | Less text on a phone |
+| A quote can be marked accepted from any status (draft, sent, viewed, expired, declined) | **Dropped**: "They accepted" is only offered on a sent quote; "Change the answer" reopens a declined or accepted one | An answer belongs to something that was sent |
+| A success toast ("Quote accepted & Job created successfully!") | **Changed**: the card, or the new job opening, is the confirmation | |
+| A notification on every quote status change | **Later**: notifications are not built | |
+| A dropdown filtering the Jobs list by each exact status | **Later**, with the stat cards | Not asked for |
 | Quick links to Catalogue, Customers, Job Progress | **Dropped**: the tab bar does this | |
 | Jobs list shows stat cards: In Progress, Ready (Collection), Ready (Delivery), Being Delivered, Done | **Later**: the list's filter buttons with counts do the job today (To do, Done, All, now Late and This week); counts by exact status are a candidate | Not asked for |
 | Accepting a quote opens a modal "Convert to Job?" with "No, Just Accept" and "Yes, Create Job" | **Changed**: after "They accepted" is saved, a friendly card at the top of the quote offers "Create a job"; "Not now" closes it | The brief: advanced steps are offered by dismissable prompts, never forced; the quote still shows the plain "Create a job" section |
@@ -143,22 +147,22 @@ Read in full: `Dashboard.tsx` (lines 1 to 583, the whole Home screen: the welcom
 ### What the maker sees
 1. **Home** shows a **Jobs** card instead of the "You're all set up" placeholder: two big numbers, **Late** (needed on a day that has passed, not finished) and **Needed this week** (needed today or in the next six days, not finished). Each is a link that opens the Jobs list already filtered to those jobs. With no active jobs the card says "Nothing to make right now" and offers **New job**. When there are jobs but none are late or due this week it says "Nothing is due in the next week." with a link to the list.
 2. The **Jobs list** gets two more filter buttons, **Late (n)** and **This week (n)**, beside To do, Done and All. The page reads `?show=late` or `?show=week` so Home can link to them; the buttons still switch locally with no round trip.
-3. **After "They accepted" is saved**, the quote page shows a card at the top, under the outcome banner: "Create a job for this quote? You can follow it from making to collected or delivered." with **Create a job** (the same button as the section lower down), **Not now** and a smaller **Don't ask me again**. "Not now" only removes the card. "Don't ask me again" is remembered for this person in this business and is never shown again after an acceptance (the plain Create a job section stays on every accepted quote). The card is shown straight after the answer is recorded (and again on a reload until it is closed), and never on a quote that already has a job or when the answer was not "accepted".
+3. **After "They accepted" is saved**, the quote page shows a card at the top, under the outcome banner: "Create a job for QT-0001? You can follow it from making to collected or delivered." with **Create a job** (the same button as the section lower down), **Not now** and a smaller **Don't ask me again**. "Not now" only removes the card. "Don't ask me again" is remembered for this person in this business and is never shown again after an acceptance (the plain Create a job section stays on every accepted quote). The card is shown straight after the answer is recorded (and again on a reload until it is closed), and never on a quote that already has a job or when the answer was not "accepted".
 
 ### Decisions (made, to confirm)
 1. **"This week" is the next seven days from today** (today plus six), not the calendar week, so on a Sunday it does not read zero. The two counts never overlap: late is before today.
 2. **Only active jobs count** (not done, not cancelled) and only those with a needed-by day. A job with no day set is in neither count.
-3. **Home asks one question** for jobs: the status and needed-by day of active jobs only (no items), so it stays light. The counting is a small pure function shared with the Jobs list.
-4. **The nudge is a card, not a popup**, and lives in the page (`?next=job` on the address after the answer is saved), so it survives the page refresh that follows recording an answer and a reload shows it once more until dismissed. Closing it removes the address part.
+3. **Home asks one question** for jobs: the status and needed-by day of active jobs only (no items), so it stays light. The counting is a small pure function (`jobDueCounts`); the Jobs list uses the same two predicates (`isOverdueJob`, `isDueThisWeekJob`).
+4. **The nudge is a card, not a popup**, and lives in the page (`?next=job` on the address after the answer is saved), so it survives the page refresh that follows recording an answer and a reload shows it once more until dismissed. Closing it removes the address part. (Known quirk: the address, not the answer, drives the card, so going Back to it after cancelling the job shows it again; harmless.)
 5. **No new table or column:** the dismissal uses `prompt_dismissals` (key `create-job`).
 
 ### Interactions reused
 | Need | Reused | Notes |
 | --- | --- | --- |
-| A friendly dismissable card with "Not now" remembered per person | `LogoPrompt` (`Alert` card, `dismissLogoPrompt`, `dismissedPrompts` from `requireOrganisation()`) | Same pattern, a new prompt key |
+| A friendly dismissable card with "Not now" remembered per person | The `LogoPrompt` pattern (`Alert` card, a dismiss action writing `prompt_dismissals`, `dismissedPrompts` from `requireOrganisation()`) | A separate component, because it has two ways to dismiss; a new prompt key |
 | Make a job from a quote | `CreateJobButton` and `createJob` | Given a compact mode (no long explanation) for the card |
 | Filter buttons with counts | the Jobs list's filter group | Two more entries |
-| Showing a day | `formatDay` | |
+| Showing a day | `formatDay` (on the list rows; Home shows counts only) | |
 
 ### Tests
 Unit: the due counts (late, this week, boundaries today and day seven, active only, no day), the two new list filters, the `?show=` parsing. Browser: Home shows both counts and links to the filtered list; with no jobs it offers New job; after "They accepted" the card appears, "Create a job" opens the new job, "Not now" removes the card and it does not come back on reload, "Don't ask me again" is remembered and the next acceptance shows no card; the card does not show on a quote that has a job; accessibility cases for Home and the card.

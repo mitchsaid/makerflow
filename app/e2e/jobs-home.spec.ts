@@ -128,7 +128,7 @@ test("Home counts the jobs that are late and the ones needed this week, and open
   await expect(page.getByTestId("home-count-week")).toHaveText("0");
 
   // The buttons on the list itself switch without leaving the page.
-  await page.getByRole("link", { name: /^All 1 jobs? to do$/ }).click();
+  await page.getByRole("link", { name: /^See the job to do$/ }).click();
   await expect(page.getByRole("button", { name: /^To do \(1\)/ })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: /^Late \(0\)/ }).click();
   await expect(page.getByText("Nothing is late. Well done.")).toBeVisible();

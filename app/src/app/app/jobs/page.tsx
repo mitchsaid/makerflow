@@ -23,7 +23,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
           </AddLink>
         )}
       </div>
-      <JobList jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} initialFilter={parseJobFilter(query.show) ?? "active"} />
+      <JobList key={parseJobFilter(query.show) ?? "active"} jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} initialFilter={parseJobFilter(query.show) ?? "active"} />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createJob } from "../jobs/actions";
@@ -8,9 +8,22 @@ import { createJob } from "../jobs/actions";
 const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
 
 /** On an accepted quote: turns it into a job to make. Ends by opening the new job. */
-export function CreateJobButton({ quoteId, compact = false }: { quoteId: string; compact?: boolean }) {
+export function CreateJobButton({
+  quoteId,
+  compact = false,
+  onPendingChange,
+}: {
+  quoteId: string;
+  compact?: boolean;
+  /** Tells a card around the button when the job is being made, so it can hold its other buttons. */
+  onPendingChange?: (pending: boolean) => void;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [pending, onPendingChange]);
 
   function create() {
     setMessage(null);
@@ -34,7 +47,7 @@ export function CreateJobButton({ quoteId, compact = false }: { quoteId: string;
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <AddButton id={compact ? "nudge-create-job" : undefined} size="lg" variant="default" disabled={pending} onClick={create}>
+      <AddButton size="lg" variant="default" disabled={pending} onClick={create}>
         {pending ? "Creating the job…" : "Create a job"}
       </AddButton>
       {!compact && (
