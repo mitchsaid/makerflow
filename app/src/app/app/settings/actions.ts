@@ -18,7 +18,27 @@ export type DeleteAccountState =
   | { status: "error"; /** About the typed address, shown at the field. */ field?: string; /** Anything else. */ message?: string };
 
 const GENERIC_ERROR = "Something went wrong, so nothing was deleted. Please try again.";
-const NOT_SET_UP = "This version of MakerFlow can't do that yet, so nothing was deleted. We've been told.";
+const NOT_SET_UP = "Deleting an account isn't switched on for this version of MakerFlow, so nothing was deleted.";
+const SIGN_IN_LEFT_BUSINESSES_GONE =
+  "Your businesses were deleted, but we couldn't remove your sign-in. Press Delete again to finish.";
+const SIGN_IN_LEFT_NOTHING_DELETED = "We couldn't remove your sign-in, so your account is still here. Press Delete again to try once more.";
+
+/** Anything left under a deleted business's folder in storage (a picture the list did not know about). */
+async function sweepFolders(admin: ReturnType<typeof createAdminClient>, organisationIds: string[]) {
+  for (const org of organisationIds) {
+    try {
+      const bucket = admin.storage.from(BUCKET);
+      const { data: folders } = await bucket.list(org, { limit: 1000 });
+      for (const folder of folders ?? []) {
+        const { data: files } = await bucket.list(`${org}/${folder.name}`, { limit: 100 });
+        const paths = (files ?? []).map((f) => `${org}/${folder.name}/${f.name}`);
+        if (paths.length > 0) await bucket.remove(paths);
+      }
+    } catch (error) {
+      console.error("could not sweep the picture folder of a deleted business:", (error as Error).message);
+    }
+  }
+}
 
 export async function deleteAccount(typedEmail: string): Promise<DeleteAccountState> {
   const user = await requireUser();
@@ -55,15 +75,19 @@ export async function deleteAccount(typedEmail: string): Promise<DeleteAccountSt
     // The database is already clean, and the person cannot do anything about leftover files: say so in the log.
     if (storageError) console.error("could not delete picture files of a deleted account:", storageError.message);
   }
+  // Belt and braces: anything still under those businesses' folders (the database list is the main route).
+  const organisations = (data as { organisations?: unknown } | null)?.organisations;
+  const deletedOrganisations = Array.isArray(organisations) ? organisations.filter((o): o is string => typeof o === "string") : [];
+  await sweepFolders(admin, deletedOrganisations);
 
   // 3. The sign-in itself (this also removes their membership, profile and "Not now" records).
   const { error: authError } = await admin.auth.admin.deleteUser(user.id);
-  if (authError) {
+  // Pressing Delete again after a half-finished attempt must still work: "user not found" means it is already done.
+  if (authError && !/not.?found/i.test(`${authError.code ?? ""} ${authError.message}`)) {
     console.error("could not delete the sign-in:", authError.message);
     return {
       status: "error",
-      message:
-        "Your businesses were deleted, but we couldn't remove your sign-in. Sign in again to start fresh, then delete your account again.",
+      message: deletedOrganisations.length > 0 ? SIGN_IN_LEFT_BUSINESSES_GONE : SIGN_IN_LEFT_NOTHING_DELETED,
     };
   }
 

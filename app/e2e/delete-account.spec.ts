@@ -74,6 +74,7 @@ test("deleting the account asks for the email address, removes the data and the 
   await sheet(page).getByRole("button", { name: "Delete my account" }).click();
   await expect(page).toHaveURL(/\/sign-in\?account=deleted$/);
   await expect(page.getByTestId("account-deleted")).toContainText("Your account has been deleted");
+  expect((await page.context().cookies()).filter((c) => /^sb-.*-auth-token/.test(c.name) && c.value !== "")).toEqual([]);
   expect(await db.rows("organisations", `id=eq.${org}`)).toHaveLength(0);
   expect(await db.rows("profiles", `id=eq.${userId}`)).toHaveLength(0);
   expect(await db.rows("memberships", `user_id=eq.${userId}`)).toHaveLength(0);

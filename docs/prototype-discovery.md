@@ -17,7 +17,8 @@ Update this table whenever a feature's prototype code is read (`docs/plans/READM
 | Invoices, credit notes, payments | **Summary only. Read before the invoice plan.** | Section 2 table only |
 | Materials, costing screens | `costUtils` read; `Materials.tsx` summary only | Section 3 |
 | Customers, statements | Summary only (statements' logo use read) | Section 2 table only |
-| Dashboard | Parts read | Section 6 |
+| Dashboard | Parts read; the demo-data controls and reset confirm modals read in full (2026-10-13) | Section 6, `docs/plans/delete-account.md` |
+| Reset functions (`clearAllData`, `loadCompanyPreset`, `resetToDefaults`) and the `App.tsx` ErrorBoundary | Read in full (2026-10-13) | `docs/plans/delete-account.md` |
 | Document templates | `quoteTemplates.ts` read for the quote looks; the customiser screen not in full (its logo options read 2026-10-13) | `docs/plans/quote-looks.md`, `docs/plans/business-logo.md` |
 | Profile (business details, logo, bank, VAT) | `Profile.tsx` read in full (2026-10-13) | `docs/plans/business-logo.md` (the logo); the rest was built from earlier plans |
 | Time tracker, scratchpad | Summary only | Section 2 table only |
@@ -93,7 +94,7 @@ These exist only for demos and must not be ported:
 
 The **content** of the six presets is still useful as realistic fixtures for automated tests and local development. If we keep any of it, it goes in a dev and test seed script that refuses to run against production, and never in a UI path. The customiser's `sampleItems` are template-preview data and are fine to keep as such.
 
-A real "delete my account and data" flow (POPIA) is a separate, deliberate feature and replaces the prototype's "Reset".
+A real "delete my account and data" flow (POPIA) is a separate, deliberate feature and replaces the prototype's "Reset". It is built: `docs/plans/delete-account.md`.
 
 ## 7. Open questions (answered)
 
