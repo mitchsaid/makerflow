@@ -8,7 +8,7 @@ import { createJob } from "../jobs/actions";
 const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
 
 /** On an accepted quote: turns it into a job to make. Ends by opening the new job. */
-export function CreateJobButton({ quoteId }: { quoteId: string }) {
+export function CreateJobButton({ quoteId, compact = false }: { quoteId: string; compact?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -34,13 +34,15 @@ export function CreateJobButton({ quoteId }: { quoteId: string }) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <AddButton size="lg" variant="default" disabled={pending} onClick={create}>
+      <AddButton id={compact ? "nudge-create-job" : undefined} size="lg" variant="default" disabled={pending} onClick={create}>
         {pending ? "Creating the job…" : "Create a job"}
       </AddButton>
-      <p className="text-sm text-muted-foreground">
-        Turns this accepted quote into a job to make, with the items, the customer and the day it is needed carried
-        over. You can then follow it from making to collected or delivered.
-      </p>
+      {!compact && (
+        <p className="text-sm text-muted-foreground">
+          Turns this accepted quote into a job to make, with the items, the customer and the day it is needed carried
+          over. You can then follow it from making to collected or delivered.
+        </p>
+      )}
     </div>
   );
 }

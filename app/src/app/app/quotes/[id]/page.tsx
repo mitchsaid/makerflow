@@ -17,7 +17,7 @@ import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
 import { themeFromStored } from "@/lib/quotes/themes";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { currentOutcome, outcomeSentence } from "@/lib/quotes/outcome";
-import { jobNumberText } from "@/lib/jobs";
+import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_PROMPT, jobNumberText, shouldNudgeCreateJob } from "@/lib/jobs";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
 import { DesignSection } from "../design-section";
@@ -27,6 +27,7 @@ import { QuoteDocumentView } from "../quote-document-view";
 import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
 import { CreateJobButton } from "../create-job-button";
+import { CreateJobNudge } from "../create-job-nudge";
 import { DeleteDraftButton } from "./delete-draft-button";
 import { DiscardRevisionButton } from "./discard-revision-button";
 
@@ -36,7 +37,7 @@ export default async function QuotePage({
 }: PageProps<"/app/quotes/[id]">) {
   const { id } = await params;
   // The quote and the customers load beside the workspace check, not after it.
-  const [quote, allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails }, query] = await Promise.all([
+  const [quote, allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails, dismissedPrompts }, query] = await Promise.all([
     getStoredQuote(id),
     getCustomersWithAddresses(),
     getProducts(),
@@ -58,7 +59,7 @@ export default async function QuotePage({
       <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
         Quotes
       </Link>
-      <h1 className="flex flex-wrap items-center gap-3 text-xl font-semibold">
+      <h1 id="quote-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
         <span>Quote {quote.number}</span>{" "}
         <StatusChip status={quote.status} version={quote.version} validUntil={quote.validUntil} today={today} />
       </h1>
@@ -122,6 +123,13 @@ export default async function QuotePage({
   const canRevise = isLatest && quote.status === "sent";
   const outcome = currentOutcome(quote.status, quote.events);
   const answered = quote.status === "accepted" || quote.status === "declined";
+  const nudgeJob = shouldNudgeCreateJob({
+    status: quote.status,
+    isLatest,
+    hasJob: !!quote.job,
+    nudgeParam: query[CREATE_JOB_NUDGE_PARAM],
+    dismissedPrompts,
+  });
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -140,6 +148,7 @@ export default async function QuotePage({
           </AlertDescription>
         </Alert>
       )}
+      {nudgeJob && <CreateJobNudge quoteId={quote.id} quoteNumber={quote.number} />}
       {!isLatest && (
         <Alert data-testid="earlier-version-note">
           <AlertDescription>
@@ -185,9 +194,14 @@ export default async function QuotePage({
         <h2 id="more-heading" className="text-base font-semibold">
           What you can do next
         </h2>
-        {canRevise && <OutcomeButtons quoteId={quote.id} number={quote.number} today={today} />}
+        {canRevise && <OutcomeButtons
+            quoteId={quote.id}
+            number={quote.number}
+            today={today}
+            askToCreateJob={!dismissedPrompts.includes(CREATE_JOB_PROMPT)}
+          />}
         {isLatest && answered && !quote.job && <ChangeAnswerButton quoteId={quote.id} />}
-        {isLatest && quote.status === "accepted" && (
+        {isLatest && quote.status === "accepted" && !nudgeJob && (
           quote.job ? (
             <Card>
               <CardContent className="space-y-1">

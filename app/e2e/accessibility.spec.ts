@@ -293,7 +293,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByLabel("How they told you").selectOption("whatsapp");
       await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
       await expect(page.getByTestId("outcome-banner")).toContainText("Accepted");
-      await expectNoViolations(page, "accepted quote");
+      await expect(page.getByTestId("create-job-nudge")).toBeVisible();
+      await expectNoViolations(page, "accepted quote, with the Create a job card");
 
       // Its job: the page, a step taken, the list; then cancelled so the quote can be reopened below.
       await page.getByRole("button", { name: "Create a job" }).click();
@@ -320,6 +321,13 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await expectNoViolations(page, "jobs list");
+      await page.getByRole("button", { name: /^This week/ }).click();
+      await expectNoViolations(page, "jobs list, this week filter");
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home" }).click();
+      await expect(page.getByTestId("home-count-late")).toBeVisible();
+      await expectNoViolations(page, "home, with job counts");
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
+      await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await page.getByRole("link", { name: /J-0001/ }).click();
       await page.getByRole("button", { name: "Cancel this job" }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();

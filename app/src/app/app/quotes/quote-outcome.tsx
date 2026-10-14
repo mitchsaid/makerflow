@@ -15,6 +15,7 @@ import {
   type OutcomeFormValues,
   type OutcomeKind,
 } from "@/lib/quotes/outcome";
+import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_NUDGE_VALUE } from "@/lib/jobs";
 import { quoteAgain } from "./actions";
 import { recordOutcome, reopenQuote } from "./outcome-actions";
 
@@ -30,7 +31,18 @@ const WAY_OPTIONS = ANSWER_WAYS.map((w) => w.value);
 const WAY_LABELS = Object.fromEntries(ANSWER_WAYS.map((w) => [w.value, w.label]));
 
 /** On a sent quote: what the customer said, or taking the quote back. Each opens a short sheet. */
-export function OutcomeButtons({ quoteId, number, today }: { quoteId: string; number: string; today: string }) {
+export function OutcomeButtons({
+  quoteId,
+  number,
+  today,
+  askToCreateJob,
+}: {
+  quoteId: string;
+  number: string;
+  today: string;
+  /** Offer a job straight after "They accepted" (not when this person said not to ask again). */
+  askToCreateJob: boolean;
+}) {
   const [open, setOpen] = useState<OutcomeKind | null>(null);
   const [lastOpened, setLastOpened] = useState<OutcomeKind>("accepted");
 
@@ -65,7 +77,7 @@ export function OutcomeButtons({ quoteId, number, today }: { quoteId: string; nu
           finalFocus={() => document.getElementById(`outcome-${lastOpened}`) ?? true}
         >
           {/* Mounted only while open, so every opening starts with an empty form. */}
-          {open && <OutcomeForm kind={open} quoteId={quoteId} number={number} today={today} onDone={() => setOpen(null)} />}
+          {open && <OutcomeForm kind={open} quoteId={quoteId} number={number} today={today} askToCreateJob={askToCreateJob} onDone={() => setOpen(null)} />}
         </SheetContent>
       </Sheet>
     </Card>
@@ -77,12 +89,14 @@ function OutcomeForm({
   quoteId,
   number,
   today,
+  askToCreateJob,
   onDone,
 }: {
   kind: OutcomeKind;
   quoteId: string;
   number: string;
   today: string;
+  askToCreateJob: boolean;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -102,7 +116,9 @@ function OutcomeForm({
         const result = await recordOutcome(quoteId, kind, values);
         setTries((n) => n + 1);
         if (result.status === "done") {
-          router.refresh();
+          // An acceptance may offer a job: the address asks the quote page for that card.
+          if (kind === "accepted" && askToCreateJob) router.replace(`/app/quotes/${quoteId}?${CREATE_JOB_NUDGE_PARAM}=${CREATE_JOB_NUDGE_VALUE}`);
+          else router.refresh();
           onDone();
           return;
         }

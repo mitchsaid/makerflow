@@ -53,6 +53,22 @@ export async function getJobs(): Promise<JobSummary[]> {
   return (data as unknown as SummaryRow[]).map(summary);
 }
 
+/** For Home: the status and needed-by day of the active jobs, and nothing else. One light query. */
+export async function getActiveJobDates(): Promise<{ status: JobStatus; neededBy: string | null; organisationId: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("organisation_id, status, needed_by")
+    .in("status", ["not_started", "in_progress", "ready", "out_for_delivery"])
+    .limit(1000);
+  if (error) throw new Error(`Could not load jobs: ${error.message}`);
+  return (data as unknown as { organisation_id: string; status: string; needed_by: string | null }[]).map((r) => ({
+    organisationId: r.organisation_id,
+    status: status(r.status),
+    neededBy: r.needed_by,
+  }));
+}
+
 type DetailRow = SummaryRow & {
   quote_id: string | null;
   quote_version: number | null;

@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { isActiveJob, isOverdueJob, jobNumberText, jobProgress, progressText, takesCounts, visibleJobs, type JobFilter, type JobSummary } from "@/lib/jobs";
+import { isActiveJob, isDueThisWeekJob, isOverdueJob, jobNumberText, jobProgress, progressText, takesCounts, visibleJobs, type JobFilter, type JobSummary } from "@/lib/jobs";
 import { formatQuantity, type NumberStyle } from "@/lib/money/format";
 import { formatDay } from "@/lib/quotes/dates";
 import { JobQuickStep } from "./job-quick-step";
@@ -15,6 +15,8 @@ import { JobStatusChip } from "./job-status-chip";
 
 const FILTERS: { key: JobFilter; label: string }[] = [
   { key: "active", label: "To do" },
+  { key: "late", label: "Late" },
+  { key: "week", label: "This week" },
   { key: "done", label: "Done" },
   { key: "all", label: "All" },
 ];
@@ -28,14 +30,16 @@ export function JobList({
   today,
   formatLocale,
   numberStyle,
+  initialFilter = "active",
 }: {
+  initialFilter?: JobFilter;
   jobs: JobSummary[];
   /** Today, as YYYY-MM-DD, in the business's time zone. */
   today: string;
   formatLocale: string;
   numberStyle: NumberStyle;
 }) {
-  const [filter, setFilter] = useState<JobFilter>("active");
+  const [filter, setFilter] = useState<JobFilter>(initialFilter);
   const [query, setQuery] = useState("");
 
   if (jobs.length === 0) {
@@ -63,10 +67,12 @@ export function JobList({
 
   const counts: Record<JobFilter, number> = {
     active: jobs.filter((j) => isActiveJob(j.status)).length,
+    late: jobs.filter((j) => isOverdueJob(j, today)).length,
+    week: jobs.filter((j) => isDueThisWeekJob(j, today)).length,
     done: jobs.filter((j) => j.status === "done").length,
     all: jobs.length,
   };
-  const visible = visibleJobs(jobs, filter, query);
+  const visible = visibleJobs(jobs, filter, query, today);
 
   return (
     <div className="space-y-4">
@@ -106,7 +112,11 @@ export function JobList({
             ? `No jobs match “${query.trim()}”.`
             : filter === "active"
               ? "Nothing to make right now."
-              : "No jobs here yet."}
+              : filter === "late"
+                ? "Nothing is late. Well done."
+                : filter === "week"
+                  ? "Nothing is needed in the next week."
+                  : "No jobs here yet."}
         </p>
       ) : (
         <ul className="space-y-2">
