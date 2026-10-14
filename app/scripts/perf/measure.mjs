@@ -42,7 +42,9 @@ page.on("request", (r) => {
 });
 
 // "Reacted" = a loading skeleton is showing, or the destination's real content is.
-const HEADINGS = { Quotes: "Quotes", Customers: "Customers", Products: "Products & services", More: "More" };
+// The bottom tabs are Home, Quotes, Jobs, Products and More (Customers sits behind More).
+const TABS = ["Quotes", "Jobs", "Products", "More", "Home"];
+const HEADINGS = { Quotes: "Quotes", Jobs: "Jobs", Products: "Products & services", More: "More" };
 // Runs in the browser, so it must not use anything from this file: the heading comes in as the argument.
 const REACTED = (heading) =>
   !!document.querySelector('[data-testid="page-loading"]') ||
@@ -53,11 +55,11 @@ const REACTED = (heading) =>
 await fetch(proxy + "/__take");
 const rows = [];
 for (let i = 0; i < 6; i++) {
-  for (const to of ["Quotes", "Customers", "Products", "More", "Home"]) {
+  for (const to of TABS) {
     await page.waitForTimeout(900);
     pending = [];
     const t0 = Date.now();
-    await page.getByRole("link", { name: to }).click();
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: to, exact: true }).click();
     await page.waitForFunction(REACTED, HEADINGS[to] ?? null);
     const feedback = Date.now() - t0;
     if (HEADINGS[to]) await page.getByRole("heading", { name: HEADINGS[to], level: 1 }).waitFor();
@@ -70,7 +72,7 @@ for (let i = 0; i < 6; i++) {
 const use = rows.slice(2); // ignore warm-up
 const avg = (a) => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
 console.log(`   first reaction: avg ${avg(use.map((r) => r.feedback))} ms | content: avg ${avg(use.map((r) => r.content))} ms | Supabase calls per click: ${[...new Set(use.map((r) => r.calls.length))].join("/")}`);
-for (const to of ["Quotes", "Customers", "Products", "More", "Home"]) {
+for (const to of TABS) {
   const r = use.filter((x) => x.to === to);
   console.log(`   -> ${to}: reaction ${avg(r.map((x) => x.feedback))} ms, content ${avg(r.map((x) => x.content))} ms | browser requests: ${r[0].reqs.join(" | ") || "(none)"} | DB/auth calls: ${r[0].calls.join(" | ")}`);
 }
