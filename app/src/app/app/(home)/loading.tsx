@@ -12,14 +12,12 @@ export default function HomeLoading() {
     >
       <Skeleton className="h-7 w-48" />
       <Card className="px-4">
-        <Skeleton className="h-5 w-56" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-11 w-40 rounded-lg" />
-      </Card>
-      <Card className="px-4">
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-6 w-28" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-20 rounded-xl" />
+          <Skeleton className="h-20 rounded-xl" />
+        </div>
+        <Skeleton className="h-5 w-36" />
       </Card>
     </main>
   );
