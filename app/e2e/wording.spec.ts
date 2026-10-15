@@ -75,11 +75,11 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await addCustomerInSheet(page, "Sarah");
   await page.getByLabel("Description (optional)").fill("Thank you for asking about cupcakes for the party.");
   await page.getByLabel("Other ways to pay (optional)").fill("Pay on collection");
-  // A term just for this quote, with no title.
-  await page.getByRole("button", { name: "Add a term just for this quote" }).click();
-  const own = page.getByRole("group", { name: "Term just for this quote" });
-  await expect(own.getByLabel("Title (optional)")).toBeFocused();
-  await own.getByLabel("Wording").fill("Orders need two days' notice.");
+  // A term written in the sheet, with no title: it is saved and put on the quote.
+  await page.getByRole("button", { name: "Add a term" }).click();
+  await sheet(page).getByLabel("Wording").fill("Orders need two days' notice.");
+  await sheet(page).getByRole("button", { name: "Save term" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await page.getByLabel("Message (optional)").fill("Yours in sweetness");
 
   // The preview shows it all: the picture of the real document, and its text version.
@@ -97,7 +97,7 @@ test("units, a title and a description: set on the quote, shown on the preview",
   // And it all comes back when the draft is opened again.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page.getByLabel("Description (optional)")).toHaveValue("Thank you for asking about cupcakes for the party.");
-  await expect(page.getByRole("group", { name: "Term just for this quote" }).getByLabel("Wording")).toHaveValue("Orders need two days' notice.");
+  await expect(page.getByTestId("quote-term").filter({ hasText: "Orders need two days' notice." })).toBeVisible();
   await expect(item(page, 1)).toContainText(/2 dozen/);
   await expect(item(page, 2)).toContainText(/2,5 kg/);
 });

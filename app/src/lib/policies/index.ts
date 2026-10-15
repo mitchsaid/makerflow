@@ -81,7 +81,10 @@ export function copyForQuote(policy: PolicySummary, key: string): QuotePolicyVal
   return { key, policyId: policy.id, title: policy.title ?? "", body: policy.body };
 }
 
-/** A new, empty term written just for one quote (not saved to the library). */
+/**
+ * A new, empty term written just for one quote (not saved to the library). The screens no longer make these (every
+ * term is a saved term); this is the shape of one that is already on an older quote, which still has to be read.
+ */
 export function oneOffTerm(key: string): QuotePolicyValues {
   return { key, policyId: "", title: "", body: "" };
 }

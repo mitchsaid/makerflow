@@ -202,16 +202,22 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Balance due", { exact: true }).selectOption("date");
       await expectNoViolations(page, "new quote, deposit open");
       await page.getByLabel("Balance due", { exact: true }).selectOption("handover");
-      await page.getByRole("button", { name: "Add a term just for this quote" }).click();
-      await page.getByRole("button", { name: "Add a term just for this quote" }).click();
-      await expect(page.getByRole("group", { name: "Term just for this quote 2" })).toBeVisible();
-      await expectNoViolations(page, "new quote, two terms just for this quote");
-      await page.getByRole("button", { name: "Remove term just for this quote 2" }).click();
-      await page.getByRole("button", { name: "Remove term just for this quote" }).click();
-      await page.getByRole("button", { name: "Save a new term" }).click();
-      await expect(page.getByRole("dialog", { name: "Save a new term" })).toBeVisible();
-      await expectNoViolations(page, "new quote, save a new term sheet");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      // Terms: with nothing saved the sheet opens to write one; then the term is on the quote, and the sheet lists the rest.
+      await page.getByRole("button", { name: "Add a term" }).click();
+      await expect(page.getByRole("dialog", { name: "New term" })).toBeVisible();
+      await expectNoViolations(page, "new quote, new term sheet");
+      await page.getByRole("dialog").getByLabel("Wording").fill("Shoes off at the door, please.");
+      await page.getByRole("dialog").getByRole("button", { name: "Save term" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByTestId("quote-term")).toHaveCount(1);
+      await expectNoViolations(page, "new quote, a term on the quote");
+      await page.getByRole("button", { name: /^Change the wording for this quote/ }).click();
+      await expectNoViolations(page, "new quote, a term's wording open");
+      await page.getByRole("button", { name: /^Remove Shoes off/ }).click();
+      await page.getByRole("button", { name: "Add a term" }).click();
+      await expect(page.getByRole("dialog", { name: "Add a term" })).toBeVisible();
+      await expectNoViolations(page, "new quote, add a term sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Done" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
       // Bank details on a quote: the sheet to add them, with and without errors.
@@ -623,6 +629,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save term" }).click();
       await expect(page.getByTestId("policy-saved")).toBeVisible();
       await page.getByRole("link", { name: "Add a term" }).click();
+      // Four examples show first; the rest are under "More examples".
+      await page.getByText("More examples").click();
       await page.getByRole("button", { name: "Lead time" }).click();
       await page.getByRole("button", { name: "Save term" }).click();
       await expect(page.getByTestId("policy-saved")).toBeVisible();

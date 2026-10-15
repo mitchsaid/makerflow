@@ -26,6 +26,9 @@ import { splitForTypes } from "@/lib/business-types";
 import { savePolicy } from "./actions";
 import { FormErrorScope } from "@/components/form-errors";
 
+/** How many examples show before "More examples". */
+const EXAMPLES_SHOWN = 4;
+
 /** Set when the form is shown in a sheet over a quote: it hands the saved term back instead of navigating. */
 export type EmbeddedPolicyForm = {
   onDone: (policy: PolicySummary) => void;
@@ -66,7 +69,9 @@ export function PolicyForm({
   const [tries, setTries] = useState(0);
   const [pending, startTransition] = useTransition();
   const fid = (key: string) => `${idPrefix}${key}`;
-  const examples = splitForTypes(allExamples, useBusinessTypes());
+  const split = splitForTypes(allExamples, useBusinessTypes());
+  // A few to start with (the ones that fit the business first); everything else is one tap away, never a wall.
+  const examples = { forYou: split.forYou.slice(0, EXAMPLES_SHOWN), others: [...split.forYou.slice(EXAMPLES_SHOWN), ...split.others] };
   // An example picked from "More examples" (a link from the library) keeps its row open, so its pressed button shows.
   const [moreOpen, setMoreOpen] = useState(!!start && examples.others.some((e) => e.key === start.key));
 
@@ -199,7 +204,7 @@ export function PolicyForm({
           </FieldLabel>
         </Field>
         <FieldDescription>
-          New quotes start with this ticked. You can untick it on any quote, and change its wording there
+          New quotes start with this term on them. Remove it from any quote, and change its wording there
           without changing it here.
         </FieldDescription>
       </Section>
