@@ -182,7 +182,7 @@ export function ListsSection({
                           const problem = problems[v.key];
                           const setValue = (imageId: string) => onImage(g.key, v.key, imageId);
                           const removePicture = (
-                            <Button type="button" variant="ghost" onClick={() => setValue("")}>
+                            <Button type="button" variant="outline" onClick={() => setValue("")}>
                               Remove picture<span className="sr-only"> of {vTitle}</span>
                             </Button>
                           );
@@ -296,8 +296,7 @@ export function ListsSection({
                     <div className="flex justify-end">
                       <Button
                         type="button"
-                        variant="ghost"
-                        className="text-destructive"
+                        variant="danger"
                         onClick={() => {
                           onChange(groups.filter((x) => x.key !== g.key));
                           setOpenKey(null);

@@ -258,8 +258,7 @@ export function ExtrasSection({
                     <div className="flex justify-end">
                       <Button
                         type="button"
-                        variant="ghost"
-                        className="text-destructive"
+                        variant="danger"
                         onClick={() => {
                           onChange(rows.filter((r) => r.key !== x.key));
                           setOpenKey(null);
@@ -317,7 +316,7 @@ export function ExtrasSection({
             </AddButton>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={() => {
                 setPicker(null);
                 pendingFocus.current = fid("add-extra");

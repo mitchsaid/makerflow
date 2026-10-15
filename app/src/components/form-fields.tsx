@@ -31,7 +31,7 @@ export function Section({ title, children }: { title: string; children: React.Re
     <Card>
       <CardContent>
         <FieldSet>
-          <FieldLegend>{title}</FieldLegend>
+          <FieldLegend className="mb-2 data-[variant=legend]:text-lg data-[variant=legend]:font-semibold">{title}</FieldLegend>
           <FieldGroup className="gap-4">{children}</FieldGroup>
         </FieldSet>
       </CardContent>

@@ -14,6 +14,13 @@ const buttonVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
           "border-transparent hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        // For the small actions inside a form or a card ("Use my usual", "Change the wording", "Show all"): a visible
+        // shape in the brand colour, so they read as buttons, but quieter than the one filled primary on the screen.
+        soft:
+          "border-primary/25 bg-primary/10 text-[color-mix(in_oklch,var(--primary),var(--foreground)_18%)] hover:bg-primary/15 aria-expanded:bg-primary/15",
+        // Taking something away (Remove, Delete): an outline with red text. "destructive" below is for the confirming step.
+        danger:
+          "border-border bg-background text-destructive hover:bg-destructive/10 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:border-input dark:bg-input/30",
         destructive:
           "border-transparent bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "border-transparent text-primary underline-offset-4 hover:underline",

@@ -22,3 +22,18 @@ Use **shadcn/ui** (Tailwind v4, React 19, Next.js 16). Components are copied int
 
 ## Rule (also in CLAUDE.md)
 New UI uses `components/ui`. Tap targets at least 44 px, input text at least 16 px, headings are real headings, and new screens pass the accessibility test.
+
+## Addendum 2026-10-15: button levels and visible shapes
+The founder found "Use my usual" looked like floating text. The cause was that the app had two levels of button, the one filled primary and `ghost` (no border, no fill), and every small action fell to `ghost`. Now:
+
+| Level | Variant | Use |
+|---|---|---|
+| Main action of the screen | `default` (filled terracotta) | One per screen or sheet: "Continue to preview", "Save logo". |
+| Small action inside a form or card | `soft` (tinted brand colour, thin brand border) | "Use my usual", "Save as my usual", "Change the wording", "Show all items". The brand colour tells you it is an action; the quieter fill keeps it below the main one. |
+| Other secondary action, a dismissal | `outline` | "Cancel", "Not now", "Back", "Remove picture". |
+| Taking something away | `danger` (outline, red text) | "Remove", "Delete" on a row. The confirming step ("Yes, delete") is `destructive`. |
+| Icon-only | `ghost` with `size="icon"` | Close, remove-row icons. Needs an `aria-label`. |
+
+A button with words on it is never `ghost`: `src/components/__tests__/button-styles.test.ts` fails if one is. Inline actions that go to another page are links; give them the same shape with `buttonVariants` if they are an action, not a sentence.
+
+Also in this pass: section and card titles are larger and bolder (`text-lg font-semibold`) so a long form reads as sections, not one column of labels; cards have a light shadow to lift them off the cream page. Status chips (quote and job) already existed and were left alone. Colour tokens are unchanged. Anything further (illustrations, a second accent, motion) layers on through these components.

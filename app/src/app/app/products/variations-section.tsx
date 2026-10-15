@@ -146,7 +146,7 @@ export function PricedVariations({
                   />
                 </div>
                 {picture !== "" && (
-                  <Button type="button" variant="ghost" onClick={() => onImage(row.key, "")}>
+                  <Button type="button" variant="outline" onClick={() => onImage(row.key, "")}>
                     Remove picture<span className="sr-only"> of {title}</span>
                   </Button>
                 )}

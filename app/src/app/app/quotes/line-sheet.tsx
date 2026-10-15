@@ -801,7 +801,7 @@ function ConfigureView({
       {onRemove && (
         <section className="space-y-3" aria-label="Remove this item">
           {!confirmingRemove ? (
-            <Button id="remove-item" type="button" variant="ghost" className="text-destructive" onClick={() => setConfirmingRemove(true)}>
+            <Button id="remove-item" type="button" variant="danger" onClick={() => setConfirmingRemove(true)}>
               Remove this item
             </Button>
           ) : (

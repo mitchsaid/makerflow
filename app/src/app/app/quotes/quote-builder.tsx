@@ -552,7 +552,7 @@ export function QuoteBuilder({
         {collapsible && !hiddenHaveErrors && (
           <Button
             type="button"
-            variant="ghost"
+            variant="soft"
             aria-controls="items-list"
             onClick={() => setExpanded((v) => !v)}
           >

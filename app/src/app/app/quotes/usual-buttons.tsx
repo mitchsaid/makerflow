@@ -85,7 +85,7 @@ export function UsualButtons({
       )}
       <div className="flex flex-wrap items-center gap-x-2">
         {canSave && (
-          <Button type="button" variant="ghost" disabled={pending} onClick={doSave}>
+          <Button type="button" variant="soft" disabled={pending} onClick={doSave}>
             {pending ? "Saving…" : "Save as my usual"}
             <span className="sr-only"> {what}</span>
           </Button>
@@ -93,7 +93,7 @@ export function UsualButtons({
         {canUse && (
           <Button
             type="button"
-            variant="ghost"
+            variant="soft"
             disabled={pending}
             onClick={() => {
               usedUsual.current = true;
