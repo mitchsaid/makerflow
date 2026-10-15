@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AddButton } from "@/components/add-button";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   copyForQuote,
   inLibraryOrder,
-  oneOffTerm,
   POLICY_BODY_MAX,
   POLICY_TITLE_MAX,
   QUOTE_MAX_POLICIES,
@@ -18,17 +16,17 @@ import {
   termName,
   type PolicyPackContent,
   type PolicySummary,
+  type QuotePolicyError,
   type QuotePolicyValues,
 } from "@/lib/policies";
-import type { QuotePolicyError } from "@/lib/policies";
 import { PolicyForm } from "../documents/policies/policy-form";
-import { AddButton } from "@/components/add-button";
 
 /**
- * The quote's terms (docs/plans/terms.md): the business's saved terms as ticks, and terms written
- * just for this quote. A ticked term shows its wording, which can be changed for this quote only
- * (the saved term is not touched). "Save a new term" opens the same form as the library, in a sheet
- * over the quote, so nothing typed on the quote is lost.
+ * The quote's terms (docs/plans/quote-form-feedback.md, slice C): the terms on this quote as compact rows, and one
+ * "Add a term" that opens a sheet to pick from the business's saved terms or write a new one (create and use, as with
+ * customers and products). Every term is a saved term. A term on the quote can have its wording changed for this
+ * quote only (the saved term is not touched); the form is a sheet over the quote, so nothing typed on the quote is lost.
+ * A term written just for one quote before this change still shows and can be edited or removed, but none is made now.
  */
 export function TermsSection({
   value,
@@ -52,216 +50,234 @@ export function TermsSection({
   newKey: () => string;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [view, setView] = useState<"pick" | "create">("pick");
   const [saving, setSaving] = useState(false);
   const addButton = useRef<HTMLButtonElement>(null);
-  const addOwnButton = useRef<HTMLButtonElement>(null);
-  // After "Add a term just for this quote", its first box takes focus.
-  const [focusKey, setFocusKey] = useState<string | null>(null);
-  useEffect(() => {
-    if (focusKey) document.getElementById(`policy-${focusKey}-title`)?.focus();
-  }, [focusKey]);
-  // After Remove (its button goes with the term), focus moves to adding another, once it is enabled again.
+  // Which terms have their wording open for changing (a term with a problem is always open).
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  // After Remove (its button goes with the term), focus moves to the add button.
   const [removed, setRemoved] = useState(0);
   useEffect(() => {
-    if (removed > 0) addOwnButton.current?.focus();
+    if (removed > 0) addButton.current?.focus();
   }, [removed]);
 
   const active = sortPolicies(library.filter((p) => !p.archived));
-  const copyOf = (policyId: string) => value.find((c) => c.policyId !== "" && c.policyId === policyId);
-  // Written just for this quote: no saved term behind it.
-  const ownTerms = value.filter((c) => c.policyId === "");
-  // Copies whose saved term has since been archived or isn't known: still on this quote.
-  const orphans = value.filter((c) => c.policyId !== "" && !active.some((p) => p.id === c.policyId));
+  const savedOf = (policyId: string) => active.find((p) => p.id === policyId);
   const full = value.length >= QUOTE_MAX_POLICIES;
+  // The saved terms not on this quote yet.
+  const available = active.filter((p) => !value.some((c) => c.policyId === p.id));
 
-  function toggle(policy: PolicySummary, on: boolean) {
-    if (on) onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], library));
-    else onChange(value.filter((c) => c.policyId !== policy.id));
+  function remove(key: string) {
+    onChange(value.filter((c) => c.key !== key));
+    setOpen((s) => {
+      const next = new Set(s);
+      next.delete(key);
+      return next;
+    });
+    setRemoved((n) => n + 1);
   }
   function edit(key: string, change: Partial<Pick<QuotePolicyValues, "title" | "body">>) {
     onChange(value.map((c) => (c.key === key ? { ...c, ...change } : c)));
   }
-  function remove(key: string) {
-    onChange(value.filter((c) => c.key !== key));
-    setRemoved((n) => n + 1);
+  function add(policy: PolicySummary) {
+    if (full) return;
+    onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], library));
   }
-  function addOwn() {
-    const term = oneOffTerm(newKey());
-    onChange([...value, term]);
-    setFocusKey(term.key);
+  function openSheet() {
+    // With nothing saved to pick from, go straight to writing one (people who can).
+    setView(available.length === 0 && canManage ? "create" : "pick");
+    setSheetOpen(true);
   }
+  const toggleOpen = (key: string) =>
+    setOpen((s) => {
+      const next = new Set(s);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
-  const wording = (copy: QuotePolicyValues, saved: PolicySummary | undefined) => (
-    <div className="space-y-2 pl-9">
-      <TextAreaField
-        id={`policy-${copy.key}-body`}
-        // Named by the saved term, so an untitled one's label does not change as its wording is typed.
-        label={`Wording for this quote: ${termName(saved ?? copy)}`}
-        value={copy.body}
-        error={errorsByKey?.[copy.key]?.body ?? errorsByKey?.[copy.key]?.title}
-        onChange={(body) => edit(copy.key, { body })}
-        maxLength={POLICY_BODY_MAX}
-        rows={5}
-      />
-      {saved && copy.body !== saved.body && (
-        <Button type="button" variant="outline" onClick={() => edit(copy.key, { body: saved.body })}>
-          Use the saved wording again
-        </Button>
-      )}
-    </div>
-  );
+  const row = (c: QuotePolicyValues) => {
+    const saved = c.policyId === "" ? undefined : savedOf(c.policyId);
+    const name = termName(saved ?? c);
+    const problem = errorsByKey?.[c.key];
+    // A term written just for one quote (from before): its title and wording are right there.
+    if (c.policyId === "") {
+      const label = "Term just for this quote";
+      return (
+        <li key={c.key}>
+          <div role="group" aria-labelledby={`policy-${c.key}-heading`} className="space-y-3 rounded-lg border border-border p-3">
+            <div className="flex min-h-11 items-center justify-between gap-3">
+              <p id={`policy-${c.key}-heading`} className="text-base font-medium">
+                {label}
+              </p>
+              <Button type="button" variant="ghost" aria-label={`Remove ${label.toLowerCase()}`} onClick={() => remove(c.key)}>
+                Remove
+              </Button>
+            </div>
+            <TextField
+              id={`policy-${c.key}-title`}
+              label="Title (optional)"
+              autoComplete="off"
+              maxLength={POLICY_TITLE_MAX}
+              value={c.title}
+              error={problem?.title}
+              onChange={(title) => edit(c.key, { title })}
+            />
+            <TextAreaField
+              id={`policy-${c.key}-body`}
+              label="Wording"
+              value={c.body}
+              error={problem?.body}
+              onChange={(body) => edit(c.key, { body })}
+              maxLength={POLICY_BODY_MAX}
+              rows={4}
+            />
+          </div>
+        </li>
+      );
+    }
+    const changing = open.has(c.key) || !!problem;
+    return (
+      <li key={c.key} className="space-y-2 rounded-lg border border-border p-3" data-testid="quote-term">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-base font-medium">{name}</p>
+            {!changing && <p className="line-clamp-2 text-sm text-muted-foreground">{c.body}</p>}
+            {!saved && <p className="text-sm text-muted-foreground">No longer in your saved terms</p>}
+          </div>
+          <Button type="button" variant="ghost" aria-label={`Remove ${name}`} onClick={() => remove(c.key)}>
+            Remove
+          </Button>
+        </div>
+        {changing ? (
+          <div className="space-y-2">
+            <TextAreaField
+              id={`policy-${c.key}-body`}
+              // Named by the saved term, so an untitled one's label does not change as its wording is typed.
+              label={`Wording for this quote: ${name}`}
+              value={c.body}
+              error={problem?.body ?? problem?.title}
+              onChange={(body) => edit(c.key, { body })}
+              maxLength={POLICY_BODY_MAX}
+              rows={5}
+            />
+            {saved && c.body !== saved.body && (
+              <Button type="button" variant="outline" onClick={() => edit(c.key, { body: saved.body })}>
+                Use the saved wording again
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Button type="button" variant="ghost" aria-label={`Change the wording for this quote: ${name}`} aria-expanded={false} onClick={() => toggleOpen(c.key)}>
+            Change the wording for this quote
+          </Button>
+        )}
+      </li>
+    );
+  };
 
   return (
     <Section title="Terms">
-      <p className="text-base text-muted-foreground">
-        Tick the terms this quote should include, or add one just for this quote.
-      </p>
       {error && (
         <p id="policies-error" role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
 
-      {active.length === 0 && orphans.length === 0 && (
+      {value.length === 0 ? (
         <p className="text-base" data-testid="no-policies">
-          {canManage
-            ? "You haven't saved any terms yet. Save one and it's ready for every quote."
-            : "No terms have been saved yet. Ask an owner or admin to add some."}
+          {available.length > 0
+            ? "No terms on this quote yet."
+            : canManage
+              ? "You haven't saved any terms yet. Write one and it's ready for every quote."
+              : "No terms have been saved yet. Ask an owner or admin to add some."}
         </p>
-      )}
-
-      <ul className="space-y-4">
-        {active.map((p) => {
-          const copy = copyOf(p.id);
-          return (
-            <li key={p.id} className="space-y-2">
-              <Field orientation="horizontal" className="items-start py-2.5">
-                <Checkbox
-                  id={`policy-${p.id}`}
-                  checked={!!copy}
-                  disabled={!copy && full}
-                  onCheckedChange={(checked) => toggle(p, checked === true)}
-                />
-                <FieldLabel htmlFor={`policy-${p.id}`} className="text-base">
-                  {termName(p)}
-                </FieldLabel>
-              </Field>
-              {/* A glimpse of the wording until it is ticked (then the wording itself is shown). */}
-              {copy ? wording(copy, p) : p.title && <p className="-mt-2 line-clamp-1 pl-9 text-sm text-muted-foreground">{p.body}</p>}
-            </li>
-          );
-        })}
-        {orphans.map((c) => (
-          <li key={c.key} className="space-y-2">
-            <div className="flex min-h-11 items-center justify-between gap-3">
-              <p className="text-base">
-                {termName(c)}
-                <span className="block text-sm text-muted-foreground">No longer in your saved terms</span>
-              </p>
-              <Button type="button" variant="ghost" onClick={() => remove(c.key)}>
-                Remove<span className="sr-only"> {termName(c)}</span>
-              </Button>
-            </div>
-            {wording(c, undefined)}
-          </li>
-        ))}
-      </ul>
-
-      {ownTerms.length > 0 && (
-        <ul className="space-y-4" aria-label="Just for this quote" data-testid="own-terms">
-          {ownTerms.map((c, i) => {
-            const label = ownTerms.length > 1 ? `Term just for this quote ${i + 1}` : "Term just for this quote";
-            return (
-              // A group, so a screen reader says which term its title and wording belong to.
-              <li key={c.key}>
-                <div role="group" aria-labelledby={`policy-${c.key}-heading`} className="space-y-3 rounded-lg border border-border p-3">
-                  <div className="flex min-h-11 items-center justify-between gap-3">
-                    <p id={`policy-${c.key}-heading`} className="text-base font-medium">
-                      {label}
-                    </p>
-                    <Button type="button" variant="ghost" onClick={() => remove(c.key)}>
-                      Remove<span className="sr-only"> {label.toLowerCase()}</span>
-                    </Button>
-                  </div>
-                  <TextField
-                    id={`policy-${c.key}-title`}
-                    label="Title (optional)"
-                    autoComplete="off"
-                    maxLength={POLICY_TITLE_MAX}
-                    value={c.title}
-                    error={errorsByKey?.[c.key]?.title}
-                    onChange={(title) => edit(c.key, { title })}
-                    hint={i === 0 ? "Leave it empty for a short line, printed as a plain paragraph." : undefined}
-                  />
-                  <TextAreaField
-                    id={`policy-${c.key}-body`}
-                    label="Wording"
-                    value={c.body}
-                    error={errorsByKey?.[c.key]?.body}
-                    onChange={(body) => edit(c.key, { body })}
-                    maxLength={POLICY_BODY_MAX}
-                    rows={4}
-                  />
-                </div>
-              </li>
-            );
-          })}
+      ) : (
+        <ul className="space-y-3" aria-label="Terms on this quote">
+          {value.map(row)}
         </ul>
       )}
 
       {full && (
         <p className="text-sm text-muted-foreground">
-          A quote can have up to {QUOTE_MAX_POLICIES} terms. Untick or remove one to add another.
+          A quote can have up to {QUOTE_MAX_POLICIES} terms. Remove one to add another.
         </p>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <AddButton ref={addOwnButton} disabled={full} onClick={addOwn}>
-          Add a term just for this quote
-        </AddButton>
-        {canManage && (
-          <Button ref={addButton} type="button" variant="outline" onClick={() => setSheetOpen(true)}>
-            Save a new term
-          </Button>
-        )}
-      </div>
+      {(available.length > 0 || canManage) && (
+        <div>
+          <AddButton ref={addButton} id="add-term" disabled={full} onClick={openSheet}>
+            Add a term
+          </AddButton>
+        </div>
+      )}
 
       <ComingSoonSection
         title="Customer agrees to the terms"
         description="With online quotes, your customer reads the terms and agrees to them when they accept, and you see when."
       />
 
-      <Sheet open={sheetOpen} onOpenChange={(open) => !open && !saving && setSheetOpen(false)}>
-        <SheetContent
-          side="right"
-          className="h-dvh gap-0 overflow-y-auto"
-          finalFocus={() => addButton.current ?? true}
-        >
+      <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && !saving && setSheetOpen(false)}>
+        <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => addButton.current ?? true}>
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
-            <SheetTitle className="text-lg">Save a new term</SheetTitle>
+            <SheetTitle className="text-lg">{view === "create" ? "New term" : "Add a term"}</SheetTitle>
             <SheetDescription className="text-base">
-              {full
-                ? `It is saved to your terms. This quote already has ${QUOTE_MAX_POLICIES} terms, so it is not added to it. Your quote is kept as it is.`
-                : "It is saved to your terms and added to this quote. Your quote is kept as it is."}
+              {view === "create"
+                ? full
+                  ? `It is saved to your terms. This quote already has ${QUOTE_MAX_POLICIES} terms, so it is not added to it. Your quote is kept as it is.`
+                  : "It is saved to your terms and added to this quote. Your quote is kept as it is."
+                : "Choose from your saved terms, or write a new one."}
             </SheetDescription>
           </SheetHeader>
-          <div className="px-4 pt-4">
-            <PolicyForm
-              key={sheetOpen ? "open" : "closed"}
-              initial={{ title: "", body: "", includeByDefault: false }}
-              policyId={null}
-              content={content}
-              idPrefix="policy-sheet-"
-              embedded={{
-                onPendingChange: setSaving,
-                onCancel: () => setSheetOpen(false),
-                onDone: (policy) => {
-                  onLibraryAdd(policy);
-                  if (!full) onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], [...library, policy]));
-                  setSheetOpen(false);
-                },
-              }}
-            />
+          <div className="space-y-4 px-4 pt-4 pb-6">
+            {view === "pick" ? (
+              <>
+                {canManage && (
+                  <AddButton variant="default" onClick={() => setView("create")}>
+                    New term
+                  </AddButton>
+                )}
+                {available.length === 0 ? (
+                  <p className="text-base text-muted-foreground">Every saved term is already on this quote.</p>
+                ) : (
+                  <ul className="space-y-3" aria-label="Your saved terms">
+                    {available.map((p) => (
+                      <li key={p.id} className="flex items-start justify-between gap-3 rounded-lg border border-border p-3">
+                        <div className="min-w-0">
+                          <p className="text-base font-medium">{termName(p)}</p>
+                          {p.title && <p className="line-clamp-2 text-sm text-muted-foreground">{p.body}</p>}
+                        </div>
+                        <AddButton disabled={full} aria-label={`Add ${termName(p)} to this quote`} onClick={() => add(p)}>
+                          Add
+                        </AddButton>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {full && <p className="text-sm text-muted-foreground">This quote has {QUOTE_MAX_POLICIES} terms, the most it can hold.</p>}
+                <Button type="button" size="lg" variant="outline" onClick={() => setSheetOpen(false)}>
+                  Done
+                </Button>
+              </>
+            ) : (
+              <PolicyForm
+                key={sheetOpen ? "open" : "closed"}
+                initial={{ title: "", body: "", includeByDefault: false }}
+                policyId={null}
+                content={content}
+                idPrefix="policy-sheet-"
+                embedded={{
+                  onPendingChange: setSaving,
+                  // Back to the saved terms when there are some to pick from; otherwise out of the sheet.
+                  onCancel: () => (available.length > 0 ? setView("pick") : setSheetOpen(false)),
+                  onDone: (policy) => {
+                    onLibraryAdd(policy);
+                    if (!full) onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], [...library, policy]));
+                    setSheetOpen(false);
+                  },
+                }}
+              />
+            )}
           </div>
         </SheetContent>
       </Sheet>

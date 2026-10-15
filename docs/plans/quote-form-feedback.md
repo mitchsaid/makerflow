@@ -61,6 +61,8 @@ Read in full, in `prototype/src/components/Quotes.tsx`, the whole quote creation
 - **The wall of examples:** the new-term form shows three or four examples for the business's type first, with the rest behind "More examples" (the same split the Terms page already uses); a business with no type set is offered the type question once.
 - Terms already written "just for this quote" on existing quotes keep working and printing.
 
+**Built (slice C, 2026-10-15; no database change):** the quote's Terms section shows the terms on the quote as compact rows (title, two lines of wording, **Change the wording for this quote**, **Remove**) and has one **Add a term** button. It opens a sheet that lists the saved terms not yet on the quote, each with an **Add** button (the list shrinks as they are added; **Done** closes it), and **New term** (owners and admins), which opens the term form in the same sheet; saving puts the new term in the library and on the quote. With nothing saved the sheet opens straight on the new-term form. "Add a term just for this quote" and "Save a new term" are gone; a one-off term on an existing quote still shows and can be edited or removed. The new-term form shows **four examples** (the ones that fit the business first) and the rest under **More examples**; a business with no type set gets the first four in the list's order.
+
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
 | --- | --- | --- |
