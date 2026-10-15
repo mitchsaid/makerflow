@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
  * quote what every new quote starts with, in one tap; "Use my usual" puts the saved one back. The parent decides when each
  * is on offer (`canSave`, `canUse`) and what saving does (`save`, which says what was stored). Nothing here changes a quote
  * that already exists.
+ *
+ * Both buttons go away once they have done their work (the quote then matches the usual), so focus moves to the line that
+ * says what happened, which is also what a screen reader announces.
  */
 export function UsualButtons({
   what,
@@ -21,7 +24,7 @@ export function UsualButtons({
 }: {
   /** What it is, for the buttons' names: "description", "sign-off", "deposit". */
   what: string;
-  /** Changes whenever what is on the quote changes, so "Saved" goes away once it is edited again. */
+  /** Changes whenever what is on the quote changes, so the note goes away once it is edited again. */
   valueKey: string;
   canSave: boolean;
   canUse: boolean;
@@ -31,10 +34,29 @@ export function UsualButtons({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
-  const [savedKey, setSavedKey] = useState<string | null>(null);
-  const saved = savedKey === valueKey;
+  const [note, setNote] = useState<{ text: string; key: string } | null>(null);
+  const status = useRef<HTMLParagraphElement>(null);
+  // After "Use my usual" the quote changes on the next render: the note is then tied to the new value.
+  const usedUsual = useRef(false);
+  const focusNote = useRef(false);
 
-  if (!canSave && !canUse && !saved && !message) return null;
+  useEffect(() => {
+    if (usedUsual.current) {
+      usedUsual.current = false;
+      setNote({ text: `Back to your usual ${what}.`, key: valueKey });
+      focusNote.current = true;
+    }
+  }, [valueKey, what]);
+
+  useEffect(() => {
+    if (focusNote.current && note) {
+      focusNote.current = false;
+      status.current?.focus();
+    }
+  }, [note]);
+
+  const showNote = note !== null && note.key === valueKey;
+  if (!canSave && !canUse && !showNote && !message) return null;
 
   function doSave() {
     setMessage(null);
@@ -42,7 +64,8 @@ export function UsualButtons({
       try {
         const result = await save();
         if (result.status === "saved") {
-          setSavedKey(valueKey);
+          setNote({ text: `Saved as your usual ${what}.`, key: valueKey });
+          focusNote.current = true;
           onSaved(result.value);
         } else {
           setMessage(result.message ?? "Something went wrong saving that. Please try again.");
@@ -68,15 +91,21 @@ export function UsualButtons({
           </Button>
         )}
         {canUse && (
-          <Button type="button" variant="ghost" disabled={pending} onClick={onUse}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={pending}
+            onClick={() => {
+              usedUsual.current = true;
+              onUse();
+            }}
+          >
             Use my usual<span className="sr-only"> {what}</span>
           </Button>
         )}
-        {saved && (
-          <p role="status" className="text-sm text-muted-foreground">
-            Saved as your usual {what}.
-          </p>
-        )}
+        <p ref={status} role="status" tabIndex={-1} className="text-sm text-muted-foreground outline-none">
+          {showNote ? note.text : ""}
+        </p>
       </div>
     </div>
   );

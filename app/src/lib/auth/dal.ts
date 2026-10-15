@@ -81,7 +81,7 @@ type ProfileRow = {
   vat_number: string | null;
   prices_include_vat: boolean;
   business_types: string[] | null;
-  default_deposit_kind: "none" | "percent" | "fixed";
+  default_deposit_kind: "none" | "percent" | "fixed" | "ask";
   default_deposit_value: number | string;
   usual_fulfilment: "collection" | "delivery" | null;
   quote_setup_at: string | null;

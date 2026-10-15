@@ -51,7 +51,7 @@ import { AddButton } from "@/components/add-button";
 import { saveDepositDefault } from "../documents/deposit-actions";
 import { saveUsualDescription, saveUsualPayment, saveUsualSignOff } from "./usual-actions";
 import { UsualButtons } from "./usual-buttons";
-import { canSaveUsualText, canUseUsualText, type QuoteUsuals } from "@/lib/quotes/usuals";
+import { canSaveUsualText, canUseUsualText, sameDeposit, type QuoteUsuals } from "@/lib/quotes/usuals";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
@@ -448,7 +448,10 @@ export function QuoteBuilder({
           canUse={canUseUsualText(values.description, usuals.description)}
           save={() => saveUsualDescription(values.description)}
           onSaved={(value) => setUsuals((u) => ({ ...u, description: value ?? values.description }))}
-          onUse={() => update({ description: usuals.description })}
+          onUse={() => {
+            scope?.markEdited("description");
+            update({ description: usuals.description });
+          }}
         />
       </Section>
 
@@ -671,9 +674,10 @@ export function QuoteBuilder({
         symbol={symbol}
         errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate }}
         ask={askForDeposit}
+        decided={quoteId !== null}
         footer={
           // "Ask each time" has no usual to save: the choice is made on every quote.
-          !askForDeposit && (
+          !askForDeposit && usuals.depositKind !== "ask" && (
             <UsualButtons
               what="deposit"
               valueKey={`${values.depositKind}:${values.depositValue}`}
@@ -681,11 +685,11 @@ export function QuoteBuilder({
                 canSaveUsuals &&
                 values.depositKind !== "none" &&
                 values.depositValue.trim() !== "" &&
-                `${values.depositKind}:${values.depositValue}` !== `${usuals.depositKind}:${usuals.depositValue}`
+                !sameDeposit({ kind: values.depositKind, value: values.depositValue }, { kind: usuals.depositKind, value: usuals.depositValue })
               }
               canUse={
                 (usuals.depositKind === "percent" || usuals.depositKind === "fixed") &&
-                `${values.depositKind}:${values.depositValue}` !== `${usuals.depositKind}:${usuals.depositValue}`
+                !sameDeposit({ kind: values.depositKind, value: values.depositValue }, { kind: usuals.depositKind, value: usuals.depositValue })
               }
               save={async () => {
                 const result = await saveDepositDefault({ kind: values.depositKind, value: values.depositValue });
@@ -696,12 +700,14 @@ export function QuoteBuilder({
                 };
               }}
               onSaved={() => setUsuals((u) => ({ ...u, depositKind: values.depositKind, depositValue: values.depositValue }))}
-              onUse={() =>
+              onUse={() => {
+                scope?.markEdited("depositValue");
+                scope?.markEdited("balanceDueDate");
                 update({
                   depositKind: usuals.depositKind === "fixed" ? "fixed" : "percent",
                   depositValue: usuals.depositValue,
-                })
-              }
+                });
+              }}
             />
           )
         }
@@ -744,7 +750,10 @@ export function QuoteBuilder({
           canUse={canUseUsualText(values.paymentInstructions, usuals.paymentInstructions)}
           save={() => saveUsualPayment(values.paymentInstructions)}
           onSaved={(value) => setUsuals((u) => ({ ...u, paymentInstructions: value ?? values.paymentInstructions }))}
-          onUse={() => update({ paymentInstructions: usuals.paymentInstructions })}
+          onUse={() => {
+            scope?.markEdited("paymentInstructions");
+            update({ paymentInstructions: usuals.paymentInstructions });
+          }}
         />
       </BankDetailsSection>
 
@@ -778,7 +787,10 @@ export function QuoteBuilder({
           canUse={canUseUsualText(values.signOff, usuals.signOff)}
           save={() => saveUsualSignOff(values.signOff)}
           onSaved={(value) => setUsuals((u) => ({ ...u, signOff: value ?? values.signOff }))}
-          onUse={() => update({ signOff: usuals.signOff })}
+          onUse={() => {
+            scope?.markEdited("signOff");
+            update({ signOff: usuals.signOff });
+          }}
         />
       </Section>
 

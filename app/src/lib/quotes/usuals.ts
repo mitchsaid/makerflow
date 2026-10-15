@@ -1,5 +1,5 @@
 import { moneyToInput, percentToInput, type NumberStyle } from "../money";
-import type { DefaultDepositKind } from "./deposit";
+import { depositColumns, parseDeposit, type DefaultDepositKind } from "./deposit";
 
 /**
  * "Your usual" (docs/plans/quote-form-feedback.md): what a new quote starts with, saved once for the business. On a
@@ -38,8 +38,31 @@ export function usualsFromProfile(
   };
 }
 
+/** The text the way it is stored: the same tidying the server does, so "Kind  regards" and "Kind regards" are the same. */
+export const normaliseText = (value: string): string =>
+  value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim().replace(/[ \t]+/g, " "))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
 /** Is what is on the quote different from the usual, and worth offering to save? Blank text is never offered. */
-export const canSaveUsualText = (value: string, usual: string): boolean => value.trim() !== "" && value.trim() !== usual.trim();
+export const canSaveUsualText = (value: string, usual: string): boolean => normaliseText(value) !== "" && normaliseText(value) !== normaliseText(usual);
 
 /** Is there a usual to go back to that differs from what is on the quote? */
-export const canUseUsualText = (value: string, usual: string): boolean => usual.trim() !== "" && value.trim() !== usual.trim();
+export const canUseUsualText = (value: string, usual: string): boolean => normaliseText(usual) !== "" && normaliseText(value) !== normaliseText(usual);
+
+/** The same deposit, however it was typed ("50" and "50,0")? Compared by what it works out to, not by its text. */
+export function sameDeposit(a: { kind: string; value: string }, b: { kind: string; value: string }): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind !== "percent" && a.kind !== "fixed") return true;
+  const parse = (d: { kind: string; value: string }) => {
+    const parsed = parseDeposit({ depositKind: d.kind as "percent" | "fixed", depositValue: d.value }, "");
+    return parsed.ok ? depositColumns(parsed.deposit).deposit_value : null;
+  };
+  const x = parse(a);
+  const y = parse(b);
+  return x !== null && y !== null ? x === y : a.value.trim() === b.value.trim();
+}

@@ -27,6 +27,7 @@ export function DepositSection({
   symbol,
   errors,
   ask = false,
+  decided = false,
   footer,
 }: {
   values: DepositFormValues;
@@ -40,6 +41,8 @@ export function DepositSection({
   errors: { depositValue?: string; balanceDueDate?: string };
   /** The business decides the deposit on every quote: a choice is put in front of them, with nothing chosen yet. */
   ask?: boolean;
+  /** In "ask" mode on a quote that was saved before: what it has is the choice made (so no deposit shows as chosen). */
+  decided?: boolean;
   /** Under the section's fields (the "Save as my usual" buttons). */
   footer?: React.ReactNode;
 }) {
@@ -51,7 +54,7 @@ export function DepositSection({
   };
   const on = values.depositKind !== "none";
   // In "ask" mode: nothing chosen yet until a choice is made (what is saved is "no deposit" until then).
-  const [asked, setAsked] = useState<"none" | "percent" | "fixed" | "">("");
+  const [asked, setAsked] = useState<"none" | "percent" | "fixed" | "">(decided ? values.depositKind : "");
   // Unticking and ticking again brings back the kind that was chosen.
   const [lastKind, setLastKind] = useState<"percent" | "fixed">(values.depositKind === "fixed" ? "fixed" : "percent");
 

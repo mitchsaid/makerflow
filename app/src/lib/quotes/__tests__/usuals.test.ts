@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isDefaultDepositKind } from "../deposit";
-import { canSaveUsualText, canUseUsualText, usualsFromProfile } from "../usuals";
+import { canSaveUsualText, canUseUsualText, normaliseText, sameDeposit, usualsFromProfile } from "../usuals";
 
 const za = { decimal: ",", group: " " } as const;
 
@@ -47,5 +47,23 @@ describe("deposit defaults", () => {
     for (const k of ["none", "percent", "fixed", "ask"]) expect(isDefaultDepositKind(k)).toBe(true);
     expect(isDefaultDepositKind("whenever")).toBe(false);
     expect(isDefaultDepositKind(undefined)).toBe(false);
+  });
+});
+
+describe("comparing what is typed with the usual", () => {
+  it("ignores the tidying the server does to text", () => {
+    expect(normaliseText("Kind  regards ")).toBe("Kind regards");
+    expect(normaliseText("a\r\n\r\n\r\n\r\nb")).toBe("a\n\nb");
+    expect(canSaveUsualText("Kind  regards", "Kind regards")).toBe(false);
+    expect(canUseUsualText("Kind  regards", "Kind regards")).toBe(false);
+  });
+  it("compares a deposit by what it works out to, not how it was typed", () => {
+    expect(sameDeposit({ kind: "percent", value: "50" }, { kind: "percent", value: "50,0" })).toBe(true);
+    expect(sameDeposit({ kind: "fixed", value: "1250" }, { kind: "fixed", value: "1 250,00" })).toBe(true);
+    expect(sameDeposit({ kind: "percent", value: "30" }, { kind: "percent", value: "50" })).toBe(false);
+    expect(sameDeposit({ kind: "percent", value: "50" }, { kind: "fixed", value: "50" })).toBe(false);
+    expect(sameDeposit({ kind: "none", value: "" }, { kind: "none", value: "" })).toBe(true);
+    // Not a number yet: compared as typed.
+    expect(sameDeposit({ kind: "percent", value: "abc" }, { kind: "percent", value: "abc" })).toBe(true);
   });
 });

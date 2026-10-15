@@ -1,4 +1,5 @@
--- "Your usual" for the quote form (docs/plans/quote-form-feedback.md, slice B).
+-- "Your usual" for the quote form (docs/plans/quote-form-feedback.md, slice B). Needs human review (a business
+-- profile column, a widened check on the deposit default and an update grant).
 --
 -- * business_profiles.default_description: the introduction a new quote starts with, set from a quote ("Save as my
 --   usual") or under Quotes and invoices, like the sign-off and "other ways to pay" that already work this way.

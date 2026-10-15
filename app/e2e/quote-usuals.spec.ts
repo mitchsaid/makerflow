@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { openDocuments, signUpAndOnboard } from "./helpers";
+import { fillItem } from "./quote-helpers";
 
 /** "Your usual" on the quote form (docs/plans/quote-form-feedback.md, slice B). */
 
@@ -99,4 +100,15 @@ test("\"I decide on each quote\": a new quote opens the deposit choice with noth
   await expect(section.getByLabel("Balance due")).toBeVisible();
   await section.getByRole("radio", { name: "No deposit" }).check();
   await expect(section.getByLabel("Percentage (%)")).toHaveCount(0);
+
+  // A saved draft keeps the choice that was made (and still never offers to replace "I decide on each quote").
+  await section.getByRole("radio", { name: "A percentage of the total" }).check();
+  await section.getByLabel("Percentage (%)").fill("30");
+  await fillItem(page, 1, "Cake", "1", "100");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  const saved = page.getByRole("group", { name: "Deposit" });
+  await expect(saved.getByRole("radio", { name: "A percentage of the total" })).toBeChecked();
+  await expect(saved.getByLabel("Percentage (%)")).toHaveValue("30");
+  await expect(saved.getByRole("button", { name: /my usual/ })).toHaveCount(0);
 });

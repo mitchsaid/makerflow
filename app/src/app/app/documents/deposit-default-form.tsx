@@ -66,6 +66,8 @@ export function DepositDefaultForm({
             value={choice}
             onChange={(e) => {
               setEditedSinceSave(true);
+              // A different kind of deposit starts again: the old "enter a percentage" no longer applies.
+              setState((s) => (s.status === "error" ? { status: "idle" } : s));
               const next = e.target.value;
               setChoice(next === "percent" || next === "fixed" || next === "ask" ? next : "none");
               setValue("");
