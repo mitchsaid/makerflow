@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { localSupabase, signUpAndOnboard } from "./helpers";
+import { localSupabase, nextServerAction, signUpAndOnboard } from "./helpers";
 import { nav, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -52,9 +52,11 @@ test("accepting a quote offers a job; Not now closes the card for good, Don't as
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
   await accept(page);
   await expect(nudge).toBeVisible();
+  const dontAskSaved = nextServerAction(page);
   await nudge.getByRole("button", { name: "Don't ask me again" }).click();
   await expect(nudge).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Create a job" })).toBeVisible();
+  await dontAskSaved;
   await page.reload();
   await expect(page.getByTestId("create-job-nudge")).toHaveCount(0);
 

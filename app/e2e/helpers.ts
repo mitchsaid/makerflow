@@ -129,3 +129,12 @@ export function accessTokenFrom(cookies: { name: string; value: string }[]): str
   const raw = parts.map((c) => c.value).join("").replace(/^base64-/, "");
   return JSON.parse(Buffer.from(raw, "base64url").toString("utf8")).access_token;
 }
+
+/**
+ * Waits for the next server action to be answered. Start it before the click that sends it, and wait for it before
+ * reloading: a button that saves quietly in the background (a "Not now") is gone from the screen at once, so a
+ * reload straight after can cancel the save on a slow machine.
+ */
+export function nextServerAction(page: Page) {
+  return page.waitForResponse((r) => r.request().method() === "POST" && "next-action" in r.request().headers());
+}
