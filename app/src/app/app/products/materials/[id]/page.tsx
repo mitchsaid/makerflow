@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -8,6 +7,7 @@ import { currencySymbol, moneyToInput, quantityToInput } from "@/lib/money";
 import { updateMaterial } from "../actions";
 import { MaterialForm } from "../material-form";
 import { MaterialArchiveButton } from "./archive-button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function MaterialPage({ params }: PageProps<"/app/products/materials/[id]">) {
   const { id } = await params;
@@ -19,12 +19,9 @@ export default async function MaterialPage({ params }: PageProps<"/app/products/
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/products/materials" className="text-sm text-muted-foreground underline">
-          Materials
-        </Link>
+      <PageHeader back={{ href: "/app/products/materials", label: "Materials" }}>
         <h1 className="text-xl font-semibold">{material.name}</h1>
-      </div>
+      </PageHeader>
       {material.archived && (
         <Alert data-testid="archived-notice">
           <AlertDescription>This material is archived, so it is hidden from your list. Restore it below to use it again.</AlertDescription>

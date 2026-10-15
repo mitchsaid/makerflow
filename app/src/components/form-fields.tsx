@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupText } from "@/components/ui/input-group";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { useFieldError } from "./form-errors";
 
 /**
  * Building blocks shared by the app's forms. Each input is wired to its label and its error
@@ -42,7 +43,7 @@ export function TextField({
   id,
   name,
   label,
-  error,
+  error: errorProp,
   value,
   onChange,
   startText,
@@ -64,6 +65,7 @@ export function TextField({
   /** The label is read out but not shown (for rows under shared column headings). */
   labelHidden?: boolean;
 }) {
+  const { error, markEdited } = useFieldError(id, errorProp);
   const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
   const input = (
     <Input
@@ -71,7 +73,10 @@ export function TextField({
       name={name ?? id}
       type="text"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => {
+        markEdited();
+        onChange(e.target.value);
+      }}
       aria-invalid={!!error}
       aria-describedby={describedBy || undefined}
       className={startText ? "h-full rounded-lg border-0 bg-transparent pl-2 shadow-none focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent" : undefined}
@@ -105,7 +110,7 @@ export function TextAreaField({
   id,
   name,
   label,
-  error,
+  error: errorProp,
   value,
   onChange,
   hint,
@@ -119,6 +124,7 @@ export function TextAreaField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { error, markEdited } = useFieldError(id, errorProp);
   const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null]
     .filter(Boolean)
     .join(" ");
@@ -129,7 +135,10 @@ export function TextAreaField({
         id={id}
         name={name ?? id}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+        markEdited();
+        onChange(e.target.value);
+      }}
         aria-invalid={!!error}
         aria-describedby={describedBy || undefined}
         {...props}
@@ -149,7 +158,7 @@ export function SelectField({
   id,
   name,
   label,
-  error,
+  error: errorProp,
   value,
   onChange,
   placeholder,
@@ -172,6 +181,7 @@ export function SelectField({
   optionLabels?: Record<string, string>;
   autoComplete?: string;
 }) {
+  const { error, markEdited } = useFieldError(id, errorProp);
   return (
     <Field data-invalid={!!error}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -180,7 +190,10 @@ export function SelectField({
         name={name ?? id}
         autoComplete={autoComplete}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+        markEdited();
+        onChange(e.target.value);
+      }}
         aria-invalid={!!error}
         aria-describedby={[hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined}
       >

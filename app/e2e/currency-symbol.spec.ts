@@ -48,6 +48,7 @@ test("prices show the currency symbol before the field, and nothing else does", 
 
   await page.getByRole("radio", { name: /Delivery/ }).check();
   expect(await before(page.getByLabel(/^Delivery fee/))).toBe("R");
+  await page.getByRole("button", { name: "Add a discount" }).click();
   await page.getByLabel("Discount on the whole quote").selectOption("percent");
   expect(await before(page.getByLabel("Discount (%)"))).toBeNull();
   await page.getByLabel("Discount on the whole quote").selectOption("fixed");

@@ -11,7 +11,7 @@ Update this table whenever a feature's prototype code is read (`docs/plans/READM
 | Area | Status | Where it is written down |
 |---|---|---|
 | Types, `useAppState` (logic), `costUtils`, `App.tsx`, `BuyerView.tsx` | Read (see the scope note at the top) | This file |
-| Quotes | Read in depth | `docs/prototype-quotes-analysis.md` |
+| Quotes | Read in depth; **the creation screen (both steps) and its state, load and save functions read in full again 2026-10-15** | `docs/prototype-quotes-analysis.md`, `docs/plans/quote-form-feedback.md` |
 | Jobs | Logic, list and detail screens read in full (2026-10-13); the stage editor, the material breakdown and the modals only skimmed | Section 9 below |
 | Products and Services | Parts read (`Products.tsx` for the onboarding and products plans); not in full | `docs/plans/products.md`, `docs/plans/onboarding.md` |
 | Invoices, credit notes, payments | **Summary only. Read before the invoice plan.** | Section 2 table only |

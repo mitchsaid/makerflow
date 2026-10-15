@@ -48,6 +48,7 @@ import { CustomerPicker } from "./customer-picker";
 import { useItemSheetProducts } from "./use-item-sheet-products";
 import { LineSheet, type LineSheetView } from "./line-sheet";
 import { AddButton } from "@/components/add-button";
+import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -131,12 +132,24 @@ export function QuoteBuilder({
   const [pending, startTransition] = useTransition();
   // Long quotes show the first few items and a "Show all" button.
   const [expanded, setExpanded] = useState(false);
+  // Optional parts stay out of the way until the maker asks for them (or the quote already uses them).
+  // Once shown they stay shown (a field must not vanish under the maker's hands when they clear it), and a draft that
+  // already uses one starts with it shown. A title already on an older quote stays editable; new quotes have no title box.
+  const [showNeededBy, setShowNeededBy] = useState(initial.neededBy !== "");
+  const [showDiscount, setShowDiscount] = useState(initial.discountKind !== "none");
+  const [showTitle] = useState(initial.title !== "");
 
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const symbol = currencySymbol(currencyCode, numberStyle);
   const totals = useMemo(() => previewTotals(values, vat), [values, vat]);
-  const errors: QuoteErrors =
-    state.status === "error" && state.errors ? state.errors : { fields: {}, lines: {} };
+  // Fixing something clears its error at once (components/form-errors.tsx); a new failed save brings back what is left.
+  const [scope, setScope] = useState<ErrorScopeHandle | null>(null);
+  // Only edits made since this save result count; until the scope catches up with a new result, nothing is hidden.
+  const edited = scope && scope.epoch === state ? scope.edited : undefined;
+  const errors: QuoteErrors = useMemo(
+    () => withoutEdited(state.status === "error" && state.errors ? state.errors : { fields: {}, lines: {} }, edited),
+    [state, edited],
+  );
 
   function update(change: Partial<QuoteFormValues>) {
     setEditedSinceSave(true);
@@ -154,6 +167,7 @@ export function QuoteBuilder({
    */
   function chooseCustomer(customerId: string, next: SavedAddress[]) {
     setEditedSinceSave(true);
+    scope?.markEdited("customer");
     setValues((v) => ({
       ...v,
       customerId,
@@ -193,6 +207,8 @@ export function QuoteBuilder({
   }
   function saveLine(line: LineFormValues, isNew: boolean) {
     setEditedSinceSave(true);
+    scope?.markEdited(`line-${line.key}-edit`);
+    scope?.markEdited("add-item");
     // The item just added is at the end: make sure it is not tucked away.
     if (isNew && values.lines.length + 1 > COLLAPSE_OVER) setExpanded(true);
     setValues((v) => ({
@@ -205,6 +221,7 @@ export function QuoteBuilder({
   }
   function removeLine(key: string, index: number) {
     setEditedSinceSave(true);
+    scope?.markEdited("add-item");
     setValues((v) => ({ ...v, lines: v.lines.filter((l) => l.key !== key) }));
     // Focus moves to the next line's Edit, or to "Add item" when it was the last one (also when the
     // item sheet it was removed from closes: that is where the sheet hands focus back to).
@@ -298,17 +315,23 @@ export function QuoteBuilder({
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.depositValue) problems.push({ fieldId: "depositValue", label: "Deposit", message: f.depositValue });
   if (f.balanceDueDate) problems.push({ fieldId: "balanceDueDate", label: "Balance due by", message: f.balanceDueDate });
-  if (f.notes) problems.push({ fieldId: "notes", label: "Extra details", message: f.notes });
+  if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.policies) {
-    const first = values.policies.find((c) => errors.policies?.[c.key]);
-    const firstError = first ? errors.policies?.[first.key] : undefined;
-    // A term written for this quote has its own title box (checked first); a copied one only its wording.
-    const onTitle = first?.policyId === "" && !!firstError?.title;
-    problems.push({
-      fieldId: first ? `policy-${first.key}-${onTitle ? "title" : "body"}` : "policies-error",
-      label: "Terms",
-      message: first ? `${termName(first)}: ${onTitle ? firstError?.title : (firstError?.body ?? firstError?.title)}` : f.policies,
-    });
+    // One row for each term that needs fixing, so fixing one never hides another's problem from the summary.
+    const rows = values.policies.filter((c) => errors.policies?.[c.key]);
+    if (rows.length === 0) {
+      problems.push({ fieldId: "policies-error", label: "Terms", message: f.policies });
+    }
+    for (const c of rows) {
+      const e = errors.policies?.[c.key];
+      // A term written for this quote has its own title box (checked first); a copied one only its wording.
+      const onTitle = c.policyId === "" && !!e?.title;
+      problems.push({
+        fieldId: `policy-${c.key}-${onTitle ? "title" : "body"}`,
+        label: "Terms",
+        message: `${termName(c)}: ${onTitle ? e?.title : (e?.body ?? e?.title)}`,
+      });
+    }
   }
   if (f.paymentInstructions) {
     problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
@@ -367,6 +390,8 @@ export function QuoteBuilder({
         </AlertDescription>
       </Alert>
     )}
+    <FormErrorScope epoch={state}>
+      <ErrorScopeBridge onScope={setScope} />
     <form id="quote-form" onSubmit={onSave} className="space-y-6" noValidate>
       <Section title="Customer">
         <CustomerPicker
@@ -381,19 +406,21 @@ export function QuoteBuilder({
       </Section>
 
       <Section title="About this quote">
-        <TextField
-          id="title"
-          label="Quote title (optional)"
-          autoComplete="off"
-          maxLength={120}
-          value={values.title}
-          error={f.title}
-          onChange={(title) => update({ title })}
-        />
+        {showTitle && (
+          <TextField
+            id="title"
+            label="Quote title (optional)"
+            autoComplete="off"
+            maxLength={120}
+            value={values.title}
+            error={f.title}
+            onChange={(title) => update({ title })}
+          />
+        )}
         <TextAreaField
           id="description"
           label="Description (optional)"
-          hint="An introduction under the title, like “Thank you for asking about your wedding cake.”"
+          hint="A short introduction, printed at the top of the quote."
           value={values.description}
           error={f.description}
           onChange={(description) => update({ description })}
@@ -429,21 +456,38 @@ export function QuoteBuilder({
                 aria-pressed={target !== null && target === values.validUntil}
                 aria-label={`Valid for ${days} days`}
                 className="aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary"
-                onClick={() => target && update({ validUntil: target })}
+                onClick={() => {
+                  scope?.markEdited("validUntil");
+                  if (target) update({ validUntil: target });
+                }}
               >
                 {days} days
               </Button>
             );
           })}
         </div>
-        <TextField
-          id="neededBy"
-          type="date"
-          label="Needed by (optional)"
-          value={values.neededBy}
-          error={f.neededBy}
-          onChange={(neededBy) => update({ neededBy })}
-        />
+        {showNeededBy ? (
+          <TextField
+            id="neededBy"
+            type="date"
+            label="Needed by (optional)"
+            value={values.neededBy}
+            error={f.neededBy}
+            onChange={(neededBy) => update({ neededBy })}
+          />
+        ) : (
+          <div>
+            <AddButton
+              id="add-needed-by"
+              onClick={() => {
+                setShowNeededBy(true);
+                setTimeout(() => document.getElementById("neededBy")?.focus(), 0);
+              }}
+            >
+              Add a needed-by date
+            </AddButton>
+          </div>
+        )}
       </Section>
 
       <Section title="Items">
@@ -546,37 +590,52 @@ export function QuoteBuilder({
         errors={{ deliveryFee: f.deliveryFee, deliveryAddress: f.deliveryAddress }}
       />
 
-      <Section title="Discount">
-        <Field>
-          <FieldLabel htmlFor="discountKind">Discount on the whole quote</FieldLabel>
-          <NativeSelect
-            id="discountKind"
-            value={values.discountKind}
-            onChange={(e) =>
-              update({
-                discountKind: e.target.value as DiscountKind,
-                discountValue: e.target.value === "none" ? "" : values.discountValue,
-              })
-            }
+      {showDiscount ? (
+        <Section title="Discount">
+          <Field>
+            <FieldLabel htmlFor="discountKind">Discount on the whole quote</FieldLabel>
+            <NativeSelect
+              id="discountKind"
+              value={values.discountKind}
+              onChange={(e) => {
+                scope?.markEdited("discountValue");
+                update({
+                  discountKind: e.target.value as DiscountKind,
+                  discountValue: e.target.value === "none" ? "" : values.discountValue,
+                });
+              }}
+            >
+              <NativeSelectOption value="none">No discount</NativeSelectOption>
+              <NativeSelectOption value="percent">A percentage</NativeSelectOption>
+              <NativeSelectOption value="fixed">An amount</NativeSelectOption>
+            </NativeSelect>
+          </Field>
+          {values.discountKind !== "none" && (
+            <TextField
+              id="discountValue"
+              label={values.discountKind === "percent" ? "Discount (%)" : "Discount amount"}
+              startText={values.discountKind === "fixed" ? symbol : undefined}
+              inputMode="decimal"
+              autoComplete="off"
+              value={values.discountValue}
+              error={f.discountValue}
+              onChange={(discountValue) => update({ discountValue })}
+            />
+          )}
+        </Section>
+      ) : (
+        <div>
+          <AddButton
+            id="add-discount"
+            onClick={() => {
+              setShowDiscount(true);
+              setTimeout(() => document.getElementById("discountKind")?.focus(), 0);
+            }}
           >
-            <NativeSelectOption value="none">No discount</NativeSelectOption>
-            <NativeSelectOption value="percent">A percentage</NativeSelectOption>
-            <NativeSelectOption value="fixed">An amount</NativeSelectOption>
-          </NativeSelect>
-        </Field>
-        {values.discountKind !== "none" && (
-          <TextField
-            id="discountValue"
-            label={values.discountKind === "percent" ? "Discount (%)" : "Discount amount"}
-            startText={values.discountKind === "fixed" ? symbol : undefined}
-            inputMode="decimal"
-            autoComplete="off"
-            value={values.discountValue}
-            error={f.discountValue}
-            onChange={(discountValue) => update({ discountValue })}
-          />
-        )}
-      </Section>
+            Add a discount
+          </AddButton>
+        </div>
+      )}
 
       <DepositSection
         values={values}
@@ -589,17 +648,6 @@ export function QuoteBuilder({
         errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate }}
       />
 
-      <Section title="Notes">
-        <TextAreaField
-          id="notes"
-          label="Extra details (optional)"
-          hint="Shown on the quote, for example how long the work takes."
-          value={values.notes}
-          error={f.notes}
-          onChange={(notes) => update({ notes })}
-          maxLength={2000}
-        />
-      </Section>
 
       <TermsSection
         value={values.policies}
@@ -632,6 +680,18 @@ export function QuoteBuilder({
         />
       </BankDetailsSection>
 
+      <Section title="Notes">
+        <TextAreaField
+          id="notes"
+          label="Notes for your customer (optional)"
+          hint="Shown on the quote, for example how long the work takes. Payment details and terms have their own sections above."
+          value={values.notes}
+          error={f.notes}
+          onChange={(notes) => update({ notes })}
+          maxLength={2000}
+        />
+      </Section>
+
       <Section title="Sign-off">
         <TextField
           id="signOff"
@@ -641,7 +701,7 @@ export function QuoteBuilder({
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
-          hint="Like “Yours in sweetness”. Shown at the end of the quote, with your business name."
+          hint="Shown at the end of the quote, with your business name."
         />
       </Section>
 
@@ -681,32 +741,49 @@ export function QuoteBuilder({
         </p>
       )}
     </form>
+    </FormErrorScope>
 
     {children}
 
       {/* Always in view above the tab bar. It comes last, after anything under the form (such as
           Delete draft), so nothing is hidden beneath it, and it sits flush with the end of the
           page (-mb-8 takes back the page's bottom padding) so it never moves when you reach the bottom. */}
-      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
-          <div>
+      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-2 md:bottom-0">
+        {/* On a phone the total and Save share a row and the next step has the row below, whatever the total is (a long
+            total must not make the bar change shape); from a tablet up it is one line. */}
+        <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 sm:flex sm:justify-end">
+          <div className="min-w-0 sm:mr-auto">
             <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-lg font-semibold" data-testid="sticky-total">
+            <p className="truncate text-lg font-semibold" data-testid="sticky-total">
               {totals ? money(totals.grossCents) : "–"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button type="submit" form="quote-form" variant="outline" disabled={pending} size="lg">
-              {pending ? "Saving…" : "Save draft"}
-            </Button>
-            <Button id="preview-quote" type="button" disabled={pending} size="lg" onClick={onPreview}>
-              Preview
-            </Button>
-          </div>
+          {/* "Save" on the screen; a screen reader hears "Save draft" (the extra word is read, not shown). */}
+          <Button type="submit" form="quote-form" variant="outline" disabled={pending} size="lg">
+            {pending ? (
+              "Saving…"
+            ) : (
+              <>
+                Save<span className="sr-only"> draft</span>
+              </>
+            )}
+          </Button>
+          <Button id="preview-quote" type="button" disabled={pending} size="lg" className="col-span-2 sm:col-span-1" onClick={onPreview}>
+            Continue to preview
+          </Button>
         </div>
       </div>
   </div>
   );
+}
+
+/** The errors minus the ones whose field has been edited since the save came back. */
+function withoutEdited(errors: QuoteErrors, edited: ReadonlySet<string> | undefined): QuoteErrors {
+  if (!edited || edited.size === 0) return errors;
+  const idOf = (field: string) => (field === "customerId" ? "customer" : field === "lines" ? "add-item" : field);
+  const fields = Object.fromEntries(Object.entries(errors.fields).filter(([field]) => !edited.has(idOf(field))));
+  const lines = Object.fromEntries(Object.entries(errors.lines).filter(([key]) => !edited.has(`line-${key}-edit`)));
+  return { ...errors, fields, lines };
 }
 
 function safeAddDays(day: string, days: number): string | null {

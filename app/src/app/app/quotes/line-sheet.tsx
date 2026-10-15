@@ -36,6 +36,7 @@ import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 import { AddButton } from "@/components/add-button";
+import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 /**
  * Where the item sheet is: choosing what to add, configuring one line, or the product form
@@ -503,8 +504,12 @@ function ConfigureView({
     removeQuestion.current?.querySelector("button")?.focus({ preventScroll: true });
   }, [confirmingRemove]);
   const id = (field: string) => `line-sheet-${field}`;
-  const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) =>
+  // The error scope is below this component, so it reports up: edits made by buttons (not the shared fields) count too.
+  const [scope, setScope] = useState<ErrorScopeHandle | null>(null);
+  const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) => {
+    scope?.markEdited(id(String(key)));
     setLine((l) => ({ ...l, [key]: value }));
+  };
 
   // The product's lists and extras, and what they add to this item.
   const optionGroups = product?.options ?? [];
@@ -600,6 +605,8 @@ function ConfigureView({
       : null;
 
   return (
+    <FormErrorScope epoch={attempt}>
+      <ErrorScopeBridge onScope={setScope} />
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title={line.productId ? (line.kind === "service" ? "Service" : "Product") : "Item"}>
         {line.productId ? (
@@ -822,5 +829,6 @@ function ConfigureView({
         </Button>
       </div>
     </form>
+    </FormErrorScope>
   );
 }

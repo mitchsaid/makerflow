@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -8,6 +7,7 @@ import { termName } from "@/lib/policies";
 import { getPolicy } from "@/lib/policies/data";
 import { PolicyArchiveButton } from "../archive-button";
 import { PolicyForm } from "../policy-form";
+import { PageHeader } from "@/components/page-header";
 
 export default async function EditPolicyPage({ params }: PageProps<"/app/documents/policies/[id]">) {
   const { id } = await params;
@@ -19,12 +19,9 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/documen
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/documents/policies" className="text-sm text-muted-foreground underline">
-          Terms
-        </Link>
+      <PageHeader back={{ href: "/app/documents/policies", label: "Terms" }}>
         <h1 className="text-xl font-semibold">{termName(policy)}</h1>
-      </div>
+      </PageHeader>
       {policy.archived && (
         <Alert data-testid="archived-notice">
           <AlertDescription>This term is archived, so it is hidden from new quotes. Restore it below to use it again.</AlertDescription>

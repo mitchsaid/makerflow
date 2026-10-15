@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FontPicker } from "@/components/font-picker";
 import { ImageField } from "@/components/image-field";
+import { BackLink } from "@/components/page-header";
 import { ChoiceCards } from "@/components/theme-choices";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -154,6 +154,7 @@ export function ThemeStudio({
     if (dirty && !window.confirm("You have changes that aren't saved. Leave without saving?")) event.preventDefault();
   };
   const backHref = quoteId ? `/app/quotes/${quoteId}/preview` : "/app/documents/themes";
+  const backLabel = quoteId ? "the quote preview" : "Themes";
 
   const colourRow = (part: "accent" | "paper" | "gradientTo", label: string, options: readonly (readonly [string, string])[]) => (
     <fieldset className="space-y-2">
@@ -195,9 +196,7 @@ export function ThemeStudio({
       {/* Pinned: the way back, the preview and the part tabs. Only the choices below scroll. */}
       <div className="sticky top-0 z-20 border-b border-border bg-background px-4 pt-2">
         <div className="flex items-center justify-between">
-          <Link href={backHref} onClick={leave} className="flex min-h-11 items-center text-sm text-muted-foreground underline">
-            Back
-          </Link>
+          <BackLink href={backHref} label={backLabel} onClick={leave} />
           <Button type="button" variant="secondary" onClick={() => setFullOpen(true)}>
             Full preview
           </Button>

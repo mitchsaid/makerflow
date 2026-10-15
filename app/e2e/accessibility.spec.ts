@@ -22,9 +22,20 @@ async function expectNoViolations(page: Page, where: string) {
     .toBe(true);
   // Sheets fade in; colours measured halfway through a fade are not the colours people see.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
+  // A sticky action bar covers part of whatever is under it at this scroll position, which says nothing about the page
+  // under it (target-size counts a covered target as small). Its own content is still checked: it is only let go of
+  // its place on the screen for the scan, so it sits in the flow instead of over the page.
+  await page.evaluate(() => {
+    const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
+    if (bar) bar.style.position = "static";
+  });
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
+  await page.evaluate(() => {
+    const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
+    if (bar) bar.style.position = "";
+  });
   const summary = violations.map(
     (v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`,
   );
@@ -172,6 +183,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, edit customer sheet");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.getByRole("button", { name: "Add a needed-by date" }).click();
+      await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /^Delivery \(you deliver/ }).check();
       await expectNoViolations(page, "new quote, all sections open");
@@ -251,7 +264,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "saved quote");
 
       // Sending: what is missing (the business has no phone or email yet), then the choice.
-      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "quote preview");
       // No logo yet, so the preview offers one: the card (checked above) and its sheet.

@@ -30,6 +30,7 @@ import { CreateJobButton } from "../create-job-button";
 import { CreateJobNudge } from "../create-job-nudge";
 import { DeleteDraftButton } from "./delete-draft-button";
 import { DiscardRevisionButton } from "./discard-revision-button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function QuotePage({
   params,
@@ -55,15 +56,12 @@ export default async function QuotePage({
   if (versionParam !== null && !viewing) notFound();
 
   const header = (
-    <div className="space-y-1">
-      <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
-        Quotes
-      </Link>
+    <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
       <h1 id="quote-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
         <span>Quote {quote.number}</span>{" "}
         <StatusChip status={quote.status} version={quote.version} validUntil={quote.validUntil} today={today} />
       </h1>
-    </div>
+    </PageHeader>
   );
 
   // A draft being edited (not looking at an earlier sent version).

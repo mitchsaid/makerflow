@@ -8,6 +8,7 @@ import { sampleSnapshot } from "@/lib/quotes/sample";
 import { getThemes } from "@/lib/quotes/theme-data";
 import { BLANK_SPEC, STARTERS, isStarterKey, resolveTheme, starter, themeName } from "@/lib/quotes/themes";
 import { ThemeStudio } from "../theme-studio";
+import { PageHeader } from "@/components/page-header";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,13 +41,10 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/doc
     );
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-        <div className="space-y-1">
-          <Link href={back} className="text-sm text-muted-foreground underline">
-            Back
-          </Link>
+        <PageHeader back={{ href: back, label: quoteParam ? "the quote preview" : "Themes" }}>
           <h1 className="text-xl font-semibold">Create a new theme</h1>
           <p className="text-base text-muted-foreground">How do you want to start? You can change everything afterwards.</p>
-        </div>
+        </PageHeader>
         <section className="space-y-3" aria-labelledby="blank-heading">
           <h2 id="blank-heading" className="text-base font-semibold">
             From a blank page

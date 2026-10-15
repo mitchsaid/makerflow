@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { currencySymbol } from "@/lib/money";
 import { getLocalePack, priceEntryLabel, vatSettingsFor } from "@/lib/locale";
@@ -8,6 +7,7 @@ import { variationSuggestions } from "@/lib/products/variations";
 import { ProductForm } from "../product-form";
 import { emptyOfKind, KIND_WORDS, listHref } from "../product-values";
 import type { ProductKind } from "@/lib/products";
+import { PageHeader } from "@/components/page-header";
 
 export default async function NewProductPage({ searchParams }: PageProps<"/app/products/new">) {
   const [{ profile }, params] = await Promise.all([requireOrganisation(), searchParams]);
@@ -16,13 +16,10 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href={listHref(kind)} className="text-sm text-muted-foreground underline">
-          {kind === "service" ? "Services" : "Products"}
-        </Link>
+      <PageHeader back={{ href: listHref(kind), label: kind === "service" ? "Services" : "Products" }}>
         <h1 className="text-xl font-semibold">Add a {KIND_WORDS[kind].one}</h1>
         <p className="text-muted-foreground">A name and a price are enough to start.</p>
-      </div>
+      </PageHeader>
       <ProductForm
         mode="add"
         action={createProduct}

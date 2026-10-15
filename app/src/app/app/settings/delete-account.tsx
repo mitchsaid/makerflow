@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { confirmationProblem } from "@/lib/account";
 import { deleteAccount } from "./actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 const OFFLINE = "Couldn't reach the server, so we can't tell whether your account was deleted. Reload the page: if you are still signed in, try again.";
 
@@ -91,6 +92,7 @@ export function DeleteAccount({ email }: { email: string }) {
             <SheetTitle className="text-lg">Delete your account?</SheetTitle>
             <SheetDescription className="text-base">This cannot be undone.</SheetDescription>
           </SheetHeader>
+          <FormErrorScope epoch={tries}>
           <form onSubmit={submit} noValidate className="space-y-4 px-4 pt-4">
             <div className="space-y-2 text-base">
               <p className="font-medium">What will be deleted</p>
@@ -130,6 +132,7 @@ export function DeleteAccount({ email }: { email: string }) {
               </Button>
             </div>
           </form>
+          </FormErrorScope>
         </SheetContent>
       </Sheet>
     </Card>

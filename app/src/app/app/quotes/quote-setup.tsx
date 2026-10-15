@@ -10,6 +10,7 @@ import { Field, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { SetupAnswers } from "@/lib/quotes/setup";
 import { saveQuoteSetup, skipQuoteSetup, type QuoteSetupState } from "./setup-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 /**
  * The first New quote of a business: two questions that set what a new quote starts with (a deposit, and
@@ -43,6 +44,7 @@ export function QuoteSetup() {
   }
 
   return (
+    <FormErrorScope epoch={tries}>
     <form
       noValidate
       className="space-y-4"
@@ -148,5 +150,6 @@ export function QuoteSetup() {
         </CardContent>
       </Card>
     </form>
+    </FormErrorScope>
   );
 }

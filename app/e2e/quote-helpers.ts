@@ -62,7 +62,7 @@ export async function addCustomerInSheet(page: Page, name: string, details: { ph
  */
 export async function startSend(page: Page) {
   if (!/\/preview$/.test(new URL(page.url()).pathname)) {
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
     await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   }
   await page.getByRole("button", { name: "Mark as sent", exact: true }).click();

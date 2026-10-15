@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
 import { saveQuoteWording, type WordingErrors, type WordingState, type WordingValues } from "./wording-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 /**
  * Quotes and invoices > Quote wording: what every new quote starts with. Each quote can change its
@@ -51,6 +52,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
   }
 
   return (
+    <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Section title="Quote wording">
         <p className="text-base text-muted-foreground">
@@ -96,5 +98,6 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

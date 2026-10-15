@@ -21,6 +21,7 @@ import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 import { AddButton } from "@/components/add-button";
+import { FormErrorScope } from "@/components/form-errors";
 
 /**
  * The layers a product will grow, shown where they will live but not working yet
@@ -352,6 +353,7 @@ export function ProductForm({
   }
 
   return (
+    <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="Basics">
         <TextField
@@ -585,5 +587,6 @@ export function ProductForm({
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

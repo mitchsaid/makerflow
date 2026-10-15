@@ -250,7 +250,7 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   await signUpAndOnboard(page, "q-offline", "Offline Co");
   await page.goto("/app/quotes/new");
   await fillItem(page, 1, "Cupcakes", "12", "15");
-  await page.getByLabel("Extra details (optional)").fill("Quote notes");
+  await page.getByLabel("Notes for your customer (optional)").fill("Quote notes");
 
   await page.getByLabel("Customer name", { exact: true }).fill("Someone");
   await page.getByRole("option", { name: /Add “Someone”/ }).click();
@@ -258,7 +258,7 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   await sheet.getByRole("button", { name: "Add address, delivery details or notes" }).click();
   // The customer's notes field has its own label and its own id, apart from the quote's notes.
   await sheet.getByLabel("Anything to remember (optional)").fill("Customer notes");
-  await expect(page.getByLabel("Extra details (optional)")).toHaveValue("Quote notes");
+  await expect(page.getByLabel("Notes for your customer (optional)")).toHaveValue("Quote notes");
   await expect(sheet.getByLabel("Anything to remember (optional)")).toHaveValue("Customer notes");
   const ids = await page.locator("[id]").evaluateAll((els) => els.map((e) => e.id).filter(Boolean));
   expect(ids.length).toBe(new Set(ids).size);
@@ -290,6 +290,7 @@ test("discounts come off in the right order", async ({ page }) => {
   await fillItem(page, 1, "Cake", "1", "1000", "10");
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("900"));
 
+  await page.getByRole("button", { name: "Add a discount" }).click();
   await page.getByLabel("Discount on the whole quote").selectOption("fixed");
   await page.getByLabel("Discount amount").fill("100");
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
@@ -471,7 +472,7 @@ test("Preview with no customer and/or no items shows the error state instead of 
   await signUpAndOnboard(page, "q-preview-errors", "Preview Errors Co");
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
-  const preview = page.getByRole("button", { name: "Preview", exact: true });
+  const preview = page.getByRole("button", { name: "Continue to preview", exact: true });
   const summary = page.getByTestId("form-summary");
 
   // Neither: both are named, the page does not move.
@@ -498,7 +499,7 @@ test("Preview with a customer but no items names the items", async ({ page }) =>
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await addCustomerInSheet(page, "Sipho");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("form-summary")).toContainText("1 thing needs fixing");
   await expect(page.getByTestId("form-summary")).toContainText("Add at least one item to the quote.");
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);

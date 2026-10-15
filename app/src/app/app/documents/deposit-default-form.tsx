@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { saveDepositDefault, type DepositDefaultState } from "./deposit-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 /**
  * Quotes and invoices > Deposit: what a new quote starts with. Each quote can change it or switch it
@@ -46,6 +47,7 @@ export function DepositDefaultForm({
   }
 
   return (
+    <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate id="deposit-default">
       <Section title="Deposit">
         <p className="text-base text-muted-foreground">
@@ -116,5 +118,6 @@ export function DepositDefaultForm({
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

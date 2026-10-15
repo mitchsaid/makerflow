@@ -45,7 +45,7 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByTestId("form-summary")).toContainText("Choose the date the balance is due");
   await section.getByLabel("Balance due by").fill("2026-12-24");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const text = page.getByRole("region", { name: "The quote as text" });
   await expect(text.getByTestId("deposit-lines")).toContainText("Deposit to start work");
@@ -59,7 +59,7 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(section.getByLabel("Amount")).toHaveValue("1000");
   await section.getByRole("checkbox", { name: "Ask for a deposit to start work" }).uncheck();
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByRole("region", { name: "The quote as text" }).getByTestId("deposit-lines")).toHaveCount(0);
 });
@@ -94,7 +94,7 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   // A fixed deposit above the total saves, but sending says what to fix.
   await section.getByLabel("Worked out as").selectOption("fixed");
   await section.getByLabel("Amount").fill("900");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(sheet(page)).toHaveAccessibleName("Before you can mark this quote as sent");
@@ -105,7 +105,7 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   // Fix it, send, and change the default afterwards: the sent quote keeps what it said.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await section.getByLabel("Amount").fill("100");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await startSend(page);
   await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();

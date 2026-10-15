@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useEditedFields } from "./form-errors";
 
 /**
  * The summary half of the product's error standard (docs/adr/0005-form-errors.md): after a
@@ -30,12 +31,19 @@ function focusField(fieldId: string) {
  * `trigger` should change every time a submit comes back (for example the action state), so
  * the summary scrolls into view and takes focus each time, even if the same problems remain.
  */
-export function FormSummary({ problems, trigger }: { problems: FormProblem[]; trigger: unknown }) {
+export function FormSummary({ problems: all, trigger }: { problems: FormProblem[]; trigger: unknown }) {
   const ref = useRef<HTMLDivElement>(null);
+  // A problem the maker has since fixed (edited its field) is dropped at once, inside a FormErrorScope.
+  const { edited } = useEditedFields();
+  const problems = all.filter((p) => !edited.has(p.fieldId));
   const count = problems.length;
+  const announced = useRef<unknown>(undefined);
 
   useEffect(() => {
     if (count === 0) return;
+    // Only when a save comes back: fixing problems one by one must not pull focus out of the field being typed in.
+    if (announced.current === trigger) return;
+    announced.current = trigger;
     ref.current?.scrollIntoView({ block: "center" });
     ref.current?.focus({ preventScroll: true });
   }, [trigger, count]);
