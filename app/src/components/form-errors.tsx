@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 /**
  * Errors clear when the maker fixes the thing (docs/adr/0005-form-errors.md). A form's errors come from its last save,
@@ -50,4 +50,20 @@ export function useFieldError(id: string, error: string | undefined): { error: s
 export function useEditedFields(): { epoch: unknown; edited: ReadonlySet<string>; markEdited: (id: string) => void } {
   const scope = useContext(ScopeContext);
   return { epoch: scope?.epoch, edited: scope?.edited ?? NONE, markEdited: scope?.markEdited ?? (() => undefined) };
+}
+
+/** What a form that owns its own values needs from its scope: which fields were edited, and a way to mark one. */
+export type ErrorScopeHandle = { epoch: unknown; edited: ReadonlySet<string>; markEdited: (id: string) => void };
+
+/**
+ * A form wraps its content in a FormErrorScope, so it cannot read the scope itself. Rendered inside it, this reports
+ * the scope up to the form (`onScope` is a state setter), which then hides stale errors and marks edits made by
+ * controls that are not the shared fields. Use `handle.epoch === theEpoch` to ignore a scope that has not caught up.
+ */
+export function ErrorScopeBridge({ onScope }: { onScope: (handle: ErrorScopeHandle) => void }) {
+  const { epoch, edited, markEdited } = useEditedFields();
+  useEffect(() => {
+    onScope({ epoch, edited, markEdited });
+  }, [epoch, edited, markEdited, onScope]);
+  return null;
 }

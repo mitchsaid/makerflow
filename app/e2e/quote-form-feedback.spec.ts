@@ -83,3 +83,67 @@ test("a page under another goes back to its parent with a back control, not a te
   await page.getByRole("link", { name: "Back to Quotes" }).click();
   await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
 });
+
+test("a problem that is fixed disappears; one that comes back after another save shows again", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "qf-return", "Return Co");
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cake", "1", "100");
+  await addCustomerInSheet(page, "Thandi Nkosi");
+
+  // A day before the quote's own date: refused at the field and in the summary.
+  await page.getByLabel("Valid until").fill("2020-01-01");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  const summary = page.getByTestId("form-summary");
+  await expect(summary).toContainText("Valid until");
+  await expect(page.locator("#validUntil-error")).toBeVisible();
+
+  // A button that sets the date (not a typed field) fixes it as well.
+  await page.getByRole("button", { name: "Valid for 30 days" }).click();
+  await expect(page.locator("#validUntil-error")).toHaveCount(0);
+  await expect(summary).toHaveCount(0);
+
+  // Wrong again, saved again: the problem is shown again.
+  await page.getByLabel("Valid until").fill("2020-01-01");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(summary).toContainText("Valid until");
+  await expect(page.locator("#validUntil-error")).toBeVisible();
+});
+
+test("an optional part that was opened stays open while it is cleared, and focus stays put", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "qf-sticky", "Sticky Co");
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add a needed-by date" }).click();
+  await page.getByLabel("Needed by (optional)").fill("2030-02-01");
+  await page.getByLabel("Needed by (optional)").fill("");
+  await expect(page.getByLabel("Needed by (optional)")).toBeVisible();
+
+  await page.getByRole("button", { name: "Add a discount" }).click();
+  await page.getByLabel("Discount on the whole quote").selectOption("percent");
+  await page.getByLabel("Discount on the whole quote").selectOption("none");
+  await expect(page.getByLabel("Discount on the whole quote")).toBeFocused();
+});
+
+test("the action bar keeps its shape on any phone, whatever the total, and never runs off the screen", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "qf-bar", "Bar Co");
+  await page.goto("/app/quotes/new");
+  await fillItem(page, 1, "Cake", "1", "1234567");
+  let height = 0;
+  for (const width of [412, 393, 390, 360]) {
+    await page.setViewportSize({ width, height: 800 });
+    const bar = await page.getByTestId("action-bar").boundingBox();
+    // Total and Save on one row, the next step on the row below: the same height at every phone width.
+    if (height === 0) height = bar?.height ?? 0;
+    expect(bar?.height, `bar height at ${width}px`).toBeCloseTo(height, 0);
+    expect(height).toBeLessThan(125);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, `sideways overflow at ${width}px`).toBeLessThanOrEqual(0);
+    for (const name of ["Save draft", "Continue to preview"]) {
+      const box = await page.getByRole("button", { name }).boundingBox();
+      expect((box?.x ?? 0) + (box?.width ?? 0), `${name} inside the screen at ${width}px`).toBeLessThanOrEqual(width);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+  }
+});

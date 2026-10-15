@@ -13,7 +13,7 @@ The founder tried the New quote screen and sent ten observations. They are not t
 
 ## Prototype read
 
-Read, in `prototype/src/components/Quotes.tsx`: the creation state (lines 255 to 310), loading a quote for editing (`handleEditQuote`, 690 to 725), saving (`handleActionOnQuote`, 727 to 830), the creation screen header, the dates and customer pickers (925 to 1010), the notes, sign-off and bank blocks and the step 1 footer (1735 to 1870), the start of step 2 (1870 to 1900), the quote detail's back button (2085 to 2100) and the item sheet's back button (2540 to 2570). Also the back buttons of `Customers.tsx`, `Materials.tsx`, `Jobs.tsx` and `Invoices.tsx` (by search, for the pattern only). Not read in full: the 3,600-line file's printing and template code, which this plan does not touch.
+Read in full, in `prototype/src/components/Quotes.tsx`, the whole quote creation screen and what it calls: the creation state (lines 255 to 310), loading a quote for editing (`handleEditQuote`, 690 to 725), saving (`handleActionOnQuote`, 727 to 830), step 1 from its header to its footer (925 to 1900: dates, customer picker and card, the items table and its rows, fulfilment presets and addresses, the quote-level discount and tax toggles, notes, sign-off, bank card, costs panel, Cancel / Save Draft / Continue), step 2 (1870 to 2085: Back, Save as Draft, Download, Mark as Sent, Send, the template card), the quote detail's back button (2085 to 2100) and the item sheet's back button (2540 to 2570). Also the back buttons of `Customers.tsx`, `Materials.tsx`, `Jobs.tsx` and `Invoices.tsx` (by search, for the pattern only). Not read: the printing and template code and the item sheet's inner form, which this plan does not touch (the item sheet was read for the earlier item-sheet plans).
 
 | The prototype does | MakerFlow: kept, changed, later, or dropped | Why |
 | --- | --- | --- |
@@ -26,7 +26,12 @@ Read, in `prototype/src/components/Quotes.tsx`: the creation state (lines 255 to
 | Customer search with add and edit inside | **Kept** (already built) | |
 | X to cancel; a labelled "← Back to Quotes History" button on the detail screen; "← Back to Customers" and similar pills elsewhere | **Kept as an idea, changed in form**: a back control (a chevron with the parent's name for screen readers) at the start of the page heading, not an underlined text link | The founder: the text link feels like a website |
 | Save Draft beside Continue, both disabled until a customer and an item exist | **Changed**: the buttons stay enabled and say what is missing (ADR 0005) | MakerFlow's form rule |
-| Quote-level discount, tax and delivery or collection presets | **Kept** (already built) | |
+| Quote-level **discount and tax are toggles**: "+ Add discount" / "+ Add tax" reveal a row, with an × to take it away again | **Kept in spirit**: "Add a discount" reveals the discount section (it stays once opened, so a field never vanishes under the maker's hands); tax is per item and per business, as built | The same disclosure the founder asked for; the prototype already did it |
+| Delivery or collection presets with a cost and an address choice | **Kept** (already built, from the quote's own delivery section) | |
+| A costs-and-profit panel under the bank card when items exist | **Later**: it belongs with the costs plan (`docs/plans/costs-and-recipes.md`) | Not part of this feedback |
+| Step 2 is titled "Review & Publish", with "Step 2 of 2", Back, Save as Draft, Download, Mark as Sent and Send | **Kept in spirit**: MakerFlow's preview has Edit, Download, Email (coming soon) and Mark as sent; the "Continue to preview" label makes the two steps clear. A "Step 1 of 2" marker is a candidate | |
+| A Cancel button beside Save Draft and Continue | **Changed**: the X at the top of a new quote (asks first when something was typed) | Already built |
+| A "Clear All" link above the items | **Later** | Not asked for |
 | Deposit, terms library, needed-by date, description, title | **No prototype counterpart** (notes doubled as terms) | MakerFlow additions |
 
 ## Where things stand
@@ -38,9 +43,9 @@ Read, in `prototype/src/components/Quotes.tsx`: the creation state (lines 255 to
 
 ### Slice A: no database change
 1. **Back control, everywhere.** One shared page heading component: a back control (chevron) in line with the heading, labelled for screen readers "Back to Quotes". It goes to the logical parent (never browser history, so it works in an installed app and after a deep link). It replaces the underlined text link on all 18 pages that have one. New quote has its X and no back control.
-2. **Quote form.** The "It gets its number…" line is gone. The **title field is hidden** (the column, the printing of a title already on a quote, and the snapshot stay; nothing is removed from the database). The sign-off hint no longer shows an example. **Notes move to just before Sign-off**, labelled "Notes for your customer", with a hint that payment details and terms go in their own sections. The primary button reads **Continue to preview**. The action bar is one line on a phone (the total, a short "Save", and the next step; "Save" still reads as "Save draft" to a screen reader) and gives the next step its own full-width row on phones under 380 px wide.
+2. **Quote form.** The "It gets its number…" line is gone. The **title field is hidden** on new quotes (the column, the printing of a title already on a quote, and the snapshot stay; nothing is removed from the database). A quote that already has a title still shows the box, so it can be changed or cleared. The sign-off hint no longer shows an example. **Notes move to just before Sign-off**, labelled "Notes for your customer (optional)", with a hint that payment details and terms go in their own sections. The primary button reads **Continue to preview**. On a phone the action bar has the total and a short "Save" on one row and the next step full width on the row below, whatever the total (a long total must not change the bar's shape); "Save" is read as "Save draft" by screen readers. From a tablet up it is one line.
 3. **Needed by** is an "Add a needed-by date" link until the maker uses it (or the quote already has one). **Discount** gets the same treatment where it is always open now. On the **New job form it stays visible**: a job's day feeds the Late and This week counts on Home, so hiding it would hide the feature.
-4. **Errors clear when fixed.** A shared error scope: once a field is edited, its message and its row in the summary go away at once, and the summary count drops; a new failed save brings back what is still wrong. It is built into the shared field components, so every form that uses them gets it.
+4. **Errors clear when fixed.** A shared error scope: once a field is edited, its message and its row in the summary go away at once, and the summary count drops; a new failed save brings back what is still wrong. It is built into the shared field components, so every form that uses them gets it; custom controls (the date chips, the deposit and discount controls, the customer and item pickers, the job form's pickers) report their own edits. **Known gap:** the list-level messages in the product form (variations, options, extras) clear on the next save, not on edit.
 
 ### Slice B: "your usual" (migration)
 - **A usual, offered where it is needed.** Description, sign-off and other ways to pay start from the business's usual. When what is on the quote differs from the usual (or none is saved), a quiet **Save as my usual** button appears under the field (owners and admins; others do not see it). One tap, no sheet, and it says "Saved as your usual". **Use my usual** puts it back. The only place to manage usuals stays **Quotes and invoices**, as plain fields, no lists.
@@ -57,7 +62,7 @@ Read, in `prototype/src/components/Quotes.tsx`: the creation state (lines 255 to
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
 | --- | --- | --- |
-| Back to the parent | The 18 underlined links | **New shared component** (`PageHeader`); replaces them |
+| Back to the parent | The 18 underlined links | **New shared component** (`PageHeader`, and `BackLink` for the theme studio); replaces them. The preview goes back to its quote |
 | A field the maker may want | The Items list's `AddLink` style ("+ Add …") | Reused: `AddLink`-style disclosure button |
 | Save a default from where it is used | `dismissLogoPrompt`-style quiet actions; the Business profile's save | **New small component** (`UsualButtons`), because nothing else saves from the quote itself |
 | Error messages | `FormSummary`, `FieldError` (ADR 0005) | Extended with an edit scope; no new look |
@@ -73,7 +78,7 @@ Read, in `prototype/src/components/Quotes.tsx`: the creation state (lines 255 to
 - No new tables. `save_quote_draft` is unchanged: the quote still stores a real deposit or none.
 
 ## Tests
-A: unit (error scope: edit clears message and summary row, a new failed save restores what remains), browser (back control on each kind of page goes to the parent; the quote form order; Continue to preview; needed-by link; errors clear on the quote, customer and product forms), accessibility cases. B: SQL (columns and check), unit, browser (Save as my usual, Use my usual, Ask each time, role limits). C: browser (add, create inside the sheet, examples for the business type, old own-terms still print).
+A: unit (the page-structure rules), browser (the error scope: a fixed problem clears, a problem that comes back after another save shows again; an opened optional part stays open; the action bar keeps its shape and stays on screen at 412, 393, 390 and 360 px), (back control on the customer and quote pages goes to the parent; the quote form order; Continue to preview; the needed-by link), accessibility cases. B: SQL (columns and check), unit, browser (Save as my usual, Use my usual, Ask each time, role limits). C: browser (add, create inside the sheet, examples for the business type, old own-terms still print).
 
 ## Not planned yet
 Quote title back as an option; usuals for notes; a Settings page for these; invoices will reuse the same usuals.

@@ -1,21 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeftIcon } from "lucide-react";
 import { FontPicker } from "@/components/font-picker";
 import { ImageField } from "@/components/image-field";
+import { BackLink } from "@/components/page-header";
 import { ChoiceCards } from "@/components/theme-choices";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BOOLEAN_PARTS, THEME_NAME_MAX, normaliseColour, resolveTheme, sameSpec, type ChoiceName, type ThemeSpec } from "@/lib/quotes/themes";
 import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
-import { cn } from "@/lib/utils";
 import { LivePdfPreview } from "../../quotes/live-preview";
 import { saveQuoteTheme } from "../../quotes/design-actions";
 import { createTheme, saveTheme } from "../theme-actions";
@@ -156,6 +154,7 @@ export function ThemeStudio({
     if (dirty && !window.confirm("You have changes that aren't saved. Leave without saving?")) event.preventDefault();
   };
   const backHref = quoteId ? `/app/quotes/${quoteId}/preview` : "/app/documents/themes";
+  const backLabel = quoteId ? "the quote preview" : "Themes";
 
   const colourRow = (part: "accent" | "paper" | "gradientTo", label: string, options: readonly (readonly [string, string])[]) => (
     <fieldset className="space-y-2">
@@ -197,14 +196,7 @@ export function ThemeStudio({
       {/* Pinned: the way back, the preview and the part tabs. Only the choices below scroll. */}
       <div className="sticky top-0 z-20 border-b border-border bg-background px-4 pt-2">
         <div className="flex items-center justify-between">
-          <Link
-            href={backHref}
-            onClick={leave}
-            aria-label="Back"
-            className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "-ml-3 size-11")}
-          >
-            <ChevronLeftIcon aria-hidden="true" className="size-6" />
-          </Link>
+          <BackLink href={backHref} label={backLabel} onClick={leave} />
           <Button type="button" variant="secondary" onClick={() => setFullOpen(true)}>
             Full preview
           </Button>

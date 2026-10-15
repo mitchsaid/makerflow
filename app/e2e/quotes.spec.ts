@@ -250,7 +250,7 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   await signUpAndOnboard(page, "q-offline", "Offline Co");
   await page.goto("/app/quotes/new");
   await fillItem(page, 1, "Cupcakes", "12", "15");
-  await page.getByLabel("Extra details (optional)").fill("Quote notes");
+  await page.getByLabel("Notes for your customer (optional)").fill("Quote notes");
 
   await page.getByLabel("Customer name", { exact: true }).fill("Someone");
   await page.getByRole("option", { name: /Add “Someone”/ }).click();
@@ -258,7 +258,7 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   await sheet.getByRole("button", { name: "Add address, delivery details or notes" }).click();
   // The customer's notes field has its own label and its own id, apart from the quote's notes.
   await sheet.getByLabel("Anything to remember (optional)").fill("Customer notes");
-  await expect(page.getByLabel("Extra details (optional)")).toHaveValue("Quote notes");
+  await expect(page.getByLabel("Notes for your customer (optional)")).toHaveValue("Quote notes");
   await expect(sheet.getByLabel("Anything to remember (optional)")).toHaveValue("Customer notes");
   const ids = await page.locator("[id]").evaluateAll((els) => els.map((e) => e.id).filter(Boolean));
   expect(ids.length).toBe(new Set(ids).size);

@@ -37,7 +37,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
   });
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
+      <PageHeader back={{ href: `/app/quotes/${quote.id}`, label: `quote ${quote.number}` }}>
         <h1 id="preview-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
           <span>Preview of quote {quote.number}</span>{" "}
           <StatusChip

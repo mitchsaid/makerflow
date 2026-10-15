@@ -83,6 +83,14 @@ export function NewJobForm({
     setValues((v) => ({ ...v, ...change }));
   }
   function chooseCustomer(customerId: string, next: SavedAddress[]) {
+    // Choosing someone answers "choose who this job is for".
+    if (customerId !== "") {
+      setErrors((e) => {
+        const rest = { ...e };
+        delete rest.customerId;
+        return rest;
+      });
+    }
     setValues((v) => ({ ...v, customerId, deliveryAddress: addressWhenCustomerChanges(v.deliveryAddress, saved, next) }));
   }
   /** The picker adds or edits customers; when the chosen one's saved addresses change, the address typed here follows. */
@@ -97,6 +105,7 @@ export function NewJobForm({
     setErrors((e) => {
       const rest = { ...e };
       delete rest.deliveryAddress;
+      delete rest.fulfilment;
       return rest;
     });
     setValues((v) => ({ ...v, fulfilment, deliveryAddress: addressWhenFulfilmentChanges(fulfilment, v.deliveryAddress, saved) }));

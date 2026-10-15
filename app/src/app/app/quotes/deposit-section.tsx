@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEditedFields } from "@/components/form-errors";
 import { Section, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -35,6 +36,12 @@ export function DepositSection({
   symbol: string;
   errors: { depositValue?: string; balanceDueDate?: string };
 }) {
+  // Controls that are not the shared fields report their own edits, so a fixed problem stops showing.
+  const { markEdited } = useEditedFields();
+  const edit = (change: Partial<DepositFormValues>, ...ids: string[]) => {
+    ids.forEach(markEdited);
+    onChange(change);
+  };
   const on = values.depositKind !== "none";
   // Unticking and ticking again brings back the kind that was chosen.
   const [lastKind, setLastKind] = useState<"percent" | "fixed">(values.depositKind === "fixed" ? "fixed" : "percent");
@@ -52,7 +59,7 @@ export function DepositSection({
           id="depositOn"
           name="depositOn"
           checked={on}
-          onCheckedChange={(checked) => onChange({ depositKind: checked === true ? lastKind : "none" })}
+          onCheckedChange={(checked) => edit({ depositKind: checked === true ? lastKind : "none" }, "depositValue", "balanceDueDate")}
         />
         <FieldLabel htmlFor="depositOn" className="text-base">
           Ask for a deposit to start work
@@ -69,7 +76,7 @@ export function DepositSection({
               onChange={(e) => {
                 const kind = e.target.value === "fixed" ? "fixed" : "percent";
                 setLastKind(kind);
-                onChange({ depositKind: kind, depositValue: "" });
+                edit({ depositKind: kind, depositValue: "" }, "depositValue");
               }}
             >
               <NativeSelectOption value="percent">A percentage of the total</NativeSelectOption>
@@ -91,7 +98,7 @@ export function DepositSection({
             <NativeSelect
               id="balanceDue"
               value={values.balanceDue}
-              onChange={(e) => onChange({ balanceDue: e.target.value === "date" ? "date" : "handover" })}
+              onChange={(e) => edit({ balanceDue: e.target.value === "date" ? "date" : "handover" }, "balanceDueDate")}
             >
               <NativeSelectOption value="handover">{handoverLabel}</NativeSelectOption>
               <NativeSelectOption value="date">By a date I choose</NativeSelectOption>

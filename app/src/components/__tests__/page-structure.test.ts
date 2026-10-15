@@ -27,9 +27,33 @@ describe("back navigation", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("uses the shared header on every page that sits under another", () => {
+    const under = [
+      "jobs/new/page.tsx",
+      "jobs/[id]/page.tsx",
+      "jobs/[id]/add-item/page.tsx",
+      "customers/new/page.tsx",
+      "customers/[id]/page.tsx",
+      "products/new/page.tsx",
+      "products/[id]/page.tsx",
+      "products/materials/new/page.tsx",
+      "products/materials/[id]/page.tsx",
+      "documents/policies/page.tsx",
+      "documents/policies/new/page.tsx",
+      "documents/policies/[id]/page.tsx",
+      "documents/themes/page.tsx",
+      "documents/themes/new/page.tsx",
+      "quotes/[id]/page.tsx",
+      "quotes/[id]/preview/page.tsx",
+    ].map((p) => `app/${p}`);
+    const without = under.filter((p) => !sources.find((s) => s.file === p)?.text.includes("<PageHeader"));
+    expect(without).toEqual([]);
+    expect(sources.find((s) => s.file === "app/documents/themes/theme-studio.tsx")?.text).toContain("<BackLink");
+  });
+
   it("gives every back control a name that says where it goes", () => {
     const header = readFileSync(join(__dirname, "../page-header.tsx"), "utf8");
-    expect(header).toContain("aria-label={`Back to ${back.label}`}");
+    expect(header).toContain("aria-label={`Back to ${label}`}");
   });
 });
 
