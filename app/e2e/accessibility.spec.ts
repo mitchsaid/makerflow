@@ -629,6 +629,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save term" }).click();
       await expect(page.getByTestId("policy-saved")).toBeVisible();
       await page.getByRole("link", { name: "Add a term" }).click();
+      // Four examples show first; the rest are under "More examples".
+      await page.getByText("More examples").click();
       await page.getByRole("button", { name: "Lead time" }).click();
       await page.getByRole("button", { name: "Save term" }).click();
       await expect(page.getByTestId("policy-saved")).toBeVisible();
