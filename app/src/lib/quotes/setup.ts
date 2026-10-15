@@ -6,7 +6,7 @@ import { depositColumns, parseDeposit, type DepositErrors } from "./deposit";
  */
 export type UsualFulfilment = "collection" | "delivery";
 export type SetupAnswers = {
-  deposit: "no" | "yes";
+  deposit: "no" | "yes" | "ask";
   /** A percentage, typed the way the business types numbers. Only read when `deposit` is "yes". */
   depositPercent: string;
   /** "varies" changes nothing. */
@@ -21,7 +21,7 @@ export function isSetupAnswers(value: unknown): value is SetupAnswers {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
-    (v.deposit === "no" || v.deposit === "yes") &&
+    (v.deposit === "no" || v.deposit === "yes" || v.deposit === "ask") &&
     typeof v.depositPercent === "string" &&
     (v.fulfilment === "varies" || isUsualFulfilment(v.fulfilment))
   );
@@ -33,6 +33,13 @@ export function parseSetupAnswers(
 ):
   | { ok: true; columns: { default_deposit_kind: string; default_deposit_value: number; usual_fulfilment: UsualFulfilment | null } }
   | { ok: false; errors: DepositErrors } {
+  // "I decide each time": nothing is chosen for a new quote.
+  if (answers.deposit === "ask") {
+    return {
+      ok: true,
+      columns: { default_deposit_kind: "ask", default_deposit_value: 0, usual_fulfilment: answers.fulfilment === "varies" ? null : answers.fulfilment },
+    };
+  }
   const parsed = parseDeposit(
     answers.deposit === "yes" ? { depositKind: "percent", depositValue: answers.depositPercent } : { depositKind: "none" },
     "",

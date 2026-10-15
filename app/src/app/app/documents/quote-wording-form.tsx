@@ -5,7 +5,7 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
+import { QUOTE_DESCRIPTION_MAX, QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
 import { saveQuoteWording, type WordingErrors, type WordingState, type WordingValues } from "./wording-actions";
 import { FormErrorScope } from "@/components/form-errors";
 
@@ -23,6 +23,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
   const errors: WordingErrors = state.status === "error" ? (state.errors ?? {}) : {};
   const problems: FormProblem[] = (
     [
+      ["wordingDescription", "Introduction", errors.description],
       ["wordingSignOff", "Sign-off message", errors.signOff],
       ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
     ] as const
@@ -65,6 +66,16 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         )}
+        <TextAreaField
+          id="wordingDescription"
+          name="description"
+          label="Introduction (optional)"
+          hint="A short introduction, printed at the top of every new quote."
+          value={values.description}
+          error={errors.description}
+          onChange={set("description")}
+          maxLength={QUOTE_DESCRIPTION_MAX}
+        />
         <TextField
           id="wordingSignOff"
           name="signOff"
@@ -74,7 +85,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           value={values.signOff}
           error={errors.signOff}
           onChange={set("signOff")}
-          hint="Like “Yours in sweetness”. Shown at the end of the quote, with your business name."
+          hint="Shown at the end of the quote, with your business name."
         />
         <TextAreaField
           id="wordingPayment"

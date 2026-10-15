@@ -7,7 +7,7 @@ import { defaultQuotePolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
-import { moneyToInput, percentToInput } from "@/lib/money";
+import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
@@ -34,6 +34,7 @@ export default async function NewQuotePage() {
   const locale = getLocalePack(profile.countryCode);
   const customers = forOrganisation(allCustomers, organisation.id);
   const today = todayIn(locale.timeZone);
+  const usuals = usualsFromProfile(profile, locale.numberStyle);
 
   // The first New quote of a business: two questions first, for those who can answer them, when nothing
   // was set elsewhere (Quotes and invoices) and nobody has made a quote yet (staff can, without being asked).
@@ -78,22 +79,19 @@ export default async function NewQuotePage() {
           discountValue: "",
           notes: "",
           title: "",
-          description: "",
+          // The introduction the business starts every quote with, if it has set one.
+          description: usuals.description,
           // A new quote starts with the wording the business has set for all its quotes.
-          signOff: profile.defaultSignOff ?? "",
-          paymentInstructions: profile.paymentInstructions ?? "",
+          signOff: usuals.signOff,
+          paymentInstructions: usuals.paymentInstructions,
           // Bank details print by default; the switch on the quote turns them off for this one.
           showBankDetails: true,
           // Product photos show by default (each quote can switch them off).
           showPhotos: true,
           // The deposit the business has set as its default, if any (the balance starts on collection or delivery).
-          depositKind: profile.defaultDepositKind,
-          depositValue:
-            profile.defaultDepositKind === "percent"
-              ? percentToInput(profile.defaultDepositValue, locale.numberStyle)
-              : profile.defaultDepositKind === "fixed"
-                ? moneyToInput(profile.defaultDepositValue, locale.numberStyle)
-                : "",
+          // "Ask me each time" starts with nothing chosen: the deposit section puts the choice in front of the maker.
+          depositKind: profile.defaultDepositKind === "ask" ? "none" : profile.defaultDepositKind,
+          depositValue: profile.defaultDepositKind === "ask" ? "" : usuals.depositValue,
           balanceDue: "handover",
           balanceDueDate: "",
           // And the terms the business has marked to include on every new quote.
@@ -104,6 +102,9 @@ export default async function NewQuotePage() {
         canManagePolicies={canEditBusinessProfile(role)}
         bankDetails={bankPreview(bankDetails, locale)}
         canEditBankDetails={canEditBankDetails(role)}
+        usuals={usuals}
+        canSaveUsuals={canEditBusinessProfile(role)}
+        askForDeposit={profile.defaultDepositKind === "ask"}
         customers={customerOptions(customers, locale)}
         products={forOrganisation(allProducts, organisation.id)}
         vat={vatSettingsFor(profile, locale)}

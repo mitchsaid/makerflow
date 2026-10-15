@@ -592,7 +592,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
       await openDocuments(page);
       // The default deposit: with an error, then saved.
-      await page.getByRole("checkbox", { name: "Ask for a deposit on new quotes" }).check();
+      await page.getByLabel("On a new quote").selectOption("percent");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByText("Enter a percentage").first()).toBeVisible();
       await expectNoViolations(page, "quotes and invoices, default deposit with an error");
@@ -630,6 +630,23 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("list", { name: "Your terms" }).getByRole("link", { name: /If you cancel/ }).click();
       await expect(page.getByRole("heading", { name: "If you cancel: made to order", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit term");
+    });
+
+    test("quote usuals and the deposit choice", async ({ page }) => {
+      test.setTimeout(240_000);
+      await signUpAndOnboard(page, `a11y-usual-${scheme}`, "Usual Axe Co");
+      await openDocuments(page);
+      await page.getByLabel("On a new quote").selectOption("ask");
+      await page.getByLabel("Introduction (optional)").fill("Thank you for asking.");
+      await expectNoViolations(page, "quotes and invoices, usuals");
+      await page.getByRole("button", { name: "Save deposit" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+
+      await page.goto("/app/quotes/new");
+      await page.getByRole("radio", { name: "A percentage of the total" }).check();
+      await page.getByLabel("Description (optional)").fill("A different introduction");
+      await expect(page.getByRole("button", { name: "Save as my usual description" })).toBeVisible();
+      await expectNoViolations(page, "new quote, deposit choice and Save as my usual");
     });
   });
 }

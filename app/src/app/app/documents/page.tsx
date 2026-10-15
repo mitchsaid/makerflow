@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
-import { currencySymbol, moneyToInput, percentToInput } from "@/lib/money";
+import { currencySymbol } from "@/lib/money";
+import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { DepositDefaultForm } from "./deposit-default-form";
@@ -23,6 +24,7 @@ export default async function DocumentSettingsPage() {
   const [{ organisation, profile, role }, sequences] = await Promise.all([requireOrganisation(), getQuoteSequences()]);
   const sequence = sequenceFor(sequences, organisation.id);
   const locale = getLocalePack(profile.countryCode);
+  const usuals = usualsFromProfile(profile, locale.numberStyle);
   const canEdit = canEditBusinessProfile(role);
 
   return (
@@ -73,8 +75,9 @@ export default async function DocumentSettingsPage() {
         <QuoteWordingForm
           otherWaysHint={locale.payment.otherWaysHint}
           initial={{
-            signOff: profile.defaultSignOff ?? "",
-            paymentInstructions: profile.paymentInstructions ?? "",
+            description: usuals.description,
+            signOff: usuals.signOff,
+            paymentInstructions: usuals.paymentInstructions,
           }}
         />
       )}
@@ -82,15 +85,7 @@ export default async function DocumentSettingsPage() {
       {canEdit && (
         <DepositDefaultForm
           symbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
-          initial={{
-            kind: profile.defaultDepositKind,
-            value:
-              profile.defaultDepositKind === "percent"
-                ? percentToInput(profile.defaultDepositValue, locale.numberStyle)
-                : profile.defaultDepositKind === "fixed"
-                  ? moneyToInput(profile.defaultDepositValue, locale.numberStyle)
-                  : "",
-          }}
+          initial={{ kind: usuals.depositKind, value: usuals.depositValue }}
         />
       )}
 

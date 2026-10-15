@@ -9,6 +9,8 @@ import { isIsoDay } from "./dates";
  */
 
 export type DepositKind = "none" | "percent" | "fixed";
+/** What a business can set as its usual: a kind of deposit, none, or "decide on each quote". */
+export type DefaultDepositKind = DepositKind | "ask";
 export type BalanceDue = "handover" | "date";
 
 /** What the quote form holds (everything is text). */
@@ -31,6 +33,10 @@ export type ParsedDeposit =
 export type DepositErrors = Partial<Record<"depositValue" | "balanceDueDate", string>>;
 
 export const NO_DEPOSIT: DepositFormValues = { depositKind: "none", depositValue: "", balanceDue: "handover", balanceDueDate: "" };
+
+export function isDefaultDepositKind(value: unknown): value is DefaultDepositKind {
+  return value === "ask" || isDepositKind(value);
+}
 
 export function isDepositKind(value: unknown): value is DepositKind {
   return value === "none" || value === "percent" || value === "fixed";

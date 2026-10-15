@@ -15,6 +15,7 @@ import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { formatMoment, todayIn } from "@/lib/quotes/dates";
 import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
 import { themeFromStored } from "@/lib/quotes/themes";
+import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { currentOutcome, outcomeSentence } from "@/lib/quotes/outcome";
 import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_PROMPT, jobNumberText, shouldNudgeCreateJob } from "@/lib/jobs";
@@ -102,6 +103,9 @@ export default async function QuotePage({
           canManagePolicies={canEditBusinessProfile(role)}
           bankDetails={bankPreview(bankDetails, locale)}
           canEditBankDetails={canEditBankDetails(role)}
+          usuals={usualsFromProfile(profile, locale.numberStyle)}
+          canSaveUsuals={canEditBusinessProfile(role)}
+          askForDeposit={profile.defaultDepositKind === "ask"}
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}
           {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}
