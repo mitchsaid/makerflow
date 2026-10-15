@@ -9,7 +9,9 @@ const executablePath =
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: false,
+  // Every test signs up its own person, so none depends on another: in CI they are shared out one by one across the
+  // shards (a file would put the long walks on one shard). Locally they keep to a file at a time.
+  fullyParallel: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   // The tests run against the dev server, which compiles each page the first time it is

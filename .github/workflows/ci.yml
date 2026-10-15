@@ -11,7 +11,44 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same pull request makes the earlier run pointless.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Decides which of the slow jobs a change needs (docs/runbooks/ci-tiers.md). A skipped job counts as passed for the
+  # required checks, so a notes-only change is not held up by 15 minutes of browser tests. On main everything runs.
+  changes:
+    name: What changed
+    runs-on: ubuntu-24.04
+    outputs:
+      database: ${{ steps.filter.outputs.database }}
+      browser: ${{ steps.filter.outputs.browser }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "database=true" >> "$GITHUB_OUTPUT"
+            echo "browser=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only --no-renames "$BASE...$HEAD")
+          echo "$files"
+          # Database tests: anything under app/supabase, the workflow itself, or a dependency change (the Supabase tooling).
+          if echo "$files" | grep -qE '^(app/supabase/|\.github/|app/package\.json$|app/pnpm-lock\.yaml$)'; then db=true; else db=false; fi
+          # Browser tests: anything that is not a note (docs/ or a markdown file).
+          if echo "$files" | grep -vE '^docs/|\.md$' | grep -q .; then browser=true; else browser=false; fi
+          echo "database=$db" >> "$GITHUB_OUTPUT"
+          echo "browser=$browser" >> "$GITHUB_OUTPUT"
+
   app:
     name: Lint, typecheck, build
     runs-on: ubuntu-24.04
@@ -40,6 +77,8 @@ jobs:
 
   database:
     name: Migrations and security tests
+    needs: changes
+    if: needs.changes.outputs.database == 'true'
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -60,9 +99,16 @@ jobs:
       - name: Run database tests
         run: pnpm db:test
 
-  e2e:
-    name: Browser tests (real local Supabase)
+  # The browser tests, split into four parallel jobs (each with its own local Supabase and dev server).
+  e2e-shard:
+    name: Browser tests shard ${{ matrix.shard }}/4
+    needs: changes
+    if: needs.changes.outputs.browser == 'true'
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     defaults:
       run:
         working-directory: app
@@ -82,9 +128,24 @@ jobs:
       - name: Write local environment file
         run: pnpm env:local --force
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm test:e2e
+      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.shard }}
           path: app/test-results
+
+  # The one required check for the browser tests (the shards above are not named in the branch rules).
+  e2e:
+    name: Browser tests (real local Supabase)
+    needs: [changes, e2e-shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo "shards: ${{ needs.e2e-shard.result }}"
+          if [ "${{ needs.e2e-shard.result }}" = "success" ] || [ "${{ needs.e2e-shard.result }}" = "skipped" ]; then
+            [ "${{ needs.changes.result }}" = "success" ]
+          else
+            exit 1
+          fi

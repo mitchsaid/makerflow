@@ -23,6 +23,7 @@ import {
   type NumberStyle,
 } from "@/lib/money";
 import { UnitField } from "@/components/unit-field";
+import { PhotoThumb } from "@/components/photo-thumb";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
 import type { VatStatus } from "@/lib/money";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
@@ -375,6 +376,7 @@ function PickView({
   const [query, setQuery] = useState("");
   const active = products.filter((p) => !p.archived);
   const matching = active.filter((p) => productMatchesSearch(p, query));
+  const anyPhoto = active.some((p) => p.kind === "product" && p.photoImageId);
   const groups = (["product", "service"] as const)
     .map((kind) => ({ kind, items: matching.filter((p) => p.kind === kind).slice(0, SEARCH_LIMIT) }))
     .filter((g) => active.some((p) => p.kind === g.kind));
@@ -410,20 +412,26 @@ function PickView({
                     className="h-auto min-h-14 w-full flex-col items-stretch gap-0.5 px-4 py-2 text-left whitespace-normal"
                     onClick={() => onChoose(p)}
                   >
-                    <span className="flex items-baseline justify-between gap-3">
-                      <span className="font-medium">{p.name}</span>
-                      {showPrices ? (
-                        <span className="shrink-0">
-                          {p.variations.length > 0 ? "from " : ""}{money(p.unitPriceCents)}
-                          {p.unit ? ` / ${p.unit}` : ""}
+                    <span className="flex items-center gap-3">
+                      {/* Products with no photo keep an empty square, so the names line up (services never have one). */}
+                      {group.kind === "product" && anyPhoto && <PhotoThumb imageId={p.photoImageId} size="md" keepSpace />}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className="font-medium">{p.name}</span>
+                          {showPrices ? (
+                            <span className="shrink-0">
+                              {p.variations.length > 0 ? "from " : ""}{money(p.unitPriceCents)}
+                              {p.unit ? ` / ${p.unit}` : ""}
+                            </span>
+                          ) : (
+                            p.unit && <span className="shrink-0 text-muted-foreground">per {p.unit}</span>
+                          )}
                         </span>
-                      ) : (
-                        p.unit && <span className="shrink-0 text-muted-foreground">per {p.unit}</span>
-                      )}
+                        {p.description && (
+                          <span className="block truncate text-sm font-normal text-muted-foreground">{p.description}</span>
+                        )}
+                      </span>
                     </span>
-                    {p.description && (
-                      <span className="truncate text-sm font-normal text-muted-foreground">{p.description}</span>
-                    )}
                   </Button>
                 </li>
               ))}

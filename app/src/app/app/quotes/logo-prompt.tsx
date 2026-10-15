@@ -24,6 +24,9 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hidden, setHidden] = useState(false);
+  // The logo was saved: the card is about to go (the page refreshes), so focus must not go back to its button. Decided
+  // here, not from `askForLogo`, which only changes once the refresh arrives and may lose the race with the sheet closing.
+  const [saved, setSaved] = useState(false);
   const [, startTransition] = useTransition();
 
   return (
@@ -59,7 +62,9 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
         <SheetContent
           side="right"
           className="h-dvh gap-0 overflow-y-auto"
-          finalFocus={() => document.getElementById(askForLogo ? "add-logo" : PAGE_TITLE) ?? document.getElementById(PAGE_TITLE) ?? true}
+          finalFocus={() =>
+            document.getElementById(askForLogo && !saved ? "add-logo" : PAGE_TITLE) ?? document.getElementById(PAGE_TITLE) ?? true
+          }
         >
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
             <SheetTitle className="text-lg">Add your logo</SheetTitle>
@@ -76,7 +81,10 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
                 onPendingChange: setSaving,
                 onCancel: () => setOpen(false),
                 // The page redraws from the save itself (it revalidates), with the logo on the quote and no card.
-                onDone: () => setOpen(false),
+                onDone: () => {
+                  setSaved(true);
+                  setOpen(false);
+                },
               }}
             />
           </div>

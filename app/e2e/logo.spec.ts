@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { openBusinessProfile, openDocuments, signUpAndOnboard } from "./helpers";
+import { nextServerAction, openBusinessProfile, openDocuments, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, openQuotes } from "./quote-helpers";
 
 async function logoFile() {
@@ -90,11 +90,13 @@ test("'Not now' hides the logo card for this person, and the Business profile st
   await signUpAndOnboard(page, "logo-notnow", "Not Now Co");
   await previewOfNewQuote(page);
   await expect(page.getByTestId("logo-prompt")).toBeVisible();
+  const remembered = nextServerAction(page);
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByTestId("logo-prompt")).toHaveCount(0);
   // Focus goes to the page's heading, not to nowhere.
   await expect(page.locator("#preview-title")).toBeFocused();
   // It is remembered (in the database), so it stays gone after a reload and on the next quote.
+  await remembered;
   await page.reload();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByTestId("logo-prompt")).toHaveCount(0);

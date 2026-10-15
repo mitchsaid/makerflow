@@ -50,7 +50,7 @@ Run from `app/` with pnpm:
 - `pnpm test:e2e` — browser tests (Playwright, phone viewport). Needs the stack running; starts the dev server itself
 - `pnpm db:test:plain` — same tests on plain Postgres with an auth stand-in (sandboxes without Docker; set `DATABASE_URL` to a scratch database)
 
-Fast local loop and daily routine: `docs/runbooks/local-development.md`. First-time setup on a new computer: `./scripts/setup-local.sh` (checks tools, installs dependencies, starts the local stack, writes `app/.env.local`). CI runs on pull requests and on `main`, not on every branch push.
+Fast local loop and daily routine: `docs/runbooks/local-development.md`. First-time setup on a new computer: `./scripts/setup-local.sh` (checks tools, installs dependencies, starts the local stack, writes `app/.env.local`). CI runs on pull requests and on `main`, not on every branch push; what it runs for which change, and what to run locally for a small one, is in `docs/runbooks/ci-tiers.md`.
 
 Database changes are migration files only, never dashboard edits. Every new table needs RLS, the `session_required` policy and a test in `app/supabase/tests/`. SQL tests simulate a signed-in user with a real session (`pg_temp.as_user`, copy the helper from an existing test file).
 Sign-in uses email magic links (verified server-side, so they work across browsers) and Google (off until configured). Google sign-in is NOT yet tested against a real Google project.

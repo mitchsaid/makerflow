@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openDocuments, uniqueEmail, waitForSignInLink } from "./helpers";
+import { nextServerAction, openBusinessProfile, openDocuments, uniqueEmail, waitForSignInLink } from "./helpers";
 
 /** Signs up and stops on the "what do you make?" step. */
 async function signUpToTypeStep(page: Page, businessName: string) {
@@ -62,8 +62,10 @@ test("skipping asks again once on the terms page, and Not now is remembered; the
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
   await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
   await expect(page.getByTestId("business-type-prompt")).toBeVisible();
+  const remembered = nextServerAction(page);
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
+  await remembered;
   await page.reload();
   await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
 

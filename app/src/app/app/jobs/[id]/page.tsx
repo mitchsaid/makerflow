@@ -6,7 +6,7 @@ import { AddLink } from "@/components/add-button";
 import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
-import { imageUrl } from "@/lib/images";
+import { PhotoThumb } from "@/components/photo-thumb";
 import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { ItemProgress } from "../item-progress";
@@ -56,10 +56,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
               {job.fullItems.map((item) => (
                 <li key={item.id} className="space-y-3">
                   <div className="flex gap-3">
-                  {item.photoImageId && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageUrl(item.photoImageId, "thumb")} alt="" loading="lazy" className="size-14 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
-                  )}
+                  <PhotoThumb imageId={item.photoImageId} size="lg" className="self-start" />
                   <div className="min-w-0 space-y-0.5">
                   <p className="text-base font-medium">
                     {quantityText(item.quantityMilli, item.unit, locale.numberStyle)} {item.name}

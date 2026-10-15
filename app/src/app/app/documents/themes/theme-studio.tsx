@@ -381,12 +381,14 @@ export function ThemeStudio({
       </div>
 
       <Sheet open={fullOpen} onOpenChange={setFullOpen}>
-        <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto p-4">
-          <SheetHeader>
-            <SheetTitle>Full preview</SheetTitle>
-            <SheetDescription>Every page of the sample quote in this theme.</SheetDescription>
-          </SheetHeader>
-          {fullOpen && <LivePdfPreview snapshot={shown} label="Full preview" />}
+        <SheetContent side="bottom" className="max-h-[92dvh] gap-0 overflow-y-auto p-0">
+          <div className="flex flex-col gap-4 p-4">
+            <SheetHeader>
+              <SheetTitle>Full preview</SheetTitle>
+              <SheetDescription>Every page of the sample quote in this theme.</SheetDescription>
+            </SheetHeader>
+            {fullOpen && <LivePdfPreview snapshot={shown} label="Full preview" />}
+          </div>
         </SheetContent>
       </Sheet>
     </div>
