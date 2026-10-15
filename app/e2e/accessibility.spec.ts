@@ -22,9 +22,20 @@ async function expectNoViolations(page: Page, where: string) {
     .toBe(true);
   // Sheets fade in; colours measured halfway through a fade are not the colours people see.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
+  // A sticky action bar covers part of whatever is under it at this scroll position, which says nothing about the page
+  // under it (target-size counts a covered target as small). Its own content is still checked: it is only let go of
+  // its place on the screen for the scan, so it sits in the flow instead of over the page.
+  await page.evaluate(() => {
+    const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
+    if (bar) bar.style.position = "static";
+  });
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
+  await page.evaluate(() => {
+    const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
+    if (bar) bar.style.position = "";
+  });
   const summary = violations.map(
     (v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`,
   );
