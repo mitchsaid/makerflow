@@ -55,48 +55,50 @@ export function FontPicker({
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="max-h-[85dvh] gap-4 overflow-y-auto p-4">
-          <SheetHeader>
-            <SheetTitle>{label}: choose a font</SheetTitle>
-            <SheetDescription>Each one is shown as it will print.</SheetDescription>
-          </SheetHeader>
-          {ORDER.map((category) => (
-            <section key={category} className="space-y-1" aria-labelledby={`${id}-${category}`}>
-              <h3 id={`${id}-${category}`} className="px-1 pt-2 text-sm font-medium text-muted-foreground">
-                {CATEGORY_LABELS[category]}
-              </h3>
-              <ul className="space-y-1">
-                {FONT_LIST.filter((f) => f.category === category).map((f) => {
-                  const pressed = f.id === value;
-                  return (
-                    <li key={f.id}>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        aria-pressed={pressed}
-                        data-testid={`font-${f.id}`}
-                        onClick={() => {
-                          onChange(f.id);
-                          setOpen(false);
-                        }}
-                        className="h-auto w-full justify-between gap-3 py-3 text-left font-normal aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:ring-2 aria-pressed:ring-primary"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-xl" style={{ fontFamily: `"${f.label}"` }}>
-                            {f.label}
+        <SheetContent side="bottom" className="max-h-[85dvh] gap-0 overflow-y-auto p-0">
+          <div className="flex flex-col gap-4 p-4">
+            <SheetHeader>
+              <SheetTitle>{label}: choose a font</SheetTitle>
+              <SheetDescription>Each one is shown as it will print.</SheetDescription>
+            </SheetHeader>
+            {ORDER.map((category) => (
+              <section key={category} className="space-y-1" aria-labelledby={`${id}-${category}`}>
+                <h3 id={`${id}-${category}`} className="px-1 pt-2 text-sm font-medium text-muted-foreground">
+                  {CATEGORY_LABELS[category]}
+                </h3>
+                <ul className="space-y-1">
+                  {FONT_LIST.filter((f) => f.category === category).map((f) => {
+                    const pressed = f.id === value;
+                    return (
+                      <li key={f.id}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          aria-pressed={pressed}
+                          data-testid={`font-${f.id}`}
+                          onClick={() => {
+                            onChange(f.id);
+                            setOpen(false);
+                          }}
+                          className="h-auto w-full justify-between gap-3 py-3 text-left font-normal aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:ring-2 aria-pressed:ring-primary"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-xl" style={{ fontFamily: `"${f.label}"` }}>
+                              {f.label}
+                            </span>
+                            <span className="block truncate text-sm text-muted-foreground" style={{ fontFamily: `"${f.label}"` }}>
+                              {sample}
+                            </span>
                           </span>
-                          <span className="block truncate text-sm text-muted-foreground" style={{ fontFamily: `"${f.label}"` }}>
-                            {sample}
-                          </span>
-                        </span>
-                        {pressed && <CheckIcon aria-hidden="true" className="size-5 shrink-0 text-primary" />}
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+                          {pressed && <CheckIcon aria-hidden="true" className="size-5 shrink-0 text-primary" />}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
         </SheetContent>
       </Sheet>
     </div>

@@ -131,6 +131,8 @@ test("the Add an item list shows each product's photo, with an empty square for 
   await expect(sheet(page)).toHaveAccessibleName("Add an item");
   const cake = sheet(page).getByRole("button", { name: /Wedding cake/ });
   const cupcakes = sheet(page).getByRole("button", { name: /Cupcakes/ });
+  await expect(cake).toBeVisible();
+  await expect(cupcakes).toBeVisible();
   await expect(cake.locator("img")).toHaveCount(1);
   await expect(cake.locator("img")).toHaveAttribute("src", /^\/app\/images\/[0-9a-f-]{36}\?size=thumb$/);
   await expect(cupcakes.locator("img")).toHaveCount(0);

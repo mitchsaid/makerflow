@@ -34,13 +34,16 @@ test("the item sheet can always be closed on a phone, even after scrolling", asy
     expect(box!.width).toBeGreaterThanOrEqual(44);
     // Nothing (such as the sheet's own heading) sits on top of it.
     const top = await page.evaluate(
-      ([x, y]) => document.elementFromPoint(x!, y!)?.closest("[data-slot='sheet-close']") !== null,
+      ([x, y]) => document.elementFromPoint(x!, y!)?.closest("[data-slot='sheet-close']") != null,
       [box!.x + box!.width / 2, box!.y + box!.height / 2],
     );
     expect(top, "Close is not covered").toBe(true);
   };
   await visibleInTopCorner();
+  // The list really does scroll here, so the second check proves something.
+  expect(await sheet(page).evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(40);
   await sheet(page).evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await expect.poll(() => sheet(page).evaluate((el) => el.scrollTop)).toBeGreaterThan(40);
   await visibleInTopCorner();
   await close.click();
   await expect(sheet(page)).toHaveCount(0);

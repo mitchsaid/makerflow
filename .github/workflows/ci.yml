@@ -40,10 +40,10 @@ jobs:
             echo "browser=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          files=$(git diff --name-only "$BASE" "$HEAD")
+          files=$(git diff --name-only --no-renames "$BASE...$HEAD")
           echo "$files"
-          # Database tests: anything under app/supabase, or the workflow itself.
-          if echo "$files" | grep -qE '^(app/supabase/|\.github/)'; then db=true; else db=false; fi
+          # Database tests: anything under app/supabase, the workflow itself, or a dependency change (the Supabase tooling).
+          if echo "$files" | grep -qE '^(app/supabase/|\.github/|app/package\.json$|app/pnpm-lock\.yaml$)'; then db=true; else db=false; fi
           # Browser tests: anything that is not a note (docs/ or a markdown file).
           if echo "$files" | grep -vE '^docs/|\.md$' | grep -q .; then browser=true; else browser=false; fi
           echo "database=$db" >> "$GITHUB_OUTPUT"
@@ -139,7 +139,7 @@ jobs:
   e2e:
     name: Browser tests (real local Supabase)
     needs: [changes, e2e-shard]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     steps:
       - run: |

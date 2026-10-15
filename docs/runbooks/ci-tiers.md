@@ -8,10 +8,10 @@ the fixed cost per pull request is what shrinks.
 | Check (required) | Runs when | Notes |
 |---|---|---|
 | Lint, typecheck, build | always | Lint, typecheck, unit tests (this includes the docs guard tests) and a production build. A few minutes. |
-| Migrations and security tests | the change touches `app/supabase/` or `.github/` | Skipped otherwise. A skipped required job counts as passed. |
+| Migrations and security tests | the change touches `app/supabase/`, `.github/`, or the dependencies (`app/package.json`, `app/pnpm-lock.yaml`) | Skipped otherwise. A skipped required job counts as passed. |
 | Browser tests (real local Supabase) | anything other than `docs/` or a `.md` file changed | Four shards run in parallel (`Browser tests shard n/4`); the check with the required name only reports their combined result. |
 
-On `main` everything runs. A newer push to the same pull request cancels the older run.
+First measured run (2026-10-15): the four shards took 6–10 minutes in parallel, against about 20 for the single job before. On `main` everything runs. A newer push to the same pull request cancels the older run.
 
 The browser tests are shared out test by test (`fullyParallel` in CI), not file by file, so the long accessibility walks do not
 sit on one shard. This depends on every test signing up its own person. Keep it that way: a test that needs another test to
