@@ -2,6 +2,8 @@
 
 Status: **agreed with the founder 2026-10-09** ("Yes, do that": one concept called Terms, titles optional). Replaces the split in `quote-wording.md` (a free-text Terms box) and `quote-policies.md` (a library of titled policies). The migration moves data and needs human review.
 
+> **Quote screen superseded 2026-10-15** by `docs/plans/quote-form-feedback.md` (slice C): terms on a quote are no longer ticked from a list and there is no "just for this quote" or "Save a new term"; one "Add a term" opens a sheet to pick a saved term or write a new one. The library, the examples and the frozen copies below are unchanged.
+
 ## Why
 Since the fixed policy headings went (2026-10-06) a policy is "a title and some wording", which is what a term is. Both said similar things (a "changes" starter line and a "changes" example policy), and the document showed them together ("Terms and policies", then "Other terms" in small print). The split only made sense to us.
 

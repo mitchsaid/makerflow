@@ -107,7 +107,7 @@ export function QuoteBuilder({
   justSaved: boolean;
   /** The field to land on (the preview sends people back to fix something). */
   focusOnLoad?: string;
-  /** The business's saved terms, to tick onto the quote. */
+  /** The business's saved terms, to add to the quote. */
   policyLibrary: PolicySummary[];
   /** Starter wording for the policy form (from the locale pack). */
   policyContent: PolicyPackContent;

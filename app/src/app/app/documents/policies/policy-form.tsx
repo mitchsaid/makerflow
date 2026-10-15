@@ -204,7 +204,7 @@ export function PolicyForm({
           </FieldLabel>
         </Field>
         <FieldDescription>
-          New quotes start with this ticked. You can untick it on any quote, and change its wording there
+          New quotes start with this term on them. Remove it from any quote, and change its wording there
           without changing it here.
         </FieldDescription>
       </Section>

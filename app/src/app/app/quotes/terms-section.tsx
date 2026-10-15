@@ -55,11 +55,20 @@ export function TermsSection({
   const addButton = useRef<HTMLButtonElement>(null);
   // Which terms have their wording open for changing (a term with a problem is always open).
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  // After Remove (its button goes with the term), focus moves to the add button.
+  // After Remove (its button goes with the term), focus moves to the add button, or to the section's own heading when
+  // there is none (nothing left to add, or a person who cannot write terms).
   const [removed, setRemoved] = useState(0);
+  const listTop = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (removed > 0) addButton.current?.focus();
+    if (removed > 0) (addButton.current && !addButton.current.disabled ? addButton.current : listTop.current)?.focus();
   }, [removed]);
+  // Opening a wording replaces the button that opened it: focus goes to the wording itself.
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (focusKey) document.getElementById(`policy-${focusKey}-body`)?.focus();
+  }, [focusKey]);
+  // Adding from the sheet takes the row (and its button) away: focus goes to Done, which is always there.
+  const done = useRef<HTMLButtonElement>(null);
 
   const active = sortPolicies(library.filter((p) => !p.archived));
   const savedOf = (policyId: string) => active.find((p) => p.id === policyId);
@@ -80,21 +89,19 @@ export function TermsSection({
     onChange(value.map((c) => (c.key === key ? { ...c, ...change } : c)));
   }
   function add(policy: PolicySummary) {
-    if (full) return;
+    if (full || value.some((c) => c.policyId === policy.id)) return;
     onChange(inLibraryOrder([...value, copyForQuote(policy, newKey())], library));
+    setTimeout(() => done.current?.focus(), 0);
   }
   function openSheet() {
     // With nothing saved to pick from, go straight to writing one (people who can).
     setView(available.length === 0 && canManage ? "create" : "pick");
     setSheetOpen(true);
   }
-  const toggleOpen = (key: string) =>
-    setOpen((s) => {
-      const next = new Set(s);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const openWording = (key: string) => {
+    setOpen((s) => new Set(s).add(key));
+    setFocusKey(key);
+  };
 
   const row = (c: QuotePolicyValues) => {
     const saved = c.policyId === "" ? undefined : savedOf(c.policyId);
@@ -102,7 +109,8 @@ export function TermsSection({
     const problem = errorsByKey?.[c.key];
     // A term written just for one quote (from before): its title and wording are right there.
     if (c.policyId === "") {
-      const label = "Term just for this quote";
+      const legacy = value.filter((t) => t.policyId === "");
+      const label = legacy.length > 1 ? `Term just for this quote ${legacy.indexOf(c) + 1}` : "Term just for this quote";
       return (
         <li key={c.key}>
           <div role="group" aria-labelledby={`policy-${c.key}-heading`} className="space-y-3 rounded-lg border border-border p-3">
@@ -142,7 +150,9 @@ export function TermsSection({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-base font-medium">{name}</p>
-            {!changing && <p className="line-clamp-2 text-sm text-muted-foreground">{c.body}</p>}
+            {!changing && (c.title.trim() !== "" || c.body.trim().includes("\n")) && (
+              <p className="line-clamp-2 text-sm text-muted-foreground">{c.body}</p>
+            )}
             {!saved && <p className="text-sm text-muted-foreground">No longer in your saved terms</p>}
           </div>
           <Button type="button" variant="ghost" aria-label={`Remove ${name}`} onClick={() => remove(c.key)}>
@@ -168,7 +178,7 @@ export function TermsSection({
             )}
           </div>
         ) : (
-          <Button type="button" variant="ghost" aria-label={`Change the wording for this quote: ${name}`} aria-expanded={false} onClick={() => toggleOpen(c.key)}>
+          <Button type="button" variant="ghost" aria-label={`Change the wording for this quote: ${name}`} onClick={() => openWording(c.key)}>
             Change the wording for this quote
           </Button>
         )}
@@ -184,6 +194,7 @@ export function TermsSection({
         </p>
       )}
 
+      <div ref={listTop} tabIndex={-1} className="outline-none" />
       {value.length === 0 ? (
         <p className="text-base" data-testid="no-policies">
           {available.length > 0
@@ -255,7 +266,7 @@ export function TermsSection({
                   </ul>
                 )}
                 {full && <p className="text-sm text-muted-foreground">This quote has {QUOTE_MAX_POLICIES} terms, the most it can hold.</p>}
-                <Button type="button" size="lg" variant="outline" onClick={() => setSheetOpen(false)}>
+                <Button ref={done} type="button" size="lg" variant="outline" onClick={() => setSheetOpen(false)}>
                   Done
                 </Button>
               </>
