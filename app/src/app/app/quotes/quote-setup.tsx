@@ -87,6 +87,7 @@ export function QuoteSetup() {
                 [
                   ["no", "No"],
                   ["yes", "Yes, to start work"],
+                  ["ask", "It depends: I'll decide on each quote"],
                 ] as const
               ).map(([value, label]) => (
                 <Field key={value} orientation="horizontal" className="items-start py-2.5">

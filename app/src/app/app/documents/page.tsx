@@ -73,6 +73,7 @@ export default async function DocumentSettingsPage() {
         <QuoteWordingForm
           otherWaysHint={locale.payment.otherWaysHint}
           initial={{
+            description: profile.defaultDescription ?? "",
             signOff: profile.defaultSignOff ?? "",
             paymentInstructions: profile.paymentInstructions ?? "",
           }}

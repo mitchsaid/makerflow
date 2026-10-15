@@ -69,7 +69,7 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   await openDocuments(page);
   const deposit = page.getByRole("group", { name: "Deposit" });
   // Errors at the field, then saved.
-  await deposit.getByRole("checkbox", { name: "Ask for a deposit on new quotes" }).check();
+  await deposit.getByLabel("On a new quote").selectOption("percent");
   await page.getByRole("button", { name: "Save deposit" }).click();
   await expect(page.getByTestId("form-summary")).toContainText("Enter a percentage");
   await deposit.getByLabel("Percentage (%)").fill("40");

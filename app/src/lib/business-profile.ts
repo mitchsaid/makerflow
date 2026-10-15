@@ -11,7 +11,8 @@ export type BusinessProfile = {
   /** What the business makes or sells (see lib/business-types): null = never asked, empty = skipped. */
   businessTypes: BusinessType[] | null;
   /** What a new quote starts with for its deposit: 'none', a percentage (basis points) or an amount (cents). */
-  defaultDepositKind: "none" | "percent" | "fixed";
+  /** "ask": the business decides the deposit on every quote (a new quote opens with nothing chosen). */
+  defaultDepositKind: "none" | "percent" | "fixed" | "ask";
   defaultDepositValue: number;
   /** What a new quote starts with for delivery or collection (null: nothing chosen). */
   usualFulfilment: "collection" | "delivery" | null;
@@ -34,13 +35,15 @@ export type BusinessProfile = {
   pricesIncludeVat: boolean;
   /** What a new quote starts with for its sign-off and "how to pay". Edited under Quote wording. */
   defaultSignOff: string | null;
+  /** The introduction a new quote starts with. */
+  defaultDescription: string | null;
   paymentInstructions: string | null;
   /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set on the Business profile. */
   logoImageId: string | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
 
 export type FieldName =
   | "name"

@@ -28,3 +28,16 @@ describe("the first-quote setup answers", () => {
     expect(isSetupAnswers(null)).toBe(false);
   });
 });
+
+describe("the deposit answer \"I'll decide on each quote\"", () => {
+  it("is a valid answer and stores 'ask' with nothing chosen", () => {
+    const answers = { deposit: "ask", depositPercent: "", fulfilment: "delivery" } as const;
+    expect(isSetupAnswers(answers)).toBe(true);
+    const parsed = parseSetupAnswers(answers);
+    expect(parsed).toEqual({ ok: true, columns: { default_deposit_kind: "ask", default_deposit_value: 0, usual_fulfilment: "delivery" } });
+  });
+  it("ignores any percentage that was typed before choosing it", () => {
+    const parsed = parseSetupAnswers({ deposit: "ask", depositPercent: "not a number", fulfilment: "varies" });
+    expect(parsed).toEqual({ ok: true, columns: { default_deposit_kind: "ask", default_deposit_value: 0, usual_fulfilment: null } });
+  });
+});

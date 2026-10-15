@@ -48,6 +48,10 @@ import { CustomerPicker } from "./customer-picker";
 import { useItemSheetProducts } from "./use-item-sheet-products";
 import { LineSheet, type LineSheetView } from "./line-sheet";
 import { AddButton } from "@/components/add-button";
+import { saveDepositDefault } from "../documents/deposit-actions";
+import { saveUsualDescription, saveUsualPayment, saveUsualSignOff } from "./usual-actions";
+import { UsualButtons } from "./usual-buttons";
+import { canSaveUsualText, canUseUsualText, type QuoteUsuals } from "@/lib/quotes/usuals";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
@@ -77,6 +81,9 @@ export function QuoteBuilder({
   canManagePolicies,
   bankDetails: initialBankDetails,
   canEditBankDetails,
+  usuals: initialUsuals,
+  canSaveUsuals,
+  askForDeposit = false,
   header,
   children,
 }: {
@@ -110,6 +117,12 @@ export function QuoteBuilder({
   bankDetails: BankPreview | null;
   /** Only the owner can add bank details (from the quote or the Business profile). */
   canEditBankDetails: boolean;
+  /** What a new quote starts with, so "Save as my usual" and "Use my usual" know what differs. */
+  usuals: QuoteUsuals;
+  /** Owners and admins can save what is on the quote as the usual; others can only use it. */
+  canSaveUsuals: boolean;
+  /** The business decides the deposit on every quote: a new quote asks. */
+  askForDeposit?: boolean;
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
   header?: React.ReactNode;
   /** What goes between the form and the bar, such as Delete draft. */
@@ -192,6 +205,8 @@ export function QuoteBuilder({
   const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
   const [policyLibrary, setPolicyLibrary] = useState(initialPolicyLibrary);
   const [bankDetails, setBankDetails] = useState(initialBankDetails);
+  // What new quotes start with; saving one from here moves it.
+  const [usuals, setUsuals] = useState(initialUsuals);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Where focus goes when the sheet closes: the line just added or changed, else the default.
@@ -426,6 +441,15 @@ export function QuoteBuilder({
           onChange={(description) => update({ description })}
           maxLength={2000}
         />
+        <UsualButtons
+          what="description"
+          valueKey={values.description}
+          canSave={canSaveUsuals && canSaveUsualText(values.description, usuals.description)}
+          canUse={canUseUsualText(values.description, usuals.description)}
+          save={() => saveUsualDescription(values.description)}
+          onSaved={(value) => setUsuals((u) => ({ ...u, description: value ?? values.description }))}
+          onUse={() => update({ description: usuals.description })}
+        />
       </Section>
 
       <Section title="Dates">
@@ -646,6 +670,41 @@ export function QuoteBuilder({
         money={money}
         symbol={symbol}
         errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate }}
+        ask={askForDeposit}
+        footer={
+          // "Ask each time" has no usual to save: the choice is made on every quote.
+          !askForDeposit && (
+            <UsualButtons
+              what="deposit"
+              valueKey={`${values.depositKind}:${values.depositValue}`}
+              canSave={
+                canSaveUsuals &&
+                values.depositKind !== "none" &&
+                values.depositValue.trim() !== "" &&
+                `${values.depositKind}:${values.depositValue}` !== `${usuals.depositKind}:${usuals.depositValue}`
+              }
+              canUse={
+                (usuals.depositKind === "percent" || usuals.depositKind === "fixed") &&
+                `${values.depositKind}:${values.depositValue}` !== `${usuals.depositKind}:${usuals.depositValue}`
+              }
+              save={async () => {
+                const result = await saveDepositDefault({ kind: values.depositKind, value: values.depositValue });
+                if (result.status === "saved") return { status: "saved" as const };
+                return {
+                  status: "error" as const,
+                  message: (result.status === "error" && (result.message ?? result.errors?.depositValue)) || undefined,
+                };
+              }}
+              onSaved={() => setUsuals((u) => ({ ...u, depositKind: values.depositKind, depositValue: values.depositValue }))}
+              onUse={() =>
+                update({
+                  depositKind: usuals.depositKind === "fixed" ? "fixed" : "percent",
+                  depositValue: usuals.depositValue,
+                })
+              }
+            />
+          )
+        }
       />
 
 
@@ -678,6 +737,15 @@ export function QuoteBuilder({
           onChange={(paymentInstructions) => update({ paymentInstructions })}
           maxLength={1000}
         />
+        <UsualButtons
+          what="ways to pay"
+          valueKey={values.paymentInstructions}
+          canSave={canSaveUsuals && canSaveUsualText(values.paymentInstructions, usuals.paymentInstructions)}
+          canUse={canUseUsualText(values.paymentInstructions, usuals.paymentInstructions)}
+          save={() => saveUsualPayment(values.paymentInstructions)}
+          onSaved={(value) => setUsuals((u) => ({ ...u, paymentInstructions: value ?? values.paymentInstructions }))}
+          onUse={() => update({ paymentInstructions: usuals.paymentInstructions })}
+        />
       </BankDetailsSection>
 
       <Section title="Notes">
@@ -702,6 +770,15 @@ export function QuoteBuilder({
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
           hint="Shown at the end of the quote, with your business name."
+        />
+        <UsualButtons
+          what="sign-off"
+          valueKey={values.signOff}
+          canSave={canSaveUsuals && canSaveUsualText(values.signOff, usuals.signOff)}
+          canUse={canUseUsualText(values.signOff, usuals.signOff)}
+          save={() => saveUsualSignOff(values.signOff)}
+          onSaved={(value) => setUsuals((u) => ({ ...u, signOff: value ?? values.signOff }))}
+          onUse={() => update({ signOff: usuals.signOff })}
         />
       </Section>
 

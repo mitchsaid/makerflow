@@ -5,7 +5,6 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { saveDepositDefault, type DepositDefaultState } from "./deposit-actions";
@@ -19,11 +18,11 @@ export function DepositDefaultForm({
   initial,
   symbol,
 }: {
-  initial: { kind: "none" | "percent" | "fixed"; value: string };
+  initial: { kind: "none" | "percent" | "fixed" | "ask"; value: string };
   symbol: string;
 }) {
-  const [on, setOn] = useState(initial.kind !== "none");
-  const [kind, setKind] = useState<"percent" | "fixed">(initial.kind === "fixed" ? "fixed" : "percent");
+  const [choice, setChoice] = useState<"none" | "percent" | "fixed" | "ask">(initial.kind);
+  const hasAmount = choice === "percent" || choice === "fixed";
   const [value, setValue] = useState(initial.value);
   const [state, setState] = useState<DepositDefaultState>({ status: "idle" });
   const [tries, setTries] = useState(0);
@@ -38,7 +37,7 @@ export function DepositDefaultForm({
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        setState(await saveDepositDefault({ kind: on ? kind : "none", value: on ? value : "" }));
+        setState(await saveDepositDefault({ kind: choice, value: hasAmount ? value : "" }));
       } catch {
         setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Check your connection and try again." });
       }
@@ -51,8 +50,8 @@ export function DepositDefaultForm({
     <form onSubmit={submit} className="space-y-4" noValidate id="deposit-default">
       <Section title="Deposit">
         <p className="text-base text-muted-foreground">
-          If you usually ask for a deposit, set it here and every new quote starts with it. You can change it or
-          switch it off on any quote.
+          Set what every new quote starts with, or choose “I decide on each quote” and a new quote opens with the
+          deposit choice in front of you. You can change it on any quote.
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {state.status === "error" && state.message && (
@@ -60,51 +59,38 @@ export function DepositDefaultForm({
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         )}
-        <Field orientation="horizontal" className="items-start py-2.5">
-          <Checkbox
-            id="defaultDepositOn"
-            name="defaultDepositOn"
-            checked={on}
-            onCheckedChange={(checked) => {
+        <Field>
+          <FieldLabel htmlFor="defaultDepositKind">On a new quote</FieldLabel>
+          <NativeSelect
+            id="defaultDepositKind"
+            value={choice}
+            onChange={(e) => {
               setEditedSinceSave(true);
-              setOn(checked === true);
+              const next = e.target.value;
+              setChoice(next === "percent" || next === "fixed" || next === "ask" ? next : "none");
+              setValue("");
+            }}
+          >
+            <NativeSelectOption value="none">No deposit</NativeSelectOption>
+            <NativeSelectOption value="ask">I decide on each quote</NativeSelectOption>
+            <NativeSelectOption value="percent">A percentage of the total</NativeSelectOption>
+            <NativeSelectOption value="fixed">A fixed amount</NativeSelectOption>
+          </NativeSelect>
+        </Field>
+        {hasAmount && (
+          <TextField
+            id="defaultDepositValue"
+            label={choice === "percent" ? "Percentage (%)" : "Amount"}
+            startText={choice === "fixed" ? symbol : undefined}
+            inputMode="decimal"
+            autoComplete="off"
+            value={value}
+            error={errors.depositValue}
+            onChange={(v) => {
+              setEditedSinceSave(true);
+              setValue(v);
             }}
           />
-          <FieldLabel htmlFor="defaultDepositOn" className="text-base">
-            Ask for a deposit on new quotes
-          </FieldLabel>
-        </Field>
-        {on && (
-          <>
-            <Field>
-              <FieldLabel htmlFor="defaultDepositKind">Worked out as</FieldLabel>
-              <NativeSelect
-                id="defaultDepositKind"
-                value={kind}
-                onChange={(e) => {
-                  setEditedSinceSave(true);
-                  setKind(e.target.value === "fixed" ? "fixed" : "percent");
-                  setValue("");
-                }}
-              >
-                <NativeSelectOption value="percent">A percentage of the total</NativeSelectOption>
-                <NativeSelectOption value="fixed">A fixed amount</NativeSelectOption>
-              </NativeSelect>
-            </Field>
-            <TextField
-              id="defaultDepositValue"
-              label={kind === "percent" ? "Percentage (%)" : "Amount"}
-              startText={kind === "fixed" ? symbol : undefined}
-              inputMode="decimal"
-              autoComplete="off"
-              value={value}
-              error={errors.depositValue}
-              onChange={(v) => {
-                setEditedSinceSave(true);
-                setValue(v);
-              }}
-            />
-          </>
         )}
       </Section>
       <div className="flex items-center gap-4">

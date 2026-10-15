@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useEditedFields } from "@/components/form-errors";
 import { Section, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { FieldError } from "@/components/ui/field";
 import type { Cents } from "@/lib/money";
@@ -25,6 +26,8 @@ export function DepositSection({
   money,
   symbol,
   errors,
+  ask = false,
+  footer,
 }: {
   values: DepositFormValues;
   onChange: (change: Partial<DepositFormValues>) => void;
@@ -35,6 +38,10 @@ export function DepositSection({
   money: (cents: number) => string;
   symbol: string;
   errors: { depositValue?: string; balanceDueDate?: string };
+  /** The business decides the deposit on every quote: a choice is put in front of them, with nothing chosen yet. */
+  ask?: boolean;
+  /** Under the section's fields (the "Save as my usual" buttons). */
+  footer?: React.ReactNode;
 }) {
   // Controls that are not the shared fields report their own edits, so a fixed problem stops showing.
   const { markEdited } = useEditedFields();
@@ -43,6 +50,8 @@ export function DepositSection({
     onChange(change);
   };
   const on = values.depositKind !== "none";
+  // In "ask" mode: nothing chosen yet until a choice is made (what is saved is "no deposit" until then).
+  const [asked, setAsked] = useState<"none" | "percent" | "fixed" | "">("");
   // Unticking and ticking again brings back the kind that was chosen.
   const [lastKind, setLastKind] = useState<"percent" | "fixed">(values.depositKind === "fixed" ? "fixed" : "percent");
 
@@ -54,6 +63,37 @@ export function DepositSection({
 
   return (
     <Section title="Deposit">
+      {ask ? (
+        <FieldSet>
+          <FieldLegend variant="label" className="text-base">
+            Do you want a deposit on this quote?
+          </FieldLegend>
+          <RadioGroup
+            value={asked}
+            onValueChange={(v) => {
+              const kind = v === "percent" || v === "fixed" ? v : "none";
+              setAsked(kind);
+              if (kind !== "none") setLastKind(kind);
+              edit({ depositKind: kind, depositValue: "" }, "depositValue", "balanceDueDate");
+            }}
+          >
+            {(
+              [
+                ["none", "No deposit"],
+                ["percent", "A percentage of the total"],
+                ["fixed", "A fixed amount"],
+              ] as const
+            ).map(([choice, label]) => (
+              <Field key={choice} orientation="horizontal" className="items-start py-2.5">
+                <RadioGroupItem id={`deposit-ask-${choice}`} value={choice} />
+                <FieldLabel htmlFor={`deposit-ask-${choice}`} className="text-base">
+                  {label}
+                </FieldLabel>
+              </Field>
+            ))}
+          </RadioGroup>
+        </FieldSet>
+      ) : (
       <Field orientation="horizontal" className="items-start py-2.5">
         <Checkbox
           id="depositOn"
@@ -65,9 +105,11 @@ export function DepositSection({
           Ask for a deposit to start work
         </FieldLabel>
       </Field>
+      )}
 
       {on && (
         <>
+          {!ask && (
           <Field>
             <FieldLabel htmlFor="depositKind">Worked out as</FieldLabel>
             <NativeSelect
@@ -83,6 +125,7 @@ export function DepositSection({
               <NativeSelectOption value="fixed">A fixed amount</NativeSelectOption>
             </NativeSelect>
           </Field>
+          )}
           <TextField
             id="depositValue"
             label={values.depositKind === "percent" ? "Percentage (%)" : "Amount"}
@@ -127,6 +170,7 @@ export function DepositSection({
           )}
         </>
       )}
+      {footer}
     </Section>
   );
 }

@@ -84,3 +84,20 @@ test("a business that already set its deposit or hand-over elsewhere is not aske
   await expect(card(page)).toHaveCount(0);
   await expect(page.getByRole("radio", { name: /^Delivery/ })).toBeChecked();
 });
+
+test("answering 'it depends' keeps the deposit for each quote to decide", async ({ page }) => {
+  await signUpAndOnboard(page, "setup-ask", "Setup Ask Co", { quoteSetup: "leave" });
+  await page.goto("/app/quotes/new");
+  await card(page).getByRole("radio", { name: /It depends/ }).check();
+  await card(page).getByRole("radio", { name: "They collect it" }).check();
+  await card(page).getByRole("button", { name: "Save and start my quote" }).click();
+
+  // The form opens with the deposit choice in front of them, and nothing chosen.
+  const section = page.getByRole("group", { name: "Deposit" });
+  await expect(section.getByText("Do you want a deposit on this quote?")).toBeVisible();
+  await expect(section.getByRole("radio", { checked: true })).toHaveCount(0);
+
+  // Quotes and invoices shows what was answered.
+  await openDocuments(page);
+  await expect(page.getByLabel("On a new quote")).toHaveValue("ask");
+});
