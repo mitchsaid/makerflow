@@ -381,7 +381,7 @@ export function ThemeStudio({
       </div>
 
       <Sheet open={fullOpen} onOpenChange={setFullOpen}>
-        <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto p-4">
+        <SheetContent side="bottom" className="max-h-[92dvh] gap-4 overflow-y-auto p-4">
           <SheetHeader>
             <SheetTitle>Full preview</SheetTitle>
             <SheetDescription>Every page of the sample quote in this theme.</SheetDescription>

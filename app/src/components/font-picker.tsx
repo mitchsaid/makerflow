@@ -55,7 +55,7 @@ export function FontPicker({
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto p-4">
+        <SheetContent side="bottom" className="max-h-[85dvh] gap-4 overflow-y-auto p-4">
           <SheetHeader>
             <SheetTitle>{label}: choose a font</SheetTitle>
             <SheetDescription>Each one is shown as it will print.</SheetDescription>

@@ -111,6 +111,40 @@ test("saving while a photo is still uploading waits instead of leaving the photo
   await expect(page.getByRole("link", { name: /Wedding cake/ }).locator("img")).toHaveCount(1);
 });
 
+test("the Add an item list shows each product's photo, with an empty square for one without", async ({ page }) => {
+  await signUpAndOnboard(page, "pic-pick", "Pick Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByLabel("Price", { exact: true }).fill("800");
+  await chooseFile(page, await picture(1200, 1200), "cake.jpg", "image/jpeg");
+  await expect(page.getByTestId("photo-preview")).toBeVisible();
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page).toHaveURL(/\/app\/products\?added=/);
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
+  await page.getByLabel("Price", { exact: true }).fill("15");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page).toHaveURL(/\/app\/products\?added=/);
+
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add an item");
+  const cake = sheet(page).getByRole("button", { name: /Wedding cake/ });
+  const cupcakes = sheet(page).getByRole("button", { name: /Cupcakes/ });
+  await expect(cake.locator("img")).toHaveCount(1);
+  await expect(cake.locator("img")).toHaveAttribute("src", /^\/app\/images\/[0-9a-f-]{36}\?size=thumb$/);
+  await expect(cupcakes.locator("img")).toHaveCount(0);
+  // The names line up whether or not there is a photo.
+  // Both measured in one go, so the sheet sliding in cannot move one between the two.
+  const [a, b] = await sheet(page).evaluate(() =>
+    ["Wedding cake", "Cupcakes"].map((name) => {
+      const el = [...document.querySelectorAll("[role='dialog'] button span")].find((e) => e.textContent === name);
+      return el!.getBoundingClientRect().x;
+    }),
+  );
+  expect(Math.abs(a! - b!)).toBeLessThan(1);
+});
+
 test("a service has no photo", async ({ page }) => {
   await signUpAndOnboard(page, "pic-service", "Service Co");
   await page.goto("/app/products/new?kind=service");

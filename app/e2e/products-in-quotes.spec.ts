@@ -14,6 +14,38 @@ async function addProduct(page: Page, name: string, price: string, description =
   await expect(page.getByTestId("product-added")).toBeVisible();
 }
 
+test("the item sheet can always be closed on a phone, even after scrolling", async ({ page }) => {
+  await signUpAndOnboard(page, "piq-close", "Close Co");
+  await addProduct(page, "Cupcakes", "15");
+  // A short screen, so the list has to scroll.
+  await page.setViewportSize({ width: 360, height: 420 });
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add an item");
+  const close = sheet(page).getByRole("button", { name: "Close" });
+  const visibleInTopCorner = async () => {
+    // Once the sheet has finished sliding in.
+    await expect.poll(async () => (await close.boundingBox())!.x + (await close.boundingBox())!.width, { timeout: 3000 }).toBeLessThanOrEqual(360);
+    const box = await close.boundingBox();
+    expect(box, "Close has a place on the screen").not.toBeNull();
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(60);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    // Nothing (such as the sheet's own heading) sits on top of it.
+    const top = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x!, y!)?.closest("[data-slot='sheet-close']") !== null,
+      [box!.x + box!.width / 2, box!.y + box!.height / 2],
+    );
+    expect(top, "Close is not covered").toBe(true);
+  };
+  await visibleInTopCorner();
+  await sheet(page).evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await visibleInTopCorner();
+  await close.click();
+  await expect(sheet(page)).toHaveCount(0);
+});
+
 test("choose a saved product, configure it for this quote, and edit the line later", async ({ page }) => {
   await signUpAndOnboard(page, "piq-choose", "Choose Co");
   await addProduct(page, "Wedding cake", "800", "Three tiers");
