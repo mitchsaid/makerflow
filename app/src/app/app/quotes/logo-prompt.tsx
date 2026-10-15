@@ -42,7 +42,7 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
               </AddButton>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={() => {
                   setHidden(true);
                   focusTitle();

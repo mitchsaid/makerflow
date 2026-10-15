@@ -61,7 +61,7 @@ export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[];
               Remix<span className="sr-only"> {e.name}</span>
             </Link>
             {e.own && confirming !== e.key && (
-              <Button type="button" variant="ghost" disabled={pending} onClick={() => setConfirming(e.key)}>
+              <Button type="button" variant="danger" disabled={pending} onClick={() => setConfirming(e.key)}>
                 Delete<span className="sr-only"> {e.name}</span>
               </Button>
             )}
@@ -78,7 +78,7 @@ export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[];
                 >
                   Yes, delete {e.name}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => setConfirming(null)}>
+                <Button type="button" variant="outline" onClick={() => setConfirming(null)}>
                   Keep it
                 </Button>
               </>

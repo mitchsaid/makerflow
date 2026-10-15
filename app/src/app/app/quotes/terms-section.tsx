@@ -118,7 +118,7 @@ export function TermsSection({
               <p id={`policy-${c.key}-heading`} className="text-base font-medium">
                 {label}
               </p>
-              <Button type="button" variant="ghost" aria-label={`Remove ${label.toLowerCase()}`} onClick={() => remove(c.key)}>
+              <Button type="button" variant="danger" aria-label={`Remove ${label.toLowerCase()}`} onClick={() => remove(c.key)}>
                 Remove
               </Button>
             </div>
@@ -155,7 +155,7 @@ export function TermsSection({
             )}
             {!saved && <p className="text-sm text-muted-foreground">No longer in your saved terms</p>}
           </div>
-          <Button type="button" variant="ghost" aria-label={`Remove ${name}`} onClick={() => remove(c.key)}>
+          <Button type="button" variant="danger" aria-label={`Remove ${name}`} onClick={() => remove(c.key)}>
             Remove
           </Button>
         </div>
@@ -178,7 +178,7 @@ export function TermsSection({
             )}
           </div>
         ) : (
-          <Button type="button" variant="ghost" aria-label={`Change the wording for this quote: ${name}`} onClick={() => openWording(c.key)}>
+          <Button type="button" variant="soft" aria-label={`Change the wording for this quote: ${name}`} onClick={() => openWording(c.key)}>
             Change the wording for this quote
           </Button>
         )}

@@ -219,7 +219,7 @@ export function OptionChoices({
                     </span>
                   )}
                 </span>
-                <Button type="button" variant="ghost" className="text-destructive" onClick={() => onChange(chosen.filter((x) => x !== o))}>
+                <Button type="button" variant="danger" onClick={() => onChange(chosen.filter((x) => x !== o))}>
                   Remove<span className="sr-only"> {o.kind === "text" ? o.group : o.value}</span>
                 </Button>
               </li>

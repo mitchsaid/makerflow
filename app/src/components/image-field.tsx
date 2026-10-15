@@ -106,7 +106,7 @@ export function ImageField({
             {busy ? "Uploading…" : value ? "Replace picture" : "Choose a picture"}
           </Button>
           {value && !busy && (
-            <Button type="button" variant="ghost" onClick={() => onChange("")}>
+            <Button type="button" variant="outline" onClick={() => onChange("")}>
               Remove<span className="sr-only"> picture</span>
             </Button>
           )}

@@ -50,7 +50,7 @@ export function CreateJobNudge({ quoteId, quoteNumber }: { quoteId: string; quot
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             disabled={making}
             onClick={() => {
               close();
