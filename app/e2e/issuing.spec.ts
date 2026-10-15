@@ -27,7 +27,7 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   await signUpAndOnboard(page, "iss-number", "Number Co");
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
-  await expect(page.getByText("It gets its number the first time you save it.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
   await fillItem(page, 1, "Wedding cake", "1", "800");
   // A customer too: Preview needs one (see the next test).
   await addCustomerInSheet(page, "Sipho");

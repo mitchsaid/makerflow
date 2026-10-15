@@ -725,19 +725,19 @@ export function QuoteBuilder({
           Delete draft), so nothing is hidden beneath it, and it sits flush with the end of the
           page (-mb-8 takes back the page's bottom padding) so it never moves when you reach the bottom. */}
       <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
-        {/* On a phone the total and Save draft share a row and the next step has the row below, full width; on a wider
-            screen everything sits on one line. */}
-        <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 sm:flex sm:justify-end">
-          <div className="sm:mr-auto">
+        {/* One line on a phone; below 380px wide the next step takes a full row of its own. */}
+        <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-end gap-x-3 gap-y-2">
+          <div className="mr-auto">
             <p className="text-sm text-muted-foreground">Total</p>
             <p className="text-lg font-semibold" data-testid="sticky-total">
               {totals ? money(totals.grossCents) : "–"}
             </p>
           </div>
-          <Button type="submit" form="quote-form" variant="outline" disabled={pending} size="lg">
-            {pending ? "Saving…" : "Save draft"}
+          {/* Short on the screen, whole in its name (it still says "Save draft" to a screen reader). */}
+          <Button type="submit" form="quote-form" variant="outline" disabled={pending} size="lg" aria-label="Save draft">
+            {pending ? "Saving…" : "Save"}
           </Button>
-          <Button id="preview-quote" type="button" disabled={pending} size="lg" className="col-span-2 sm:col-span-1" onClick={onPreview}>
+          <Button id="preview-quote" type="button" disabled={pending} size="lg" className="max-[379px]:basis-full" onClick={onPreview}>
             Continue to preview
           </Button>
         </div>
