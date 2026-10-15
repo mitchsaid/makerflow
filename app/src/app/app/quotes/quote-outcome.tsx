@@ -18,6 +18,7 @@ import {
 import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_NUDGE_VALUE } from "@/lib/jobs";
 import { quoteAgain } from "./actions";
 import { recordOutcome, reopenQuote } from "./outcome-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
 
@@ -142,6 +143,7 @@ function OutcomeForm({
         <SheetTitle className="text-lg">{TITLES[kind]}</SheetTitle>
         <SheetDescription className="text-base">Quote {number}</SheetDescription>
       </SheetHeader>
+      <FormErrorScope epoch={tries}>
       <form onSubmit={submit} noValidate className="space-y-4 px-4 py-4">
         <FormSummary problems={summary} trigger={tries} />
         {message && (
@@ -191,6 +193,7 @@ function OutcomeForm({
           {pending ? "Saving…" : answer ? "Save answer" : "Withdraw quote"}
         </Button>
       </form>
+      </FormErrorScope>
     </>
   );
 }

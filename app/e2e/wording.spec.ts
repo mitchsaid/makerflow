@@ -73,7 +73,6 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await expect(page.getByTestId("sticky-total")).toHaveText(/R\s?235,00/);
 
   await addCustomerInSheet(page, "Sarah");
-  await page.getByLabel("Quote title (optional)").fill("Cupcakes for Sarah's party");
   await page.getByLabel("Description (optional)").fill("Thank you for asking about cupcakes for the party.");
   await page.getByLabel("Other ways to pay (optional)").fill("Pay on collection");
   // A term just for this quote, with no title.
@@ -84,10 +83,9 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await page.getByLabel("Message (optional)").fill("Yours in sweetness");
 
   // The preview shows it all: the picture of the real document, and its text version.
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const text = page.getByRole("region", { name: "The quote as text" });
-  await expect(text).toContainText("Cupcakes for Sarah's party");
   await expect(text).toContainText("Thank you for asking about cupcakes for the party.");
   await expect(text).toContainText(/2\s+dozen/);
   await expect(text).toContainText(/2,5\s+kg/);
@@ -98,7 +96,7 @@ test("units, a title and a description: set on the quote, shown on the preview",
 
   // And it all comes back when the draft is opened again.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(page.getByLabel("Quote title (optional)")).toHaveValue("Cupcakes for Sarah's party");
+  await expect(page.getByLabel("Description (optional)")).toHaveValue("Thank you for asking about cupcakes for the party.");
   await expect(page.getByRole("group", { name: "Term just for this quote" }).getByLabel("Wording")).toHaveValue("Orders need two days' notice.");
   await expect(item(page, 1)).toContainText(/2 dozen/);
   await expect(item(page, 2)).toContainText(/2,5 kg/);

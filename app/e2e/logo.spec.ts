@@ -16,7 +16,7 @@ async function previewOfNewQuote(page: Page) {
   await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
   await fillItem(page, 1, "Wedding cake", "1", "800");
   await addCustomerInSheet(page, "Thandi Nkosi");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
 }

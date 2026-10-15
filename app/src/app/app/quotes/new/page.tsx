@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
@@ -14,6 +13,7 @@ import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
 import { QuoteSetup } from "../quote-setup";
 import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/page-header";
 
 /** Only asked on the rare first visit; the normal page never runs it. */
 async function hasAnyQuote(): Promise<boolean> {
@@ -46,12 +46,9 @@ export default async function NewQuotePage() {
   ) {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-        <div className="space-y-1">
-          <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
-            Quotes
-          </Link>
+        <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
           <h1 className="text-xl font-semibold">New quote</h1>
-        </div>
+        </PageHeader>
         <QuoteSetup />
       </main>
     );
@@ -62,13 +59,10 @@ export default async function NewQuotePage() {
       <QuoteBuilder
         quoteId={null}
         header={
-        <div className="space-y-1">
-          <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
-            Quotes
-          </Link>
-          <h1 className="text-xl font-semibold">New quote</h1>
-          <p className="text-sm text-muted-foreground">It gets its number the first time you save it.</p>
-        </div>
+          // A new quote has its X to cancel; there is no page above it to go back to.
+          <div className="space-y-1 pt-2">
+            <h1 className="text-xl font-semibold">New quote</h1>
+          </div>
         }
         initial={{
           customerId: "",

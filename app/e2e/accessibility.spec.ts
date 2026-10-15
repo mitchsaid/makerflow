@@ -172,6 +172,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, edit customer sheet");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.getByRole("button", { name: "Add a needed-by date" }).click();
+      await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
       await page.getByRole("radio", { name: /^Delivery \(you deliver/ }).check();
       await expectNoViolations(page, "new quote, all sections open");
@@ -251,7 +253,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "saved quote");
 
       // Sending: what is missing (the business has no phone or email yet), then the choice.
-      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "quote preview");
       // No logo yet, so the preview offers one: the card (checked above) and its sheet.

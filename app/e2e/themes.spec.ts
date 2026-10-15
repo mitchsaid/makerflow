@@ -127,7 +127,7 @@ test("a theme is remixed from a starter, changed part by part with the preview f
   // A new quote has the theme chosen last: nothing was chosen on a quote yet, so Classic. Picking is for
   // this quote, and it is what the next quote starts with.
   await saveQuote(page, "Thandi Nkosi");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByTestId("current-design")).toHaveText("Classic");
   const classic = await pdfUrl(page);
@@ -151,14 +151,14 @@ test("a theme is remixed from a starter, changed part by part with the preview f
   // The next quote starts with the theme chosen last (Market stall) with nothing picked; choosing another
   // there is what the quote after that starts with.
   await saveQuote(page, "Lerato Dube");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByTestId("current-design")).toHaveText("Market stall");
   await page.getByTestId("theme-option").filter({ hasText: "Bold" }).click();
   await expect(page.getByTestId("current-design")).toHaveText("Bold");
   await saved(page);
   await saveQuote(page, "Sipho Zulu");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("current-design")).toHaveText("Bold");
   // Create a new theme from a quote's preview: the studio, and back to the quote with it on.
   await page.getByRole("link", { name: "Create new theme" }).click();

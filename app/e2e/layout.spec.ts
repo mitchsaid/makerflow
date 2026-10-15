@@ -35,7 +35,10 @@ test("on a phone, date fields and the rest of the new quote fit inside their car
   await page.goto("/app/quotes/new");
   await expect(page.getByLabel("Quote date")).toBeVisible();
   await expect(page.getByLabel("Valid until")).toBeVisible();
-  await expect(page.getByLabel("Needed by (optional)")).toBeVisible();
+  // Needed by stays out of the way until it is asked for.
+  await expect(page.getByLabel("Needed by (optional)")).toHaveCount(0);
+  await page.getByRole("button", { name: "Add a needed-by date" }).click();
+  await expect(page.getByLabel("Needed by (optional)")).toBeFocused();
   expect(await stickingOut(page)).toEqual([]);
 
   // Each date field has its calendar icon (drawn by the field itself: the native one is not there on a phone), so

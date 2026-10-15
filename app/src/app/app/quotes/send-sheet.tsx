@@ -15,6 +15,7 @@ import {
   type ContactDetails,
   type SendSheetState,
 } from "./issue-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 const OFFLINE =
   "Couldn't reach the server. Check your connection, then open the quote to see whether it went through before trying again.";
@@ -251,6 +252,7 @@ function Problems({
       )}
 
       {contactProblem && (
+        <FormErrorScope epoch={tries}>
         <form onSubmit={saveContact} className="space-y-3 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" noValidate>
           <p className="text-base">{contactProblem.message}</p>
           {contact.canEdit ? (
@@ -295,6 +297,7 @@ function Problems({
             </p>
           )}
         </form>
+        </FormErrorScope>
       )}
     </>
   );

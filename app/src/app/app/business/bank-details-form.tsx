@@ -10,6 +10,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { getLocalePack } from "@/lib/locale";
 import type { BankDetails, BankFieldErrors, BankFormValues } from "@/lib/bank";
 import { saveBankDetails } from "./bank-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 /** Set when the form is shown in a sheet over a quote: it hands the saved details back instead of staying put. */
 export type EmbeddedBankForm = {
@@ -83,6 +84,7 @@ export function BankDetailsForm({
   }
 
   return (
+    <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Section title="Bank details">
         <p className="text-base text-muted-foreground">
@@ -159,5 +161,6 @@ export function BankDetailsForm({
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

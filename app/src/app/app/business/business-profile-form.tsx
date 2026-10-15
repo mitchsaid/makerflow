@@ -11,6 +11,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { getLocalePack } from "@/lib/locale";
 import type { FieldErrors } from "@/lib/business-profile";
 import { saveBusinessProfile, type SaveState } from "./actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 export type FormValues = {
   name: string;
@@ -94,6 +95,7 @@ export function BusinessProfileForm({
   );
 
   return (
+    <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="Your business">
         {text("name", "Business name", { autoComplete: "organization", required: true, maxLength: 120 })}
@@ -175,5 +177,6 @@ export function BusinessProfileForm({
         {pending ? "Saving…" : "Save details"}
       </Button>
     </form>
+    </FormErrorScope>
   );
 }

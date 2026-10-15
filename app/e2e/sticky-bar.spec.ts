@@ -51,7 +51,7 @@ test("the action bar stays put at the end of the page, and nothing is hidden ben
   await page.getByRole("button", { name: "Keep it" }).click();
 
   // The preview's bar behaves the same way.
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const previewMax = await maxScroll(page);
   const previewFar = await barTopAt(page, Math.max(previewMax - 200, 0));

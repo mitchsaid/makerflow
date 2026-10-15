@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -11,6 +10,7 @@ import { variationSuggestions } from "@/lib/products/variations";
 import { ProductForm } from "../product-form";
 import { listHref, valuesFromProduct } from "../product-values";
 import { ProductArchiveButton } from "./archive-button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function ProductPage({ params }: PageProps<"/app/products/[id]">) {
   const { id } = await params;
@@ -21,12 +21,9 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href={listHref(product.kind)} className="text-sm text-muted-foreground underline">
-          {product.kind === "service" ? "Services" : "Products"}
-        </Link>
+      <PageHeader back={{ href: listHref(product.kind), label: product.kind === "service" ? "Services" : "Products" }}>
         <h1 className="text-xl font-semibold">{product.name}</h1>
-      </div>
+      </PageHeader>
       {product.archived && (
         <Alert data-testid="archived-notice">
           <AlertDescription>

@@ -21,3 +21,10 @@ The Business profile form. The money parsers return plain-language messages. Rem
 
 ## Where it is tested
 `e2e/business-profile.spec.ts`: the button is enabled, the summary appears and takes focus with the right count, each field shows its message, typed data stays, a summary link focuses its field, and fixing everything clears the summary. `e2e/accessibility.spec.ts` checks the error state with axe in light and dark.
+
+## Addendum 2026-10-15: errors clear when the maker fixes the thing
+A form's errors come from its last save, so on their own they stayed on screen until the next save came back, even after the maker corrected the field. Now:
+- A form wraps its content in `FormErrorScope` (`app/src/components/form-errors.tsx`), given something that changes each time a save comes back (the action state).
+- Editing a field drops its message, and its row in the summary (and the summary's count), at once. The summary does not pull focus when problems drop away, only when a save comes back.
+- A new failed save starts a new round, so what is still wrong comes back.
+- The shared fields (`TextField`, `TextAreaField`, `SelectField`) report their own edits. A custom control calls `markEdited` with the id the summary links to. A unit test fails if a form shows a `FormSummary` without a scope.

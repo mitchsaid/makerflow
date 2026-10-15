@@ -13,6 +13,7 @@ import { getLocalePack } from "@/lib/locale";
 import type { CustomerSaveState, CustomerSummaryOption } from "./actions";
 import type { CustomerFormValues } from "./customer-values";
 import { AddButton } from "@/components/add-button";
+import { FormErrorScope } from "@/components/form-errors";
 
 const initialState: CustomerSaveState = { status: "idle" };
 
@@ -178,6 +179,7 @@ export function CustomerForm({
         : "Add customer";
 
   return (
+    <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="Customer">
         {text("name", "Name", { autoComplete: "off", required: true, maxLength: 120 })}
@@ -339,5 +341,6 @@ export function CustomerForm({
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

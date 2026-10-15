@@ -10,6 +10,7 @@ import { costPerUnitCents, type MaterialFieldErrors, type VatTreatment } from "@
 import { isUnitCode, UNIT_CHOICES, UNITS } from "@/lib/materials/units";
 import { formatMoney, parseMoney, parseQuantity, type NumberStyle } from "@/lib/money";
 import type { MaterialSaveState } from "./actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 export type MaterialFormValues = {
   name: string;
@@ -94,6 +95,7 @@ export function MaterialForm({
   }
 
   return (
+    <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="The material">
         <TextField id="name" label="Name" hint="Like “Cake flour” or “Silver wire”." autoComplete="off" maxLength={120} value={values.name} error={errors.name} onChange={set("name")} />
@@ -190,5 +192,6 @@ export function MaterialForm({
         {pending ? "Saving…" : mode === "edit" ? "Save changes" : "Add material"}
       </Button>
     </form>
+    </FormErrorScope>
   );
 }

@@ -11,6 +11,7 @@ import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { BusinessTypePrompt } from "./business-type-prompt";
 import { AddLink } from "@/components/add-button";
+import { PageHeader } from "@/components/page-header";
 
 /**
  * Quotes and invoices > Terms: the library of terms a business reuses on its quotes (stored as
@@ -35,17 +36,14 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/documents" className="text-sm text-muted-foreground underline">
-          Quotes and invoices
-        </Link>
+      <PageHeader back={{ href: "/app/documents", label: "Quotes and invoices" }}>
         <h1 className="text-xl font-semibold">Terms</h1>
         <p className="text-muted-foreground">
           Write each term once, then tick the ones you want on each quote. A title is optional: without one, a
           term prints as a plain paragraph. Quotes keep their own copy, so changing a term here never changes a
           quote you have already made.
         </p>
-      </div>
+      </PageHeader>
 
       {saved && (
         <Alert data-testid="policy-saved">

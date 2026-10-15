@@ -4,6 +4,7 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getThemes } from "@/lib/quotes/theme-data";
 import { ThemeLibrary } from "./theme-library";
+import { PageHeader } from "@/components/page-header";
 
 /**
  * Quotes and invoices > Themes: the looks a business can put on its quotes. Five starters that ship
@@ -14,16 +15,13 @@ export default async function ThemesPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/documents" className="text-sm text-muted-foreground underline">
-          Quotes and invoices
-        </Link>
+      <PageHeader back={{ href: "/app/documents", label: "Quotes and invoices" }}>
         <h1 className="text-xl font-semibold">Themes</h1>
         <p className="text-base text-muted-foreground">
           How your quotes look. A new quote starts with the theme you chose last, and each quote can pick another.
           Quotes you have already sent keep the look they were sent in.
         </p>
-      </div>
+      </PageHeader>
       {canEditBusinessProfile(role) && (
         <Link href="/app/documents/themes/new" className={buttonVariants({ size: "lg" })}>
           Create new theme

@@ -37,7 +37,7 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   const quoteUrl = page.url().split("?")[0];
 
   // Preview is the next step. It shows the real PDF, drawn on the screen, and the way on.
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page).toHaveURL(`${quoteUrl}/preview`);
   await expect(page.getByRole("heading", { name: /^Preview of quote QT-0001 Draft$/, level: 1 })).toBeVisible();
   const pages = page.getByTestId("pdf-page");
@@ -83,7 +83,7 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   await page.getByTestId("quote-line").getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByLabel(/^Price/).fill("950");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page).toHaveURL(`${quoteUrl}/preview`);
   await expect(page.getByRole("region", { name: "The quote as text" })).toContainText(/R\s?950,00/);
 
@@ -93,7 +93,7 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   await page.getByRole("link", { name: "New quote" }).click();
   await fillItem(page, 1, "Cupcakes", "12", "15");
   await addCustomerInSheet(page, "Thandi");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByRole("heading", { name: /^Preview of quote QT-0002/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
@@ -106,7 +106,7 @@ test("the preview offers Download, Email and Mark as sent; Download changes noth
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await fillItem(page, 1, "Wedding cake", "1", "800");
   await addCustomerInSheet(page, "Sipho");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
 
   // Three ways on, and no other: nothing is "Send" or "Share", and there is no introduction above the quote.
@@ -153,7 +153,7 @@ test("sending lists what is missing, carries on once contact details are added, 
   await signUpAndOnboard(page, "iss-mark", "Send Co");
   await saveQuote(page);
 
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const urlBefore = await page.getByTestId("pdf-pages").getAttribute("data-url");
   await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
@@ -230,7 +230,7 @@ test("a quote with no customer and no items says so, and each fix takes you to t
   await page.getByRole("link", { name: "Start your first quote" }).click();
 
   // Preview on a new, empty quote shows what is missing, where it is missing, and goes nowhere.
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   const summary = page.getByTestId("form-summary");
   await expect(summary).toBeVisible();
   await expect(summary).toContainText("2 things need fixing");

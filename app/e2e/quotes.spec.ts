@@ -290,6 +290,7 @@ test("discounts come off in the right order", async ({ page }) => {
   await fillItem(page, 1, "Cake", "1", "1000", "10");
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("900"));
 
+  await page.getByRole("button", { name: "Add a discount" }).click();
   await page.getByLabel("Discount on the whole quote").selectOption("fixed");
   await page.getByLabel("Discount amount").fill("100");
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("800"));
@@ -471,7 +472,7 @@ test("Preview with no customer and/or no items shows the error state instead of 
   await signUpAndOnboard(page, "q-preview-errors", "Preview Errors Co");
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
-  const preview = page.getByRole("button", { name: "Preview", exact: true });
+  const preview = page.getByRole("button", { name: "Continue to preview", exact: true });
   const summary = page.getByTestId("form-summary");
 
   // Neither: both are named, the page does not move.
@@ -498,7 +499,7 @@ test("Preview with a customer but no items names the items", async ({ page }) =>
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await addCustomerInSheet(page, "Sipho");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("form-summary")).toContainText("1 thing needs fixing");
   await expect(page.getByTestId("form-summary")).toContainText("Add at least one item to the quote.");
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);

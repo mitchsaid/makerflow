@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { todayIn } from "@/lib/quotes/dates";
@@ -12,6 +11,7 @@ import { LogoPrompt } from "../../logo-prompt";
 import { QuoteDocumentView } from "../../quote-document-view";
 import { StatusChip } from "../../status-chip";
 import { PreviewBar } from "./preview-bar";
+import { PageHeader } from "@/components/page-header";
 
 /**
  * The step after a draft: the quote as it will look (its real PDF, drawn on screen), with the
@@ -37,10 +37,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
   });
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/quotes" className="text-sm text-muted-foreground underline">
-          Quotes
-        </Link>
+      <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
         <h1 id="preview-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
           <span>Preview of quote {quote.number}</span>{" "}
           <StatusChip
@@ -50,7 +47,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
             today={todayIn(locale.timeZone)}
           />
         </h1>
-      </div>
+      </PageHeader>
       {canEdit && <LogoPrompt businessName={workspace.organisation.name} askForLogo={askForLogo} />}
 
       {/* The same document as text, for people who can't read the pictures of the pages. */}

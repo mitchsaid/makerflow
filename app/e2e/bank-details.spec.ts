@@ -53,7 +53,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
 
   // None saved yet: the owner is offered to add them, in a sheet over the quote.
   await expect(page.getByTestId("no-bank-details")).toContainText("haven't saved your bank details");
-  await page.getByLabel("Quote title (optional)").fill("Cake for Sarah");
+  await page.getByLabel("Description (optional)").fill("Cake for Sarah");
   await page.getByRole("button", { name: "Add bank details" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add bank details");
   await sheet(page).getByRole("button", { name: "Save bank details" }).click();
@@ -62,14 +62,14 @@ test("a quote shows the bank details by default, can leave them off, and the own
   await sheet(page).getByRole("button", { name: "Save bank details" }).click();
   await expect(sheet(page)).toHaveCount(0);
   // Back on the quote with nothing lost, and the details on by default.
-  await expect(page.getByLabel("Quote title (optional)")).toHaveValue("Cake for Sarah");
+  await expect(page.getByLabel("Description (optional)")).toHaveValue("Cake for Sarah");
   await expect(page.getByTestId("bank-summary")).toHaveText("FNB, ending 6789");
   await expect(page.getByRole("checkbox", { name: /Show my bank details on this quote/ })).toBeChecked();
 
   await fillItem(page, 1, "Cake", "1", "500");
   await addCustomerInSheet(page, "Sarah");
   await page.getByLabel("Other ways to pay (optional)").fill("SnapScan also works");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const text = page.getByRole("region", { name: "The quote as text" });
   await expect(text).toContainText("How to pay");
@@ -82,7 +82,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
   // The switch on this quote leaves them off, and the other ways to pay still print.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await page.getByRole("checkbox", { name: /Show my bank details on this quote/ }).uncheck();
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(text).not.toContainText("62123456789");
   await expect(text).toContainText("SnapScan also works");
@@ -107,7 +107,7 @@ test("a sent quote keeps the bank details it showed when they change later", asy
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await fillItem(page, 1, "Cake", "1", "500");
   await addCustomerInSheet(page, "Sarah");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
   await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();

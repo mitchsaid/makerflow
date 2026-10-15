@@ -25,6 +25,7 @@ import { CustomerPicker } from "../../quotes/customer-picker";
 import { LineSheet, type LineSheetView } from "../../quotes/line-sheet";
 import { useItemSheetProducts } from "../../quotes/use-item-sheet-products";
 import { createManualJob } from "../actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 const OFFLINE = "Couldn't reach the server, so we can't tell whether the job was made. Check the Jobs list, then try again if it is not there. Your changes are still here.";
 
@@ -181,6 +182,7 @@ export function NewJobForm({
   if (serverMessage) problems.push({ fieldId: "create-job", label: "Create job", message: serverMessage });
 
   return (
+    <FormErrorScope epoch={tried}>
     <form onSubmit={onSubmit} noValidate className="space-y-6" data-testid="new-job-form">
       <FormSummary problems={problems} trigger={tried} />
 
@@ -304,6 +306,7 @@ export function NewJobForm({
         {pending ? "Creating the job…" : "Create job"}
       </Button>
     </form>
+    </FormErrorScope>
   );
 }
 

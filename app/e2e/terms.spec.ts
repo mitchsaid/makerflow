@@ -133,7 +133,7 @@ test("terms on a quote: ticked by default, edited for this quote only, one-off t
   await expect(own.getByLabel("Wording")).toHaveValue("From the studio in Observatory.");
 
   // The document shows one Terms section: each term under its title, or as a plain paragraph.
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const text = page.getByRole("region", { name: "The quote as text" });
   const terms = text.getByRole("region", { name: "Terms" });
@@ -170,7 +170,7 @@ test("saving a new term from inside a quote keeps everything typed on the quote 
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByTestId("no-policies")).toBeVisible();
-  await page.getByLabel("Quote title (optional)").fill("Wedding cake for Sarah");
+  await page.getByLabel("Description (optional)").fill("Wedding cake for Sarah");
 
   await page.getByRole("button", { name: "Save a new term" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Save a new term");
@@ -179,7 +179,7 @@ test("saving a new term from inside a quote keeps everything typed on the quote 
   await expect(sheet(page)).toHaveCount(0);
 
   // The quote is as it was, and the new term is ticked on it and saved to the library.
-  await expect(page.getByLabel("Quote title (optional)")).toHaveValue("Wedding cake for Sarah");
+  await expect(page.getByLabel("Description (optional)")).toHaveValue("Wedding cake for Sarah");
   await expect(page.getByRole("checkbox", { name: /^Allergies and handling/ })).toBeChecked();
   await expect(page.getByLabel("Wording for this quote: Allergies and handling")).toHaveValue(/tell us about any allergies/);
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);

@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { formatDocumentNumber, parseNumbering, type NumberingErrors } from "@/lib/quotes/numbering";
 import { saveQuoteNumbering, type NumberingState } from "./numbering-actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 /**
  * Quotes and invoices > Quote numbers. A quote is numbered the first time it is saved, from this
@@ -57,6 +58,7 @@ export function QuoteNumberingForm({
   }
 
   return (
+    <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Section title="Quote numbers">
         <p className="text-base text-muted-foreground">
@@ -120,5 +122,6 @@ export function QuoteNumberingForm({
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

@@ -24,6 +24,7 @@ import {
 } from "@/lib/policies";
 import { splitForTypes } from "@/lib/business-types";
 import { savePolicy } from "./actions";
+import { FormErrorScope } from "@/components/form-errors";
 
 /** Set when the form is shown in a sheet over a quote: it hands the saved term back instead of navigating. */
 export type EmbeddedPolicyForm = {
@@ -133,6 +134,7 @@ export function PolicyForm({
   }
 
   return (
+    <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
       <FormSummary problems={problems} trigger={tries} />
       {message && (
@@ -228,5 +230,6 @@ export function PolicyForm({
         )}
       </div>
     </form>
+    </FormErrorScope>
   );
 }

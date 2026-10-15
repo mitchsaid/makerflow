@@ -36,6 +36,7 @@ import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 import { AddButton } from "@/components/add-button";
+import { FormErrorScope } from "@/components/form-errors";
 
 /**
  * Where the item sheet is: choosing what to add, configuring one line, or the product form
@@ -600,6 +601,7 @@ function ConfigureView({
       : null;
 
   return (
+    <FormErrorScope epoch={attempt}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title={line.productId ? (line.kind === "service" ? "Service" : "Product") : "Item"}>
         {line.productId ? (
@@ -822,5 +824,6 @@ function ConfigureView({
         </Button>
       </div>
     </form>
+    </FormErrorScope>
   );
 }

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
 import { PolicyForm } from "../policy-form";
+import { PageHeader } from "@/components/page-header";
 
 export default async function NewPolicyPage({ searchParams }: PageProps<"/app/documents/policies/new">) {
   const [{ profile, role }, params] = await Promise.all([requireOrganisation(), searchParams]);
@@ -12,12 +12,9 @@ export default async function NewPolicyPage({ searchParams }: PageProps<"/app/do
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/documents/policies" className="text-sm text-muted-foreground underline">
-          Terms
-        </Link>
+      <PageHeader back={{ href: "/app/documents/policies", label: "Terms" }}>
         <h1 className="text-xl font-semibold">Add a term</h1>
-      </div>
+      </PageHeader>
       {canEditBusinessProfile(role) ? (
         <PolicyForm
           initial={{ title: "", body: "", includeByDefault: false }}

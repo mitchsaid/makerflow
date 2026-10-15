@@ -14,6 +14,7 @@ import { JobNote } from "../job-note";
 import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
 import { JobSteps } from "../job-steps";
+import { PageHeader } from "@/components/page-header";
 
 export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   const { id } = await params;
@@ -30,15 +31,12 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/jobs" className="text-sm text-muted-foreground underline">
-          Jobs
-        </Link>
+      <PageHeader back={{ href: "/app/jobs", label: "Jobs" }}>
         <h1 className="flex flex-wrap items-center gap-3 text-xl font-semibold">
           <span>Job {jobNumberText(job.number)}</span>
           <JobStatusChip status={job.status} fulfilment={job.fulfilment} />
         </h1>
-      </div>
+      </PageHeader>
 
       <section className="space-y-3" aria-labelledby="next-heading">
         <h2 id="next-heading" className="text-base font-semibold">

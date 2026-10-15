@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -7,6 +6,7 @@ import { updateCustomer } from "../actions";
 import { CustomerForm } from "../customer-form";
 import { valuesFromCustomer } from "../customer-values";
 import { ArchiveButton } from "./archive-button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function CustomerPage({ params }: PageProps<"/app/customers/[id]">) {
   const { id } = await params;
@@ -20,12 +20,9 @@ export default async function CustomerPage({ params }: PageProps<"/app/customers
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/app/customers" className="text-sm text-muted-foreground underline">
-          Customers
-        </Link>
+      <PageHeader back={{ href: "/app/customers", label: "Customers" }}>
         <h1 className="text-xl font-semibold">{customer.name}</h1>
-      </div>
+      </PageHeader>
 
       {customer.archived && (
         <Alert data-testid="archived-notice">
