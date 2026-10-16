@@ -110,7 +110,7 @@ export function ExtrasSection({
 
   return (
     <Section title="Extras">
-      <p className="text-base text-muted-foreground">What can people add? Like gift wrap or engraving. Each has its own price.</p>
+      <p className="text-base text-muted-foreground">Things people can add, like gift wrap or engraving, each with a price.</p>
 
       {rows.length > 0 && (
         <ol className="space-y-3">
@@ -203,7 +203,7 @@ export function ExtrasSection({
                         Ask for wording
                       </FieldLabel>
                     </Field>
-                    <FieldDescription>You type what it should say when you quote it, like what to engrave.</FieldDescription>
+                    <FieldDescription>Typed on the quote, like what to engrave.</FieldDescription>
                     {x.asksForWording && (
                       <TextField
                         id={fid(`extra-${x.key}-textMax`)}

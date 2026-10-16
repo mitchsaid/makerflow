@@ -48,7 +48,7 @@ test("the terms library: an optional title, your own wording, examples to start 
   // Once it is edited, examples no longer overwrite it.
   await page.getByLabel("Wording").fill("You pay the deposit of 50%, plus materials already bought and work done.");
   await expect(page.getByRole("button", { name: "If you cancel: made to order" })).toBeDisabled();
-  await expect(page.getByText(/Clear the title and wording to pick a different one/)).toBeVisible();
+  await expect(page.getByText(/Clear the title and wording to pick another example/)).toBeVisible();
   await page.getByLabel("Title (optional)").fill("If you cancel");
   await page.getByRole("checkbox", { name: "Include on new quotes" }).check();
   await page.getByRole("button", { name: "Save term" }).click();

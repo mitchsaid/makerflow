@@ -39,8 +39,7 @@ export function ProductArchiveButton({
       </Button>
       {!archived && (
         <p className="text-sm text-muted-foreground">
-          Archived {kind === "service" ? "services" : "products"} disappear from your list but stay on any quotes that use them. You can
-          restore them at any time.
+          Archived {kind === "service" ? "services" : "products"} are hidden from your list but kept on your quotes. You can restore them.
         </p>
       )}
     </div>

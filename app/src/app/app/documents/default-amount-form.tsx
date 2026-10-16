@@ -74,7 +74,7 @@ export function DefaultAmountForm({
       try {
         setState(await save({ kind: choice, value: hasAmount ? value : "" }));
       } catch {
-        setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Check your connection and try again." });
+        setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Try again." });
       }
       setTries((n) => n + 1);
     });

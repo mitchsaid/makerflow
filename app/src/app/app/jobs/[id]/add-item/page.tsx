@@ -21,8 +21,7 @@ export default async function AddJobItemPage({ params }: PageProps<"/app/jobs/[i
       <PageHeader back={{ href: `/app/jobs/${job.id}`, label: `Job ${number}` }}>
         <h1 className="text-xl font-semibold">Add an item to job {number}</h1>
         <p className="text-sm text-muted-foreground">
-          For {job.customerName}. The new item joins what is to be made
-          {job.quoteId ? "; the quote it came from stays as it was" : ""}.
+          For {job.customerName}. The item joins what is to be made.
         </p>
       </PageHeader>
       {!takesNewItems(job.status) ? (

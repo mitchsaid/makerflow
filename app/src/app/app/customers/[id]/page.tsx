@@ -27,8 +27,7 @@ export default async function CustomerPage({ params }: PageProps<"/app/customers
       {customer.archived && (
         <Alert data-testid="archived-notice">
           <AlertDescription>
-            This customer is archived, so it is hidden from your list. Restore it below to use it
-            again.
+            Archived: hidden from your list. Restore it below to use it again.
           </AlertDescription>
         </Alert>
       )}

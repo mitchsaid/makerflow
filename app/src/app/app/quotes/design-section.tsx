@@ -98,7 +98,7 @@ export function DraftPreview({
         if (ticket === latest.current) setMessage(null);
         stored.current = next;
       } catch {
-        if (ticket === latest.current) revert("Couldn't reach the server, so the change wasn't saved. Check your connection and try again.");
+        if (ticket === latest.current) revert("Couldn't reach the server, so the change wasn't saved. Try again.");
       } finally {
         if (ticket === latest.current) setState("saved");
       }
@@ -127,7 +127,7 @@ export function DraftPreview({
           Theme
         </h2>
         <p className="text-base text-muted-foreground">
-          Pick a theme for this quote. The next quote you start begins with the one you pick last.
+          Pick a theme for this quote. New quotes start with the last one you pick.
         </p>
         {message && (
           <Alert variant="destructive" role="alert">

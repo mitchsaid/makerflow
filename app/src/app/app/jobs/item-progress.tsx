@@ -13,7 +13,7 @@ import { quantityToInput, type NumberStyle } from "@/lib/money";
 import { quantityText } from "@/lib/quotes/units";
 import { setItemMade } from "./actions";
 
-const OFFLINE = "Couldn't reach the server, so that count was not saved. Check your connection and try again.";
+const OFFLINE = "Couldn't reach the server, so that count wasn't saved. Try again.";
 
 /**
  * How much of one item is made: plus and minus for one unit at a time, a number to type, and "All made". The count

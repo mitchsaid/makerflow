@@ -27,7 +27,7 @@ import { useItemSheetProducts } from "../../quotes/use-item-sheet-products";
 import { createManualJob } from "../actions";
 import { FormErrorScope } from "@/components/form-errors";
 
-const OFFLINE = "Couldn't reach the server, so we can't tell whether the job was made. Check the Jobs list, then try again if it is not there. Your changes are still here.";
+const OFFLINE = "Couldn't reach the server, so the job may not have been made. Check the Jobs list, then try again.";
 
 /**
  * A job without a quote: who it is for, what to make, when it is needed and how it gets to them. One scrolling form
@@ -210,7 +210,7 @@ export function NewJobForm({
 
       <Section title="What to make">
         {values.items.length === 0 && (
-          <p className="text-muted-foreground">No items yet. Add one of your products or services, or a one-off item.</p>
+          <p className="text-muted-foreground">No items yet. Add a product, a service or a one-off item.</p>
         )}
         {values.items.length > 0 && (
           <ul className="space-y-2" aria-label="Items on this job">

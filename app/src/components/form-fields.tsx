@@ -60,7 +60,7 @@ export function TextField({
   onChange: (value: string) => void;
   /** Fixed text before the value, such as the currency symbol on a price. */
   startText?: string;
-  /** Help under the field, tied to it for screen readers. */
+  /** Help under the label (above the field), tied to the field for screen readers. Errors go under the field. */
   hint?: string;
   /** The label is read out but not shown (for rows under shared column headings). */
   labelHidden?: boolean;
@@ -88,6 +88,11 @@ export function TextField({
       <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>
         {label}
       </FieldLabel>
+      {hint && (
+        <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
+          {hint}
+        </p>
+      )}
       {startText ? (
         <InputGroup>
           <InputGroupText>{startText}</InputGroupText>
@@ -95,11 +100,6 @@ export function TextField({
         </InputGroup>
       ) : (
         input
-      )}
-      {hint && (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
       )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
@@ -131,6 +131,11 @@ export function TextAreaField({
   return (
     <Field data-invalid={!!error}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {hint && (
+        <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
+          {hint}
+        </p>
+      )}
       <Textarea
         id={id}
         name={name ?? id}
@@ -143,11 +148,6 @@ export function TextAreaField({
         aria-describedby={describedBy || undefined}
         {...props}
       />
-      {hint && (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
   );
@@ -171,7 +171,7 @@ export function SelectField({
   name?: string;
   label: string;
   error?: string;
-  /** Help under the field, read out with it. */
+  /** Help under the label (above the field), read out with the field. */
   hint?: string;
   value: string;
   onChange: (value: string) => void;
@@ -185,6 +185,11 @@ export function SelectField({
   return (
     <Field data-invalid={!!error}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {hint && (
+        <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
+          {hint}
+        </p>
+      )}
       <NativeSelect
         id={id}
         name={name ?? id}
@@ -204,11 +209,6 @@ export function SelectField({
           </NativeSelectOption>
         ))}
       </NativeSelect>
-      {hint && (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
   );

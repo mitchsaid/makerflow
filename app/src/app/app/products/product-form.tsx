@@ -29,14 +29,14 @@ import { FormErrorScope } from "@/components/form-errors";
  */
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
-    ["Costs and margin", "What it costs to make (materials, your time, other costs), so you can see your profit."],
+    ["Costs and margin", "What it costs to make, to show your profit."],
     ["Quantity prices", "Lower prices when someone orders more."],
     ["Production steps", "The steps to make it, so you can track each job."],
     ["Stock", "How many you have ready to sell."],
   ],
   // Services (founder, 2026-10-03): no photo or stock; costs are mostly your time.
   service: [
-    ["Costs and margin", "Your time at an hourly rate and any other costs, so you can see your profit."],
+    ["Costs and margin", "Your time and other costs, to show your profit."],
     ["Quantity prices", "Lower rates for larger amounts."],
     ["Steps", "The steps of the service, so you can track each job."],
   ],
@@ -66,7 +66,7 @@ function guarded(action: Action): Action {
       console.error("product form request failed:", error);
       return {
         status: "error",
-        message: "Couldn't reach the server. Check your connection and try again. Nothing you typed is lost.",
+        message: "Couldn't reach the server. Try again. Nothing you typed is lost.",
       };
     }
   };
@@ -387,7 +387,7 @@ export function ProductForm({
             kind="product"
             value={values.photoImageId}
             alt={values.name ? `Photo of ${values.name}` : "Photo of this product"}
-            hint="Shown small beside the item on your quotes. It is cropped square, so keep the product in the middle."
+            hint="Shown small beside the item. Cropped square, so centre the product."
             error={errors.photo ?? (waiting && uploading ? "Wait for the photo to finish uploading, then save." : undefined)}
             onChange={(photoImageId) => set("photoImageId")(photoImageId)}
             onPendingChange={(busy) => {
@@ -444,7 +444,7 @@ export function ProductForm({
         {hasVariations && !priced && (
           // Only further variations are left (an older product, or the first one was removed): the first one can be added again.
           <div className="space-y-2">
-            <p className="text-base text-muted-foreground">One variation sets the price: each of its choices has its own price.</p>
+            <p className="text-base text-muted-foreground">One variation sets the price: each choice has its own.</p>
             <AddButton id={fid("add-first-variation")} className="self-start" onClick={startFirstVariation}>
               Add choices with their own prices
             </AddButton>
@@ -493,7 +493,7 @@ export function ProductForm({
           value={values.unit}
           error={errors.unit}
           onChange={set("unit")}
-          hint="What one is, like kg, dozen or hour. Prices are per unit. Leave it empty for a plain count."
+          hint="Like kg, dozen or hour. Prices are per unit. Empty for a plain count."
         />
         {vatChoices && (
           <SelectField
@@ -505,7 +505,7 @@ export function ProductForm({
             placeholder={vatChoices.find((c) => c.value === "standard")?.label ?? "Standard-rated"}
             options={vatChoices.filter((c) => c.value !== "standard").map((c) => c.value)}
             optionLabels={Object.fromEntries(vatChoices.map((c) => [c.value, c.label]))}
-            hint={`${vatChoices.find((c) => c.value === values.vatStatus)?.hint ?? ""} A quote item starts with this, and can be changed on the quote.`}
+            hint={`${vatChoices.find((c) => c.value === values.vatStatus)?.hint ?? ""} You can change it on the quote.`}
             error={errors.vatStatus}
           />
         )}

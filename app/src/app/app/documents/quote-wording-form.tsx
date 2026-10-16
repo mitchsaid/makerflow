@@ -45,7 +45,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
       } catch {
         setState({
           status: "error",
-          message: "Couldn't reach the server, so nothing was saved. Check your connection and try again.",
+          message: "Couldn't reach the server, so nothing was saved. Try again.",
         });
       }
       setTries((n) => n + 1);
@@ -57,8 +57,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Section title="Quote wording">
         <p className="text-base text-muted-foreground">
-          What every new quote starts with. You can change it on any quote, and changing it here never
-          changes a quote you have already made.
+          What a new quote starts with. Existing quotes are not changed.
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {state.status === "error" && state.message && (
@@ -70,7 +69,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           id="wordingDescription"
           name="description"
           label="Introduction (optional)"
-          hint="A short introduction, printed at the top of every new quote."
+          hint="Printed at the top of every new quote."
           value={values.description}
           error={errors.description}
           onChange={set("description")}
@@ -85,13 +84,13 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           value={values.signOff}
           error={errors.signOff}
           onChange={set("signOff")}
-          hint="Shown at the end of the quote, with your business name."
+          hint="Shown at the end, above your business name."
         />
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"
           label="Notes about paying (optional)"
-          hint={`What a new quote says about paying, besides your bank details (they are kept in your Business profile and print first). For example, ${otherWaysHint}`}
+          hint={`Printed under your bank details. For example, ${otherWaysHint}`}
           value={values.paymentInstructions}
           error={errors.paymentInstructions}
           onChange={set("paymentInstructions")}

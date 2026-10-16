@@ -23,7 +23,7 @@ export function TypeForm() {
         if (result.status === "saved") router.push("/app");
         else setMessage(result.message);
       } catch {
-        setMessage("Couldn't reach the server, so nothing was saved. Check your connection and try again.");
+        setMessage("Couldn't reach the server, so nothing was saved. Try again.");
       }
     });
   }

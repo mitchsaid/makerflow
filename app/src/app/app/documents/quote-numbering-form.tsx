@@ -73,7 +73,7 @@ export function QuoteNumberingForm({
       } catch {
         setState({
           status: "error",
-          message: "Couldn't reach the server, so nothing was saved. Check your connection and try again.",
+          message: "Couldn't reach the server, so nothing was saved. Try again.",
         });
       }
       setTries((n) => n + 1);
@@ -85,8 +85,7 @@ export function QuoteNumberingForm({
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Fields embedded={!!embedded}>
         <p className="text-base text-muted-foreground">
-          Every quote gets a number the first time you save it, and keeps it when you revise it. To
-          carry on from another system, set the next number.
+          Each quote is numbered when first saved. To carry on from another system, set the next number.
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {state.status === "error" && state.message && (

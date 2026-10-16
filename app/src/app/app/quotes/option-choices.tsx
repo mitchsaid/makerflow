@@ -207,7 +207,7 @@ export function OptionChoices({
           <p id={id("kept-options")} className="text-base font-medium">
             Kept as they were
           </p>
-          <p className="text-sm text-muted-foreground">These are no longer on the product. They stay on this item until you remove them.</p>
+          <p className="text-sm text-muted-foreground">No longer on the product. Kept on this item until you remove them.</p>
           <ul className="space-y-2">
             {kept.map((o, i) => (
               <li key={`${o.groupId}-${o.valueId}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">

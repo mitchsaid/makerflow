@@ -67,6 +67,11 @@ export function ImageField({
       <FieldLabel id={`${id}-label`} htmlFor={id}>
         {label}
       </FieldLabel>
+      {hint && (
+        <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
+          {hint}
+        </p>
+      )}
       {name && <input type="hidden" name={name} value={value} />}
       <div className="flex items-center gap-4">
         {value ? (
@@ -126,11 +131,6 @@ export function ImageField({
       <p className="sr-only" role="status">
         {busy ? "Uploading the picture" : ""}
       </p>
-      {hint && (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      )}
       {shown && <FieldError id={`${id}-error`}>{shown}</FieldError>}
     </Field>
   );

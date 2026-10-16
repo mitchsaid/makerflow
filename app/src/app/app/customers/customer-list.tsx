@@ -36,8 +36,7 @@ export function CustomerList({
         <CardContent className="space-y-4">
           <p className="text-base font-medium">No customers yet</p>
           <p className="text-muted-foreground">
-            Add the people you make things for. Only a name is needed, and you can add the
-            rest later.
+            Add the people you make things for. Only a name is needed.
           </p>
           <AddLink href="/app/customers/new" variant="default">
             Add your first customer

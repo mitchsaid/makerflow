@@ -52,8 +52,7 @@ export function CreateJobButton({
       </AddButton>
       {!compact && (
         <p className="text-sm text-muted-foreground">
-          Turns this accepted quote into a job to make, with the items, the customer and the day it is needed carried
-          over. You can then follow it from making to collected or delivered.
+          Turn this accepted quote into a job, with its items, customer and due day.
         </p>
       )}
     </div>

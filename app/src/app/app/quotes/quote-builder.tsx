@@ -294,7 +294,7 @@ export function QuoteBuilder({
         setState({
           status: "error",
           message:
-            "Couldn't reach the server, so the draft was not saved. Check your connection and press Save again. Nothing you typed is lost.",
+            "Couldn't reach the server, so the draft wasn't saved. Try Save again. Nothing you typed is lost.",
         });
       }
     });
@@ -403,7 +403,7 @@ export function QuoteBuilder({
     {quoteId === null && confirmingCancel && (
       <Alert ref={cancelQuestion} role="alertdialog" aria-label="Cancel this new quote?">
         <AlertDescription className="space-y-3">
-          <p>Cancel this quote? It hasn&apos;t been saved yet, so the items and details you entered here will be lost.</p>
+          <p>Cancel this quote? Nothing is saved yet, so what you entered will be lost.</p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="destructive" onClick={() => router.push("/app/quotes")}>
               Yes, cancel the quote
@@ -455,7 +455,7 @@ export function QuoteBuilder({
         <TextAreaField
           id="description"
           label="Description (optional)"
-          hint="A short introduction, printed at the top of the quote."
+          hint="Printed at the top of the quote."
           value={values.description}
           error={f.description}
           onChange={(description) => update({ description })}
@@ -540,7 +540,7 @@ export function QuoteBuilder({
       <Section title="Items">
         {values.lines.length === 0 && (
           <p className="text-muted-foreground">
-            No items yet. Add one of your products or services, or a one-off item.
+            No items yet. Add a product, a service or a one-off item.
           </p>
         )}
         {values.lines.length > 0 && (
@@ -803,7 +803,7 @@ export function QuoteBuilder({
         <TextAreaField
           id="paymentInstructions"
           label="Notes about paying (optional)"
-          hint={`Anything else your customer should know about paying. For example, ${getLocalePack(countryCode).payment.otherWaysHint} Printed in “How to pay” on the quote, under your bank details.`}
+          hint={`Printed under your bank details. For example, ${getLocalePack(countryCode).payment.otherWaysHint}`}
           value={values.paymentInstructions}
           error={f.paymentInstructions}
           onChange={(paymentInstructions) => update({ paymentInstructions })}
@@ -827,7 +827,7 @@ export function QuoteBuilder({
         <TextAreaField
           id="notes"
           label="Notes for your customer (optional)"
-          hint="Shown on the quote, for example how long the work takes. Payment details and terms have their own sections above."
+          hint="Shown on the quote, like how long the work takes."
           value={values.notes}
           error={f.notes}
           onChange={(notes) => update({ notes })}
@@ -844,7 +844,7 @@ export function QuoteBuilder({
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
-          hint="Shown at the end of the quote, with your business name."
+          hint="Shown at the end, above your business name."
         />
         <UsualButtons
           what="sign-off"

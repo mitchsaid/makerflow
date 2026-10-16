@@ -34,7 +34,7 @@ export type EmbeddedCustomerForm = {
 };
 
 const OFFLINE_MESSAGE =
-  "Couldn't reach the server. Check your connection and try again. Nothing you typed is lost.";
+  "Couldn't reach the server. Try again. Nothing you typed is lost.";
 
 /**
  * In a sheet, a failed request (no signal, say) must show a message, not throw the whole page
@@ -202,8 +202,7 @@ export function CustomerForm({
         {values.isBusiness && (
           <>
             <FieldDescription>
-              Business details are optional. A {locale.tax.registrationNumberLabel} and address
-              are needed on a full tax invoice for a bigger sale to a business.
+              All optional. A {locale.tax.registrationNumberLabel} and address are needed on a full tax invoice.
             </FieldDescription>
             {text("contactPerson", "Contact person", { autoComplete: "off" })}
             {text("vatNumber", locale.tax.registrationNumberLabel, { autoComplete: "off" })}
@@ -266,7 +265,7 @@ export function CustomerForm({
               id={fid("notes")}
               name="notes"
               label="Anything to remember (optional)"
-              hint="Only you and your team see these. They never appear on a quote or invoice."
+              hint="Only you and your team see this. It is never printed."
               error={errors.notes}
               value={values.notes}
               onChange={set("notes")}

@@ -145,7 +145,7 @@ export function ThemeStudio({
           router.push(`/app/quotes/${quoteId}/preview`);
         }
       } catch {
-        setError("Couldn't reach the server, so nothing was saved. Check your connection and try again.");
+        setError("Couldn't reach the server, so nothing was saved. Try again.");
       }
     });
   }
@@ -312,7 +312,7 @@ export function ThemeStudio({
                     shape="free"
                     value={spec.backgroundImageId ?? ""}
                     alt="The background picture"
-                    hint="A soft, light picture works best. It is faded behind your text so the quote stays easy to read."
+                    hint="A soft, light picture works best."
                     onChange={(imageId) => {
                       setJustSaved(false);
                       setSpec((x) => ({ ...x, backgroundImageId: imageId === "" ? null : imageId }));

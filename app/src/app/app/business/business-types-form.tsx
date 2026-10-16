@@ -28,7 +28,7 @@ export function BusinessTypesForm({ initial }: { initial: BusinessType[] }) {
         if (result.status === "saved") setSaved(true);
         else setMessage(result.message);
       } catch {
-        setMessage("Couldn't reach the server, so nothing was saved. Check your connection and try again. Nothing you ticked is lost.");
+        setMessage("Couldn't reach the server, so nothing was saved. Try again. Nothing you ticked is lost.");
       }
     });
   }
@@ -37,7 +37,7 @@ export function BusinessTypesForm({ initial }: { initial: BusinessType[] }) {
     <form onSubmit={submit} className="space-y-4" noValidate id="what-you-make">
       <Section title="What you make">
         <p id="types-legend" className="text-base text-muted-foreground">
-          Tick any that fit. We use this to show examples that fit your business first, and nothing else.
+          Tick any that fit. Used only to show fitting examples first.
         </p>
         {message && (
           <Alert variant="destructive" role="alert">

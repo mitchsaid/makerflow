@@ -200,7 +200,7 @@ export function TermsSection({
           {available.length > 0
             ? "No terms on this quote yet."
             : canManage
-              ? "You haven't saved any terms yet. Write one and it's ready for every quote."
+              ? "No terms yet. Write one and use it on every quote."
               : "No terms have been saved yet. Ask an owner or admin to add some."}
         </p>
       ) : (
@@ -225,7 +225,7 @@ export function TermsSection({
 
       <ComingSoonSection
         title="Customer agrees to the terms"
-        description="With online quotes, your customer reads the terms and agrees to them when they accept, and you see when."
+        description="With online quotes, customers agree to the terms when they accept."
       />
 
       <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && !saving && setSheetOpen(false)}>
@@ -235,8 +235,8 @@ export function TermsSection({
             <SheetDescription className="text-base">
               {view === "create"
                 ? full
-                  ? `It is saved to your terms. This quote already has ${QUOTE_MAX_POLICIES} terms, so it is not added to it. Your quote is kept as it is.`
-                  : "It is saved to your terms and added to this quote. Your quote is kept as it is."
+                  ? `Saved to your terms. This quote already has ${QUOTE_MAX_POLICIES} terms, so it isn&apos;t added.`
+                  : "Saved to your terms and added to this quote."
                 : "Choose from your saved terms, or write a new one."}
             </SheetDescription>
           </SheetHeader>

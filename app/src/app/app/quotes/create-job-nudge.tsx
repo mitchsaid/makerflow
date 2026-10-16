@@ -42,7 +42,7 @@ export function CreateJobNudge({ quoteId, quoteNumber }: { quoteId: string; quot
     <Alert ref={region} tabIndex={-1} role="region" aria-label="Create a job" data-testid="create-job-nudge" className="outline-none">
       <AlertTitle>Create a job for {quoteNumber}?</AlertTitle>
       <AlertDescription className="space-y-3">
-        <span className="block">You can then follow it from making to collected or delivered.</span>
+        <span className="block">With its items, customer and due day.</span>
         <span className="flex flex-wrap items-start gap-2">
           <CreateJobButton quoteId={quoteId} compact onPendingChange={setMaking} />
           <Button type="button" variant="outline" size="lg" disabled={making} onClick={close}>

@@ -133,13 +133,13 @@ export function BusinessProfileForm({
           </FieldLabel>
         </Field>
         <FieldDescription>
-          Only tick this if you&apos;re registered for {locale.tax.name} with the tax authority. Your
-          quotes and invoices will show {locale.tax.name} and your {locale.tax.registrationNumberLabel}.
+          Tick only if you&apos;re registered for {locale.tax.name}. Quotes and invoices will show your {locale.tax.registrationNumberLabel}.
         </FieldDescription>
         {values.vatRegistered && text("vatNumber", locale.tax.registrationNumberLabel, { inputMode: "numeric" })}
         {values.vatRegistered && (
           <Field>
             <FieldLabel htmlFor="pricesIncludeVat">When I type a price, it is</FieldLabel>
+            <FieldDescription>Usual: including VAT for the public, excluding for businesses.</FieldDescription>
             <NativeSelect
               id="pricesIncludeVat"
               name="pricesIncludeVat"
@@ -151,11 +151,6 @@ export function BusinessProfileForm({
               <NativeSelectOption value="inclusive">Including VAT</NativeSelectOption>
               <NativeSelectOption value="exclusive">Excluding VAT</NativeSelectOption>
             </NativeSelect>
-            <FieldDescription>
-              Including VAT is the usual choice when you sell to the public; excluding VAT is
-              common when you sell to other businesses. Either way, your quotes and invoices show
-              the VAT and the total including VAT clearly.
-            </FieldDescription>
           </Field>
         )}
       </Section>

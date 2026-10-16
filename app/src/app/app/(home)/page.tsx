@@ -28,8 +28,7 @@ export default async function WorkspacePage() {
           {counts.active === 0 ? (
             <>
               <p className="text-base text-muted-foreground">
-                Nothing to make right now. When a customer accepts a quote, turn it into a job to follow it from making to
-                collected or delivered.
+                Nothing to make right now. When a customer accepts a quote, turn it into a job.
               </p>
               <AddLink href="/app/jobs/new" variant="default">
                 New job

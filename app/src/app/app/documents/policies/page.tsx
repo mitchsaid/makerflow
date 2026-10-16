@@ -39,9 +39,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
       <PageHeader back={{ href: "/app/documents", label: "Quotes and invoices" }}>
         <h1 className="text-xl font-semibold">Terms</h1>
         <p className="text-muted-foreground">
-          Write each term once, then add the ones you want to each quote. A title is optional: without one, a
-          term prints as a plain paragraph. Quotes keep their own copy, so changing a term here never changes a
-          quote you have already made.
+          Write each term once, then add it to any quote. Existing quotes are never changed.
         </p>
       </PageHeader>
 

@@ -41,8 +41,7 @@ export default async function BusinessProfilePage() {
           <CardHeader>
             <CardTitle className="text-lg">Business details</CardTitle>
             <CardDescription className="text-base">
-              Only owners and admins can change these details. You can see them on your
-              quotes and invoices.
+              Only owners and admins can change these.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -64,9 +63,9 @@ export default async function BusinessProfilePage() {
             <CardTitle className="text-lg">Bank details</CardTitle>
             <CardDescription className="text-base">
               {bankDetails
-                ? `${bankSummary(bankDetails, locale)}. They are shown on your quotes. `
-                : "No bank details are saved yet. "}
-              Only the owner can change them, because they decide where customers send money.
+                ? `${bankSummary(bankDetails, locale)}. Shown on your quotes. `
+                : "No bank details yet. "}
+              Only the owner can change them.
             </CardDescription>
           </CardHeader>
           {bankDetails && (
@@ -88,7 +87,7 @@ export default async function BusinessProfilePage() {
         <CardHeader>
           <CardTitle className="text-lg">Quotes and invoices</CardTitle>
           <CardDescription className="text-base">
-            How your quotes are numbered and worded, your policies and what new quotes start with.
+            Numbering, wording, terms and what new quotes start with.
           </CardDescription>
         </CardHeader>
         <CardContent>

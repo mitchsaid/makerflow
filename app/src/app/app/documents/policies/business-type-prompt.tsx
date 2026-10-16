@@ -36,7 +36,7 @@ export function BusinessTypePrompt() {
           Make the examples fit your business
         </CardTitle>
         <CardDescription className="text-base">
-          Tick what you make or sell. We use this to put the examples that fit first, and nothing else.
+          Tick what you make or sell. Used only to show fitting examples first.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

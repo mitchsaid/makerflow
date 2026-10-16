@@ -48,7 +48,7 @@ test("on a sent quote, what to do next comes before the PDF, and the coming-soon
   expect(nextY).toBeLessThan(pdfY);
   expect(soonY).toBeGreaterThan(pdfY);
   // The way to a job is said where the answer is asked for.
-  await expect(page.getByText("When they accept, you can turn it into a job.")).toBeVisible();
+  await expect(page.getByText(/An accepted quote can become a job/)).toBeVisible();
 });
 
 test("a new quote shows the number it will get, and the numbering can be changed from the quote", async ({ page }) => {
@@ -135,8 +135,7 @@ test("How to pay says what each part is: bank details, then notes about paying",
   await expect(pay.getByRole("button", { name: "Add bank details" })).toBeVisible();
   const notes = pay.getByLabel("Notes about paying (optional)");
   await expect(notes).toBeVisible();
-  await expect(pay.getByText(/Anything else your customer should know about paying/)).toBeVisible();
-  await expect(pay.getByText(/Printed in “How to pay” on the quote, under your bank details/)).toBeVisible();
+  await expect(pay.getByText(/Printed under your bank details\. For example/)).toBeVisible();
   // The old name, which read as a note about the bank details, is gone.
   await expect(page.getByText("Other ways to pay")).toHaveCount(0);
   // The notes come after the bank details.
@@ -179,4 +178,26 @@ test("the sign-off is a box for several lines, kept as typed, and printed on the
   await expect(page.getByTestId("form-summary")).toBeVisible();
   // At the field and in the summary.
   await expect(page.getByText(/up to 5 lines/)).toHaveCount(2);
+});
+
+test("helper text sits under the label, above the field; an error sits under the field", async ({ page }) => {
+  await signUpAndOnboard(page, "qf2-helper", "Helper Co");
+  await page.goto("/app/products/new");
+  const y = async (locator: ReturnType<typeof page.locator>) => (await locator.boundingBox())!.y;
+
+  // Label, then its helper text, then the field.
+  const label = page.getByText("Description (optional)", { exact: true });
+  const hint = page.getByText("Shown on your quotes under the name.");
+  const field = page.getByLabel("Description (optional)");
+  expect(await y(label)).toBeLessThan(await y(hint));
+  expect(await y(hint)).toBeLessThan(await y(field));
+
+  // The error comes after the field, as before.
+  await page.getByLabel("Name", { exact: true }).fill("Cake");
+  await page.getByLabel("Price", { exact: true }).fill("abc");
+  await page.getByRole("button", { name: "Add product" }).click();
+  const price = page.getByLabel("Price", { exact: true });
+  const error = page.locator("#unitPrice-error");
+  await expect(error).toBeVisible();
+  expect(await y(error)).toBeGreaterThan(await y(price));
 });

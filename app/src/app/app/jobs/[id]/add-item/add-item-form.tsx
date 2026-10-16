@@ -15,7 +15,7 @@ import { LineSheet, type LineSheetView } from "../../../quotes/line-sheet";
 import { useItemSheetProducts } from "../../../quotes/use-item-sheet-products";
 import { addJobItem } from "../../actions";
 
-const OFFLINE = "Couldn't reach the server, so we can't tell whether the item was added. Check the job, then try again if it is not there.";
+const OFFLINE = "Couldn't reach the server, so the item may not have been added. Check the job, then try again.";
 
 /**
  * Adding an item to a job that exists, with the same item sheet a quote uses (in its job mode: no prices). The sheet

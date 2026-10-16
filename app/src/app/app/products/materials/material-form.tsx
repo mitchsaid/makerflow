@@ -114,7 +114,7 @@ export function MaterialForm({
         <SelectField
           id="unit"
           label="Unit"
-          hint="What you measure it in when you use it. You can use any unit of the same kind in a product later (grams of something bought by the kilo)."
+          hint="What you measure it in when you use it."
           value={values.unit}
           error={errors.unit}
           onChange={set("unit")}
@@ -165,8 +165,7 @@ export function MaterialForm({
               ))}
             </RadioGroup>
             <p className="text-sm text-muted-foreground" data-testid="vat-note">
-              Costs and margins are worked out without {taxName}, so {taxName} you claim back is not counted as a cost. We don&apos;t work out
-              what you can claim: that is for you and your adviser.
+              Costs and margins exclude {taxName}. We don&apos;t work out what you can claim back.
             </p>
           </FieldSet>
         )}

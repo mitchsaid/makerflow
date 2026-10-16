@@ -37,7 +37,7 @@ export function DiscardRevisionButton({ quoteId, sentVersion }: { quoteId: strin
           Discard this revision
         </Button>
         <p className="text-sm text-muted-foreground">
-          Go back to version {sentVersion} as it was sent, and drop the changes you&apos;ve made since.
+          Go back to version {sentVersion} as sent, dropping later changes.
         </p>
       </div>
     );

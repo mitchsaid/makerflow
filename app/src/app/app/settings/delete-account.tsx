@@ -10,7 +10,7 @@ import { confirmationProblem } from "@/lib/account";
 import { deleteAccount } from "./actions";
 import { FormErrorScope } from "@/components/form-errors";
 
-const OFFLINE = "Couldn't reach the server, so we can't tell whether your account was deleted. Reload the page: if you are still signed in, try again.";
+const OFFLINE = "Couldn't reach the server, so the account may not be deleted. Reload, and try again if you are still signed in.";
 
 /**
  * Settings > Delete your account. A card that says what it does, and a sheet that asks the person to type their own
@@ -72,8 +72,7 @@ export function DeleteAccount({ email }: { email: string }) {
       <CardHeader>
         <CardTitle className="text-lg">Delete your account</CardTitle>
         <CardDescription className="text-base">
-          Removes your sign-in and every business that only you belong to, with its quotes, jobs, customers, products,
-          pictures and settings. It cannot be undone. You can sign up again afterwards and start from the beginning.
+          Removes your sign-in and every business only you belong to, with all its data. This can&apos;t be undone.
         </CardDescription>
       </CardHeader>
       <CardContent>

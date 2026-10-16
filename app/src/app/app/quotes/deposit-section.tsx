@@ -161,7 +161,7 @@ export function DepositSection({
             <TextField
               id="balanceDueText"
               label="When is the balance due?"
-              hint="Written to follow “Balance, due”: for example, within 14 days of delivery."
+              hint="Follows “Balance, due”, e.g. within 14 days of delivery."
               autoComplete="off"
               maxLength={BALANCE_TEXT_MAX}
               error={errors.balanceDueText}

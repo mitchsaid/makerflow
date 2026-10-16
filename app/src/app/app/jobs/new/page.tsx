@@ -22,7 +22,7 @@ export default async function NewJobPage() {
       <PageHeader back={{ href: "/app/jobs", label: "Jobs" }}>
         <h1 className="text-xl font-semibold">New job</h1>
         <p className="text-sm text-muted-foreground">
-          For work that did not start with a quote: a walk-in order, a repeat, something agreed over WhatsApp.
+          For work without a quote: a walk-in, a repeat, something agreed on WhatsApp.
         </p>
       </PageHeader>
       <NewJobForm

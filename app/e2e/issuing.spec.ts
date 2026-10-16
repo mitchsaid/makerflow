@@ -335,7 +335,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
   await page.getByRole("button", { name: "Revise this quote" }).click();
   await expect(page).toHaveURL(quoteUrl);
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Revising$/, level: 1 })).toBeVisible();
-  await expect(page.getByTestId("revising-note")).toContainText("You are working on version 2");
+  await expect(page.getByTestId("revising-note")).toContainText("Editing version 2");
   // It starts as a copy of what was sent, and cannot be deleted (that would delete a sent version).
   await expect(page.getByTestId("quote-line")).toContainText("Wedding cake");
   await expect(page.getByRole("button", { name: "Delete draft" })).toHaveCount(0);

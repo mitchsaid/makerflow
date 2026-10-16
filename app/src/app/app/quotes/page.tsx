@@ -54,8 +54,7 @@ export default async function QuotesPage({ searchParams }: PageProps<"/app/quote
           <CardContent className="space-y-4">
             <p className="text-base font-medium">No quotes yet</p>
             <p className="text-muted-foreground">
-              Build a quote in a couple of minutes: pick a customer, add what you are making and
-              the price, then send it as a PDF.
+              Pick a customer, add items and prices, then send a PDF.
             </p>
             <Link href="/app/quotes/new" className={buttonVariants()}>
               Start your first quote

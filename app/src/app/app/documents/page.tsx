@@ -36,8 +36,7 @@ export default async function DocumentSettingsPage() {
         <CardHeader>
           <CardTitle className="text-lg">Terms</CardTitle>
           <CardDescription className="text-base">
-            Lead times, cancellation, changes, aftercare and the rest: write each once, in your own words, and tick them
-            onto your quotes.
+            Write each term once, then add it to any quote.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -51,12 +50,11 @@ export default async function DocumentSettingsPage() {
         <CardHeader>
           <CardTitle className="text-lg">Quote themes</CardTitle>
           <CardDescription className="text-base">
-            How your quotes look: colours, fonts, the top of the page, how items are shown and the total. Start from
-            a starter, remix it, or build your own from scratch.
+            Colours, fonts and layout. Start from a starter, remix it, or build your own.
             {canEdit && (
               <>
                 {" "}
-                Your logo is on the{" "}
+                Your logo is in the{" "}
                 <Link href="/app/business#logo" className="underline">
                   Business profile
                 </Link>
@@ -111,8 +109,7 @@ export default async function DocumentSettingsPage() {
           <CardHeader>
             <CardTitle className="text-lg">Quote numbers</CardTitle>
             <CardDescription className="text-base">
-              Your next quote will be {formatDocumentNumber(sequence.prefix, sequence.nextNumber, sequence.minDigits)}.
-              Only owners and admins can change how quotes are numbered.
+              Next quote: {formatDocumentNumber(sequence.prefix, sequence.nextNumber, sequence.minDigits)}. Only owners and admins can change numbering.
             </CardDescription>
           </CardHeader>
         </Card>

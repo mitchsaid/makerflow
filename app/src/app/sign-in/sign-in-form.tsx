@@ -17,8 +17,7 @@ export function SignInForm() {
       <Card role="status" className="p-4 text-center">
         <h2 className="text-lg font-semibold">Check your email</h2>
         <p className="text-muted-foreground">
-          We sent a sign-in link to <strong>{state.email}</strong>. Tap it on this
-          device or any other. It works once and expires soon.
+          We sent a sign-in link to <strong>{state.email}</strong>. Open it on any device. It works once and expires soon.
         </p>
       </Card>
     );

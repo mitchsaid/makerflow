@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { SavedAddress } from "@/lib/customers";
 import { QUOTE_DELIVERY_ADDRESS_MAX, type Fulfilment } from "@/lib/quotes";
@@ -87,6 +87,7 @@ export function DeliverySection({
           <TextField
             id="deliveryFee"
             label={feeLabel}
+            hint="Leave empty if delivery is free."
             startText={symbol}
             inputMode="decimal"
             autoComplete="off"
@@ -94,7 +95,6 @@ export function DeliverySection({
             error={errors.deliveryFee}
             onChange={(fee) => onChange({ deliveryFee: fee })}
           />
-          <FieldDescription>Leave the fee empty if delivery is free.</FieldDescription>
 
           {saved.length > 0 ? (
             <div className="space-y-1">

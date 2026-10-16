@@ -56,7 +56,7 @@ export function LogoForm({
         if (result.status === "saved") embedded?.onDone();
       } catch {
         setEditedSinceSave(true);
-        setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Check your connection and try again." });
+        setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Try again." });
       }
     });
   }
@@ -64,8 +64,7 @@ export function LogoForm({
   const fields = (
     <>
       <p className="text-base text-muted-foreground">
-        Printed at the top of your quotes. A PNG with a see-through background looks best; a square or wide picture
-        both work.
+        Printed at the top of your quotes. A PNG with a clear background looks best.
       </p>
       {state.status === "error" && (
         <Alert variant="destructive" role="alert">
