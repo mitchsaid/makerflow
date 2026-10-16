@@ -196,7 +196,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, all sections open");
       // Delivery with addresses on file: the choices, and "a different address".
       await page.getByRole("button", { name: /Edit details/ }).click();
-      await page.getByRole("dialog").getByLabel("Deliver to (optional)").fill("The gate at the back");
+      await page.getByRole("dialog").getByRole("checkbox", { name: "Same as the address above" }).uncheck();
+      await page.getByRole("dialog").getByRole("group", { name: "Delivery" }).getByLabel("Street address").fill("The gate at the back");
       await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeVisible();
