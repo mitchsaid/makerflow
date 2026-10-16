@@ -25,7 +25,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
     [
       ["wordingDescription", "Introduction", errors.description],
       ["wordingSignOff", "Sign-off message", errors.signOff],
-      ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
+      ["wordingPayment", "Notes about paying", errors.paymentInstructions],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
 
@@ -90,8 +90,8 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"
-          label="Other ways to pay (optional)"
-          hint={`${otherWaysHint} Your bank details are kept above, and print first.`}
+          label="Notes about paying (optional)"
+          hint={`What a new quote says about paying, besides your bank details (they are kept in your Business profile and print first). For example, ${otherWaysHint}`}
           value={values.paymentInstructions}
           error={errors.paymentInstructions}
           onChange={set("paymentInstructions")}

@@ -116,7 +116,7 @@ export type QuoteFormValues = {
   description: string;
   /** "Yours in sweetness": closes the document. Optional. */
   signOff: string;
-  /** "Other ways to pay" (the country's other methods, or pay on collection). Optional. Prints under the bank details. */
+  /** "Notes about paying" (the country's other methods, a reference, or pay on collection). Optional. Prints under the bank details. */
   paymentInstructions: string;
   /** Show the business's bank details on this quote (when it has saved them). */
   showBankDetails: boolean;
@@ -564,7 +564,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   // Only a delivery shows the box, so only then can a too-long address be refused (it could not be fixed
   // otherwise). A quote that isn't a delivery drops one that is too long: it would never be printed.
   if (!deliveryAddress.ok && values.fulfilment === "delivery") errors.fields.deliveryAddress = deliveryAddress.error;
-  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Notes about paying", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
   const deposit = parseDeposit(values, values.issueDate);

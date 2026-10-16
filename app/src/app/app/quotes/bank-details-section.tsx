@@ -12,8 +12,9 @@ import { BankDetailsForm } from "../business/bank-details-form";
 import { AddButton } from "@/components/add-button";
 
 /**
- * "How to pay" on a quote: the business's saved bank details with a tick to show them on this
- * quote (on by default), then the free text for other ways to pay (passed as children). With no
+ * "How to pay" on a quote, in two parts that say what they are: **Bank details** (the business's saved details, with a
+ * tick to show them on this quote, on by default) and **Notes about paying** (free text for anything else: SnapScan,
+ * a payment reference, "pay on collection"; passed as children). With no
  * details saved, the owner can add them in a sheet over the quote, so nothing typed on the quote is
  * lost; other members are told to ask the owner.
  */
@@ -42,6 +43,7 @@ export function BankDetailsSection({
 
   return (
     <Section title="How to pay">
+      <h3 className="text-base font-medium">Bank details</h3>
       {bank ? (
         <>
           <Field orientation="horizontal" className="items-start py-2.5">

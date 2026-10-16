@@ -68,7 +68,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
 
   await fillItem(page, 1, "Cake", "1", "500");
   await addCustomerInSheet(page, "Sarah");
-  await page.getByLabel("Other ways to pay (optional)").fill("SnapScan also works");
+  await page.getByLabel("Notes about paying (optional)").fill("SnapScan also works");
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const text = page.getByRole("region", { name: "The quote as text" });
@@ -79,7 +79,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
   await expect(text).toContainText(/Reference\s*QT-0001/);
   await expect(text).toContainText("SnapScan also works");
 
-  // The switch on this quote leaves them off, and the other ways to pay still print.
+  // The switch on this quote leaves them off, and the notes about paying still print.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await page.getByRole("checkbox", { name: /Show my bank details on this quote/ }).uncheck();
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();

@@ -124,3 +124,22 @@ test("the balance can be due 'another time', in the maker's own words, and it pr
   await page.getByRole("group", { name: "Deposit" }).getByLabel("Balance due", { exact: true }).selectOption("handover");
   await expect(page.getByLabel("When is the balance due?")).toHaveCount(0);
 });
+
+test("How to pay says what each part is: bank details, then notes about paying", async ({ page }) => {
+  await signUpAndOnboard(page, "qf2-pay", "Pay Co");
+  await page.goto("/app/quotes/new");
+  const pay = page.getByRole("group", { name: "How to pay" });
+
+  // Two parts, named: the bank details (with the way to add them), then free notes.
+  await expect(pay.getByRole("heading", { name: "Bank details", level: 3 })).toBeVisible();
+  await expect(pay.getByRole("button", { name: "Add bank details" })).toBeVisible();
+  const notes = pay.getByLabel("Notes about paying (optional)");
+  await expect(notes).toBeVisible();
+  await expect(pay.getByText(/Anything else your customer should know about paying/)).toBeVisible();
+  await expect(pay.getByText(/Printed in “How to pay” on the quote, under your bank details/)).toBeVisible();
+  // The old name, which read as a note about the bank details, is gone.
+  await expect(page.getByText("Other ways to pay")).toHaveCount(0);
+  // The notes come after the bank details.
+  const [bankY, notesY] = [await pay.getByRole("heading", { name: "Bank details" }).boundingBox(), await notes.boundingBox()];
+  expect(notesY!.y).toBeGreaterThan(bankY!.y);
+});

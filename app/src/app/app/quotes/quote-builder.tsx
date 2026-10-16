@@ -365,7 +365,7 @@ export function QuoteBuilder({
     }
   }
   if (f.paymentInstructions) {
-    problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
+    problems.push({ fieldId: "paymentInstructions", label: "Notes about paying", message: f.paymentInstructions });
   }
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
 
@@ -801,15 +801,15 @@ export function QuoteBuilder({
       >
         <TextAreaField
           id="paymentInstructions"
-          label="Other ways to pay (optional)"
-          hint={`${getLocalePack(countryCode).payment.otherWaysHint} Printed under your bank details.`}
+          label="Notes about paying (optional)"
+          hint={`Anything else your customer should know about paying. For example, ${getLocalePack(countryCode).payment.otherWaysHint} Printed in “How to pay” on the quote, under your bank details.`}
           value={values.paymentInstructions}
           error={f.paymentInstructions}
           onChange={(paymentInstructions) => update({ paymentInstructions })}
           maxLength={1000}
         />
         <UsualButtons
-          what="ways to pay"
+          what="payment notes"
           valueKey={values.paymentInstructions}
           canSave={canSaveUsuals && canSaveUsualText(values.paymentInstructions, usuals.paymentInstructions)}
           canUse={canUseUsualText(values.paymentInstructions, usuals.paymentInstructions)}
