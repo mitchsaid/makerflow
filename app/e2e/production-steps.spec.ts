@@ -142,7 +142,11 @@ test("steps come from the product into the job, each counted on its own, and the
   await page.reload();
   await expect(steps.getByTestId("item-made")).toHaveText("All made");
   // Taking a step back lowers the item's count again.
-  await page.getByRole("button", { name: "One less Deliver for Cupcakes" }).click();
+  // (By keyboard: in the phone emulation of the headless browser the page is drawn a few pixels off from where it
+  // hit-tests after scrolling, so a 44 px button below the fold can be reported as covered by what is next to it.)
+  const lessDeliver = page.getByRole("button", { name: "One less Deliver for Cupcakes" });
+  await lessDeliver.focus();
+  await page.keyboard.press("Enter");
   await expect(steps.getByTestId("item-made")).toHaveText("Made 11 of 12");
   await page.getByRole("checkbox", { name: /^All done.*Deliver/ }).check();
   await page.getByRole("button", { name: "Mark ready", exact: true }).click();
