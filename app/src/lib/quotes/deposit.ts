@@ -77,7 +77,8 @@ export function parseDeposit(
     else if (isIsoDay(issueDate) && date < issueDate) errors.balanceDueDate = "The balance can't be due before the date of the quote.";
     else balance = { kind: "date", date };
   } else if (values.balanceDue === "other") {
-    const text = (values.balanceDueText ?? "").replace(/\s+/g, " ").trim();
+    // It is printed after "due", so a leading "due" the maker typed is not said twice.
+    const text = (values.balanceDueText ?? "").replace(/\s+/g, " ").trim().replace(/^due\b[\s:,-]*/i, "");
     if (text === "") errors.balanceDueText = "Say when the balance is due, for example “within 14 days of delivery”.";
     else if (text.length > BALANCE_TEXT_MAX) errors.balanceDueText = `Keep it to ${BALANCE_TEXT_MAX} characters or fewer.`;
     else balance = { kind: "other", text };

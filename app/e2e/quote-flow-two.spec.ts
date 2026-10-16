@@ -121,4 +121,6 @@ test("the balance can be due 'another time', in the maker's own words, and it pr
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page.getByRole("group", { name: "Deposit" }).getByLabel("Balance due", { exact: true })).toHaveValue("other");
   await expect(page.getByRole("group", { name: "Deposit" }).getByLabel("When is the balance due?")).toHaveValue("within 14 days of delivery");
+  await page.getByRole("group", { name: "Deposit" }).getByLabel("Balance due", { exact: true }).selectOption("handover");
+  await expect(page.getByLabel("When is the balance due?")).toHaveCount(0);
 });

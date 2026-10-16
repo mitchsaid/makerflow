@@ -58,6 +58,15 @@ describe("a balance due in the maker's own words", () => {
     }
   });
 
+  it("does not say 'due' twice when the maker typed it", () => {
+    const r = parseDeposit({ ...base, balanceDueText: "Due within 14 days of delivery" }, "2026-10-10");
+    expect(r).toMatchObject({ ok: true, deposit: { balance: { kind: "other", text: "within 14 days of delivery" } } });
+    // "Due" alone is no words at all.
+    expect(parseDeposit({ ...base, balanceDueText: "due" }, "2026-10-10").ok).toBe(false);
+    // A word that merely starts with "due" is kept whole.
+    expect(parseDeposit({ ...base, balanceDueText: "duet recital day" }, "2026-10-10")).toMatchObject({ ok: true, deposit: { balance: { text: "duet recital day" } } });
+  });
+
   it("says how to fix empty words and words that are too long", () => {
     expect(parseDeposit({ ...base, balanceDueText: "  " }, "2026-10-10")).toMatchObject({ ok: false, errors: { balanceDueText: expect.stringMatching(/Say when the balance is due/) } });
     expect(parseDeposit({ ...base, balanceDueText: "x".repeat(121) }, "2026-10-10")).toMatchObject({ ok: false, errors: { balanceDueText: expect.stringMatching(/120/) } });
