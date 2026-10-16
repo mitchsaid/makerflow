@@ -40,7 +40,8 @@ export const QUOTE_MAX_LINES = 100;
 export const QUOTE_UNIT_MAX = 20;
 export const QUOTE_TITLE_MAX = 120;
 export const QUOTE_DESCRIPTION_MAX = 2000;
-export const QUOTE_SIGN_OFF_MAX = 200;
+export const QUOTE_SIGN_OFF_MAX = 500;
+export const QUOTE_SIGN_OFF_MAX_LINES = 5;
 export const QUOTE_DELIVERY_ADDRESS_MAX = 400;
 export const QUOTE_PAYMENT_MAX = 1000;
 /** A page can only hold so many lines, however few characters they have. */
@@ -554,7 +555,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   if (!title.ok) errors.fields.title = title.error;
   const description = optionalMultiline(values.description, QUOTE_DESCRIPTION_MAX, "The description", QUOTE_DESCRIPTION_MAX_LINES);
   if (!description.ok) errors.fields.description = description.error;
-  const signOff = optionalText(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off");
+  const signOff = optionalMultiline(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off", QUOTE_SIGN_OFF_MAX_LINES);
   if (!signOff.ok) errors.fields.signOff = signOff.error;
   const deliveryAddress = optionalMultiline(
     typeof values.deliveryAddress === "string" ? values.deliveryAddress : "",

@@ -1,5 +1,7 @@
 # Plan: first-quote setup (two questions)
 
+> **Removed 2026-10-16** at the founder's request ("get rid of those first time quote questions, feels heavy in practice"). The screen, its actions and its tests are gone: the first New quote opens the form, as every later one does. What the questions set is still set under **Quotes and invoices** (Deposit, Delivery or collection) and from the quote itself ("Save as my usual"). The column `business_profiles.quote_setup_at` is no longer read or written; a later clean-up migration drops it. Kept below as the record of what was built.
+
 Status: **built 2026-10-08.** Founder, after a discussion of a longer questionnaire: "Maybe just the questions on deposit and collection/delivery." The migration `20261018100000` needs human review (two new columns and a column grant on `business_profiles`).
 
 ## Why

@@ -93,6 +93,14 @@ begin
     raise exception 'FAIL: an empty-string unit was accepted';
   exception when check_violation then null;
   end;
+  -- A quote's sign-off: 500 characters fit, 501 do not.
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json(jsonb_build_object('sign_off', repeat('s', 500))), '[]'::jsonb);
+  assert (select char_length(sign_off) = 500 from public.quotes where id = q), 'a 500-character sign-off was not kept';
+  begin
+    perform public.save_quote_draft(org_a, q, pg_temp.quote_json(jsonb_build_object('sign_off', repeat('s', 501))), '[]'::jsonb);
+    raise exception 'FAIL: a sign-off of 501 characters was accepted';
+  exception when check_violation then null;
+  end;
   reset role;
 
   ----------------------------------------------------------------------
@@ -105,6 +113,15 @@ begin
    where organisation_id = org_a;
   assert (select default_sign_off from public.business_profiles where organisation_id = org_a) = 'Warmly',
     'the owner could not set the default sign-off';
+  -- The sign-off is a multi-line box: up to 500 characters, line breaks included.
+  update public.business_profiles set default_sign_off = E'Thank you.\nKind regards' where organisation_id = org_a;
+  update public.business_profiles set default_sign_off = repeat('s', 500) where organisation_id = org_a;
+  begin
+    update public.business_profiles set default_sign_off = repeat('s', 501) where organisation_id = org_a;
+    raise exception 'FAIL: a default sign-off of 501 characters was accepted';
+  exception when check_violation then null;
+  end;
+  update public.business_profiles set default_sign_off = 'Warmly' where organisation_id = org_a;
   -- Default terms are library terms now: the retired column can no longer be written.
   begin
     update public.business_profiles set default_terms = 'x' where organisation_id = org_a;

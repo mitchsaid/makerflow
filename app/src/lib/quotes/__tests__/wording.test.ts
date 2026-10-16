@@ -132,7 +132,7 @@ describe("quote wording", () => {
   it("limits the lines too, because a page only holds so many", () => {
     const many = (n: number) => Array.from({ length: n }, (_, i) => `line ${i}`).join("\n");
     const r = parseQuote(
-      quote({ description: many(31), paymentInstructions: many(21), notes: many(61) }),
+      quote({ description: many(31), paymentInstructions: many(21), notes: many(61), signOff: many(6) }),
       NOT_REGISTERED,
     );
     expect(r.ok).toBe(false);
@@ -140,12 +140,19 @@ describe("quote wording", () => {
       expect(r.errors.fields.description).toMatch(/up to 30 lines/);
       expect(r.errors.fields.paymentInstructions).toMatch(/up to 20 lines/);
       expect(r.errors.fields.notes).toMatch(/up to 60 lines/);
+      expect(r.errors.fields.signOff).toMatch(/up to 5 lines/);
     }
     const fine = parseQuote(
-      quote({ description: many(30), paymentInstructions: many(20), notes: many(60) }),
+      quote({ description: many(30), paymentInstructions: many(20), notes: many(60), signOff: many(5) }),
       NOT_REGISTERED,
     );
     expect(fine.ok).toBe(true);
+  });
+
+  it("keeps the line breaks of a sign-off over several lines", () => {
+    const r = parseQuote(quote({ signOff: "Thank you so much.\n  Kind regards  " }), NOT_REGISTERED);
+    if (!r.ok) throw new Error("should parse");
+    expect(r.quote.signOff).toBe("Thank you so much.\nKind regards");
   });
 
   it("says how to fix each over-long piece, by field", () => {
@@ -153,7 +160,7 @@ describe("quote wording", () => {
       quote({
         title: "t".repeat(121),
         description: "d".repeat(2001),
-        signOff: "s".repeat(201),
+        signOff: "s".repeat(501),
         paymentInstructions: "p".repeat(1001),
       }),
       NOT_REGISTERED,

@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
-import { optionalMultiline, optionalText } from "@/lib/form-values";
+import { optionalMultiline } from "@/lib/form-values";
 import {
   QUOTE_DESCRIPTION_MAX,
   QUOTE_DESCRIPTION_MAX_LINES,
   QUOTE_PAYMENT_MAX,
   QUOTE_PAYMENT_MAX_LINES,
   QUOTE_SIGN_OFF_MAX,
+  QUOTE_SIGN_OFF_MAX_LINES,
 } from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,7 +38,7 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
   const errors: WordingErrors = {};
   const description = optionalMultiline(values.description, QUOTE_DESCRIPTION_MAX, "The introduction", QUOTE_DESCRIPTION_MAX_LINES);
   if (!description.ok) errors.description = description.error;
-  const signOff = optionalText(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off");
+  const signOff = optionalMultiline(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off", QUOTE_SIGN_OFF_MAX_LINES);
   if (!signOff.ok) errors.signOff = signOff.error;
   const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Notes about paying", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.paymentInstructions = payment.error;

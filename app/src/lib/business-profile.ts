@@ -19,8 +19,6 @@ export type BusinessProfile = {
   defaultDiscountValue: number;
   /** What a new quote starts with for delivery or collection (null: nothing chosen). */
   usualFulfilment: "collection" | "delivery" | null;
-  /** When an owner or admin answered or skipped the first-quote questions (null: not asked yet). */
-  quoteSetupAt: string | null;
   /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
   countryCode: string;
   /** ISO currency code. Not editable yet. */
@@ -46,7 +44,7 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId">;
 
 export type FieldName =
   | "name"

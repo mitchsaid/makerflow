@@ -146,7 +146,6 @@ const emptyProfile: BusinessProfile = {
       defaultDiscountKind: "none",
       defaultDiscountValue: 0,
       usualFulfilment: null,
-      quoteSetupAt: null,
       logoImageId: null,
 };
 

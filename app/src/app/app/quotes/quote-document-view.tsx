@@ -189,7 +189,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
 
         {s.signOff && (
           <div>
-            <p className="text-base">{s.signOff}</p>
+            <p className="whitespace-pre-line text-base">{s.signOff}</p>
             <p className="text-base font-semibold">{s.business.name}</p>
           </div>
         )}

@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { saveHandoverDefault, type HandoverDefaultState } from "../quotes/setup-actions";
+import { saveHandoverDefault, type HandoverDefaultState } from "./handover-actions";
 
 /**
  * Quotes and invoices > Delivery or collection: what a new quote starts with. Each quote can change it;
