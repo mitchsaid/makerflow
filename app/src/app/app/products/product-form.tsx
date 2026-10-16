@@ -19,6 +19,7 @@ import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
+import { QuantityPricesSection } from "./quantity-prices-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 import { AddButton } from "@/components/add-button";
 import { FormErrorScope } from "@/components/form-errors";
@@ -30,14 +31,12 @@ import { FormErrorScope } from "@/components/form-errors";
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
     ["Costs and margin", "What it costs to make, to show your profit."],
-    ["Quantity prices", "Lower prices when someone orders more."],
     ["Production steps", "The steps to make it, so you can track each job."],
     ["Stock", "How many you have ready to sell."],
   ],
   // Services (founder, 2026-10-03): no photo or stock; costs are mostly your time.
   service: [
     ["Costs and margin", "Your time and other costs, to show your profit."],
-    ["Quantity prices", "Lower rates for larger amounts."],
     ["Steps", "The steps of the service, so you can track each job."],
   ],
 };
@@ -249,6 +248,13 @@ export function ProductForm({
     }
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
+  // The quantity prices' problems, in the order they appear.
+  values.priceBreaks.forEach((row, i) => {
+    const e = errors.priceBreaks?.rows[row.key];
+    if (e?.from) problems.push({ fieldId: fid(`price-break-${row.key}-from`), label: `Quantity price ${i + 1}: from`, message: e.from });
+    if (e?.percent) problems.push({ fieldId: fid(`price-break-${row.key}-percent`), label: `Quantity price ${i + 1}: percent off`, message: e.percent });
+  });
+  if (errors.priceBreaks?.list) problems.push({ fieldId: fid("price-breaks-error"), label: "Quantity prices", message: errors.priceBreaks.list });
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
@@ -524,7 +530,18 @@ export function ProductForm({
           setValues((v) => ({ ...v, extras }));
         }}
       />
+      <QuantityPricesSection
+        rows={values.priceBreaks}
+        errors={errors.priceBreaks}
+        unit={values.unit}
+        fid={fid}
+        onChange={(priceBreaks) => {
+          setEditedSinceSave(true);
+          setValues((v) => ({ ...v, priceBreaks }));
+        }}
+      />
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
+      <input type="hidden" name="priceBreaks" value={JSON.stringify(values.priceBreaks)} />
       <input
         type="hidden"
         name="options"

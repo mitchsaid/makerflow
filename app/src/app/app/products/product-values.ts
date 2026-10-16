@@ -1,8 +1,9 @@
-import { moneyToInput, type NumberStyle, type VatStatus } from "@/lib/money";
+import { moneyToInput, percentToInput, quantityToInput, type NumberStyle, type VatStatus } from "@/lib/money";
 import type { ProductKind, ProductSummary } from "@/lib/products";
 import type { VariationFormRow } from "@/lib/products/variations";
 import { EXTRA_TEXT_DEFAULT, type ExtraFormRow } from "@/lib/products/extras";
 import type { OptionGroupFormRow } from "@/lib/products/options";
+import type { PriceBreakFormRow } from "@/lib/products/price-breaks";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
 export type ProductFormValues = {
@@ -23,6 +24,8 @@ export type ProductFormValues = {
   options: OptionGroupFormRow[];
   /** Extras, as the form holds them. */
   extras: ExtraFormRow[];
+  /** Quantity prices, as the form holds them. */
+  priceBreaks: PriceBreakFormRow[];
 };
 
 export const EMPTY_PRODUCT: ProductFormValues = {
@@ -37,6 +40,7 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   variations: [],
   options: [],
   extras: [],
+  priceBreaks: [],
 };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
@@ -83,6 +87,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
         prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
       })),
     })),
+    priceBreaks: p.priceBreaks.map((b, i) => ({ key: `saved-${i}`, from: quantityToInput(b.fromMilli, style), percent: percentToInput(b.percentBp, style) })),
     extras: p.extras.map((x) => ({
       key: x.id,
       id: x.id,
