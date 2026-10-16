@@ -17,6 +17,8 @@ export function AddressFields<K extends string>({
   set,
   fid,
   locale,
+  autoComplete = "off",
+  postalCodeMaxLength,
 }: {
   keys: AddressKeys<K>;
   values: Record<K, string>;
@@ -25,7 +27,15 @@ export function AddressFields<K extends string>({
   /** Puts the form's id prefix in front of a field's name. */
   fid: (key: string) => string;
   locale: LocalePack;
+  /**
+   * "off" for someone else's address (a customer's); "own" for the person's own business, so the phone can offer to
+   * fill it in.
+   */
+  autoComplete?: "off" | "own";
+  /** The most characters a postal code may have here (a country's rule, passed in from where it is known). */
+  postalCodeMaxLength?: number;
 }) {
+  const hint = (token: string) => (autoComplete === "own" ? token : "off");
   const text = (
     key: K,
     label: string,
@@ -35,9 +45,9 @@ export function AddressFields<K extends string>({
   );
   return (
     <>
-      {text(keys.line1, "Street address", { autoComplete: "off" })}
-      {text(keys.line2, "Suburb or building (optional)", { autoComplete: "off" })}
-      {text(keys.city, "City or town", { autoComplete: "off" })}
+      {text(keys.line1, "Street address", { autoComplete: hint("address-line1") })}
+      {text(keys.line2, "Suburb or building (optional)", { autoComplete: hint("address-line2") })}
+      {text(keys.city, "City or town", { autoComplete: hint("address-level2") })}
       <SelectField
         id={fid(keys.region)}
         name={keys.region}
@@ -47,8 +57,13 @@ export function AddressFields<K extends string>({
         onChange={set(keys.region)}
         placeholder={`Choose a ${locale.address.regionLabel.toLowerCase()}`}
         options={locale.address.regions}
+        autoComplete={autoComplete === "own" ? "address-level1" : undefined}
       />
-      {text(keys.postalCode, "Postal code", { inputMode: "numeric", autoComplete: "off" })}
+      {text(keys.postalCode, "Postal code", {
+        inputMode: "numeric",
+        autoComplete: hint("postal-code"),
+        ...(postalCodeMaxLength ? { maxLength: postalCodeMaxLength } : {}),
+      })}
     </>
   );
 }

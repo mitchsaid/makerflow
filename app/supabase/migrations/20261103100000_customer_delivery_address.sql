@@ -29,13 +29,25 @@ alter table public.customers
         and delivery_region is null and delivery_postal_code is null)
   );
 
--- Carry over what is already there.
-update public.customers
+-- Carry over what is already there. The cleaned text is worked out once; an address that is nothing but white space
+-- (tabs, form feeds: the old check only asked for one character) cleans to nothing and is left as "same as above".
+with cleaned as (
+  select id,
+         -- Line breaks become ", ", runs of white space become one space, and commas or spaces left at either end go.
+         left(
+           regexp_replace(
+             regexp_replace(regexp_replace(delivery_address, E'\\s*\\n\\s*', ', ', 'g'), E'\\s+', ' ', 'g'),
+             E'^[,\\s]+|[,\\s]+$', '', 'g'),
+           400) as text
+  from public.customers
+  where delivery_address is not null
+)
+update public.customers c
 set delivery_same_as_main = false,
-    delivery_address_line1 = left(
-      btrim(regexp_replace(regexp_replace(delivery_address, E'\\s*\\n\\s*', ', ', 'g'), E'\\s+', ' ', 'g')), 400)
-where delivery_address is not null
-  and btrim(delivery_address) <> '';
+    delivery_address_line1 = cleaned.text
+from cleaned
+where c.id = cleaned.id
+  and cleaned.text ~ '[[:alnum:]]';
 
 grant insert (
   delivery_same_as_main, delivery_address_line1, delivery_address_line2, delivery_city, delivery_region, delivery_postal_code
