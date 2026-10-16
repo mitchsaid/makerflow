@@ -214,7 +214,7 @@ export function CustomerPicker({
           <SheetDescription className="text-base">
             {sheet?.kind === "edit"
               ? `Changes are saved to the customer, not just this ${subject}.`
-              : `Only a name is needed. Your ${subject} is kept as it is.`}
+              : "Only a name is needed."}
           </SheetDescription>
         </SheetHeader>
         <div className="px-4 pt-4">

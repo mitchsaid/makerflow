@@ -18,7 +18,7 @@ import {
 import { FormErrorScope } from "@/components/form-errors";
 
 const OFFLINE =
-  "Couldn't reach the server. Check your connection, then open the quote to see whether it went through before trying again.";
+  "Couldn't reach the server. Open the quote to see if it went through before trying again.";
 
 /** Where each problem is fixed: the id of the field on the edit screen. */
 const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label: string }> = {
@@ -176,9 +176,7 @@ function SendFlow({
               </Alert>
             )}
             <p className="text-base">
-              Mark it as sent once your customer has it. That locks this version, so what your customer gets
-              can&apos;t change by accident. If something needs to change afterwards, you can revise it: it keeps the
-              number {view.number}.
+              Mark it as sent once your customer has it. That locks this version. To change it later, revise it: it keeps the number {view.number}.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <Button type="button" size="lg" disabled={sending} onClick={send}>
@@ -230,7 +228,7 @@ function Problems({
           setMessage(result.message ?? null);
         }
       } catch {
-        setMessage("Couldn't reach the server, so nothing was saved. Check your connection and try again.");
+        setMessage("Couldn't reach the server, so nothing was saved. Try again.");
       }
     });
   }
@@ -301,8 +299,7 @@ function Problems({
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Only owners and admins can change the business details. Ask one of them to add a phone
-              number or email in the Business profile.
+              Only owners and admins can add these. Ask one of them to add a phone or email in the Business profile.
             </p>
           )}
         </form>

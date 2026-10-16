@@ -61,9 +61,9 @@ export function BankDetailsSection({
             </FieldLabel>
           </Field>
           <FieldDescription>
-            {bank.useReference ? "The quote number is shown as the payment reference. " : ""}
+            {bank.useReference ? "The quote number is the payment reference. " : ""}
             {canEdit
-              ? "You can change your bank details under Business profile."
+              ? "Change your bank details in the Business profile."
               : "Only the owner can change the bank details."}
           </FieldDescription>
         </>
@@ -71,8 +71,8 @@ export function BankDetailsSection({
         <div className="space-y-2" data-testid="no-bank-details">
           <p className="text-base">
             {canEdit
-              ? "You haven't saved your bank details yet. Add them once and they print on every quote."
-              : "Your business hasn't saved its bank details yet. Ask the owner to add them."}
+              ? "No bank details yet. Add them once for every quote."
+              : "No bank details yet. Ask the owner to add them."}
           </p>
           {canEdit && (
             <AddButton ref={addButton} className="w-full sm:w-auto" onClick={() => setSheetOpen(true)}>
@@ -89,7 +89,7 @@ export function BankDetailsSection({
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
             <SheetTitle className="text-lg">Add bank details</SheetTitle>
             <SheetDescription className="text-base">
-              They are saved to your Business profile and shown on this quote. Your quote is kept as it is.
+              Saved to your Business profile and shown on this quote.
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 pt-4">

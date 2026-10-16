@@ -287,14 +287,14 @@ export const ZA_LOCALE: LocalePack = {
     // VAT 404 guide, 13.6: a document that mixes standard-rated, zero-rated and exempt supplies must
     // distinguish them. Examples are from the guide's lists (docs/locales/za/vat-and-documents.md).
     statuses: {
-      standard: { label: "Standard-rated", hint: "VAT at the standard rate. This is right for most things you make and sell." },
+      standard: { label: "Standard-rated", hint: "VAT at the standard rate: right for most items." },
       zero: {
         label: "Zero-rated",
-        hint: "VAT at 0%, for example basic foods like brown bread, eggs and fresh vegetables, and goods you export.",
+        hint: "VAT at 0%, like basic foods and exports.",
       },
       exempt: {
         label: "Exempt",
-        hint: "No VAT, for example residential rent and some education. Most makers won't need this.",
+        hint: "No VAT, like residential rent and some education.",
       },
     },
     mixedInclusiveStatement: (rateBp, present) => {

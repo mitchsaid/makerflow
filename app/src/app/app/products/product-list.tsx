@@ -44,8 +44,8 @@ export function ProductList({
             <p className="text-base font-medium">No {words.many} yet</p>
             <p className="text-muted-foreground">
               {kind === "service"
-                ? "Save the work you charge for, like design time or delivery and setup, with its price, so a quote is a few taps away."
-                : "Save the things you make, with their prices, so a quote is a few taps away."}
+                ? "Save the work you charge for, like design time or setup, with its price."
+                : "Save what you make, with prices, to add to quotes quickly."}
             </p>
             <AddLink href={newHref(kind)} variant="default">
               Add your first {words.one}
@@ -55,7 +55,7 @@ export function ProductList({
         {kind === "product" && (
           <ComingSoonSection
             title="Import from Shopify or a CSV"
-            description="Bring in a product list you already have, instead of typing it again."
+            description="Bring in a product list you already have."
           />
         )}
       </div>

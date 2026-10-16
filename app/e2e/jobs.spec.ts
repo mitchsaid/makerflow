@@ -219,7 +219,7 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await expect(page.getByText("14 Oak Road")).toBeVisible();
   await expect(page.getByTestId("job-needed-by")).toContainText("delivery");
   await expect(page.getByLabel("Your note")).toHaveValue("Match the desk");
-  await expect(page.getByText("Added by hand, without a quote.")).toBeVisible();
+  await expect(page.getByText("Added by hand.")).toBeVisible();
 
   // It moves along like any other job, and the list offers New job once there is one.
   await page.getByRole("button", { name: "Start making" }).click();

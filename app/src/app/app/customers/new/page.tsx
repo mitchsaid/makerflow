@@ -9,7 +9,7 @@ export default async function NewCustomerPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/customers", label: "Customers" }}>
+      <PageHeader close={{ href: "/app/customers", label: "Customers" }}>
         <h1 className="text-xl font-semibold">Add a customer</h1>
         <p className="text-muted-foreground">Only a name is needed. You can add the rest later.</p>
       </PageHeader>

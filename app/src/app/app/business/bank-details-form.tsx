@@ -78,7 +78,7 @@ export function BankDetailsForm({
         }
       } catch {
         setTries((n) => n + 1);
-        setMessage("Couldn't reach the server, so nothing was saved. Check your connection and try again. Nothing you typed is lost.");
+        setMessage("Couldn't reach the server, so nothing was saved. Try again. Nothing you typed is lost.");
       }
     });
   }
@@ -88,8 +88,7 @@ export function BankDetailsForm({
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Section title="Bank details">
         <p className="text-base text-muted-foreground">
-          Where customers pay you by bank transfer. They are shown under “How to pay” on your quotes. Changing
-          them affects new quotes only: a quote you have already sent keeps the details it showed.
+          Shown under “How to pay” on your quotes. Sent quotes keep the details they were sent with.
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {message && (
@@ -141,7 +140,7 @@ export function BankDetailsForm({
           </FieldLabel>
         </Field>
         <FieldDescription>
-          So “QT-0042” appears on the quote as the reference, and you can tell who has paid.
+          Prints the quote number as the payment reference, so you can tell who paid.
         </FieldDescription>
         {lastChanged && <p className="text-sm text-muted-foreground">Last changed {lastChanged}.</p>}
       </Section>

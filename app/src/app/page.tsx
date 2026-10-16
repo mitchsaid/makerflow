@@ -9,8 +9,7 @@ export default function Home() {
           Quotes, jobs and invoices for people who make things
         </h1>
         <p className="text-lg text-muted-foreground">
-          Send a beautiful quote, track the job, invoice for the work, and see your
-          margin on every order.
+          Send a quote, track the job, invoice for the work, and see your margin.
         </p>
       </div>
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

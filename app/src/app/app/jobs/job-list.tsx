@@ -48,9 +48,7 @@ export function JobList({
         <CardContent className="space-y-4">
           <p className="text-base font-medium">No jobs yet</p>
           <p className="text-muted-foreground">
-            Add a job for anything you are making, then follow it from making to collected or delivered. When a customer
-            accepts a quote, open it and choose &ldquo;Create a job&rdquo; and the items, the customer and the day it is
-            needed carry over.
+            Add a job for anything you are making, or create one from an accepted quote.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <AddLink href="/app/jobs/new" variant="default">

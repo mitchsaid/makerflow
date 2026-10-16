@@ -41,7 +41,7 @@ test("a theme is remixed from a starter, changed part by part with the preview f
   await page.getByRole("link", { name: "Manage themes" }).click();
   await expect(page.getByRole("heading", { name: "Themes", level: 1 })).toBeVisible();
   await expect(page.getByTestId("theme-card")).toHaveCount(5);
-  await expect(page.getByText("You haven't made a theme yet.")).toBeVisible();
+  await expect(page.getByText("No themes yet.")).toBeVisible();
   await shot(page, "library-empty");
   await page.getByRole("link", { name: "Create new theme" }).click();
   await expect(page.getByRole("heading", { name: "Create a new theme", level: 1 })).toBeVisible();

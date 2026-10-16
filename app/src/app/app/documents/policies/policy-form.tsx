@@ -133,7 +133,7 @@ export function PolicyForm({
         }
       } catch {
         setTries((n) => n + 1);
-        setMessage("Couldn't reach the server. Check your connection and try again. Nothing you typed is lost.");
+        setMessage("Couldn't reach the server. Try again. Nothing you typed is lost.");
       }
     });
   }
@@ -151,7 +151,7 @@ export function PolicyForm({
         {policyId === null && allExamples.length > 0 && (
           <div className="space-y-2" data-testid="examples">
             <p className="text-sm text-muted-foreground">
-              Write your own, or start from an example and change it to suit you:
+              Write your own, or start from an example:
             </p>
             <div className="flex flex-wrap gap-2">
               {examples.forYou.map(exampleButton)}
@@ -164,7 +164,7 @@ export function PolicyForm({
             )}
             {!untouched && (
               <p className="text-sm text-muted-foreground">
-                Examples fill in an empty term. Clear the title and wording to pick a different one.
+                Clear the title and wording to pick another example.
               </p>
             )}
             <p className="text-sm text-muted-foreground">{content.adviceNote}</p>
@@ -179,13 +179,13 @@ export function PolicyForm({
           value={values.title}
           error={errors.title}
           onChange={set("title")}
-          hint="Shown above the wording, like “If you cancel”. Leave it empty for a short line, like a lead time."
+          hint="Shown above the wording, like “If you cancel”. Optional."
         />
         <TextAreaField
           id={fid("policyBody")}
           name="body"
           label="Wording"
-          hint="Write it in plain words, the way you'd say it to a customer."
+          hint="Plain words, as you'd say it to a customer."
           value={values.body}
           error={errors.body}
           onChange={set("body")}
@@ -204,20 +204,19 @@ export function PolicyForm({
           </FieldLabel>
         </Field>
         <FieldDescription>
-          New quotes start with this term on them. Remove it from any quote, and change its wording there
-          without changing it here.
+          New quotes start with this term. You can remove or reword it on any quote.
         </FieldDescription>
       </Section>
 
       {shownExample?.suggestsStages && (
         <ComingSoonSection
           title="Cancellation stages"
-          description="A table of what the customer is charged at each stage, like deposit, materials bought and work done."
+          description="What the customer is charged at each stage, like deposit and work done."
         />
       )}
       <ComingSoonSection
         title="Only on certain products"
-        description="Show a term only on quotes that include particular products or services, like “natural stones vary” on jewellery."
+        description="Only on quotes with certain products, like “natural stones vary” on jewellery."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row">

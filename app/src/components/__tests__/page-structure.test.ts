@@ -54,6 +54,7 @@ describe("back navigation", () => {
   it("gives every back control a name that says where it goes", () => {
     const header = readFileSync(join(__dirname, "../page-header.tsx"), "utf8");
     expect(header).toContain("aria-label={`Back to ${label}`}");
+    expect(header).toContain("aria-label={`Close and go back to ${label}`}");
   });
 });
 

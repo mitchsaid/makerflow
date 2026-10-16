@@ -179,7 +179,7 @@ export function PricedVariations({
       <SelectField
         id={fid("variationUsual")}
         label={`Default ${word.toLowerCase()}`}
-        hint="Chosen for you when you add it to a quote. With none, you choose each time."
+        hint="Chosen for you on a quote. Without one, you choose each time."
         value={usualKey === "none" ? "" : usualKey}
         onChange={(key) => onChange({ rows: rows.map((r) => ({ ...r, usual: r.key === key })) })}
         placeholder="None: I choose each time"

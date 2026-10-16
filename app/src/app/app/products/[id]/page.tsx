@@ -27,8 +27,7 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
       {product.archived && (
         <Alert data-testid="archived-notice">
           <AlertDescription>
-            This {product.kind} is archived, so it is hidden from your list. Restore it below to use it
-            again.
+            This {product.kind} is archived: hidden from your list. Restore it below to use it again.
           </AlertDescription>
         </Alert>
       )}

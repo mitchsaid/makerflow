@@ -52,7 +52,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
   await page.getByRole("link", { name: "Start your first quote" }).click();
 
   // None saved yet: the owner is offered to add them, in a sheet over the quote.
-  await expect(page.getByTestId("no-bank-details")).toContainText("haven't saved your bank details");
+  await expect(page.getByTestId("no-bank-details")).toContainText("No bank details yet");
   await page.getByLabel("Description (optional)").fill("Cake for Sarah");
   await page.getByRole("button", { name: "Add bank details" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add bank details");

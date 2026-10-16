@@ -31,11 +31,11 @@ export function EmailQuoteSheet({
         <div className="space-y-4 px-4 py-4">
           <ComingSoonSection
             title="Email it to your customer"
-            description="We'll send it from MakerFlow, with a message, and show when it was sent."
+            description="Send it from MakerFlow and see when it was sent."
           />
           <ComingSoonSection
             title="Send a link they can accept online"
-            description="Your customer opens the quote, accepts it or asks for changes, and you see it here."
+            description="Customers accept online or ask for changes."
           />
           <p className="text-base">
             Until then: download the PDF, send it from your own email or WhatsApp, then choose &ldquo;Mark as sent&rdquo;.

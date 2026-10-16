@@ -30,15 +30,14 @@ export function HandoverDefaultForm({ initial }: { initial: "none" | "collection
           try {
             setState(await saveHandoverDefault(value));
           } catch {
-            setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Check your connection and try again." });
+            setState({ status: "error", message: "Couldn't reach the server, so nothing was saved. Try again." });
           }
         });
       }}
     >
       <Section title="Delivery or collection">
         <p className="text-base text-muted-foreground">
-          If your customers usually collect, or you usually deliver, new quotes can start that way. You can change it
-          on any quote.
+          What a new quote starts with. You can change it on any quote.
         </p>
         {state?.status === "error" && (
           <Alert variant="destructive" role="alert">

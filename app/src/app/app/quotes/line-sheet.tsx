@@ -440,8 +440,7 @@ function PickView({
       ))}
       {active.length === 0 && (
         <p className="text-muted-foreground">
-          Nothing saved yet. Add a product or a service to reuse it on every {subject}, or type a
-          one-off item.
+          Nothing saved yet. Add a product or service, or type a one-off item.
         </p>
       )}
       <div className="flex flex-col gap-3">
@@ -457,7 +456,7 @@ function PickView({
       </div>
       <ComingSoonSection
         title="Import from Shopify or a CSV"
-        description="Bring in a product list you already have, instead of typing it again."
+        description="Bring in a product list you already have."
       />
     </div>
   );

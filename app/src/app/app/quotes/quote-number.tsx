@@ -54,7 +54,7 @@ export function QuoteNumber({
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
             <SheetTitle className="text-lg">Quote numbers</SheetTitle>
             <SheetDescription className="text-base">
-              This changes the numbering for all your quotes. Your quote is kept as it is.
+              Changes the numbering for all your quotes.
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 py-4">

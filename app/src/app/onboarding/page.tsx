@@ -11,8 +11,7 @@ export default async function OnboardingPage() {
       <div className="space-y-1 text-center">
         <h1 className="text-2xl font-semibold">Welcome! Let&apos;s get you set up</h1>
         <p className="text-muted-foreground">
-          What&apos;s your business called? It will appear on your quotes and
-          invoices, and you can change it later.
+          What&apos;s your business called? It appears on your quotes and invoices.
         </p>
       </div>
       <OnboardingForm />

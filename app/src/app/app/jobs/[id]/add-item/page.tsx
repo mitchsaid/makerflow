@@ -18,11 +18,10 @@ export default async function AddJobItemPage({ params }: PageProps<"/app/jobs/[i
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: `/app/jobs/${job.id}`, label: `Job ${number}` }}>
+      <PageHeader close={{ href: `/app/jobs/${job.id}`, label: `Job ${number}` }}>
         <h1 className="text-xl font-semibold">Add an item to job {number}</h1>
         <p className="text-sm text-muted-foreground">
-          For {job.customerName}. The new item joins what is to be made
-          {job.quoteId ? "; the quote it came from stays as it was" : ""}.
+          For {job.customerName}. The item joins what is to be made.
         </p>
       </PageHeader>
       {!takesNewItems(job.status) ? (

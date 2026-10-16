@@ -29,7 +29,7 @@ export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[];
         if (result.status === "error") setError(result.message);
         else router.refresh();
       } catch {
-        setError("Couldn't reach the server, so nothing was changed. Check your connection and try again.");
+        setError("Couldn't reach the server, so nothing changed. Try again.");
       }
     });
   }
@@ -103,8 +103,8 @@ export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[];
         {mine.length === 0 ? (
           <p className="text-base text-muted-foreground">
             {canEdit
-              ? "You haven't made a theme yet. Create one, or remix one of the starters below."
-              : "No themes have been made yet. An owner or admin can make them."}
+              ? "No themes yet. Create one, or remix a starter below."
+              : "No themes yet. An owner or admin can make them."}
           </p>
         ) : (
           <ul className="space-y-3">{mine.map(card)}</ul>

@@ -24,7 +24,7 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/documen
       </PageHeader>
       {policy.archived && (
         <Alert data-testid="archived-notice">
-          <AlertDescription>This term is archived, so it is hidden from new quotes. Restore it below to use it again.</AlertDescription>
+          <AlertDescription>Archived: hidden from new quotes. Restore it below to use it again.</AlertDescription>
         </Alert>
       )}
       {canEditBusinessProfile(role) ? (

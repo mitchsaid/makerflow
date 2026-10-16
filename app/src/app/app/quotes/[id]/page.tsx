@@ -75,8 +75,7 @@ export default async function QuotePage({
         {previous && (
           <Alert data-testid="revising-note">
             <AlertDescription>
-              You are working on version {quote.version}. Your customer still has version {previous.version},
-              sent {formatMoment(previous.sentAt, locale.formatLocale, locale.timeZone)}, until you send this one.{" "}
+              Editing version {quote.version}. Your customer has version {previous.version}, sent {formatMoment(previous.sentAt, locale.formatLocale, locale.timeZone)}, until you send this one.{" "}
               <Link href={`/app/quotes/${quote.id}?version=${previous.version}`} className="font-medium underline">
                 View version {previous.version}
               </Link>
@@ -155,7 +154,7 @@ export default async function QuotePage({
       {!isLatest && (
         <Alert data-testid="earlier-version-note">
           <AlertDescription>
-            This is version {shown.version}, an earlier version.{" "}
+            Version {shown.version} is an earlier version.{" "}
             <Link
               href={quote.status === "draft" ? `/app/quotes/${quote.id}` : `/app/quotes/${quote.id}?version=${latestSent.version}`}
               className="font-medium underline"
@@ -168,7 +167,7 @@ export default async function QuotePage({
       {quote.status === "draft" && isLatest && (
         <Alert data-testid="editing-note">
           <AlertDescription>
-            Version {quote.version} of this quote is being edited.{" "}
+            Version {quote.version} is being edited.{" "}
             <Link href={`/app/quotes/${quote.id}`} className="font-medium underline">
               Back to editing
             </Link>
@@ -200,7 +199,7 @@ export default async function QuotePage({
               <CardContent className="space-y-1">
                 <h3 className="text-base font-medium">Job {jobNumberText(quote.job.number)}</h3>
                 <p className="text-sm text-muted-foreground">
-                  This quote is being made as a job, so its answer is locked. To change the answer, cancel the job first.{" "}
+                  Being made as a job, so its answer is locked. Cancel the job to change it.{" "}
                   <Link href={`/app/jobs/${quote.job.id}`} className="inline-flex min-h-11 items-center font-medium underline">
                     Open the job
                   </Link>
@@ -228,11 +227,11 @@ export default async function QuotePage({
         <section className="space-y-3" aria-label="Coming soon">
           <ComingSoonSection
             title="Email it to your customer"
-            description="We'll send it from MakerFlow, with a message, and show when it was sent."
+            description="Send it from MakerFlow and see when it was sent."
           />
           <ComingSoonSection
             title="Send a link they can accept online"
-            description="Your customer opens the quote, accepts it or asks for changes, and you see it here."
+            description="Customers accept online or ask for changes."
           />
         </section>
       )}

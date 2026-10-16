@@ -285,7 +285,7 @@ export function ListsSection({
                     <SelectField
                       id={fid(`option-${g.key}-usual`)}
                       label={`Default ${title.toLowerCase()}`}
-                      hint="Chosen for you on a quote. Without one, it's chosen each time."
+                      hint="Chosen for you on a quote. Without one, you choose each time."
                       value={g.values.find((x) => x.usual && x.name.trim() !== "")?.key ?? ""}
                       placeholder="No default"
                       options={g.values.filter((x) => x.name.trim() !== "").map((x) => x.key)}

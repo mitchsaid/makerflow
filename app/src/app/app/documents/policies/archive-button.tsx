@@ -38,8 +38,8 @@ export function PolicyArchiveButton({ id, archived }: { id: string; archived: bo
       </Button>
       <p className="text-sm text-muted-foreground">
         {archived
-          ? "Restoring puts it back on your list for new quotes."
-          : "Archiving hides it from new quotes. Quotes that already use it keep their wording."}
+          ? "Restoring puts it back on new quotes."
+          : "Hides it from new quotes. Quotes that use it keep their wording."}
       </p>
     </div>
   );

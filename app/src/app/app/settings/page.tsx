@@ -49,8 +49,7 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-lg">App preferences</CardTitle>
           <CardDescription className="text-base">
-            Preferences for how the app looks and behaves for you will appear here. Details
-            about your business are in the Business profile.
+            Your preferences will appear here. Business details are in the Business profile.
           </CardDescription>
         </CardHeader>
       </Card>

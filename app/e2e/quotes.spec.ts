@@ -276,7 +276,7 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   // And the same for saving the quote itself.
   await context.setOffline(true);
   await page.getByRole("button", { name: "Save draft" }).click();
-  await expect(page.getByText(/Couldn't reach the server, so the draft was not saved/)).toBeVisible();
+  await expect(page.getByText(/Couldn't reach the server, so the draft wasn't saved/)).toBeVisible();
   await expect(item(page, 1)).toContainText("Cupcakes");
   await context.setOffline(false);
   await page.getByRole("button", { name: "Save draft" }).click();

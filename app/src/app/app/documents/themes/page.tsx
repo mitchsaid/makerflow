@@ -18,8 +18,7 @@ export default async function ThemesPage() {
       <PageHeader back={{ href: "/app/documents", label: "Quotes and invoices" }}>
         <h1 className="text-xl font-semibold">Themes</h1>
         <p className="text-base text-muted-foreground">
-          How your quotes look. A new quote starts with the theme you chose last, and each quote can pick another.
-          Quotes you have already sent keep the look they were sent in.
+          A new quote starts with the theme you used last. Sent quotes keep their look.
         </p>
       </PageHeader>
       {canEditBusinessProfile(role) && (

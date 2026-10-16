@@ -19,7 +19,7 @@ const exampleLinks = (page: Page) => page.getByTestId("example-links");
 test("picking what you make puts the examples that fit first, and nothing is hidden", async ({ page }) => {
   await signUpToTypeStep(page, "Type Co");
   await expect(page.getByRole("heading", { name: "What do you make or sell?", level: 1 })).toBeVisible();
-  await expect(page.getByText(/We use this to show examples that fit your business, and nothing else/)).toBeVisible();
+  await expect(page.getByText(/Used only to show fitting examples/)).toBeVisible();
   await page.getByRole("checkbox", { name: "Food and baking" }).check();
   await page.getByRole("checkbox", { name: "Workshops and classes" }).check();
   await page.getByRole("button", { name: "Continue" }).click();

@@ -12,7 +12,7 @@ export default async function NewPolicyPage({ searchParams }: PageProps<"/app/do
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/documents/policies", label: "Terms" }}>
+      <PageHeader close={{ href: "/app/documents/policies", label: "Terms" }}>
         <h1 className="text-xl font-semibold">Add a term</h1>
       </PageHeader>
       {canEditBusinessProfile(role) ? (

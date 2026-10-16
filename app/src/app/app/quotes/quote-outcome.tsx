@@ -57,8 +57,7 @@ export function OutcomeButtons({
       <CardContent className="space-y-3">
         <h3 className="text-base font-medium">Has your customer answered?</h3>
         <p className="text-sm text-muted-foreground">
-          Write it down so you can see where every quote stands. When they accept, you can turn it into a job. Nothing is
-          sent to your customer.
+          Record their answer. Nothing is sent. An accepted quote can become a job.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button type="button" size="lg" variant="soft" id="outcome-accepted" onClick={() => show("accepted")}>
@@ -229,7 +228,7 @@ export function ChangeAnswerButton({ quoteId }: { quoteId: string }) {
         {pending ? "Changing…" : "Change the answer"}
       </Button>
       <p className="text-sm text-muted-foreground">
-        Puts the quote back to Sent so you can record a different answer. The earlier answer stays in the activity.
+        Back to Sent, to record a different answer. The earlier one stays in the activity.
       </p>
     </div>
   );
@@ -266,8 +265,7 @@ export function QuoteAgainButton({ quoteId }: { quoteId: string }) {
         {pending ? "Copying…" : "Quote again"}
       </Button>
       <p className="text-sm text-muted-foreground">
-        Starts a new draft for the same customer with the same items, wording and deposit. It gets a new number,
-        and this quote stays as it is.
+        A new draft for the same customer, with the same items and wording. It gets a new number.
       </p>
     </div>
   );

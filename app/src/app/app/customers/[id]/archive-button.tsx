@@ -23,8 +23,7 @@ export function ArchiveButton({ id, archived }: { id: string; archived: boolean 
       </Button>
       {!archived && (
         <p className="text-sm text-muted-foreground">
-          Archived customers disappear from your list but stay on any quotes you have made. You
-          can restore them at any time.
+          Hidden from your list, but kept on your quotes. You can restore them.
         </p>
       )}
     </form>

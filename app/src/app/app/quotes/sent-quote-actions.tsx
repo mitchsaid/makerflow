@@ -71,8 +71,7 @@ export function SentQuoteActions({
       </div>
       {latest && (
         <p className="text-sm text-muted-foreground">
-          Revising opens a new version to edit. It keeps the number {number}, and this version stays
-          as it was sent until you send the new one.
+          Opens a new version to edit. It keeps the number {number}.
         </p>
       )}
     </div>

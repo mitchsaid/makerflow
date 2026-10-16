@@ -35,7 +35,7 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
         <Alert role="region" aria-label="Add your logo" data-testid="logo-prompt">
           <AlertTitle>Add your logo</AlertTitle>
           <AlertDescription className="space-y-3">
-            <span className="block">It is printed at the top of your quotes, so they look like yours.</span>
+            <span className="block">Printed at the top of your quotes.</span>
             <span className="flex flex-wrap gap-2">
               <AddButton id="add-logo" variant="default" onClick={() => setOpen(true)}>
                 Add your logo
@@ -69,7 +69,7 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
             <SheetTitle className="text-lg">Add your logo</SheetTitle>
             <SheetDescription className="text-base">
-              Saved to your Business profile, where you can change it any time.
+              Saved to your Business profile.
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 pt-4">

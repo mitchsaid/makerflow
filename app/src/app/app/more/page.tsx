@@ -5,7 +5,7 @@ const LINKS = [
   {
     href: "/app/customers",
     title: "Customers",
-    description: "The people you make things for, with their contact details and addresses.",
+    description: "The people you make things for.",
   },
   {
     href: "/app/business",
@@ -15,7 +15,7 @@ const LINKS = [
   {
     href: "/app/documents",
     title: "Quotes and invoices",
-    description: "How your quotes are numbered and worded, your policies and what new quotes start with.",
+    description: "Numbering, wording, terms and what new quotes start with.",
   },
   {
     href: "/app/settings",

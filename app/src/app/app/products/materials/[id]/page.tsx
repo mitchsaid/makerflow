@@ -24,7 +24,7 @@ export default async function MaterialPage({ params }: PageProps<"/app/products/
       </PageHeader>
       {material.archived && (
         <Alert data-testid="archived-notice">
-          <AlertDescription>This material is archived, so it is hidden from your list. Restore it below to use it again.</AlertDescription>
+          <AlertDescription>Archived: hidden from your list. Restore it below to use it again.</AlertDescription>
         </Alert>
       )}
       <MaterialForm

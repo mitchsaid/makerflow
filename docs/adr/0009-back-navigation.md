@@ -10,6 +10,7 @@ Every page under another (a quote under Quotes, a customer under Customers) show
 - The control **always goes to the page's parent**, never to browser history. After a deep link, a refresh, or a long detour, "back" still lands somewhere sensible, and it behaves the same in a browser tab and the installed app.
 - The preview of a quote goes back to the quote it previews, not to the list.
 - Its name for screen readers is "Back to {parent}" (`Back to Quotes`). The parent's name is not drawn: the heading says where you are.
+- A page that **starts something new** (a form: new job, customer, product, material, term, adding an item to a job) has an **X** at the right instead of a back arrow, like a new quote, and goes to the same parent (`PageHeader close=`). A page that shows something that already exists keeps the back arrow on the left. Founder, 2026-10-16: "New quotes has an X, new Jobs has a back arrow: make this consistent. I reckon X is better." Only the new quote asks before discarding typed work.
 - A page that already has a way out of its own (a new quote has an X to cancel) has no back control.
 - A unit test fails if an underlined text link is used for this again.
 

@@ -19,8 +19,7 @@ export default async function OnboardingTypePage() {
           What do you make or sell?
         </h1>
         <p className="text-muted-foreground">
-          Tick any that fit. We use this to show examples that fit your business, and nothing else. You can
-          change it any time.
+          Tick any that fit. Used only to show fitting examples.
         </p>
       </div>
       <TypeForm />

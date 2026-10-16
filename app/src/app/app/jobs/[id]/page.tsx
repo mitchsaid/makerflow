@@ -158,11 +158,11 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
               quote {job.quoteNumber}
               {job.quoteVersion && job.quoteVersion > 1 ? `, version ${job.quoteVersion}` : ""}
             </Link>
-            . Changes to the quote or the customer afterwards do not change this job.
+            . Later changes to the quote or customer don&apos;t change this job.
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Added by hand, without a quote. Changes to the customer afterwards do not change this job.
+            Added by hand. Later changes to the customer don&apos;t change this job.
           </p>
         )}
       </section>

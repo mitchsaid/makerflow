@@ -48,7 +48,7 @@ export function MaterialList({
         <CardContent className="space-y-4">
           <p className="text-base font-medium">No materials yet</p>
           <p className="text-muted-foreground">
-            Save what you buy to make things, with what you paid, so the app can work out what each product costs you.
+            Save what you buy and what you paid, to work out what each product costs.
           </p>
           <AddLink href="/app/products/materials/new" variant="default">
             Add your first material

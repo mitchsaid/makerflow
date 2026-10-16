@@ -33,7 +33,7 @@ test("the new quote reads like an app: no tagline, no title, optional parts offe
   expect(at("Notes")).toBeGreaterThan(at("Terms"));
   expect(at("Notes")).toBeGreaterThan(at("How to pay") > -1 ? at("How to pay") : at("Terms"));
   expect(at("Sign-off")).toBe(at("Notes") + 1);
-  await expect(page.getByText(/Payment details and terms have their own sections above/)).toBeVisible();
+  await expect(page.getByText("Shown on the quote, like how long the work takes.")).toBeVisible();
   await expect(page.getByText("Like “Yours in sweetness”")).toHaveCount(0);
 
   // The primary button is the next step.
@@ -64,10 +64,11 @@ test("a page under another goes back to its parent with a back control, not a te
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "qf-back", "Back Co");
 
-  // A new customer's page.
+  // A new customer's page starts something new, so it has an X (like a new quote); a saved customer has a back arrow.
   await page.goto("/app/customers/new");
   await expect(page.getByRole("link", { name: "Customers", exact: true })).toHaveCount(0);
-  const back = page.getByRole("link", { name: "Back to Customers" });
+  await expect(page.getByTestId("back-link")).toHaveCount(0);
+  const back = page.getByRole("link", { name: "Close and go back to Customers" });
   await expect(back).toBeVisible();
   const box = await back.boundingBox();
   expect(box?.width).toBeGreaterThanOrEqual(44);

@@ -31,7 +31,7 @@ export function MaterialArchiveButton({ id, archived }: { id: string; archived: 
       </Button>
       {!archived && (
         <p className="text-sm text-muted-foreground">
-          Archived materials disappear from your list but stay wherever they are already used. You can restore them at any time.
+          Hidden from your list, but kept where they are used. You can restore them.
         </p>
       )}
     </div>
