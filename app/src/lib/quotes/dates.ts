@@ -57,7 +57,7 @@ export function formatDay(isoDay: string, locale: string): string {
  * deposit balance due by a date, which falls back to "on collection or delivery").
  */
 export function datesForCopy<
-  V extends { issueDate: string; validUntil: string; neededBy: string; balanceDue: "handover" | "date"; balanceDueDate: string },
+  V extends { issueDate: string; validUntil: string; neededBy: string; balanceDue: "handover" | "date" | "other"; balanceDueDate: string },
 >(values: V, today: string): V {
   return {
     ...values,

@@ -114,6 +114,8 @@ export type LocalePack = {
       dueOnHandover(handover: "collection" | "delivery" | "either"): string;
       /** "due by 14 Nov 2026", given the date already written. */
       dueOnDate(dateText: string): string;
+      /** The maker's own words for when the rest is due ("within 14 days of delivery"): "due within 14 days of delivery". */
+      dueOther(text: string): string;
     };
     quoteNotATaxInvoice: string;
     /**

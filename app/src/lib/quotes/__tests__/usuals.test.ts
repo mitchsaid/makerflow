@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { isDefaultDepositKind } from "../deposit";
-import { canSaveUsualText, canUseUsualText, normaliseText, sameDeposit, usualsFromProfile } from "../usuals";
+import { canSaveUsualText, canUseUsualText, normaliseText, sameDeposit, sameDiscount, usualsFromProfile } from "../usuals";
 
 const za = { decimal: ",", group: " " } as const;
 
 describe("the usuals a new quote starts with", () => {
-  const base = { defaultDescription: null, defaultSignOff: null, paymentInstructions: null, defaultDepositKind: "none", defaultDepositValue: 0 } as const;
+  const base = { defaultDescription: null, defaultSignOff: null, paymentInstructions: null, defaultDepositKind: "none", defaultDepositValue: 0, defaultDiscountKind: "none", defaultDiscountValue: 0 } as const;
 
   it("are empty for a business that has set none", () => {
-    expect(usualsFromProfile(base, za as never)).toEqual({ description: "", signOff: "", paymentInstructions: "", depositKind: "none", depositValue: "" });
+    expect(usualsFromProfile(base, za as never)).toEqual({ description: "", signOff: "", paymentInstructions: "", depositKind: "none", depositValue: "", discountKind: "none", discountValue: "" });
   });
   it("carry the saved wording and the deposit as it is typed", () => {
     const u = usualsFromProfile(
@@ -18,6 +18,14 @@ describe("the usuals a new quote starts with", () => {
     expect(u.description).toBe("Thank you.");
     expect(u.depositKind).toBe("percent");
     expect(u.depositValue).toMatch(/^50/);
+  });
+  it("carry the saved discount as it is typed", () => {
+    const pct = usualsFromProfile({ ...base, defaultDiscountKind: "percent", defaultDiscountValue: 1000 }, za as never);
+    expect(pct.discountKind).toBe("percent");
+    expect(pct.discountValue).toMatch(/^10/);
+    const fixed = usualsFromProfile({ ...base, defaultDiscountKind: "fixed", defaultDiscountValue: 25000 }, za as never);
+    expect(fixed.discountKind).toBe("fixed");
+    expect(fixed.discountValue).toMatch(/^250/);
   });
   it("keep 'ask' with no amount", () => {
     const u = usualsFromProfile({ ...base, defaultDepositKind: "ask" }, za as never);
@@ -72,5 +80,15 @@ describe("comparing what is typed with the usual", () => {
     expect(sameDeposit({ kind: "none", value: "" }, { kind: "none", value: "" })).toBe(true);
     // Not a number yet: compared as typed.
     expect(sameDeposit({ kind: "percent", value: "abc" }, { kind: "percent", value: "abc" })).toBe(true);
+  });
+});
+
+describe("sameDiscount", () => {
+  it("compares by what the discount works out to, not by its text", () => {
+    expect(sameDiscount({ kind: "percent", value: "10" }, { kind: "percent", value: "10,0" })).toBe(true);
+    expect(sameDiscount({ kind: "percent", value: "10" }, { kind: "percent", value: "12" })).toBe(false);
+    expect(sameDiscount({ kind: "fixed", value: "250" }, { kind: "fixed", value: "250,00" })).toBe(true);
+    expect(sameDiscount({ kind: "percent", value: "10" }, { kind: "fixed", value: "10" })).toBe(false);
+    expect(sameDiscount({ kind: "none", value: "" }, { kind: "none", value: "" })).toBe(true);
   });
 });

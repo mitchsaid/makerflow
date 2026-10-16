@@ -127,6 +127,8 @@ export type QuoteFormValues = {
   depositValue: string;
   balanceDue: DepositFormValues["balanceDue"];
   balanceDueDate: string;
+  /** In the maker's own words, when the balance is due "other". */
+  balanceDueText: string;
   /** The quote's terms: its own copy of each library term it includes, and terms written just for it (see lib/policies). */
   policies: QuotePolicyValues[];
 };
@@ -153,6 +155,7 @@ export type QuoteErrors = {
       | "paymentInstructions"
       | "depositValue"
       | "balanceDueDate"
+      | "balanceDueText"
       | "policies",
       string
     >
@@ -261,11 +264,12 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (v.showPhotos !== undefined && typeof v.showPhotos !== "boolean") return false;
   // Same for the deposit: an older app does not send it, and that means no deposit.
   if (v.depositKind !== undefined && !isDepositKind(v.depositKind)) return false;
-  if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date") return false;
+  if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date" && v.balanceDue !== "other") return false;
   if (v.depositValue !== undefined && typeof v.depositValue !== "string") return false;
   // An older app does not send the delivery address either: that means keep what the draft has.
   if (v.deliveryAddress !== undefined && typeof v.deliveryAddress !== "string") return false;
   if (v.balanceDueDate !== undefined && typeof v.balanceDueDate !== "string") return false;
+  if (v.balanceDueText !== undefined && typeof v.balanceDueText !== "string") return false;
   if (!DISCOUNT_KINDS.includes(v.discountKind) || !FULFILMENTS.includes(v.fulfilment)) return false;
   if (!Array.isArray(v.lines) || v.lines.length > MAX_RAW_LINES) return false;
   if (
@@ -386,7 +390,7 @@ export function isBlankLine(line: LineFormValues): boolean {
   );
 }
 
-function discountFrom(
+export function discountFrom(
   kind: DiscountKind,
   raw: string,
 ): { ok: true; value: Discount | undefined } | { ok: false; error: string } {

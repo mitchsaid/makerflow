@@ -54,6 +54,7 @@ function snapshot(vat: VatSettings, over: Partial<QuoteFormValues> = {}, name = 
     depositValue: "",
     balanceDue: "handover",
     balanceDueDate: "",
+    balanceDueText: "",
     policies: [],
     ...over,
   };

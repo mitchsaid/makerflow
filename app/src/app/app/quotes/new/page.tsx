@@ -78,8 +78,9 @@ export default async function NewQuotePage() {
           fulfilment: profile.usualFulfilment ?? "none",
           deliveryFee: "",
           deliveryAddress: "",
-          discountKind: "none",
-          discountValue: "",
+          // The discount the business usually gives, if any (the section then opens with it).
+          discountKind: usuals.discountKind,
+          discountValue: usuals.discountValue,
           notes: "",
           title: "",
           // The introduction the business starts every quote with, if it has set one; otherwise a generic start from the
@@ -98,6 +99,7 @@ export default async function NewQuotePage() {
           depositValue: profile.defaultDepositKind === "ask" ? "" : usuals.depositValue,
           balanceDue: "handover",
           balanceDueDate: "",
+          balanceDueText: "",
           // And the terms the business has marked to include on every new quote.
           policies: defaultQuotePolicies(policyLibrary),
         }}

@@ -52,7 +52,8 @@ import { saveDepositDefault } from "../documents/deposit-actions";
 import { saveUsualDescription, saveUsualPayment, saveUsualSignOff } from "./usual-actions";
 import { UsualButtons } from "./usual-buttons";
 import { QuoteNumber, type QuoteNumbering } from "./quote-number";
-import { canSaveUsualText, canUseUsualText, sameDeposit, type QuoteUsuals } from "@/lib/quotes/usuals";
+import { canSaveUsualText, canUseUsualText, sameDeposit, sameDiscount, type QuoteUsuals } from "@/lib/quotes/usuals";
+import { saveDiscountDefault } from "../documents/discount-actions";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
@@ -341,6 +342,7 @@ export function QuoteBuilder({
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.depositValue) problems.push({ fieldId: "depositValue", label: "Deposit", message: f.depositValue });
   if (f.balanceDueDate) problems.push({ fieldId: "balanceDueDate", label: "Balance due by", message: f.balanceDueDate });
+  if (f.balanceDueText) problems.push({ fieldId: "balanceDueText", label: "When is the balance due?", message: f.balanceDueText });
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.policies) {
     // One row for each term that needs fixing, so fixing one never hides another's problem from the summary.
@@ -663,6 +665,33 @@ export function QuoteBuilder({
               onChange={(discountValue) => update({ discountValue })}
             />
           )}
+          <UsualButtons
+            what="discount"
+            valueKey={`${values.discountKind}:${values.discountValue}`}
+            canSave={
+              canSaveUsuals &&
+              values.discountKind !== "none" &&
+              values.discountValue.trim() !== "" &&
+              !sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })
+            }
+            canUse={
+              usuals.discountKind !== "none" &&
+              !sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })
+            }
+            save={async () => {
+              const result = await saveDiscountDefault({ kind: values.discountKind, value: values.discountValue });
+              if (result.status === "saved") return { status: "saved" as const };
+              return {
+                status: "error" as const,
+                message: (result.status === "error" && (result.message ?? result.errors?.discountValue)) || undefined,
+              };
+            }}
+            onSaved={() => setUsuals((u) => ({ ...u, discountKind: values.discountKind, discountValue: values.discountValue }))}
+            onUse={() => {
+              scope?.markEdited("discountValue");
+              update({ discountKind: usuals.discountKind, discountValue: usuals.discountValue });
+            }}
+          />
         </Section>
       ) : (
         <div>
@@ -688,7 +717,7 @@ export function QuoteBuilder({
         grossCents={totals ? totals.grossCents : null}
         money={money}
         symbol={symbol}
-        errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate }}
+        errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate, balanceDueText: f.balanceDueText }}
         ask={askForDeposit}
         decided={quoteId !== null}
         footer={
@@ -719,6 +748,7 @@ export function QuoteBuilder({
               onUse={() => {
                 scope?.markEdited("depositValue");
                 scope?.markEdited("balanceDueDate");
+                scope?.markEdited("balanceDueText");
                 update({
                   depositKind: usuals.depositKind === "fixed" ? "fixed" : "percent",
                   depositValue: usuals.depositValue,

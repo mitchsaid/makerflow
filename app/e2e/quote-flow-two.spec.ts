@@ -91,3 +91,34 @@ test("a new quote shows the number it will get, and the numbering can be changed
   await expect(page.getByRole("heading", { name: /Quote CAKE-0042/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("quote-number")).toHaveCount(0);
 });
+
+test("the balance can be due 'another time', in the maker's own words, and it prints on the quote", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "qf2-balance", "Balance Co");
+  await openQuotes(page);
+  await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await addCustomerInSheet(page, "Thandi Nkosi");
+
+  const deposit = page.getByRole("group", { name: "Deposit" });
+  await deposit.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+  await deposit.getByLabel("Percentage (%)").fill("50");
+  await deposit.getByLabel("Balance due", { exact: true }).selectOption("other");
+
+  // Empty words say how to fix it, at the field and in the summary.
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
+  await expect(page.getByTestId("form-summary")).toBeVisible();
+  await expect(deposit.getByText(/Say when the balance is due/)).toBeVisible();
+
+  // Typing clears it; the preview and the quote as text say it.
+  await deposit.getByLabel("When is the balance due?").fill("within 14 days of delivery");
+  await expect(deposit.getByText(/Say when the balance is due/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
+  await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+  await expect(page.getByTestId("quote-document")).toContainText("due within 14 days of delivery");
+
+  // Back on the quote it is still there, and it can go back to collection or delivery.
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await expect(page.getByRole("group", { name: "Deposit" }).getByLabel("Balance due", { exact: true })).toHaveValue("other");
+  await expect(page.getByRole("group", { name: "Deposit" }).getByLabel("When is the balance due?")).toHaveValue("within 14 days of delivery");
+});

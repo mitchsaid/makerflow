@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { FieldError } from "@/components/ui/field";
 import type { Cents } from "@/lib/money";
-import { depositAmounts, parseDeposit, type DepositFormValues } from "@/lib/quotes/deposit";
+import { BALANCE_TEXT_MAX, depositAmounts, parseDeposit, type DepositFormValues } from "@/lib/quotes/deposit";
 import type { Fulfilment } from "@/lib/quotes";
 
 /**
@@ -38,7 +38,7 @@ export function DepositSection({
   grossCents: Cents | null;
   money: (cents: number) => string;
   symbol: string;
-  errors: { depositValue?: string; balanceDueDate?: string };
+  errors: { depositValue?: string; balanceDueDate?: string; balanceDueText?: string };
   /** The business decides the deposit on every quote: a choice is put in front of them, with nothing chosen yet. */
   ask?: boolean;
   /** In "ask" mode on a quote that was saved before: what it has is the choice made (so no deposit shows as chosen). */
@@ -144,12 +144,31 @@ export function DepositSection({
             <NativeSelect
               id="balanceDue"
               value={values.balanceDue}
-              onChange={(e) => edit({ balanceDue: e.target.value === "date" ? "date" : "handover" }, "balanceDueDate")}
+              onChange={(e) =>
+                edit(
+                  { balanceDue: e.target.value === "date" ? "date" : e.target.value === "other" ? "other" : "handover" },
+                  "balanceDueDate",
+                  "balanceDueText",
+                )
+              }
             >
               <NativeSelectOption value="handover">{handoverLabel}</NativeSelectOption>
               <NativeSelectOption value="date">By a date I choose</NativeSelectOption>
+              <NativeSelectOption value="other">Other: I&apos;ll say when</NativeSelectOption>
             </NativeSelect>
           </Field>
+          {values.balanceDue === "other" && (
+            <TextField
+              id="balanceDueText"
+              label="When is the balance due?"
+              hint="For example: within 14 days of delivery. It is printed as “Balance due …”."
+              autoComplete="off"
+              maxLength={BALANCE_TEXT_MAX}
+              error={errors.balanceDueText}
+              value={values.balanceDueText}
+              onChange={(balanceDueText) => onChange({ balanceDueText })}
+            />
+          )}
           {values.balanceDue === "date" && (
             <TextField
               id="balanceDueDate"

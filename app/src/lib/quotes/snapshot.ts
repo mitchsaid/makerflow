@@ -234,7 +234,9 @@ function depositFor(quote: ParsedQuote, locale: LocalePack): QuoteSnapshot["depo
     dueText:
       quote.deposit.balance.kind === "date"
         ? words.dueOnDate(formatDay(quote.deposit.balance.date, locale.formatLocale))
-        : words.dueOnHandover(handover),
+        : quote.deposit.balance.kind === "other"
+          ? words.dueOther(quote.deposit.balance.text)
+          : words.dueOnHandover(handover),
   };
 }
 

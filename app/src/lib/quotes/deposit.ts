@@ -11,7 +11,9 @@ import { isIsoDay } from "./dates";
 export type DepositKind = "none" | "percent" | "fixed";
 /** What a business can set as its usual: a kind of deposit, none, or "decide on each quote". */
 export type DefaultDepositKind = DepositKind | "ask";
-export type BalanceDue = "handover" | "date";
+/** When the rest is due: on collection or delivery, by a date, or in the maker's own words ("within 14 days of delivery"). */
+export type BalanceDue = "handover" | "date" | "other";
+export const BALANCE_TEXT_MAX = 120;
 
 /** What the quote form holds (everything is text). */
 export type DepositFormValues = {
@@ -21,18 +23,20 @@ export type DepositFormValues = {
   balanceDue: BalanceDue;
   /** YYYY-MM-DD, only used when balanceDue is "date". */
   balanceDueDate: string;
+  /** Only used when balanceDue is "other". */
+  balanceDueText: string;
 };
 
-export type BalanceTerm = { kind: "handover" } | { kind: "date"; date: string };
+export type BalanceTerm = { kind: "handover" } | { kind: "date"; date: string } | { kind: "other"; text: string };
 
 /** Checked and exact. */
 export type ParsedDeposit =
   | { kind: "percent"; basisPoints: BasisPoints; balance: BalanceTerm }
   | { kind: "fixed"; cents: Cents; balance: BalanceTerm };
 
-export type DepositErrors = Partial<Record<"depositValue" | "balanceDueDate", string>>;
+export type DepositErrors = Partial<Record<"depositValue" | "balanceDueDate" | "balanceDueText", string>>;
 
-export const NO_DEPOSIT: DepositFormValues = { depositKind: "none", depositValue: "", balanceDue: "handover", balanceDueDate: "" };
+export const NO_DEPOSIT: DepositFormValues = { depositKind: "none", depositValue: "", balanceDue: "handover", balanceDueDate: "", balanceDueText: "" };
 
 export function isDefaultDepositKind(value: unknown): value is DefaultDepositKind {
   return value === "ask" || isDepositKind(value);
@@ -72,6 +76,11 @@ export function parseDeposit(
     if (!isIsoDay(date)) errors.balanceDueDate = "Choose the date the balance is due, or choose collection or delivery.";
     else if (isIsoDay(issueDate) && date < issueDate) errors.balanceDueDate = "The balance can't be due before the date of the quote.";
     else balance = { kind: "date", date };
+  } else if (values.balanceDue === "other") {
+    const text = (values.balanceDueText ?? "").replace(/\s+/g, " ").trim();
+    if (text === "") errors.balanceDueText = "Say when the balance is due, for example “within 14 days of delivery”.";
+    else if (text.length > BALANCE_TEXT_MAX) errors.balanceDueText = `Keep it to ${BALANCE_TEXT_MAX} characters or fewer.`;
+    else balance = { kind: "other", text };
   } else if (values.balanceDue !== undefined && values.balanceDue !== "handover") {
     errors.balanceDueDate = "Choose when the balance is due.";
   }
@@ -96,11 +105,14 @@ export function depositAmounts(
 
 /** What the database stores for a parsed deposit (no deposit: none, balance on handover). */
 export function depositColumns(deposit: ParsedDeposit | null) {
-  if (!deposit) return { deposit_kind: "none", deposit_value: 0, balance_due: "handover", balance_due_date: null as string | null };
+  if (!deposit) {
+    return { deposit_kind: "none", deposit_value: 0, balance_due: "handover", balance_due_date: null as string | null, balance_due_text: null as string | null };
+  }
   return {
     deposit_kind: deposit.kind,
     deposit_value: deposit.kind === "percent" ? deposit.basisPoints : deposit.cents,
     balance_due: deposit.balance.kind,
     balance_due_date: deposit.balance.kind === "date" ? deposit.balance.date : null,
+    balance_due_text: deposit.balance.kind === "other" ? deposit.balance.text : null,
   };
 }

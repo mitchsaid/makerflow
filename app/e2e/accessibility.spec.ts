@@ -214,6 +214,10 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Percentage (%)").fill("50");
       await page.getByLabel("Balance due", { exact: true }).selectOption("date");
       await expectNoViolations(page, "new quote, deposit open");
+      // The balance in the maker's own words.
+      await page.getByLabel("Balance due", { exact: true }).selectOption("other");
+      await expect(page.getByLabel("When is the balance due?")).toBeVisible();
+      await expectNoViolations(page, "new quote, balance due in words");
       await page.getByLabel("Balance due", { exact: true }).selectOption("handover");
       // Terms: with nothing saved the sheet opens to write one; then the term is on the quote, and the sheet lists the rest.
       await page.getByRole("button", { name: "Add a term" }).click();

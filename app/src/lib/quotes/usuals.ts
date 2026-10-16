@@ -1,5 +1,6 @@
 import { moneyToInput, percentToInput, type NumberStyle } from "../money";
 import { depositColumns, parseDeposit, type DefaultDepositKind } from "./deposit";
+import { discountFrom } from "./index";
 
 /**
  * "Your usual" (docs/plans/quote-form-feedback.md): what a new quote starts with, saved once for the business. On a
@@ -12,6 +13,10 @@ export type QuoteUsuals = {
   depositKind: DefaultDepositKind;
   /** The deposit as typed ("50", "1 250,00"); empty for "none" and "ask". */
   depositValue: string;
+  /** The discount on the whole quote: none, a percentage or an amount. */
+  discountKind: "none" | "percent" | "fixed";
+  /** The discount as typed; empty for "none". */
+  discountValue: string;
 };
 
 export function usualsFromProfile(
@@ -21,6 +26,8 @@ export function usualsFromProfile(
     paymentInstructions: string | null;
     defaultDepositKind: DefaultDepositKind;
     defaultDepositValue: number;
+    defaultDiscountKind: "none" | "percent" | "fixed";
+    defaultDiscountValue: number;
   },
   style: NumberStyle,
 ): QuoteUsuals {
@@ -34,6 +41,13 @@ export function usualsFromProfile(
         ? percentToInput(profile.defaultDepositValue, style)
         : profile.defaultDepositKind === "fixed"
           ? moneyToInput(profile.defaultDepositValue, style)
+          : "",
+    discountKind: profile.defaultDiscountKind,
+    discountValue:
+      profile.defaultDiscountKind === "percent"
+        ? percentToInput(profile.defaultDiscountValue, style)
+        : profile.defaultDiscountKind === "fixed"
+          ? moneyToInput(profile.defaultDiscountValue, style)
           : "",
   };
 }
@@ -67,6 +81,19 @@ export function sameDeposit(a: { kind: string; value: string }, b: { kind: strin
   const parse = (d: { kind: string; value: string }) => {
     const parsed = parseDeposit({ depositKind: d.kind as "percent" | "fixed", depositValue: d.value }, "");
     return parsed.ok ? depositColumns(parsed.deposit).deposit_value : null;
+  };
+  const x = parse(a);
+  const y = parse(b);
+  return x !== null && y !== null ? x === y : a.value.trim() === b.value.trim();
+}
+
+/** The same discount, however it was typed ("10" and "10,0")? Compared by what it works out to, not by its text. */
+export function sameDiscount(a: { kind: string; value: string }, b: { kind: string; value: string }): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind !== "percent" && a.kind !== "fixed") return true;
+  const parse = (d: { kind: string; value: string }) => {
+    const parsed = discountFrom(d.kind as "percent" | "fixed", d.value);
+    return parsed.ok && parsed.value ? (parsed.value.kind === "percent" ? parsed.value.basisPoints : parsed.value.cents) : null;
   };
   const x = parse(a);
   const y = parse(b);

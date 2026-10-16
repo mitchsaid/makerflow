@@ -90,6 +90,7 @@ function buildSample(workspace: Workspace, products: readonly ProductSummary[]):
     depositValue: "50",
     balanceDue: "handover",
     balanceDueDate: "",
+    balanceDueText: "",
     policies: [],
   };
   const parsed = parseQuote(values, vat);
