@@ -23,6 +23,7 @@ export type StoredQuoteFields = {
   depositValue: number;
   balanceDue: BalanceDue;
   balanceDueDate: string | null;
+  balanceDueText: string | null;
   policies: { policyId: string | null; title: string | null; body: string }[];
   lines: {
     id: string;
@@ -106,6 +107,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
           : "",
     balanceDue: quote.balanceDue,
     balanceDueDate: quote.balanceDueDate ?? "",
+    balanceDueText: quote.balanceDueText ?? "",
     policies: quote.policies.map((p, i) => ({
       key: `p-${i}`,
       policyId: p.policyId ?? "",

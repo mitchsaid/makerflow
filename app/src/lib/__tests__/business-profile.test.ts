@@ -143,6 +143,8 @@ const emptyProfile: BusinessProfile = {
       businessTypes: null,
       defaultDepositKind: "none",
       defaultDepositValue: 0,
+      defaultDiscountKind: "none",
+      defaultDiscountValue: 0,
       usualFulfilment: null,
       quoteSetupAt: null,
       logoImageId: null,

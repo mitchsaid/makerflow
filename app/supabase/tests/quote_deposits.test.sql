@@ -101,6 +101,41 @@ begin
     raise exception 'FAIL: a date with the balance on handover was accepted';
   exception when check_violation then null;
   end;
+
+  -- A balance in the maker's own words (slice 4 of docs/plans/quote-form-feedback-2.md): kept with the balance, trimmed,
+  -- and it needs its words; the words need the balance to be "other".
+  perform public.save_quote_draft(org_a, q,
+    pg_temp.quote_json('{"deposit_kind":"percent","deposit_value":5000,"balance_due":"other","balance_due_text":"  within 14 days of delivery "}'), '[]'::jsonb);
+  assert (select balance_due = 'other' and balance_due_text = 'within 14 days of delivery' and balance_due_date is null
+            from public.quotes where id = q), 'a balance in words was not saved';
+  -- A payload without the balance keys keeps it.
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{}'), '[]'::jsonb);
+  assert (select balance_due = 'other' and balance_due_text = 'within 14 days of delivery' from public.quotes where id = q),
+    'a payload without the balance keys changed the words';
+  -- Back to handover takes the words away.
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{"balance_due":"handover"}'), '[]'::jsonb);
+  assert (select balance_due = 'handover' and balance_due_text is null from public.quotes where id = q),
+    'the words stayed after the balance went back to handover';
+  begin
+    perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{"balance_due":"other"}'), '[]'::jsonb);
+    raise exception 'FAIL: an "other" balance with no words was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{"balance_due":"other","balance_due_text":"   "}'), '[]'::jsonb);
+    raise exception 'FAIL: an "other" balance with only spaces was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    perform public.save_quote_draft(org_a, q, pg_temp.quote_json(jsonb_build_object('balance_due', 'other', 'balance_due_text', repeat('x', 121))), '[]'::jsonb);
+    raise exception 'FAIL: over-long words were accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    perform public.save_quote_draft(org_a, q, pg_temp.quote_json('{"balance_due":"handover","balance_due_text":"soon"}'), '[]'::jsonb);
+    raise exception 'FAIL: words with the balance on handover were accepted';
+  exception when check_violation then null;
+  end;
   reset role;
 
   ----------------------------------------------------------------------

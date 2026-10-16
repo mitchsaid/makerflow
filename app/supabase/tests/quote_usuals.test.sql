@@ -76,6 +76,36 @@ begin
   update public.business_profiles set default_deposit_kind = 'none', default_deposit_value = 0 where organisation_id = org_a;
   reset role;
 
+  -- The discount a new quote starts with (slice 4 of docs/plans/quote-form-feedback-2.md): none, a percentage, or an amount.
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  assert (select default_discount_kind = 'none' and default_discount_value = 0 from public.business_profiles where organisation_id = org_a),
+    'a new business should have no default discount';
+  update public.business_profiles set default_discount_kind = 'percent', default_discount_value = 1000 where organisation_id = org_a;
+  update public.business_profiles set default_discount_kind = 'fixed', default_discount_value = 25000 where organisation_id = org_a;
+  begin
+    update public.business_profiles set default_discount_kind = 'percent', default_discount_value = 10001 where organisation_id = org_a;
+    raise exception 'FAIL: a default discount above 100 percent was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.business_profiles set default_discount_kind = 'none', default_discount_value = 500 where organisation_id = org_a;
+    raise exception 'FAIL: no discount with an amount was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.business_profiles set default_discount_kind = 'fixed', default_discount_value = 0 where organisation_id = org_a;
+    raise exception 'FAIL: a fixed discount of nothing was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.business_profiles set default_discount_kind = 'bonus', default_discount_value = 1 where organisation_id = org_a;
+    raise exception 'FAIL: an unknown discount kind was accepted';
+  exception when check_violation then null;
+  end;
+  update public.business_profiles set default_discount_kind = 'none', default_discount_value = 0 where organisation_id = org_a;
+  reset role;
+
   -- Staff cannot change them (the update changes no row).
   perform pg_temp.as_user(c);
   set local role authenticated;
@@ -85,6 +115,9 @@ begin
   update public.business_profiles set default_deposit_kind = 'ask' where organisation_id = org_a;
   get diagnostics n = row_count;
   assert n = 0, 'staff changed the deposit default';
+  update public.business_profiles set default_discount_kind = 'percent', default_discount_value = 500 where organisation_id = org_a;
+  get diagnostics n = row_count;
+  assert n = 0, 'staff changed the discount default';
   reset role;
 
   -- Another business cannot change them, and its own are untouched.

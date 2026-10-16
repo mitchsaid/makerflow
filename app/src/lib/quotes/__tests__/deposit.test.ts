@@ -47,6 +47,43 @@ describe("parseDeposit", () => {
   });
 });
 
+describe("a balance due in the maker's own words", () => {
+  const base = { depositKind: "percent", depositValue: "50", balanceDue: "other" } as const;
+
+  it("takes the words, tidied, and stores them with the balance", () => {
+    const r = parseDeposit({ ...base, balanceDueText: "  within 14   days of delivery " }, "2026-10-10");
+    expect(r).toMatchObject({ ok: true, deposit: { balance: { kind: "other", text: "within 14 days of delivery" } } });
+    if (r.ok) {
+      expect(depositColumns(r.deposit)).toMatchObject({ balance_due: "other", balance_due_text: "within 14 days of delivery", balance_due_date: null });
+    }
+  });
+
+  it("does not say 'due' twice when the maker typed it", () => {
+    const r = parseDeposit({ ...base, balanceDueText: "Due within 14 days of delivery" }, "2026-10-10");
+    expect(r).toMatchObject({ ok: true, deposit: { balance: { kind: "other", text: "within 14 days of delivery" } } });
+    // "Due" alone is no words at all.
+    expect(parseDeposit({ ...base, balanceDueText: "due" }, "2026-10-10").ok).toBe(false);
+    // A word that merely starts with "due" is kept whole.
+    expect(parseDeposit({ ...base, balanceDueText: "duet recital day" }, "2026-10-10")).toMatchObject({ ok: true, deposit: { balance: { text: "duet recital day" } } });
+  });
+
+  it("says how to fix empty words and words that are too long", () => {
+    expect(parseDeposit({ ...base, balanceDueText: "  " }, "2026-10-10")).toMatchObject({ ok: false, errors: { balanceDueText: expect.stringMatching(/Say when the balance is due/) } });
+    expect(parseDeposit({ ...base, balanceDueText: "x".repeat(121) }, "2026-10-10")).toMatchObject({ ok: false, errors: { balanceDueText: expect.stringMatching(/120/) } });
+  });
+
+  it("keeps no words for a balance on handover or by a date", () => {
+    const r = parseDeposit({ depositKind: "percent", depositValue: "50", balanceDue: "handover", balanceDueText: "ignored" }, "2026-10-10");
+    expect(r.ok && depositColumns(r.deposit).balance_due_text).toBeNull();
+  });
+
+  it("prints as 'due ...' on the quote", () => {
+    expect(snapshotOf({ depositKind: "fixed", depositValue: "500", balanceDue: "other", balanceDueText: "within 14 days of delivery" }).deposit?.dueText).toBe(
+      "due within 14 days of delivery",
+    );
+  });
+});
+
 describe("depositAmounts", () => {
   it("rounds a percentage to the cent and the balance makes up the rest, always", () => {
     for (const gross of [0, 1, 99, 100, 12345, 333_333, 99_999_999]) {
@@ -68,12 +105,13 @@ describe("depositAmounts", () => {
 
 describe("depositColumns", () => {
   it("stores no deposit as none, and the terms otherwise", () => {
-    expect(depositColumns(null)).toEqual({ deposit_kind: "none", deposit_value: 0, balance_due: "handover", balance_due_date: null });
+    expect(depositColumns(null)).toEqual({ deposit_kind: "none", deposit_value: 0, balance_due: "handover", balance_due_date: null, balance_due_text: null });
     expect(depositColumns({ kind: "percent", basisPoints: 5000, balance: { kind: "date", date: "2026-11-14" } })).toEqual({
       deposit_kind: "percent",
       deposit_value: 5000,
       balance_due: "date",
       balance_due_date: "2026-11-14",
+      balance_due_text: null,
     });
   });
 });
@@ -99,6 +137,7 @@ const form = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   depositValue: "",
   balanceDue: "handover",
   balanceDueDate: "",
+  balanceDueText: "",
   policies: [],
   ...over,
 });
@@ -120,7 +159,7 @@ describe("a deposit on a quote", () => {
     const back = toFormValues(
       {
         customerId: null, issueDate: "2026-10-10", validUntil: "2026-10-24", neededBy: null, deliveryAddress: null, discountKind: "none", discountValue: 0, notes: null, title: null, description: null, signOff: null,
-        paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "percent", depositValue: 5000, balanceDue: "date", balanceDueDate: "2026-11-14", policies: [], lines: [],
+        paymentInstructions: null, showBankDetails: true, showPhotos: true, depositKind: "percent", depositValue: 5000, balanceDue: "date", balanceDueDate: "2026-11-14", balanceDueText: null, policies: [], lines: [],
       },
       ZA_LOCALE.numberStyle,
     );

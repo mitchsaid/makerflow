@@ -52,7 +52,8 @@ import { saveDepositDefault } from "../documents/deposit-actions";
 import { saveUsualDescription, saveUsualPayment, saveUsualSignOff } from "./usual-actions";
 import { UsualButtons } from "./usual-buttons";
 import { QuoteNumber, type QuoteNumbering } from "./quote-number";
-import { canSaveUsualText, canUseUsualText, sameDeposit, type QuoteUsuals } from "@/lib/quotes/usuals";
+import { canSaveUsualText, canUseUsualText, sameDeposit, sameDiscount, type QuoteUsuals } from "@/lib/quotes/usuals";
+import { saveDiscountDefault } from "../documents/discount-actions";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
@@ -218,6 +219,9 @@ export function QuoteBuilder({
   // What new quotes start with; saving one from here moves it.
   const [usuals, setUsuals] = useState(initialUsuals);
   const [numbering, setNumbering] = useState(initialNumbering);
+  // The deposit and discount exactly as they were sent when "Save as my usual" was pressed.
+  const savedDeposit = useRef<{ kind: QuoteFormValues["depositKind"]; value: string } | null>(null);
+  const savedDiscount = useRef<{ kind: DiscountKind; value: string } | null>(null);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Where focus goes when the sheet closes: the line just added or changed, else the default.
@@ -341,6 +345,7 @@ export function QuoteBuilder({
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.depositValue) problems.push({ fieldId: "depositValue", label: "Deposit", message: f.depositValue });
   if (f.balanceDueDate) problems.push({ fieldId: "balanceDueDate", label: "Balance due by", message: f.balanceDueDate });
+  if (f.balanceDueText) problems.push({ fieldId: "balanceDueText", label: "When is the balance due?", message: f.balanceDueText });
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.policies) {
     // One row for each term that needs fixing, so fixing one never hides another's problem from the summary.
@@ -663,6 +668,41 @@ export function QuoteBuilder({
               onChange={(discountValue) => update({ discountValue })}
             />
           )}
+          <UsualButtons
+            what="discount"
+            valueKey={`${values.discountKind}:${values.discountValue}`}
+            canSave={
+              canSaveUsuals &&
+              values.discountKind !== "none" &&
+              values.discountValue.trim() !== "" &&
+              !sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })
+            }
+            canUse={
+              usuals.discountKind !== "none" &&
+              !sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })
+            }
+            save={async () => {
+              // What is saved is what was on screen when the button was pressed, whatever is typed while it saves.
+              const sent = { kind: values.discountKind, value: values.discountValue };
+              const result = await saveDiscountDefault(sent);
+              if (result.status === "saved") {
+                savedDiscount.current = sent;
+                return { status: "saved" as const };
+              }
+              return {
+                status: "error" as const,
+                message: (result.status === "error" && (result.message ?? result.errors?.discountValue)) || undefined,
+              };
+            }}
+            onSaved={() => {
+              const saved = savedDiscount.current;
+              if (saved) setUsuals((u) => ({ ...u, discountKind: saved.kind, discountValue: saved.value }));
+            }}
+            onUse={() => {
+              scope?.markEdited("discountValue");
+              update({ discountKind: usuals.discountKind, discountValue: usuals.discountValue });
+            }}
+          />
         </Section>
       ) : (
         <div>
@@ -688,7 +728,7 @@ export function QuoteBuilder({
         grossCents={totals ? totals.grossCents : null}
         money={money}
         symbol={symbol}
-        errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate }}
+        errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate, balanceDueText: f.balanceDueText }}
         ask={askForDeposit}
         decided={quoteId !== null}
         footer={
@@ -708,17 +748,26 @@ export function QuoteBuilder({
                 !sameDeposit({ kind: values.depositKind, value: values.depositValue }, { kind: usuals.depositKind, value: usuals.depositValue })
               }
               save={async () => {
-                const result = await saveDepositDefault({ kind: values.depositKind, value: values.depositValue });
-                if (result.status === "saved") return { status: "saved" as const };
+                // What is saved is what was on screen when the button was pressed, whatever is typed while it saves.
+                const sent = { kind: values.depositKind, value: values.depositValue };
+                const result = await saveDepositDefault(sent);
+                if (result.status === "saved") {
+                  savedDeposit.current = sent;
+                  return { status: "saved" as const };
+                }
                 return {
                   status: "error" as const,
                   message: (result.status === "error" && (result.message ?? result.errors?.depositValue)) || undefined,
                 };
               }}
-              onSaved={() => setUsuals((u) => ({ ...u, depositKind: values.depositKind, depositValue: values.depositValue }))}
+              onSaved={() => {
+                const saved = savedDeposit.current;
+                if (saved) setUsuals((u) => ({ ...u, depositKind: saved.kind, depositValue: saved.value }));
+              }}
               onUse={() => {
                 scope?.markEdited("depositValue");
                 scope?.markEdited("balanceDueDate");
+                scope?.markEdited("balanceDueText");
                 update({
                   depositKind: usuals.depositKind === "fixed" ? "fixed" : "percent",
                   depositValue: usuals.depositValue,

@@ -81,12 +81,48 @@ test("a deposit can be saved as the usual from a quote, and put back", async ({ 
   await expect(section.getByLabel("Percentage (%)")).toHaveValue("50");
 });
 
+test("a discount can be saved as the usual from a quote, starts every new quote open, and is changed or removed under Quotes and invoices", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "us-discount", "Discount Usual Co");
+  await page.goto("/app/quotes/new");
+  const section = page.getByRole("group", { name: "Discount" });
+
+  // Nothing is offered until there is a discount with an amount; then one tap keeps it.
+  await page.getByRole("button", { name: "Add a discount" }).click();
+  await expect(section.getByRole("button", { name: /my usual/ })).toHaveCount(0);
+  await section.getByLabel("Discount (%)").fill("10");
+  await section.getByRole("button", { name: "Save as my usual discount" }).click();
+  await expect(page.getByText("Saved as your usual discount.")).toBeVisible();
+
+  // A new quote starts with it, already open; changing it offers to go back.
+  await page.goto("/app/quotes/new");
+  await expect(page.getByLabel("Discount on the whole quote")).toHaveValue("percent");
+  await expect(page.getByLabel("Discount (%)")).toHaveValue("10");
+  await expect(page.getByRole("button", { name: "Add a discount" })).toHaveCount(0);
+  await page.getByLabel("Discount (%)").fill("15");
+  await page.getByRole("button", { name: "Use my usual discount" }).click();
+  await expect(page.getByLabel("Discount (%)")).toHaveValue("10");
+  await expect(page.getByText("Using your usual discount.")).toBeVisible();
+
+  // Under Quotes and invoices it can be changed, or taken away: new quotes then start without the discount.
+  await openDocuments(page);
+  const form = page.locator("#discount-default");
+  await expect(form.getByLabel("Discount on a new quote")).toHaveValue("percent");
+  await expect(form.getByLabel("Discount (%)")).toHaveValue("10");
+  await form.getByLabel("Discount on a new quote").selectOption("none");
+  await form.getByRole("button", { name: "Save discount" }).click();
+  await expect(form.getByText("Saved.")).toBeVisible();
+  await page.goto("/app/quotes/new");
+  await expect(page.getByRole("button", { name: "Add a discount" })).toBeVisible();
+  await expect(page.getByLabel("Discount on the whole quote")).toHaveCount(0);
+});
+
 test("\"I decide on each quote\": a new quote opens the deposit choice with nothing chosen, and saves fine without one", async ({ page }) => {
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-ask", "Ask Co");
   await openDocuments(page);
   const deposit = page.getByRole("group", { name: "Deposit" });
-  await deposit.getByLabel("On a new quote").selectOption("ask");
+  await deposit.getByLabel("Deposit on a new quote").selectOption("ask");
   await expect(deposit.getByLabel("Percentage (%)")).toHaveCount(0);
   await page.getByRole("button", { name: "Save deposit" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();

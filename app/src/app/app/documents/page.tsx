@@ -10,6 +10,7 @@ import { formatDocumentNumber } from "@/lib/quotes/numbering";
 import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { DepositDefaultForm } from "./deposit-default-form";
 import { HandoverDefaultForm } from "./handover-default-form";
+import { DiscountDefaultForm } from "./discount-default-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
 
@@ -86,6 +87,13 @@ export default async function DocumentSettingsPage() {
         <DepositDefaultForm
           symbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
           initial={{ kind: usuals.depositKind, value: usuals.depositValue }}
+        />
+      )}
+
+      {canEdit && (
+        <DiscountDefaultForm
+          symbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
+          initial={{ kind: usuals.discountKind, value: usuals.discountValue }}
         />
       )}
 

@@ -41,6 +41,7 @@ const quote = (over: Partial<QuoteFormValues> = {}): QuoteFormValues => ({
   depositValue: "",
   balanceDue: "handover",
   balanceDueDate: "",
+  balanceDueText: "",
   policies: [],
   ...over,
 });

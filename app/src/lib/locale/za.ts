@@ -327,6 +327,7 @@ export const ZA_LOCALE: LocalePack = {
       dueOnHandover: (handover) =>
         handover === "collection" ? "due on collection" : handover === "delivery" ? "due on delivery" : "due on collection or delivery",
       dueOnDate: (dateText) => `due by ${dateText}`,
+      dueOther: (text) => `due ${text}`,
     },
     // A quotation is not a tax invoice (VAT 404 guide, 13.2).
     quoteNotATaxInvoice: "This quotation is not a tax invoice.",

@@ -159,6 +159,7 @@ type QuoteRow = {
   deposit_value: number | string;
   balance_due: BalanceDue;
   balance_due_date: string | null;
+  balance_due_text: string | null;
   policies: unknown;
   customers: CustomerRow | CustomerRow[] | null;
   quote_lines: LineRow[];
@@ -203,6 +204,7 @@ export type StoredQuote = {
   depositValue: number;
   balanceDue: BalanceDue;
   balanceDueDate: string | null;
+  balanceDueText: string | null;
   /** The quote's terms: its own copy of each library term, and terms written just for it (no policyId). */
   policies: { policyId: string | null; title: string | null; body: string }[];
   lines: {
@@ -299,7 +301,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
        title, description, sign_off, payment_instructions, show_bank_details, show_photos, theme_id, theme_starter,
-       deposit_kind, deposit_value, balance_due, balance_due_date, policies,
+       deposit_kind, deposit_value, balance_due, balance_due_date, balance_due_text, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
          discount_kind, discount_value, vat_status, variation_id, variation_label, variation_name, options
@@ -345,6 +347,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     depositValue: Number(row.deposit_value),
     balanceDue: row.balance_due,
     balanceDueDate: row.balance_due_date,
+    balanceDueText: row.balance_due_text,
     policies: storedPolicies(row.policies),
     lines: row.quote_lines.map((l) => ({
       id: l.id,

@@ -14,6 +14,9 @@ export type BusinessProfile = {
   /** "ask": the business decides the deposit on every quote (a new quote opens with nothing chosen). */
   defaultDepositKind: "none" | "percent" | "fixed" | "ask";
   defaultDepositValue: number;
+  /** The discount on the whole quote that a new quote starts with: none, a percentage (basis points) or an amount (cents). */
+  defaultDiscountKind: "none" | "percent" | "fixed";
+  defaultDiscountValue: number;
   /** What a new quote starts with for delivery or collection (null: nothing chosen). */
   usualFulfilment: "collection" | "delivery" | null;
   /** When an owner or admin answered or skipped the first-quote questions (null: not asked yet). */
@@ -43,7 +46,7 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "quoteSetupAt" | "logoImageId">;
 
 export type FieldName =
   | "name"

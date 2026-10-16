@@ -214,6 +214,10 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Percentage (%)").fill("50");
       await page.getByLabel("Balance due", { exact: true }).selectOption("date");
       await expectNoViolations(page, "new quote, deposit open");
+      // The balance in the maker's own words.
+      await page.getByLabel("Balance due", { exact: true }).selectOption("other");
+      await expect(page.getByLabel("When is the balance due?")).toBeVisible();
+      await expectNoViolations(page, "new quote, balance due in words");
       await page.getByLabel("Balance due", { exact: true }).selectOption("handover");
       // Terms: with nothing saved the sheet opens to write one; then the term is on the quote, and the sheet lists the rest.
       await page.getByRole("button", { name: "Add a term" }).click();
@@ -611,7 +615,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
       await openDocuments(page);
       // The default deposit: with an error, then saved.
-      await page.getByLabel("On a new quote").selectOption("percent");
+      await page.getByLabel("Deposit on a new quote").selectOption("percent");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByText("Enter a percentage").first()).toBeVisible();
       await expectNoViolations(page, "quotes and invoices, default deposit with an error");
@@ -657,7 +661,7 @@ for (const scheme of ["light", "dark"] as const) {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-usual-${scheme}`, "Usual Axe Co");
       await openDocuments(page);
-      await page.getByLabel("On a new quote").selectOption("ask");
+      await page.getByLabel("Deposit on a new quote").selectOption("ask");
       await page.getByLabel("Introduction (optional)").fill("Thank you for asking.");
       await expectNoViolations(page, "quotes and invoices, usuals");
       await page.getByRole("button", { name: "Save deposit" }).click();
