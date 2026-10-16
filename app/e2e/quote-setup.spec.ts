@@ -99,5 +99,5 @@ test("answering 'it depends' keeps the deposit for each quote to decide", async 
 
   // Quotes and invoices shows what was answered.
   await openDocuments(page);
-  await expect(page.getByLabel("On a new quote")).toHaveValue("ask");
+  await expect(page.getByLabel("Deposit on a new quote")).toHaveValue("ask");
 });

@@ -615,7 +615,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
       await openDocuments(page);
       // The default deposit: with an error, then saved.
-      await page.getByLabel("On a new quote").selectOption("percent");
+      await page.getByLabel("Deposit on a new quote").selectOption("percent");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByText("Enter a percentage").first()).toBeVisible();
       await expectNoViolations(page, "quotes and invoices, default deposit with an error");
@@ -661,7 +661,7 @@ for (const scheme of ["light", "dark"] as const) {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-usual-${scheme}`, "Usual Axe Co");
       await openDocuments(page);
-      await page.getByLabel("On a new quote").selectOption("ask");
+      await page.getByLabel("Deposit on a new quote").selectOption("ask");
       await page.getByLabel("Introduction (optional)").fill("Thank you for asking.");
       await expectNoViolations(page, "quotes and invoices, usuals");
       await page.getByRole("button", { name: "Save deposit" }).click();

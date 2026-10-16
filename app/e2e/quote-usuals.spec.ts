@@ -107,9 +107,9 @@ test("a discount can be saved as the usual from a quote, starts every new quote 
   // Under Quotes and invoices it can be changed, or taken away: new quotes then start without the discount.
   await openDocuments(page);
   const form = page.locator("#discount-default");
-  await expect(form.getByLabel("On a new quote")).toHaveValue("percent");
+  await expect(form.getByLabel("Discount on a new quote")).toHaveValue("percent");
   await expect(form.getByLabel("Discount (%)")).toHaveValue("10");
-  await form.getByLabel("On a new quote").selectOption("none");
+  await form.getByLabel("Discount on a new quote").selectOption("none");
   await form.getByRole("button", { name: "Save discount" }).click();
   await expect(form.getByText("Saved.")).toBeVisible();
   await page.goto("/app/quotes/new");
@@ -122,7 +122,7 @@ test("\"I decide on each quote\": a new quote opens the deposit choice with noth
   await signUpAndOnboard(page, "us-ask", "Ask Co");
   await openDocuments(page);
   const deposit = page.getByRole("group", { name: "Deposit" });
-  await deposit.getByLabel("On a new quote").selectOption("ask");
+  await deposit.getByLabel("Deposit on a new quote").selectOption("ask");
   await expect(deposit.getByLabel("Percentage (%)")).toHaveCount(0);
   await page.getByRole("button", { name: "Save deposit" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();

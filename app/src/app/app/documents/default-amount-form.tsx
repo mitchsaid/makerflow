@@ -25,6 +25,7 @@ export function DefaultAmountForm({
   title,
   intro,
   selectId,
+  selectLabel,
   options,
   valueId,
   valueLabels,
@@ -39,6 +40,8 @@ export function DefaultAmountForm({
   title: string;
   intro: string;
   selectId: string;
+  /** The select's label: it names what it is for ("Deposit on a new quote"), as the page has more than one. */
+  selectLabel: string;
   /** The choices, in order; "percent" and "fixed" ask for an amount. */
   options: { value: DefaultAmountKind; label: string }[];
   valueId: string;
@@ -89,7 +92,7 @@ export function DefaultAmountForm({
             </Alert>
           )}
           <Field>
-            <FieldLabel htmlFor={selectId}>On a new quote</FieldLabel>
+            <FieldLabel htmlFor={selectId}>{selectLabel}</FieldLabel>
             <NativeSelect
               id={selectId}
               value={choice}

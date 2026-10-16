@@ -20,6 +20,7 @@ export function DiscountDefaultForm({
       title="Discount"
       intro="If you usually give a discount, set it here and every new quote starts with it open. You can change it or take it off on any quote."
       selectId="defaultDiscountKind"
+      selectLabel="Discount on a new quote"
       options={[
         { value: "none", label: "No discount" },
         { value: "percent", label: "A percentage" },
