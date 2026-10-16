@@ -107,7 +107,7 @@ test("a VAT-registered business says what the price includes, and costs are work
   // Includes VAT is chosen to start (what a shop till shows): 15% comes out, so R13,04 a kg, and it says so.
   await expect(page.getByRole("radio", { name: /^Includes VAT/ })).toBeChecked();
   await expect(page.getByTestId("cost-preview")).toContainText(/R\s?13,04 per kg \(without VAT\)/);
-  await expect(page.getByTestId("vat-note")).toContainText("worked out without VAT");
+  await expect(page.getByTestId("vat-note")).toContainText("Costs and margins exclude VAT");
   await expect(page.getByTestId("vat-note")).toContainText("We don't work out what you can claim");
 
   // Excluding VAT or no VAT charged: the price paid already is the cost.

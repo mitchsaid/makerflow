@@ -33,7 +33,7 @@ test("the new quote reads like an app: no tagline, no title, optional parts offe
   expect(at("Notes")).toBeGreaterThan(at("Terms"));
   expect(at("Notes")).toBeGreaterThan(at("How to pay") > -1 ? at("How to pay") : at("Terms"));
   expect(at("Sign-off")).toBe(at("Notes") + 1);
-  await expect(page.getByText(/Payment details and terms have their own sections above/)).toBeVisible();
+  await expect(page.getByText("Shown on the quote, like how long the work takes.")).toBeVisible();
   await expect(page.getByText("Like “Yours in sweetness”")).toHaveCount(0);
 
   // The primary button is the next step.
