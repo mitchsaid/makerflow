@@ -12,7 +12,7 @@ export default async function NewMaterialPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/products/materials", label: "Materials" }}>
+      <PageHeader close={{ href: "/app/products/materials", label: "Materials" }}>
         <h1 className="text-xl font-semibold">Add a material</h1>
         <p className="text-muted-foreground">What you buy and what you paid.</p>
       </PageHeader>

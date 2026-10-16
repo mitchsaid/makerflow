@@ -64,10 +64,11 @@ test("a page under another goes back to its parent with a back control, not a te
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "qf-back", "Back Co");
 
-  // A new customer's page.
+  // A new customer's page starts something new, so it has an X (like a new quote); a saved customer has a back arrow.
   await page.goto("/app/customers/new");
   await expect(page.getByRole("link", { name: "Customers", exact: true })).toHaveCount(0);
-  const back = page.getByRole("link", { name: "Back to Customers" });
+  await expect(page.getByTestId("back-link")).toHaveCount(0);
+  const back = page.getByRole("link", { name: "Close and go back to Customers" });
   await expect(back).toBeVisible();
   const box = await back.boundingBox();
   expect(box?.width).toBeGreaterThanOrEqual(44);

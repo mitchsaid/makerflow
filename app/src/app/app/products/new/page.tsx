@@ -16,7 +16,7 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: listHref(kind), label: kind === "service" ? "Services" : "Products" }}>
+      <PageHeader close={{ href: listHref(kind), label: kind === "service" ? "Services" : "Products" }}>
         <h1 className="text-xl font-semibold">Add a {KIND_WORDS[kind].one}</h1>
         <p className="text-muted-foreground">A name and a price are enough to start.</p>
       </PageHeader>

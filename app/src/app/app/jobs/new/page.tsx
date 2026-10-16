@@ -19,7 +19,7 @@ export default async function NewJobPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/jobs", label: "Jobs" }}>
+      <PageHeader close={{ href: "/app/jobs", label: "Jobs" }}>
         <h1 className="text-xl font-semibold">New job</h1>
         <p className="text-sm text-muted-foreground">
           For work without a quote: a walk-in, a repeat, something agreed on WhatsApp.

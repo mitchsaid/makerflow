@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, XIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -35,20 +35,39 @@ export function BackLink({
   );
 }
 
+/** The close control for a page that starts something new: an X at the right, going to the parent like the back control. */
+export function CloseLink({ href, label, className }: { href: string; /** The parent's name: "Jobs". */ label: string; className?: string }) {
+  return (
+    <Link
+      href={href}
+      aria-label={`Close and go back to ${label}`}
+      className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "-mr-3 size-11 shrink-0", className)}
+      data-testid="close-link"
+    >
+      <XIcon aria-hidden="true" className="size-6" />
+    </Link>
+  );
+}
+
 export function PageHeader({
   back,
+  close,
   children,
   className,
 }: {
-  back: { href: string; /** The parent's name: "Quotes", read out as "Back to Quotes". */ label: string };
+  /** A page that shows something that already exists: a chevron on the left. */
+  back?: { href: string; /** The parent's name: "Quotes", read out as "Back to Quotes". */ label: string };
+  /** A page that starts something new (a form to fill in): an X on the right, like a new quote. */
+  close?: { href: string; label: string };
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("flex items-start gap-1", className)}>
-      <BackLink href={back.href} label={back.label} />
+      {back && <BackLink href={back.href} label={back.label} />}
       {/* The heading's first line sits level with the middle of the 44px control. */}
       <div className="min-w-0 flex-1 space-y-1 pt-2">{children}</div>
+      {close && <CloseLink href={close.href} label={close.label} />}
     </div>
   );
 }
