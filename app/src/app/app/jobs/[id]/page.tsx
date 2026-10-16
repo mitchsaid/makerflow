@@ -10,6 +10,7 @@ import { PhotoThumb } from "@/components/photo-thumb";
 import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { ItemProgress } from "../item-progress";
+import { ItemSteps } from "../item-steps";
 import { JobNote } from "../job-note";
 import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
@@ -76,7 +77,8 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
                   {item.addedLater && <p className="text-sm text-muted-foreground">Added later</p>}
                   </div>
                   </div>
-                  {counting && (
+                  {counting && item.steps.length > 0 && <ItemSteps jobId={job.id} item={item} numberStyle={locale.numberStyle} />}
+                  {counting && item.steps.length === 0 && (
                     <ItemProgress
                       jobId={job.id}
                       itemId={item.id}

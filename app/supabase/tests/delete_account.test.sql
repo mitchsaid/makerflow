@@ -262,7 +262,7 @@ begin
      where contype = 'f' and connamespace = 'public'::regnamespace and confdeltype in ('a', 'r')
        and confrelid::regclass::text <> 'organisations'
   ) = array[
-    'business_profiles->images', 'job_items->images', 'jobs->customers', 'jobs->quotes',
+    'business_profiles->images', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
     'product_option_values->images', 'product_variations->images', 'products->images',
     'quote_lines->products', 'quote_versions->quotes', 'quotes->customers'
   ], 'a link between tables that does not cascade was added or removed: teach delete_account (and the seed and this list) about it';

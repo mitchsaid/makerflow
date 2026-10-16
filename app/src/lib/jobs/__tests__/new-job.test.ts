@@ -53,7 +53,7 @@ describe("parseNewJob", () => {
         deliveryAddress: null,
         neededBy: null,
         note: null,
-        items: [{ kind: "custom", name: "Oak shelf", description: null, quantityMilli: 1000, unit: null, variationLabel: null, variationName: null, options: [], photoImageId: null }],
+        items: [{ kind: "custom", name: "Oak shelf", description: null, quantityMilli: 1000, unit: null, variationLabel: null, variationName: null, options: [], photoImageId: null, productId: null }],
       },
     });
   });
@@ -70,6 +70,7 @@ describe("parseNewJob", () => {
             variationLabel: "Size",
             variationName: "Large",
             photoImageId: PHOTO,
+            productId: PRODUCT,
             options: [{ group: "Flavour", kind: "one", value: "Vanilla", text: null, quantityMilli: null }],
           },
         ],

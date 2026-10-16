@@ -4,6 +4,7 @@ import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
 import { parseExtras, type ExtraErrors, type ExtraSummary, type ParsedExtra } from "./extras";
 import { parseOptionGroups, type OptionErrors, type OptionGroup, type ParsedOptionGroup } from "./options";
+import { parseSteps, type StepErrors } from "./steps";
 import { parsePriceBreaks, type PriceBreak, type PriceBreakErrors } from "./price-breaks";
 import { parseVariations, type ParsedVariation, type ProductVariation, type VariationErrors } from "./variations";
 
@@ -51,6 +52,8 @@ export type ProductFields = {
   extras?: ParsedExtra[];
   /** Quantity prices, in order of quantity. Undefined when the form did not carry them: they are left as they are. */
   priceBreaks?: PriceBreak[];
+  /** The steps it is made in, in order. Undefined when the form did not carry them: they are left as they are. */
+  steps?: string[];
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
@@ -65,6 +68,8 @@ export type ProductFieldErrors = Partial<Record<ProductFieldName, string>> & {
   extras?: ExtraErrors;
   /** Problems with the quantity prices, by row. */
   priceBreaks?: PriceBreakErrors;
+  /** Problems with the steps, by row. */
+  steps?: StepErrors;
 };
 
 export type ParsedProductForm =
@@ -197,6 +202,21 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     else errors.priceBreaks = parsed.errors;
   }
 
+  // Production steps: the same way, in their own field.
+  let steps: string[] | undefined;
+  const stepsRaw = form.get("steps");
+  if (stepsRaw !== null) {
+    let rows: unknown = null;
+    try {
+      rows = JSON.parse(typeof stepsRaw === "string" ? stepsRaw : "");
+    } catch {
+      rows = null;
+    }
+    const parsed = parseSteps(rows);
+    if (parsed.ok) steps = parsed.steps;
+    else errors.steps = parsed.errors;
+  }
+
   const hasVariations = (variations?.length ?? 0) > 0 || (errors.variations !== undefined && variationsRaw !== null && variationsRaw !== "[]");
 
   // With variations each has its own price, and the product's is the lowest of theirs.
@@ -226,6 +246,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
       ...(options === undefined ? {} : { options }),
       ...(extras === undefined ? {} : { extras }),
       ...(priceBreaks === undefined ? {} : { priceBreaks }),
+      ...(steps === undefined ? {} : { steps }),
     },
   };
 }
@@ -254,6 +275,8 @@ export type ProductSummary = {
   extras: ExtraSummary[];
   /** Quantity prices, in order of quantity. Empty when the price is the same whatever the quantity. */
   priceBreaks: PriceBreak[];
+  /** The steps it is made in, in order. Empty when it has none. */
+  steps: string[];
 };
 
 /** Does a list row match what the person typed in the search box? */

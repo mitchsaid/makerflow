@@ -43,6 +43,7 @@ function toPayload(p: ProductFields) {
     extras: p.extras === undefined ? null : extrasPayload(p.extras),
     priceBreaks:
       p.priceBreaks === undefined ? null : p.priceBreaks.map((b) => ({ from_quantity_milli: b.fromMilli, percent_off_bp: b.percentBp })),
+    steps: p.steps === undefined ? null : p.steps.map((name) => ({ name })),
     variations:
       p.variations === undefined
         ? null
@@ -72,6 +73,7 @@ async function saveProduct(
     p_options: payload.options,
     p_extras: payload.extras,
     p_price_breaks: payload.priceBreaks,
+    p_steps: payload.steps,
   });
   if (error?.code === "23505" && error.message.includes("extras_shared_name_unique")) {
     return {

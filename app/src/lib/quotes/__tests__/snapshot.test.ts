@@ -411,6 +411,12 @@ describe("pictures in the snapshot", () => {
     expect(s.lines.map((l) => l.photoImageId)).toEqual(["photo-1", null]);
   });
 
+  it("carries the product's id on its line (so a job can take its steps), and none on a one-off item", () => {
+    const s = snap({});
+    expect(s.lines.map((l) => l.productId)).toEqual([expect.stringMatching(/^[0-9a-f-]{36}$/), undefined]);
+    expect("productId" in s.lines[1]).toBe(false);
+  });
+
   it("leaves photos out when the quote has them switched off", () => {
     expect(snap({ showPhotos: false }).lines.map((l) => l.photoImageId)).toEqual([null, null]);
   });

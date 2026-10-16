@@ -20,6 +20,7 @@ import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
 import { QuantityPricesSection } from "./quantity-prices-section";
+import { StepsSection } from "./steps-section";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 import { AddButton } from "@/components/add-button";
 import { FormErrorScope } from "@/components/form-errors";
@@ -31,13 +32,11 @@ import { FormErrorScope } from "@/components/form-errors";
 const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> = {
   product: [
     ["Costs and margin", "What it costs to make, to show your profit."],
-    ["Production steps", "The steps to make it, so you can track each job."],
     ["Stock", "How many you have ready to sell."],
   ],
   // Services (founder, 2026-10-03): no photo or stock; costs are mostly your time.
   service: [
     ["Costs and margin", "Your time and other costs, to show your profit."],
-    ["Steps", "The steps of the service, so you can track each job."],
   ],
 };
 
@@ -254,6 +253,11 @@ export function ProductForm({
     if (e?.from) problems.push({ fieldId: fid(`price-break-${row.key}-from`), label: `Quantity price ${i + 1}: from`, message: e.from });
     if (e?.percent) problems.push({ fieldId: fid(`price-break-${row.key}-percent`), label: `Quantity price ${i + 1}: percent off`, message: e.percent });
   });
+  values.steps.forEach((row, i) => {
+    const e = errors.steps?.rows[row.key];
+    if (e?.name) problems.push({ fieldId: fid(`step-${row.key}-name`), label: `Step ${i + 1}`, message: e.name });
+  });
+  if (errors.steps?.list) problems.push({ fieldId: fid("steps-error"), label: "Steps", message: errors.steps.list });
   if (errors.priceBreaks?.list) problems.push({ fieldId: fid("price-breaks-error"), label: "Quantity prices", message: errors.priceBreaks.list });
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
@@ -540,7 +544,23 @@ export function ProductForm({
           setValues((v) => ({ ...v, priceBreaks }));
         }}
       />
+      <StepsSection
+        title={values.kind === "service" ? "Steps" : "Production steps"}
+        description={
+          values.kind === "service"
+            ? "The steps of the service, in order. Jobs show them so you can track each one."
+            : "The steps to make it, in order. Jobs show them so you can track each one."
+        }
+        rows={values.steps}
+        errors={errors.steps}
+        fid={fid}
+        onChange={(steps) => {
+          setEditedSinceSave(true);
+          setValues((v) => ({ ...v, steps }));
+        }}
+      />
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
+      <input type="hidden" name="steps" value={JSON.stringify(values.steps)} />
       <input type="hidden" name="priceBreaks" value={JSON.stringify(values.priceBreaks)} />
       <input
         type="hidden"

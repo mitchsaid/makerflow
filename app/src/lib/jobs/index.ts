@@ -198,6 +198,8 @@ export type JobDetail = JobSummary & {
     variationName: string | null;
     options: JobOption[];
     photoImageId: string | null;
+    /** The steps it is made in (a frozen copy of the product's when the item was made), in order. Empty: counted as a whole. */
+    steps: { id: string; name: string; doneMilli: number }[];
   }[];
   events: {
     kind: "created" | "status" | "item_added";
