@@ -562,7 +562,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add a quantity price" }).click();
       await page.getByLabel("From (quantity)").fill("10");
       await page.getByLabel("Name", { exact: true }).fill("Axe quantity product");
-      await page.getByLabel("Price", { exact: true }).fill("10");
+      await page.getByLabel(/^Price/).fill("10");
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product quantity prices, with a problem");
