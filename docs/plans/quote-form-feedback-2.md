@@ -66,6 +66,8 @@ Read in full this round: `prototype/src/components/Customers.tsx` (the add and e
 ### Slice 5: how to pay (no migration likely)
 - Reword and split the section so it says what each part is: **Bank details** (show on this quote: yes or no, with the summary), then **Notes about paying** (the existing text, relabelled, with "SnapScan, PayShap, or pay on collection" as its example), printed under the bank details. Founder to confirm the wording on dev; may need a per-quote note column.
 
+**Built (slice 5, 2026-10-16; no database change):** "How to pay" on a quote now says what each part is. **Bank details** (a sub-heading) holds the tick to show the saved details on this quote (or "Add bank details"). The free text is renamed from "Other ways to pay" to **"Notes about paying"**, with a hint that it is for anything else the customer should know (SnapScan or PayShap, a payment reference, "pay on collection") and that it is printed in "How to pay" under the bank details. The same rename is in Quotes and invoices, in the "Save as my usual payment notes" button and in the error messages. The note is one text (it prints whether or not the bank details are shown, so a note meant for the bank details sits under them); a separate note on the bank details alone was not added, as it would be the same box twice. The founder to say if that is the shape wanted.
+
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
 | --- | --- | --- |

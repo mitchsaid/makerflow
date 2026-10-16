@@ -38,7 +38,7 @@ test("the introduction is a usual: set once, every new quote starts with it, and
   await expect(page.getByRole("button", { name: "Use my usual description" })).toHaveCount(0);
 });
 
-test("the sign-off and the other ways to pay can be saved as usuals from the quote", async ({ page }) => {
+test("the sign-off and the notes about paying can be saved as usuals from the quote", async ({ page }) => {
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-wording", "Wording Co");
   await page.goto("/app/quotes/new");
@@ -50,13 +50,13 @@ test("the sign-off and the other ways to pay can be saved as usuals from the quo
   await page.getByLabel("Message (optional)").fill("Kind regards");
   await page.getByRole("button", { name: "Save as my usual sign-off" }).click();
   await expect(page.getByText("Saved as your usual sign-off.")).toBeVisible();
-  await page.getByLabel("Other ways to pay (optional)").fill("EFT to Wording Co");
-  await page.getByRole("button", { name: "Save as my usual ways to pay" }).click();
-  await expect(page.getByText("Saved as your usual ways to pay.")).toBeVisible();
+  await page.getByLabel("Notes about paying (optional)").fill("EFT to Wording Co");
+  await page.getByRole("button", { name: "Save as my usual payment notes" }).click();
+  await expect(page.getByText("Saved as your usual payment notes.")).toBeVisible();
 
   await page.goto("/app/quotes/new");
   await expect(page.getByLabel("Message (optional)")).toHaveValue("Kind regards");
-  await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Wording Co");
+  await expect(page.getByLabel("Notes about paying (optional)")).toHaveValue("EFT to Wording Co");
 });
 
 test("a deposit can be saved as the usual from a quote, and put back", async ({ page }) => {
