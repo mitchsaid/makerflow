@@ -6,6 +6,8 @@ import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettin
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
 async function expectNoViolations(page: Page, where: string) {
+  // Not while a page's loading skeleton is still on screen: it has no title of its own, and is not the page.
+  await expect(page.getByTestId("page-loading")).toHaveCount(0);
   // The page title streams in just after the page itself; checking before it arrives reports a
   // missing title that is not really missing.
   await expect(page).toHaveTitle(/.+/);

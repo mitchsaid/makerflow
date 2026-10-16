@@ -376,7 +376,6 @@ function PickView({
   const [query, setQuery] = useState("");
   const active = products.filter((p) => !p.archived);
   const matching = active.filter((p) => productMatchesSearch(p, query));
-  const anyPhoto = active.some((p) => p.kind === "product" && p.photoImageId);
   const groups = (["product", "service"] as const)
     .map((kind) => ({ kind, items: matching.filter((p) => p.kind === kind).slice(0, SEARCH_LIMIT) }))
     .filter((g) => active.some((p) => p.kind === g.kind));
@@ -413,8 +412,8 @@ function PickView({
                     onClick={() => onChoose(p)}
                   >
                     <span className="flex items-center gap-3">
-                      {/* Products with no photo keep an empty square, so the names line up (services never have one). */}
-                      {group.kind === "product" && anyPhoto && <PhotoThumb imageId={p.photoImageId} size="md" keepSpace />}
+                      {/* Only when there is a photo: no empty square for a product without one. */}
+                      <PhotoThumb imageId={p.photoImageId} size="md" />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline justify-between gap-3">
                           <span className="font-medium">{p.name}</span>

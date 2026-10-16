@@ -43,7 +43,7 @@ export function UsualButtons({
   useEffect(() => {
     if (usedUsual.current) {
       usedUsual.current = false;
-      setNote({ text: `Back to your usual ${what}.`, key: valueKey });
+      setNote({ text: `Using your usual ${what}.`, key: valueKey });
       focusNote.current = true;
     }
   }, [valueKey, what]);

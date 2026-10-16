@@ -18,7 +18,7 @@ export function PreviewBar({ quoteId }: { quoteId: string }) {
   const [markOpen, setMarkOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   return (
-    <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-3 md:bottom-0">
+    <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-3 md:bottom-0">
       <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2 sm:flex sm:items-center">
         <Link href={`/app/quotes/${quoteId}`} className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}>
           Edit

@@ -8,11 +8,12 @@ test("the introduction is a usual: set once, every new quote starts with it, and
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-desc", "Usual Co");
 
-  // Nothing saved yet: a new quote starts empty, and nothing is offered until something is typed.
+  // Nothing saved yet: a new quote starts with a generic suggestion, and nothing is offered for saving until it is changed.
   await page.goto("/app/quotes/new");
   const description = page.getByLabel("Description (optional)");
-  await expect(description).toHaveValue("");
+  await expect(description).toHaveValue("Thank you for your interest. Below is what I would prepare for you.");
   await expect(page.getByRole("button", { name: "Save as my usual description" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Use my usual description" })).toHaveCount(0);
 
   // Typing one offers to keep it, in one tap.
   await description.fill("Thank you for asking about your order.");
@@ -32,6 +33,8 @@ test("the introduction is a usual: set once, every new quote starts with it, and
   await expect(page.getByRole("button", { name: "Use my usual description" })).toBeVisible();
   await page.getByRole("button", { name: "Use my usual description" }).click();
   await expect(page.getByLabel("Description (optional)")).toHaveValue("Thank you for asking about your order.");
+  // It says what happened as a plain statement, not as an instruction.
+  await expect(page.getByText("Using your usual description.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Use my usual description" })).toHaveCount(0);
 });
 
@@ -39,8 +42,10 @@ test("the sign-off and the other ways to pay can be saved as usuals from the quo
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-wording", "Wording Co");
   await page.goto("/app/quotes/new");
-  // No example is suggested any more.
+  // No example is suggested any more; the sign-off starts with a generic one, which is not offered for saving as it is.
   await expect(page.getByText("Like “Yours in sweetness”")).toHaveCount(0);
+  await expect(page.getByLabel("Message (optional)")).toHaveValue("Thank you for the opportunity to quote. Please get in touch with any questions.");
+  await expect(page.getByRole("button", { name: "Save as my usual sign-off" })).toHaveCount(0);
 
   await page.getByLabel("Message (optional)").fill("Kind regards");
   await page.getByRole("button", { name: "Save as my usual sign-off" }).click();

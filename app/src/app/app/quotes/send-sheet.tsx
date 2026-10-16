@@ -55,8 +55,9 @@ export function SendQuoteSheet({
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !busy && onOpenChange(isOpen)}>
       <SheetContent
-        side="right"
-        className="h-dvh gap-0 overflow-y-auto"
+        // A short confirmation rising from the bottom, not a screen of its own; it grows when problems are listed.
+        side="bottom"
+        className="max-h-[90dvh] gap-0 overflow-y-auto rounded-t-2xl"
         finalFocus={() => {
           const el = document.getElementById(returnFocusId);
           return el ?? true;
@@ -67,6 +68,7 @@ export function SendQuoteSheet({
           quoteId={quoteId}
           onBusyChange={setBusy}
           onGoTo={onFix}
+          onCancel={() => onOpenChange(false)}
         />
       </SheetContent>
     </Sheet>
@@ -77,10 +79,12 @@ function SendFlow({
   quoteId,
   onBusyChange,
   onGoTo,
+  onCancel,
 }: {
   quoteId: string;
   onBusyChange: (busy: boolean) => void;
   onGoTo: (fieldId: string) => void;
+  onCancel: () => void;
 }) {
   const router = useRouter();
   const [view, setView] = useState<SendSheetState | null>(null);
@@ -176,9 +180,14 @@ function SendFlow({
               can&apos;t change by accident. If something needs to change afterwards, you can revise it: it keeps the
               number {view.number}.
             </p>
-            <Button type="button" size="lg" className="w-full" disabled={sending} onClick={send}>
-              {sending ? "Saving…" : "Mark as sent"}
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" size="lg" disabled={sending} onClick={send}>
+                {sending ? "Saving…" : "Mark as sent"}
+              </Button>
+              <Button type="button" variant="outline" size="lg" disabled={sending} onClick={onCancel}>
+                Cancel
+              </Button>
+            </div>
           </>
         )}
       </div>

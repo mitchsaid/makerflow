@@ -50,6 +50,10 @@ describe("the South African pack", () => {
   it("words quotes as South African law expects", () => {
     expect(za.tax.inclusiveStatement(1500)).toBe("All prices include VAT at 15%.");
     expect(za.documents.quoteTitle).toBe("Quotation");
+    // A new quote's description and sign-off start from words that fit a quote, within what the fields hold.
+    expect(za.documents.quoteStart.description.length).toBeGreaterThan(10);
+    expect(za.documents.quoteStart.description.length).toBeLessThanOrEqual(2000);
+    expect(za.documents.quoteStart.signOff.length).toBeLessThanOrEqual(200);
     expect(za.documents.quoteNotATaxInvoice).toBe("This quotation is not a tax invoice.");
   });
 

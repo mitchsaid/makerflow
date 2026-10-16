@@ -34,6 +34,13 @@ describe("when Save as my usual and Use my usual are offered", () => {
     expect(canSaveUsualText("   ", "Hello")).toBe(false);
     expect(canSaveUsualText("", "")).toBe(false);
   });
+  it("does not offer to save the generic starting text while there is no usual of the business's own", () => {
+    expect(canSaveUsualText("Thank you.", "", "Thank you.")).toBe(false);
+    expect(canSaveUsualText(" Thank  you. ", "", "Thank you.")).toBe(false);
+    expect(canSaveUsualText("Thanks!", "", "Thank you.")).toBe(true);
+    // Once there is a usual, the starting text is just another change from it.
+    expect(canSaveUsualText("Thank you.", "Kind regards", "Thank you.")).toBe(true);
+  });
   it("offers going back only when there is a usual and the quote differs from it", () => {
     expect(canUseUsualText("Changed", "Hello")).toBe(true);
     expect(canUseUsualText("", "Hello")).toBe(true);

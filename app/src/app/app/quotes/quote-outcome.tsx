@@ -57,10 +57,11 @@ export function OutcomeButtons({
       <CardContent className="space-y-3">
         <h3 className="text-base font-medium">Has your customer answered?</h3>
         <p className="text-sm text-muted-foreground">
-          Write it down so you can see where every quote stands. Nothing is sent to your customer.
+          Write it down so you can see where every quote stands. When they accept, you can turn it into a job. Nothing is
+          sent to your customer.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button type="button" size="lg" variant="outline" id="outcome-accepted" onClick={() => show("accepted")}>
+          <Button type="button" size="lg" variant="soft" id="outcome-accepted" onClick={() => show("accepted")}>
             They accepted
           </Button>
           <Button type="button" size="lg" variant="outline" id="outcome-declined" onClick={() => show("declined")}>
