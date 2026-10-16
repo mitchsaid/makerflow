@@ -11,6 +11,13 @@ async function newQuote(page: Page) {
   await fillItem(page, 1, "Wedding cake", "1", "800");
 }
 
+/** In a customer form: deliveries go somewhere other than the address above (its street, here). */
+async function deliverElsewhere(form: import("@playwright/test").Locator, street: string) {
+  const delivery = form.getByRole("group", { name: "Delivery" });
+  await delivery.getByRole("checkbox", { name: "Same as the address above" }).uncheck();
+  await delivery.getByLabel("Street address").fill(street);
+}
+
 /** Adds a customer in the sheet over the quote, with the address details given. */
 async function addCustomer(page: Page, name: string, details: { street?: string; city?: string; deliverTo?: string } = {}) {
   await page.getByLabel("Customer name", { exact: true }).fill(name);
@@ -18,9 +25,10 @@ async function addCustomer(page: Page, name: string, details: { street?: string;
   const dialog = page.getByRole("dialog", { name: "Add a customer" });
   if (details.street || details.city || details.deliverTo) {
     await dialog.getByRole("button", { name: "Add address, delivery details or notes" }).click();
-    if (details.street) await dialog.getByLabel("Street address").fill(details.street);
-    if (details.city) await dialog.getByLabel("City or town").fill(details.city);
-    if (details.deliverTo) await dialog.getByLabel("Deliver to (optional)").fill(details.deliverTo);
+    const address = dialog.getByRole("group", { name: "Address", exact: true });
+    if (details.street) await address.getByLabel("Street address").fill(details.street);
+    if (details.city) await address.getByLabel("City or town").fill(details.city);
+    if (details.deliverTo) await deliverElsewhere(dialog, details.deliverTo);
   }
   await dialog.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -146,7 +154,7 @@ test("changing the customer moves the saved address along, but never replaces on
   // who had none gets one).
   await page.getByRole("button", { name: /Edit details/ }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Deliver to (optional)").fill("Farm gate, R45");
+  await deliverElsewhere(dialog, "Farm gate, R45");
   await dialog.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeVisible();
@@ -173,13 +181,13 @@ test("one customer's saved address never ends up on another customer's quote", a
 
   // Editing the chosen customer's address changes the quote's address with it.
   await page.getByRole("button", { name: /Edit details/ }).click();
-  await page.getByRole("dialog").getByLabel("Deliver to (optional)").fill("Unit 4, Sandton Mews");
+  await deliverElsewhere(page.getByRole("dialog"), "Unit 4, Sandton Mews");
   await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeVisible();
   await page.getByRole("radio", { name: /Delivery address on file/ }).check();
   await page.getByRole("button", { name: /Edit details/ }).click();
-  await page.getByRole("dialog").getByLabel("Deliver to (optional)").fill("Unit 9, Sandton Mews");
+  await page.getByRole("dialog").getByRole("group", { name: "Delivery" }).getByLabel("Street address").fill("Unit 9, Sandton Mews");
   await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("Unit 9, Sandton Mews")).toBeVisible();

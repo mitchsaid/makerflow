@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +13,7 @@ import { getLocalePack } from "@/lib/locale";
 import type { CustomerSaveState, CustomerSummaryOption } from "./actions";
 import type { CustomerFormValues } from "./customer-values";
 import { AddButton } from "@/components/add-button";
+import { AddressFields } from "@/components/address-fields";
 import { FormErrorScope } from "@/components/form-errors";
 
 const initialState: CustomerSaveState = { status: "idle" };
@@ -87,9 +88,8 @@ export function CustomerForm({
     initial.city,
     initial.region,
     initial.postalCode,
-    initial.deliveryAddress,
     initial.notes,
-  ].some((v) => v !== "");
+  ].some((v) => v !== "") || !initial.deliverySameAsMain;
   const [showMore, setShowMore] = useState(mode === "edit" || hasMore);
 
   // Hand the result to whoever opened the sheet, once per result.
@@ -122,14 +122,18 @@ export function CustomerForm({
       ["city", "City or town"],
       ["region", locale.address.regionLabel],
       ["postalCode", "Postal code"],
-      ["deliveryAddress", "Deliver to"],
+      ["deliveryAddressLine1", "Delivery street address"],
+      ["deliveryAddressLine2", "Delivery suburb or building"],
+      ["deliveryCity", "Delivery city or town"],
+      ["deliveryRegion", `Delivery ${locale.address.regionLabel.toLowerCase()}`],
+      ["deliveryPostalCode", "Delivery postal code"],
       ["notes", "Anything to remember"],
     ] as const
   ).flatMap(([field, label]) => {
     // Business-only fields are not on screen when "this is a business" is off.
     const onScreen =
-      values.isBusiness ||
-      !["contactPerson", "vatNumber", "companyRegistrationNumber"].includes(field);
+      (values.isBusiness || !["contactPerson", "vatNumber", "companyRegistrationNumber"].includes(field)) &&
+      (!field.startsWith("delivery") || !values.deliverySameAsMain);
     const message = errors[field];
     return message && onScreen ? [{ fieldId: fid(field), label, message }] : [];
   });
@@ -142,7 +146,7 @@ export function CustomerForm({
     };
 
   const text = (
-    key: Exclude<keyof CustomerFormValues, "isBusiness">,
+    key: Exclude<keyof CustomerFormValues, "isBusiness" | "deliverySameAsMain">,
     label: string,
     props: Omit<React.ComponentProps<typeof TextField>, "id" | "label" | "value" | "onChange" | "error"> = {},
   ) => (
@@ -218,32 +222,44 @@ export function CustomerForm({
       {showMore ? (
         <>
           <Section title="Address">
-            {text("addressLine1", "Street address", { autoComplete: "off" })}
-            {text("addressLine2", "Suburb or building (optional)", { autoComplete: "off" })}
-            {text("city", "City or town", { autoComplete: "off" })}
-            <SelectField
-              id={fid("region")}
-              name="region"
-              label={locale.address.regionLabel}
-              error={errors.region}
-              value={values.region}
-              onChange={set("region")}
-              placeholder={`Choose a ${locale.address.regionLabel.toLowerCase()}`}
-              options={locale.address.regions}
+            <AddressFields
+              keys={{ line1: "addressLine1", line2: "addressLine2", city: "city", region: "region", postalCode: "postalCode" }}
+              values={values}
+              errors={errors}
+              set={set}
+              fid={fid}
+              locale={locale}
             />
-            {text("postalCode", "Postal code", { inputMode: "numeric", autoComplete: "off" })}
           </Section>
           <Section title="Delivery">
-            <TextAreaField
-              id={fid("deliveryAddress")}
-              name="deliveryAddress"
-              label="Deliver to (optional)"
-              hint="Only if it is different from the address above."
-              error={errors.deliveryAddress}
-              value={values.deliveryAddress}
-              onChange={set("deliveryAddress")}
-              maxLength={400}
-            />
+            {/* Sent as yes or no whatever is on screen, so a form that is not open still says "same as above". */}
+            <input type="hidden" name="deliverySameAsMain" value={values.deliverySameAsMain ? "yes" : "no"} />
+            <Field orientation="horizontal" className="items-start py-2.5">
+              <Checkbox
+                id={fid("deliverySameAsMain")}
+                checked={values.deliverySameAsMain}
+                onCheckedChange={(checked) => set("deliverySameAsMain")(checked === true)}
+              />
+              <FieldLabel htmlFor={fid("deliverySameAsMain")} className="text-base">
+                Same as the address above
+              </FieldLabel>
+            </Field>
+            {!values.deliverySameAsMain && (
+              <AddressFields
+                keys={{
+                  line1: "deliveryAddressLine1",
+                  line2: "deliveryAddressLine2",
+                  city: "deliveryCity",
+                  region: "deliveryRegion",
+                  postalCode: "deliveryPostalCode",
+                }}
+                values={values}
+                errors={errors}
+                set={set}
+                fid={fid}
+                locale={locale}
+              />
+            )}
           </Section>
           <Section title="Private notes">
             <TextAreaField

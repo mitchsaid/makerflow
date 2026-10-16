@@ -7,9 +7,10 @@ import type { Fulfilment } from "./index";
  * address typed for this quote is never replaced. Pure, so each rule is tested on its own.
  */
 
-const tidy = (text: string) => text.replace(/\s+/g, " ").trim();
+// Commas count as spacing: a saved address that was joined onto one line (", " in place of line breaks) is still the same.
+const tidy = (text: string) => text.replace(/[,\s]+/g, " ").trim();
 
-/** Is this the same address, ignoring spaces and line breaks? */
+/** Is this the same address, ignoring spaces, commas and line breaks? */
 export const sameAddress = (a: string, b: string) => tidy(a) === tidy(b);
 
 /** Nothing typed, or the address is one of these saved ones. */

@@ -84,6 +84,30 @@ begin
   exception when check_violation then null;
   end;
 
+  -- Delivery address (docs/plans/quote-form-feedback-2.md, slice 2): "same as above" by default, structured otherwise.
+  assert (select delivery_same_as_main from public.customers where id = cust_a),
+    'a new customer should be delivered to at their main address by default';
+  update public.customers
+    set delivery_same_as_main = false, delivery_address_line1 = '4 Dock Rd', delivery_city = 'Durban',
+        delivery_region = 'KwaZulu-Natal', delivery_postal_code = '4001'
+    where id = cust_a;
+  assert (select delivery_city = 'Durban' and not delivery_same_as_main from public.customers where id = cust_a),
+    'a separate delivery address was not kept';
+  begin
+    update public.customers set delivery_same_as_main = true where id = cust_a;
+    raise exception 'FAIL: "same as above" was accepted while a separate delivery address was set';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.customers set delivery_city = '' where id = cust_a;
+    raise exception 'FAIL: an empty delivery city was accepted';
+  exception when check_violation then null;
+  end;
+  update public.customers
+    set delivery_same_as_main = true, delivery_address_line1 = null, delivery_city = null, delivery_region = null,
+        delivery_postal_code = null
+    where id = cust_a;
+
   -- Shape rules: no empty strings, name limits.
   begin
     insert into public.customers (organisation_id, name) values (org_a, '');
@@ -200,6 +224,47 @@ begin
   set local role authenticated;
   select count(*) into n from public.customers;
   assert n = 0, 'a customer list was readable with an ended session';
+  reset role;
+
+  -- (Last, so the extra customers do not disturb the counts above.)
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  -- The migration's carry-over of free-text delivery addresses (the same statement, limited to these rows; keep in sync
+  -- with 20261103100000_customer_delivery_address.sql).
+  insert into public.customers (organisation_id, name, delivery_address) values
+    (org_a, 'legacy-multi', E'  22 Jacaranda   Avenue\r\n  Parkhurst \n\n Johannesburg  '),
+    (org_a, 'legacy-lead', E'\nGate 4'),
+    (org_a, 'legacy-tabs', E'\t\t'),
+    (org_a, 'legacy-newline', E'\n'),
+    (org_a, 'legacy-long', repeat('word ', 80)),
+    (org_a, 'legacy-none', null);
+  with cleaned as (
+    select id,
+           left(
+             regexp_replace(
+               regexp_replace(regexp_replace(delivery_address, E'\\s*\\n\\s*', ', ', 'g'), E'\\s+', ' ', 'g'),
+               E'^[,\\s]+|[,\\s]+$', '', 'g'),
+             400) as text
+    from public.customers
+    where delivery_address is not null and name like 'legacy-%'
+  )
+  update public.customers c
+  set delivery_same_as_main = false, delivery_address_line1 = cleaned.text
+  from cleaned
+  where c.id = cleaned.id and cleaned.text ~ '[[:alnum:]]';
+  assert (select delivery_address_line1 = '22 Jacaranda Avenue, Parkhurst, Johannesburg' and not delivery_same_as_main
+            from public.customers where name = 'legacy-multi'), 'a multi-line address was not carried over as one tidy line';
+  assert (select delivery_address_line1 = 'Gate 4' from public.customers where name = 'legacy-lead'),
+    'a leading line break left a stray comma';
+  assert (select delivery_same_as_main and delivery_address_line1 is null from public.customers where name in ('legacy-tabs')),
+    'an address of only tabs should stay "same as above"';
+  assert (select delivery_same_as_main and delivery_address_line1 is null from public.customers where name = 'legacy-newline'),
+    'an address of only a line break should stay "same as above"';
+  assert (select not delivery_same_as_main and char_length(delivery_address_line1) <= 400 from public.customers where name = 'legacy-long'),
+    'a long address should be kept, cut to 400 characters';
+  assert (select delivery_same_as_main and delivery_address_line1 is null from public.customers where name = 'legacy-none'),
+    'no address should stay "same as above"';
+
   reset role;
 
   raise notice 'customers tests passed';

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, SelectField, TextField, type ExtraInputProps } from "@/components/form-fields";
+import { AddressFields } from "@/components/address-fields";
+import { Section, TextField, type ExtraInputProps } from "@/components/form-fields";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { getLocalePack } from "@/lib/locale";
 import type { FieldErrors } from "@/lib/business-profile";
@@ -107,20 +108,16 @@ export function BusinessProfileForm({
       </Section>
 
       <Section title="Address">
-        {text("addressLine1", "Street address", { autoComplete: "address-line1" })}
-        {text("addressLine2", "Suburb or building (optional)", { autoComplete: "address-line2" })}
-        {text("city", "City or town", { autoComplete: "address-level2" })}
-        <SelectField
-          id="region"
-          label={locale.address.regionLabel}
-          error={errors.region}
-          value={values.region}
-          onChange={set("region")}
-          placeholder={`Choose a ${locale.address.regionLabel.toLowerCase()}`}
-          options={locale.address.regions}
-          autoComplete="address-level1"
+        <AddressFields
+          keys={{ line1: "addressLine1", line2: "addressLine2", city: "city", region: "region", postalCode: "postalCode" }}
+          values={values}
+          errors={errors}
+          set={set}
+          fid={(key) => key}
+          locale={locale}
+          autoComplete="own"
+          postalCodeMaxLength={4}
         />
-        {text("postalCode", "Postal code", { inputMode: "numeric", autoComplete: "postal-code", maxLength: 4 })}
       </Section>
 
       <Section title="VAT">

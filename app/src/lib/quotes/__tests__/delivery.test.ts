@@ -18,6 +18,10 @@ describe("sameAddress", () => {
     expect(sameAddress("12  Main Road\nSoweto", "12 Main Road Soweto")).toBe(true);
     expect(sameAddress("12 Main Road", "14 Main Road")).toBe(false);
   });
+  it("ignores commas, so an address carried onto one line is still the same address", () => {
+    expect(sameAddress("12 Main Road\nSoweto", "12 Main Road, Soweto")).toBe(true);
+    expect(sameAddress("12 Main Road, Soweto", "12 Main Road, Durban")).toBe(false);
+  });
 });
 
 describe("choosing delivery", () => {

@@ -5,6 +5,7 @@ import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
 import type { DiscountKind, LineOption } from "./index";
 import type { Customer, CustomerKind } from "../customers";
+import { DELIVERY_COLUMNS, deliveryFromRow, type DeliveryRow } from "../customers/data";
 import { isStarterKey, type StarterKey } from "./themes";
 import type { QuoteEventKind } from "./outcome";
 import type { QuoteSnapshot } from "./snapshot";
@@ -126,11 +127,10 @@ type CustomerRow = {
   address_line2: string | null;
   region: string | null;
   postal_code: string | null;
-  delivery_address: string | null;
   vat_number: string | null;
   company_registration_number: string | null;
   notes: string | null;
-};
+} & DeliveryRow;
 
 type QuoteRow = {
   id: string;
@@ -306,7 +306,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
        ),
        customers (
          id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
-         address_line1, address_line2, region, postal_code, delivery_address,
+         address_line1, address_line2, region, postal_code, ${DELIVERY_COLUMNS},
          vat_number, company_registration_number, notes
        ),
        quote_versions ( version, sent_at, sent_via, snapshot ),
@@ -380,7 +380,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
             city: c.city,
             region: c.region,
             postalCode: c.postal_code,
-            deliveryAddress: c.delivery_address,
+            ...deliveryFromRow(c),
             vatNumber: c.vat_number,
             companyRegistrationNumber: c.company_registration_number,
             notes: c.notes,

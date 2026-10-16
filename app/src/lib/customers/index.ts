@@ -23,7 +23,16 @@ export type CustomerFields = {
   city: string | null;
   region: string | null;
   postalCode: string | null;
-  deliveryAddress: string | null;
+  /**
+   * Where deliveries go. By default the main address ("same as above"); otherwise the parts below, shaped like the
+   * main address. They are all null while it is the same.
+   */
+  deliverySameAsMain: boolean;
+  deliveryAddressLine1: string | null;
+  deliveryAddressLine2: string | null;
+  deliveryCity: string | null;
+  deliveryRegion: string | null;
+  deliveryPostalCode: string | null;
   vatNumber: string | null;
   companyRegistrationNumber: string | null;
   notes: string | null;
@@ -46,8 +55,23 @@ export type CustomerSummary = {
 };
 
 /** A summary with the address details a quote offers as "deliver to" (see savedAddresses). */
-export type CustomerSummaryWithAddress = CustomerSummary &
-  Pick<CustomerFields, "addressLine1" | "addressLine2" | "region" | "postalCode" | "deliveryAddress">;
+export type CustomerSummaryWithAddress = CustomerSummary & CustomerAddresses;
+
+/** The address details of a customer: the main address and where deliveries go. */
+export type CustomerAddresses = Pick<
+  CustomerFields,
+  | "addressLine1"
+  | "addressLine2"
+  | "city"
+  | "region"
+  | "postalCode"
+  | "deliverySameAsMain"
+  | "deliveryAddressLine1"
+  | "deliveryAddressLine2"
+  | "deliveryCity"
+  | "deliveryRegion"
+  | "deliveryPostalCode"
+>;
 
 export type CustomerFieldName = keyof CustomerFields;
 export type CustomerFieldErrors = Partial<Record<CustomerFieldName, string>>;
@@ -118,8 +142,40 @@ export function parseCustomerForm(form: FormData, locale: LocalePack): ParsedCus
   const postalCode = optionalValidated(form.get("postalCode"), locale.address.validatePostalCode);
   if (!postalCode.ok) errors.postalCode = postalCode.error;
 
-  const deliveryAddress = optionalMultiline(form.get("deliveryAddress"), 400, "Delivery address");
-  if (!deliveryAddress.ok) errors.deliveryAddress = deliveryAddress.error;
+  // Delivery: the same address by default; otherwise its own parts, shaped like the main address.
+  const deliverySameAsMain = form.get("deliverySameAsMain") !== "no";
+  const delivery = {
+    line1: null as string | null,
+    line2: null as string | null,
+    city: null as string | null,
+    region: null as string | null,
+    postalCode: null as string | null,
+  };
+  if (!deliverySameAsMain) {
+    const dLine1 = optionalText(form.get("deliveryAddressLine1"), 120, "Address");
+    if (dLine1.ok) delivery.line1 = dLine1.value;
+    else errors.deliveryAddressLine1 = dLine1.error;
+    const dLine2 = optionalText(form.get("deliveryAddressLine2"), 120, "Address");
+    if (dLine2.ok) delivery.line2 = dLine2.value;
+    else errors.deliveryAddressLine2 = dLine2.error;
+    const dCity = optionalText(form.get("deliveryCity"), 80, "City");
+    if (dCity.ok) delivery.city = dCity.value;
+    else errors.deliveryCity = dCity.error;
+    const dRegion = optionalChoice(
+      form.get("deliveryRegion"),
+      locale.address.regions,
+      `Please choose a ${locale.address.regionLabel.toLowerCase()} from the list.`,
+    );
+    if (dRegion.ok) delivery.region = dRegion.value;
+    else errors.deliveryRegion = dRegion.error;
+    const dPostal = optionalValidated(form.get("deliveryPostalCode"), locale.address.validatePostalCode);
+    if (dPostal.ok) delivery.postalCode = dPostal.value;
+    else errors.deliveryPostalCode = dPostal.error;
+    // Unticked with nothing typed would save a delivery address that is empty: say how to fix it.
+    if (Object.values(delivery).every((v) => v === null) && !errors.deliveryAddressLine1 && !errors.deliveryAddressLine2 && !errors.deliveryCity && !errors.deliveryRegion && !errors.deliveryPostalCode) {
+      errors.deliveryAddressLine1 = "Enter the delivery address, or tick “Same as the address above”.";
+    }
+  }
 
   const notes = optionalMultiline(form.get("notes"), 2000, "Notes");
   if (!notes.ok) errors.notes = notes.error;
@@ -163,7 +219,12 @@ export function parseCustomerForm(form: FormData, locale: LocalePack): ParsedCus
       city: city.ok ? city.value : null,
       region: region.ok ? region.value : null,
       postalCode: postalCode.ok ? postalCode.value : null,
-      deliveryAddress: deliveryAddress.ok ? deliveryAddress.value : null,
+      deliverySameAsMain,
+      deliveryAddressLine1: delivery.line1,
+      deliveryAddressLine2: delivery.line2,
+      deliveryCity: delivery.city,
+      deliveryRegion: delivery.region,
+      deliveryPostalCode: delivery.postalCode,
       vatNumber,
       companyRegistrationNumber,
       notes: notes.ok ? notes.value : null,
@@ -222,13 +283,20 @@ const sameText = (a: string, b: string) => a.replace(/\s+/g, " ").trim().toLower
  * their main address, written the way their country writes it. Only the ones they have, and the
  * main address is left out when it is the same as the delivery address.
  */
-export function savedAddresses(
-  c: Pick<CustomerFields, "addressLine1" | "addressLine2" | "city" | "region" | "postalCode" | "deliveryAddress">,
-  locale: LocalePack,
-): SavedAddress[] {
+export function savedAddresses(c: CustomerAddresses, locale: LocalePack): SavedAddress[] {
   const out: SavedAddress[] = [];
-  const delivery = c.deliveryAddress?.trim();
-  if (delivery) out.push({ kind: "delivery", label: "Delivery address on file", text: delivery });
+  if (!c.deliverySameAsMain) {
+    const delivery = locale.address
+      .formatLines({
+        line1: c.deliveryAddressLine1,
+        line2: c.deliveryAddressLine2,
+        city: c.deliveryCity,
+        region: c.deliveryRegion,
+        postalCode: c.deliveryPostalCode,
+      })
+      .join("\n");
+    if (delivery) out.push({ kind: "delivery", label: "Delivery address on file", text: delivery });
+  }
   const main = locale.address
     .formatLines({ line1: c.addressLine1, line2: c.addressLine2, city: c.city, region: c.region, postalCode: c.postalCode })
     .join("\n");

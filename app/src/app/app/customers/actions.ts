@@ -13,7 +13,7 @@ import {
   type CustomerFields,
 } from "@/lib/customers";
 import { getLocalePack, type LocalePack } from "@/lib/locale";
-import { findCustomer } from "@/lib/customers/data";
+import { DELIVERY_COLUMNS, deliveryFromRow, findCustomer } from "@/lib/customers/data";
 import { createClient } from "@/lib/supabase/server";
 
 /** What the quote's customer picker needs back after a customer is added or changed. */
@@ -43,7 +43,12 @@ function toRow(c: CustomerFields) {
     city: c.city,
     region: c.region,
     postal_code: c.postalCode,
-    delivery_address: c.deliveryAddress,
+    delivery_same_as_main: c.deliverySameAsMain,
+    delivery_address_line1: c.deliveryAddressLine1,
+    delivery_address_line2: c.deliveryAddressLine2,
+    delivery_city: c.deliveryCity,
+    delivery_region: c.deliveryRegion,
+    delivery_postal_code: c.deliveryPostalCode,
     vat_number: c.vatNumber,
     company_registration_number: c.companyRegistrationNumber,
     notes: c.notes,
@@ -72,7 +77,7 @@ async function insertCustomer(
   if (formData.get("confirmDuplicate") !== "yes") {
     const { data: existing, error: lookupError } = await supabase
       .from("customers")
-      .select("id, name, phone, address_line1, address_line2, city, region, postal_code, delivery_address")
+      .select(`id, name, phone, address_line1, address_line2, city, region, postal_code, ${DELIVERY_COLUMNS}`)
       .eq("organisation_id", organisation.id)
       .limit(5000);
     if (lookupError) {
@@ -99,7 +104,7 @@ async function insertCustomer(
                   city: c.city,
                   region: c.region,
                   postalCode: c.postal_code,
-                  deliveryAddress: c.delivery_address,
+                  ...deliveryFromRow(c),
                 },
                 getLocalePack(profile.countryCode),
               ),
