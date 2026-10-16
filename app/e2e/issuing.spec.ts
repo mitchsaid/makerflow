@@ -355,7 +355,7 @@ test("revising a sent quote keeps its number, adds a version, and keeps the old 
 
   // Version 1 is still there, as it was sent.
   await page.getByRole("link", { name: "Version 1" }).click();
-  await expect(page.getByTestId("earlier-version-note")).toContainText("This is version 1, an earlier version");
+  await expect(page.getByTestId("earlier-version-note")).toContainText("Version 1 is an earlier version");
   await expect(page.getByTestId("quote-document")).toContainText(/R\s?800,00/);
   await expect(page.getByRole("button", { name: "Revise this quote" })).toHaveCount(0);
   const v1Pdf = await page.request.get(`${quoteUrl}/pdf?version=1`);
@@ -442,7 +442,7 @@ test("items can be zero-rated or exempt: the totals, the preview and the sent qu
   await sheet(page).getByRole("button", { name: /One-off item/ }).click();
   // Standard-rated until said otherwise, and the choice explains itself.
   await expect(sheet(page).getByLabel("VAT on this item")).toHaveValue("");
-  await expect(sheet(page)).toContainText("most things you make");
+  await expect(sheet(page)).toContainText("right for most items");
   await sheet(page).getByLabel("Name", { exact: true }).fill("Brown bread");
   await sheet(page).getByLabel("Quantity").fill("2");
   await sheet(page).getByLabel(/^Price/).fill("50");

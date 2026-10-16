@@ -54,7 +54,7 @@ test("the quote preview offers the logo while there is none: add it there, or ca
 
   const prompt = page.getByTestId("logo-prompt");
   await expect(prompt).toContainText("Add your logo");
-  await expect(prompt).toContainText("printed at the top of your quotes");
+  await expect(prompt).toContainText("Printed at the top of your quotes");
   const stampBefore = await page.getByTestId("pdf-pages").getAttribute("data-url");
 
   // The sheet holds the Business profile's logo form: Cancel closes it and the card stays, with focus back on its button.
