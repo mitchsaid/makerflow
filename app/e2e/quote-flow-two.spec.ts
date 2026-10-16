@@ -50,3 +50,44 @@ test("on a sent quote, what to do next comes before the PDF, and the coming-soon
   // The way to a job is said where the answer is asked for.
   await expect(page.getByText("When they accept, you can turn it into a job.")).toBeVisible();
 });
+
+test("a new quote shows the number it will get, and the numbering can be changed from the quote", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "qf2-number", "Number Co");
+  await page.goto("/app/quotes/new");
+
+  // The number it is about to get, and that it is given on the first save.
+  await expect(page.getByTestId("quote-number")).toHaveText("QT-0001");
+  await expect(page.getByText("Given when you first save it.")).toBeVisible();
+
+  // Change numbering opens the same prefix and next-number form as Quotes and invoices, in a sheet.
+  await page.getByRole("button", { name: /Change how quotes are numbered/ }).click();
+  const numbering = sheet(page);
+  await expect(numbering).toHaveAccessibleName("Quote numbers");
+  await numbering.getByLabel("Prefix").fill("CAKE-");
+  await numbering.getByLabel("Next number").fill("42");
+  await expect(numbering.getByTestId("number-preview")).toContainText("CAKE-0042");
+  // Cancel keeps what was there.
+  await numbering.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("quote-number")).toHaveText("QT-0001");
+
+  // Saving closes the sheet and the number on the quote follows. What was typed on the quote is kept.
+  await page.getByLabel("Description (optional)").fill("For Sarah's birthday");
+  await page.getByRole("button", { name: /Change how quotes are numbered/ }).click();
+  await sheet(page).getByLabel("Prefix").fill("CAKE-");
+  await sheet(page).getByLabel("Next number").fill("42");
+  await sheet(page).getByRole("button", { name: "Save quote numbers" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("quote-number")).toHaveText("CAKE-0042");
+  await expect(page.getByLabel("Description (optional)")).toHaveValue("For Sarah's birthday");
+  await expect(page.getByRole("button", { name: /Change how quotes are numbered/ })).toBeFocused();
+
+  // The quote gets that number when it is first saved, and then it is just its number.
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await addCustomerInSheet(page, "Thandi Nkosi");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await expect(page.getByRole("heading", { name: /Quote CAKE-0042/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("quote-number")).toHaveCount(0);
+});

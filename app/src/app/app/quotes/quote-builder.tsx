@@ -51,6 +51,7 @@ import { AddButton } from "@/components/add-button";
 import { saveDepositDefault } from "../documents/deposit-actions";
 import { saveUsualDescription, saveUsualPayment, saveUsualSignOff } from "./usual-actions";
 import { UsualButtons } from "./usual-buttons";
+import { QuoteNumber, type QuoteNumbering } from "./quote-number";
 import { canSaveUsualText, canUseUsualText, sameDeposit, type QuoteUsuals } from "@/lib/quotes/usuals";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
@@ -84,6 +85,8 @@ export function QuoteBuilder({
   usuals: initialUsuals,
   canSaveUsuals,
   startingText,
+  numbering: initialNumbering,
+  canChangeNumbering = false,
   askForDeposit = false,
   header,
   children,
@@ -124,6 +127,10 @@ export function QuoteBuilder({
   canSaveUsuals: boolean;
   /** The country's generic description and sign-off a new quote starts with when there is no usual (not offered for saving). */
   startingText: { description: string; signOff: string };
+  /** A new quote: how quotes are numbered now, so the number it will get can be shown. Absent once it has a number. */
+  numbering?: QuoteNumbering;
+  /** Owners and admins can change how quotes are numbered (from the quote, or under Quotes and invoices). */
+  canChangeNumbering?: boolean;
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
@@ -210,6 +217,7 @@ export function QuoteBuilder({
   const [bankDetails, setBankDetails] = useState(initialBankDetails);
   // What new quotes start with; saving one from here moves it.
   const [usuals, setUsuals] = useState(initialUsuals);
+  const [numbering, setNumbering] = useState(initialNumbering);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Where focus goes when the sheet closes: the line just added or changed, else the default.
@@ -424,6 +432,9 @@ export function QuoteBuilder({
       </Section>
 
       <Section title="About this quote">
+        {numbering && quoteId === null && (
+          <QuoteNumber numbering={numbering} onChange={setNumbering} canChange={canChangeNumbering} />
+        )}
         {showTitle && (
           <TextField
             id="title"

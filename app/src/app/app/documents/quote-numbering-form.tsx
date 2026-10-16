@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,17 +12,29 @@ import { FormErrorScope } from "@/components/form-errors";
 /**
  * Quotes and invoices > Quote numbers. A quote is numbered the first time it is saved, from this
  * prefix and counter. Continue from another system by setting the next number.
+ *
+ * Also shown in a sheet over a new quote ("Change numbering" beside the number it is about to get): `embedded` then
+ * hands the saved numbering back instead of staying on a page, and keeps the submit from reaching the quote's form.
  */
+export type EmbeddedNumberingForm = {
+  onDone: (numbering: { prefix: string; nextNumber: number }) => void;
+  onCancel: () => void;
+  /** The sheet must not close while a save is on its way: the result would be lost. */
+  onPendingChange: (pending: boolean) => void;
+};
+
 export function QuoteNumberingForm({
   initialPrefix,
   initialNext,
   minDigits,
   lastIssued,
+  embedded,
 }: {
   initialPrefix: string;
   initialNext: number;
   minDigits: number;
   lastIssued: number | null;
+  embedded?: EmbeddedNumberingForm;
 }) {
   const [prefix, setPrefix] = useState(initialPrefix);
   const [next, setNext] = useState(String(initialNext));
@@ -41,12 +53,23 @@ export function QuoteNumberingForm({
   const preview = parseNumbering({ prefix, nextNumber: next }, lastIssued);
   const previewText = preview.ok ? formatDocumentNumber(preview.prefix, preview.nextNumber, minDigits) : null;
 
+  // Tell whoever opened the sheet while a save is on its way.
+  useEffect(() => {
+    embedded?.onPendingChange(pending);
+    // Only when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending]);
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // In a sheet this form sits inside the quote's form in the React tree: the submit must not save the quote too.
+    event.stopPropagation();
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        setState(await saveQuoteNumbering({ prefix, nextNumber: next }));
+        const result = await saveQuoteNumbering({ prefix, nextNumber: next });
+        setState(result);
+        if (result.status === "saved" && embedded) embedded.onDone({ prefix: prefix.trim(), nextNumber: Number(next.trim()) });
       } catch {
         setState({
           status: "error",
@@ -60,7 +83,7 @@ export function QuoteNumberingForm({
   return (
     <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <Section title="Quote numbers">
+      <Fields embedded={!!embedded}>
         <p className="text-base text-muted-foreground">
           Every quote gets a number the first time you save it, and keeps it when you revise it. To
           carry on from another system, set the next number.
@@ -110,11 +133,16 @@ export function QuoteNumberingForm({
             Numbers up to {formatDocumentNumber(initialPrefix, lastIssued, minDigits)} have been used.
           </p>
         )}
-      </Section>
-      <div className="flex items-center gap-4">
+      </Fields>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <Button type="submit" size="lg" disabled={pending}>
           {pending ? "Saving…" : "Save quote numbers"}
         </Button>
+        {embedded && (
+          <Button type="button" variant="outline" size="lg" disabled={pending} onClick={embedded.onCancel}>
+            Cancel
+          </Button>
+        )}
         {state.status === "saved" && !editedSinceSave && (
           <p role="status" className="text-base">
             Saved.
@@ -124,4 +152,9 @@ export function QuoteNumberingForm({
     </form>
     </FormErrorScope>
   );
+}
+
+/** The fields in their own titled card on the page, or plain in a sheet (which has its own title). */
+function Fields({ embedded, children }: { embedded: boolean; children: React.ReactNode }) {
+  return embedded ? <div className="space-y-4">{children}</div> : <Section title="Quote numbers">{children}</Section>;
 }

@@ -5,6 +5,7 @@ import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { defaultQuotePolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
+import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
 import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { usualsFromProfile } from "@/lib/quotes/usuals";
@@ -24,12 +25,14 @@ async function hasAnyQuote(): Promise<boolean> {
 
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails }] = await Promise.all([
+  const [allCustomers, allProducts, allPolicies, sequences, { organisation, profile, role, bankDetails }] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
     getPolicies(),
+    getQuoteSequences(),
     requireOrganisation(),
   ]);
+  const sequence = sequenceFor(sequences, organisation.id);
   const policyLibrary = forOrganisation(allPolicies, organisation.id);
   const locale = getLocalePack(profile.countryCode);
   const customers = forOrganisation(allCustomers, organisation.id);
@@ -106,6 +109,13 @@ export default async function NewQuotePage() {
         usuals={usuals}
         canSaveUsuals={canEditBusinessProfile(role)}
         startingText={locale.documents.quoteStart}
+        numbering={{
+          prefix: sequence.prefix,
+          nextNumber: sequence.nextNumber,
+          minDigits: sequence.minDigits,
+          lastIssued: sequence.lastIssued,
+        }}
+        canChangeNumbering={canEditBusinessProfile(role)}
         askForDeposit={profile.defaultDepositKind === "ask"}
         customers={customerOptions(customers, locale)}
         products={forOrganisation(allProducts, organisation.id)}

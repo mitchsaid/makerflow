@@ -172,6 +172,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: "Start your first quote" }).click();
       await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
       await expectNoViolations(page, "new quote");
+      // The number it will get, and the sheet that changes how quotes are numbered.
+      await page.getByRole("button", { name: /Change how quotes are numbered/ }).click();
+      await expect(page.getByRole("dialog", { name: "Quote numbers" })).toBeVisible();
+      await expectNoViolations(page, "new quote, quote numbers sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByLabel("Customer name", { exact: true }).fill("Axe");
       await expect(page.getByRole("option", { name: /Add “Axe”/ })).toBeVisible();
       await expectNoViolations(page, "new quote, customer list open");
