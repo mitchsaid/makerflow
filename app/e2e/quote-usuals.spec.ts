@@ -47,7 +47,12 @@ test("the sign-off and the notes about paying can be saved as usuals from the qu
   await expect(page.getByLabel("Message (optional)")).toHaveValue("Thank you for the opportunity to quote. Please get in touch with any questions.");
   await expect(page.getByRole("button", { name: "Save as my usual sign-off" })).toHaveCount(0);
 
-  await page.getByLabel("Message (optional)").fill("Kind regards");
+  // (Typing while the page is still waking up can land in front of the text instead of replacing it: type until it takes.)
+  const message = page.getByLabel("Message (optional)");
+  await expect(async () => {
+    await message.fill("Kind regards");
+    await expect(message).toHaveValue("Kind regards", { timeout: 1_000 });
+  }).toPass();
   await page.getByRole("button", { name: "Save as my usual sign-off" }).click();
   await expect(page.getByText("Saved as your usual sign-off.")).toBeVisible();
   await page.getByLabel("Notes about paying (optional)").fill("EFT to Wording Co");
