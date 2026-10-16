@@ -48,8 +48,14 @@ export const normaliseText = (value: string): string =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-/** Is what is on the quote different from the usual, and worth offering to save? Blank text is never offered. */
-export const canSaveUsualText = (value: string, usual: string): boolean => normaliseText(value) !== "" && normaliseText(value) !== normaliseText(usual);
+/**
+ * Is what is on the quote different from the usual, and worth offering to save? Blank text is never offered, and neither
+ * is the country's generic starting text while the business has no usual of its own: it is not something they wrote.
+ */
+export const canSaveUsualText = (value: string, usual: string, start = ""): boolean =>
+  normaliseText(value) !== "" &&
+  normaliseText(value) !== normaliseText(usual) &&
+  !(normaliseText(usual) === "" && normaliseText(value) === normaliseText(start));
 
 /** Is there a usual to go back to that differs from what is on the quote? */
 export const canUseUsualText = (value: string, usual: string): boolean => normaliseText(usual) !== "" && normaliseText(value) !== normaliseText(usual);

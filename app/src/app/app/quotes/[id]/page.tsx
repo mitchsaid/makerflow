@@ -105,6 +105,7 @@ export default async function QuotePage({
           canEditBankDetails={canEditBankDetails(role)}
           usuals={usualsFromProfile(profile, locale.numberStyle)}
           canSaveUsuals={canEditBusinessProfile(role)}
+        startingText={locale.documents.quoteStart}
           askForDeposit={profile.defaultDepositKind === "ask"}
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}
@@ -182,16 +183,6 @@ export default async function QuotePage({
         latest={canRevise}
       />
 
-      <PdfPreview
-        url={`/app/quotes/${quote.id}/pdf?version=${shown.version}`}
-        label={`Quote ${quote.number}${shown.version > 1 ? `, version ${shown.version}` : ""}`}
-      />
-      {/* The same document as text, for people who can't read the pictures of the pages. */}
-      <section className="sr-only" aria-label="The quote as text">
-        <QuoteDocumentView snapshot={shown.snapshot} />
-      </section>
-      <DesignSection theme={themeFromStored(shown.snapshot)} />
-
       <section className="space-y-3" aria-labelledby="more-heading">
         <h2 id="more-heading" className="text-base font-semibold">
           What you can do next
@@ -221,19 +212,30 @@ export default async function QuotePage({
           )
         )}
         {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
-        {canRevise && (
-          <>
-            <ComingSoonSection
-              title="Email it to your customer"
-              description="We'll send it from MakerFlow, with a message, and show when it was sent."
-            />
-            <ComingSoonSection
-              title="Send a link they can accept online"
-              description="Your customer opens the quote, accepts it or asks for changes, and you see it here."
-            />
-          </>
-        )}
       </section>
+
+      <PdfPreview
+        url={`/app/quotes/${quote.id}/pdf?version=${shown.version}`}
+        label={`Quote ${quote.number}${shown.version > 1 ? `, version ${shown.version}` : ""}`}
+      />
+      {/* The same document as text, for people who can't read the pictures of the pages. */}
+      <section className="sr-only" aria-label="The quote as text">
+        <QuoteDocumentView snapshot={shown.snapshot} />
+      </section>
+      <DesignSection theme={themeFromStored(shown.snapshot)} />
+
+      {canRevise && (
+        <section className="space-y-3" aria-label="Coming soon">
+          <ComingSoonSection
+            title="Email it to your customer"
+            description="We'll send it from MakerFlow, with a message, and show when it was sent."
+          />
+          <ComingSoonSection
+            title="Send a link they can accept online"
+            description="Your customer opens the quote, accepts it or asks for changes, and you see it here."
+          />
+        </section>
+      )}
 
       <Versions quote={quote} shown={shown.version} />
       <Activity quote={quote} locale={locale.formatLocale} timeZone={locale.timeZone} />

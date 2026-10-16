@@ -20,7 +20,9 @@ test("the new quote reads like an app: no tagline, no title, optional parts offe
   await expect(page.getByLabel("Needed by (optional)")).toHaveCount(0);
   await expect(page.getByLabel("Discount on the whole quote")).toHaveCount(0);
   await page.getByRole("button", { name: "Add a discount" }).click();
-  await expect(page.getByLabel("Discount on the whole quote")).toBeFocused();
+  // It opens as a percentage (not as "No discount"), with the box ready to type in.
+  await expect(page.getByLabel("Discount on the whole quote")).toHaveValue("percent");
+  await expect(page.getByLabel("Discount (%)")).toBeFocused();
   await page.getByRole("button", { name: "Add a needed-by date" }).click();
   await expect(page.getByLabel("Needed by (optional)")).toBeFocused();
 
@@ -120,7 +122,8 @@ test("an optional part that was opened stays open while it is cleared, and focus
   await expect(page.getByLabel("Needed by (optional)")).toBeVisible();
 
   await page.getByRole("button", { name: "Add a discount" }).click();
-  await page.getByLabel("Discount on the whole quote").selectOption("percent");
+  // It opens as a percentage; the maker moves to the kind and chooses "No discount": the box goes, focus stays on the choice.
+  await page.getByLabel("Discount on the whole quote").focus();
   await page.getByLabel("Discount on the whole quote").selectOption("none");
   await expect(page.getByLabel("Discount on the whole quote")).toBeFocused();
 });

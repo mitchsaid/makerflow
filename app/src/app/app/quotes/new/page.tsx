@@ -79,10 +79,11 @@ export default async function NewQuotePage() {
           discountValue: "",
           notes: "",
           title: "",
-          // The introduction the business starts every quote with, if it has set one.
-          description: usuals.description,
-          // A new quote starts with the wording the business has set for all its quotes.
-          signOff: usuals.signOff,
+          // The introduction the business starts every quote with, if it has set one; otherwise a generic start from the
+          // country's wording that shows how the box is used (the maker changes or clears it).
+          description: usuals.description || locale.documents.quoteStart.description,
+          // The same for the sign-off.
+          signOff: usuals.signOff || locale.documents.quoteStart.signOff,
           paymentInstructions: usuals.paymentInstructions,
           // Bank details print by default; the switch on the quote turns them off for this one.
           showBankDetails: true,
@@ -104,6 +105,7 @@ export default async function NewQuotePage() {
         canEditBankDetails={canEditBankDetails(role)}
         usuals={usuals}
         canSaveUsuals={canEditBusinessProfile(role)}
+        startingText={locale.documents.quoteStart}
         askForDeposit={profile.defaultDepositKind === "ask"}
         customers={customerOptions(customers, locale)}
         products={forOrganisation(allProducts, organisation.id)}

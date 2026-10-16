@@ -83,6 +83,7 @@ export function QuoteBuilder({
   canEditBankDetails,
   usuals: initialUsuals,
   canSaveUsuals,
+  startingText,
   askForDeposit = false,
   header,
   children,
@@ -121,6 +122,8 @@ export function QuoteBuilder({
   usuals: QuoteUsuals;
   /** Owners and admins can save what is on the quote as the usual; others can only use it. */
   canSaveUsuals: boolean;
+  /** The country's generic description and sign-off a new quote starts with when there is no usual (not offered for saving). */
+  startingText: { description: string; signOff: string };
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
@@ -444,7 +447,7 @@ export function QuoteBuilder({
         <UsualButtons
           what="description"
           valueKey={values.description}
-          canSave={canSaveUsuals && canSaveUsualText(values.description, usuals.description)}
+          canSave={canSaveUsuals && canSaveUsualText(values.description, usuals.description, startingText.description)}
           canUse={canUseUsualText(values.description, usuals.description)}
           save={() => saveUsualDescription(values.description)}
           onSaved={(value) => setUsuals((u) => ({ ...u, description: value ?? values.description }))}
@@ -656,7 +659,9 @@ export function QuoteBuilder({
             id="add-discount"
             onClick={() => {
               setShowDiscount(true);
-              setTimeout(() => document.getElementById("discountKind")?.focus(), 0);
+              // Asking to add one starts with a percentage, not with "No discount" (which stays in the list to undo it).
+              if (values.discountKind === "none") update({ discountKind: "percent" });
+              setTimeout(() => document.getElementById("discountValue")?.focus(), 0);
             }}
           >
             Add a discount
@@ -783,7 +788,7 @@ export function QuoteBuilder({
         <UsualButtons
           what="sign-off"
           valueKey={values.signOff}
-          canSave={canSaveUsuals && canSaveUsualText(values.signOff, usuals.signOff)}
+          canSave={canSaveUsuals && canSaveUsualText(values.signOff, usuals.signOff, startingText.signOff)}
           canUse={canUseUsualText(values.signOff, usuals.signOff)}
           save={() => saveUsualSignOff(values.signOff)}
           onSaved={(value) => setUsuals((u) => ({ ...u, signOff: value ?? values.signOff }))}
@@ -837,7 +842,7 @@ export function QuoteBuilder({
       {/* Always in view above the tab bar. It comes last, after anything under the form (such as
           Delete draft), so nothing is hidden beneath it, and it sits flush with the end of the
           page (-mb-8 takes back the page's bottom padding) so it never moves when you reach the bottom. */}
-      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 border-t border-border bg-card px-4 py-2 md:bottom-0">
+      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-2 md:bottom-0">
         {/* On a phone the total and Save share a row and the next step has the row below, whatever the total is (a long
             total must not make the bar change shape); from a tablet up it is one line. */}
         <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 sm:flex sm:justify-end">

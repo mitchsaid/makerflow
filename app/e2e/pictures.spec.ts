@@ -111,7 +111,7 @@ test("saving while a photo is still uploading waits instead of leaving the photo
   await expect(page.getByRole("link", { name: /Wedding cake/ }).locator("img")).toHaveCount(1);
 });
 
-test("the Add an item list shows each product's photo, with an empty square for one without", async ({ page }) => {
+test("the Add an item list shows a product's photo only when it has one", async ({ page }) => {
   await signUpAndOnboard(page, "pic-pick", "Pick Co");
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
@@ -136,15 +136,8 @@ test("the Add an item list shows each product's photo, with an empty square for 
   await expect(cake.locator("img")).toHaveCount(1);
   await expect(cake.locator("img")).toHaveAttribute("src", /^\/app\/images\/[0-9a-f-]{36}\?size=thumb$/);
   await expect(cupcakes.locator("img")).toHaveCount(0);
-  // The names line up whether or not there is a photo.
-  // Both measured in one go, so the sheet sliding in cannot move one between the two.
-  const [a, b] = await sheet(page).evaluate(() =>
-    ["Wedding cake", "Cupcakes"].map((name) => {
-      const el = [...document.querySelectorAll("[role='dialog'] button span")].find((e) => e.textContent === name);
-      return el!.getBoundingClientRect().x;
-    }),
-  );
-  expect(Math.abs(a! - b!)).toBeLessThan(1);
+  // No empty square for the one without a photo: just its title.
+  await expect(cupcakes.locator("span[aria-hidden]")).toHaveCount(0);
 });
 
 test("a service has no photo", async ({ page }) => {

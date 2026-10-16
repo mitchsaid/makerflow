@@ -116,6 +116,11 @@ export type LocalePack = {
       dueOnDate(dateText: string): string;
     };
     quoteNotATaxInvoice: string;
+    /**
+     * What a new quote's description and sign-off start with when the business has not saved its own usual: a
+     * suggestion that shows how the box is used. The maker changes or clears it freely.
+     */
+    quoteStart: { description: string; signOff: string };
     /** The heading over a document's terms ("Terms"). */
     termsHeading: string;
     /** What the business must still provide before it can send a quote. */
