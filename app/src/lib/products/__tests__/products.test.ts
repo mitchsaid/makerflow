@@ -77,6 +77,7 @@ describe("productMatchesSearch", () => {
     options: [],
     extras: [],
     priceBreaks: [],
+    steps: [],
   };
   it("searches the name and description without caring about case", () => {
     expect(productMatchesSearch(p, "WEDDING")).toBe(true);

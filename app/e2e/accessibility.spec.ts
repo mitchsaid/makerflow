@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
+import { addCustomerInSheet } from "./quote-helpers";
 import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
@@ -669,6 +670,40 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Description (optional)").fill("A different introduction");
       await expect(page.getByRole("button", { name: "Save as my usual description" })).toBeVisible();
       await expectNoViolations(page, "new quote, deposit choice and Save as my usual");
+    });
+    test("production steps, on a product and on a job", async ({ page }) => {
+      test.setTimeout(240_000);
+      await signUpAndOnboard(page, `a11y-steps-${scheme}`, "Steps Axe Co");
+      // A product with steps, one of them still blank.
+      await page.goto("/app/products/new");
+      await page.getByLabel("Name", { exact: true }).fill("Axe steps cake");
+      await page.getByLabel("Price", { exact: true }).fill("10");
+      await page.getByRole("button", { name: "Add a step" }).click();
+      await page.getByLabel("Step 1", { exact: true }).fill("Bake");
+      await page.getByRole("button", { name: "Add another step" }).click();
+      await expectNoViolations(page, "product steps");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "product steps, with a problem");
+      await page.getByLabel("Step 2", { exact: true }).fill("Ice");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("product-added")).toBeVisible();
+
+      // A job made from it: each step counted.
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
+      await page.getByRole("link", { name: "New job" }).first().click();
+      await page.getByRole("button", { name: "Add item" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /Axe steps cake/ }).click();
+      await page.getByRole("dialog").getByLabel("Quantity").fill("4");
+      await page.getByRole("dialog").getByRole("button", { name: "Add to job" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await addCustomerInSheet(page, "Steps Customer");
+      await page.getByRole("button", { name: "Create job" }).click();
+      await expect(page.getByTestId("item-steps")).toBeVisible();
+      await expectNoViolations(page, "job, with steps");
+      await page.getByRole("button", { name: "One more Bake for Axe steps cake" }).click();
+      await expect(page.getByTestId("item-steps")).toContainText("Bake: 1 of 4");
+      await expectNoViolations(page, "job, with steps, one counted");
     });
   });
 }

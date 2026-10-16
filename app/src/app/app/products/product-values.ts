@@ -4,6 +4,7 @@ import type { VariationFormRow } from "@/lib/products/variations";
 import { EXTRA_TEXT_DEFAULT, type ExtraFormRow } from "@/lib/products/extras";
 import type { OptionGroupFormRow } from "@/lib/products/options";
 import type { PriceBreakFormRow } from "@/lib/products/price-breaks";
+import type { StepFormRow } from "@/lib/products/steps";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
 export type ProductFormValues = {
@@ -26,6 +27,8 @@ export type ProductFormValues = {
   extras: ExtraFormRow[];
   /** Quantity prices, as the form holds them. */
   priceBreaks: PriceBreakFormRow[];
+  /** The steps it is made in, as the form holds them. */
+  steps: StepFormRow[];
 };
 
 export const EMPTY_PRODUCT: ProductFormValues = {
@@ -41,6 +44,7 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   options: [],
   extras: [],
   priceBreaks: [],
+  steps: [],
 };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
@@ -88,6 +92,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       })),
     })),
     priceBreaks: p.priceBreaks.map((b, i) => ({ key: `saved-${i}`, from: quantityToInput(b.fromMilli, style), percent: percentToInput(b.percentBp, style) })),
+    steps: p.steps.map((name, i) => ({ key: `saved-step-${i}`, name })),
     extras: p.extras.map((x) => ({
       key: x.id,
       id: x.id,

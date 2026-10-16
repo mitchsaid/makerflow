@@ -34,6 +34,8 @@ export type NewJobItem = {
   variationName: string | null;
   options: { group: string; kind: string; value: string | null; text: string | null; quantityMilli: number | null }[];
   photoImageId: string | null;
+  /** The product it came from, or null. The job takes a frozen copy of the product's steps. */
+  productId: string | null;
 };
 
 export type NewJob = {
@@ -148,6 +150,8 @@ export function parseJobLine(
       variationName: r.line.variation?.name ?? null,
       options: r.line.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, quantityMilli: o.quantityMilli })),
       photoImageId: r.line.productId ? photoFor(item) : null,
+      // Where it came from: the job takes a frozen copy of the product's steps (the database checks it is this business's).
+      productId: r.line.productId ?? null,
     },
   };
 }

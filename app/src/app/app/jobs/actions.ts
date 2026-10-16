@@ -193,6 +193,9 @@ export async function setItemMade(jobId: string, itemId: string, madeMilli: numb
   if (error?.code === "55006") {
     return { status: "error", message: "This job has moved on, so its items can't be counted now. Refresh the page to see where it stands." };
   }
+  if (error?.code === "55000") {
+    return { status: "error", message: "This item is counted step by step. Count its steps instead. Refresh the page to see them." };
+  }
   if (error?.code === "22023") {
     return { status: "error", message: "That is more than was ordered. Enter a number from none up to all of the item." };
   }
@@ -201,6 +204,52 @@ export async function setItemMade(jobId: string, itemId: string, madeMilli: numb
   }
   if (error) {
     console.error("could not count what is made:", error.code, error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/jobs");
+  revalidatePath(`/app/jobs/${jobId}`);
+  return { status: "done" };
+}
+
+/**
+ * Records how many of an item have been through one of its steps (from none up to all of it, in thousandths). The
+ * item's own count becomes the fewest any step has reached, and the first progress on anything starts the job.
+ */
+export async function setStepDone(jobId: string, stepId: string, doneMilli: number): Promise<JobActionResult> {
+  const { organisation, user } = await requireOrganisation();
+  if (!UUID.test(jobId) || !UUID.test(stepId) || !Number.isSafeInteger(doneMilli)) return { status: "error", message: GENERIC_ERROR };
+
+  // The person's own session proves the step is theirs, and belongs to this job, before the server-only function runs.
+  const supabase = await createClient();
+  const { data: own } = await supabase
+    .from("job_item_steps")
+    .select("id, job_items!inner ( job_id )")
+    .eq("id", stepId)
+    .eq("organisation_id", organisation.id)
+    .eq("job_items.job_id", jobId)
+    .maybeSingle();
+  if (!own) return { status: "error", message: "That job could not be found." };
+
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("set_job_step_done", {
+    p_org: organisation.id,
+    p_step_id: stepId,
+    p_done_milli: doneMilli,
+    p_actor: user.id,
+  });
+  if (error?.code === "55006") {
+    return { status: "error", message: "This job has moved on, so its steps can't be counted now. Refresh the page to see where it stands." };
+  }
+  if (error?.code === "22023") {
+    return { status: "error", message: "That is more than was ordered. Enter a number from none up to all of the item." };
+  }
+  if (error?.code === "P0002") {
+    return { status: "error", message: "That step could not be found. Refresh the page to see where the job stands." };
+  }
+  if (error) {
+    console.error("could not count a step:", error.code, error.message);
     return { status: "error", message: GENERIC_ERROR };
   }
 

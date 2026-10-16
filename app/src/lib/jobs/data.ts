@@ -91,6 +91,7 @@ type DetailRow = SummaryRow & {
         variation_name: string | null;
         options: unknown;
         photo_image_id: string | null;
+        job_item_steps: { id: string; name: string; sort_order: number; done_milli: number | string }[] | null;
       })[]
     | null;
   job_events: { kind: "created" | "status" | "item_added"; from_status: string | null; to_status: string; detail: string | null; created_at: string }[] | null;
@@ -99,7 +100,8 @@ type DetailRow = SummaryRow & {
 const COLUMNS = `id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, quote_id, quote_version,
   delivery_address, customer_id, customer_contact_person, customer_phone, customer_email, note,
   quotes ( number ),
-  job_items ( id, name, description, quantity_milli, made_milli, added_later, unit, sort_order, variation_label, variation_name, options, photo_image_id ),
+  job_items ( id, name, description, quantity_milli, made_milli, added_later, unit, sort_order, variation_label, variation_name, options, photo_image_id,
+    job_item_steps ( id, name, sort_order, done_milli ) ),
   job_events ( kind, from_status, to_status, detail, created_at )`;
 
 function options(value: unknown): JobOption[] {
@@ -145,6 +147,9 @@ function detail(row: DetailRow): JobDetail {
       variationName: i.variation_name,
       options: options(i.options),
       photoImageId: i.photo_image_id,
+      steps: [...(i.job_item_steps ?? [])]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((x) => ({ id: x.id, name: x.name, doneMilli: Number(x.done_milli) })),
     })),
     events: [...(row.job_events ?? [])]
       .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.kind === "created" ? -1 : b.kind === "created" ? 1 : 0))
