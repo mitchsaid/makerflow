@@ -27,6 +27,7 @@ declare
   org_b uuid;
   cake uuid;
   other uuid;
+  tea uuid;
   n integer;
 begin
   insert into auth.users (id, email) values (a, 'qa28@example.test'), (b, 'qb28@example.test'), (c, 'qc28@example.test');
@@ -109,6 +110,7 @@ begin
   ----------------------------------------------------------------------
   perform public.save_product_layers(org_a, cake, pg_temp.product('Cupcakes'), null, null, null,
     (select jsonb_agg(jsonb_build_object('from_quantity_milli', i * 1000, 'percent_off_bp', 100 + i)) from generate_series(1, 10) i));
+  tea := public.save_product_layers(org_a, null, pg_temp.product('Tea'), null, null, null, '[{"from_quantity_milli": 2000, "percent_off_bp": 500}]'::jsonb);
   assert (select count(*) from public.product_price_breaks where product_id = cake) = 10, 'ten should be allowed';
   begin
     perform public.save_product_layers(org_a, cake, pg_temp.product('Cupcakes'), null, null, null,
@@ -136,9 +138,9 @@ begin
   exception when sqlstate 'P0002' then null;
   end;
   begin
-    insert into public.product_price_breaks (organisation_id, product_id, from_quantity_milli, percent_off_bp) values (org_b, cake, 1000, 100);
+    insert into public.product_price_breaks (organisation_id, product_id, from_quantity_milli, percent_off_bp) values (org_b, tea, 1000, 100);
     raise exception 'a row was pointed at another business''s product';
-  exception when foreign_key_violation or sqlstate '54000' then null;  -- (the limit trigger may answer first)
+  exception when foreign_key_violation then null;
   end;
   other := public.save_product_layers(org_b, null, pg_temp.product('Candles'), null, null, null, '[{"from_quantity_milli": 5000, "percent_off_bp": 1500}]'::jsonb);
   assert (select count(*) from public.product_price_breaks) = 1, 'B should see only its own';

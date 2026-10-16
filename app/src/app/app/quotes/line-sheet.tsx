@@ -342,7 +342,14 @@ function followVariation(line: LineFormValues, before: ProductSummary, after: Pr
       variationId: fresh.variationId,
       variationLabel: fresh.variationLabel,
       variationName: fresh.variationName,
-      ...(priceUntouched ? { unitPrice: fresh.unitPrice } : {}),
+      ...(priceUntouched
+        ? {
+            unitPrice:
+              fresh.variationId && after.variations.length > 0
+                ? moneyToInput(referencePrice(after, fresh.variationId, line.quantity)?.cents ?? 0, style)
+                : fresh.unitPrice,
+          }
+        : {}),
     };
   }
   if (!line.variationId) return {};
