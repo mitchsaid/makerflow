@@ -35,6 +35,7 @@ import { extraAmount } from "@/lib/products/extras";
 import { optionsFixed, optionsPerItem, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
+import { priceBreakText, referencePrice } from "@/lib/products/price-breaks";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 import { AddButton } from "@/components/add-button";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
@@ -72,7 +73,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     description: product.description ?? "",
     quantity: "1",
     unit: product.unit ?? "",
-    unitPrice: hasVariations ? (usual ? moneyToInput(usual.priceCents, style) : "") : moneyToInput(product.unitPriceCents, style),
+    unitPrice: hasVariations ? (usual ? moneyToInput(referencePrice(product, usual.id, "1")?.cents ?? usual.priceCents, style) : "") : moneyToInput(referencePrice(product, undefined, "1")?.cents ?? product.unitPriceCents, style),
     discountKind: "none",
     discountValue: "",
     // The product's usual treatment (the item keeps its own copy and can be changed).
@@ -295,8 +296,8 @@ function followProduct(
     description: line.description === (before.description ?? "") ? (after.description ?? "") : line.description,
     unit: line.unit === (before.unit ?? "") ? (after.unit ?? "") : line.unit,
     unitPrice:
-      line.unitPrice === moneyToInput(before.unitPriceCents, style)
-        ? moneyToInput(after.unitPriceCents, style)
+      line.unitPrice === moneyToInput(referencePrice(before, undefined, line.quantity)?.cents ?? before.unitPriceCents, style)
+        ? moneyToInput(referencePrice(after, undefined, line.quantity)?.cents ?? after.unitPriceCents, style)
         : line.unitPrice,
     vatStatus: line.vatStatus === before.vatStatus ? after.vatStatus : line.vatStatus,
     ...followed,
@@ -336,12 +337,19 @@ function followVariation(line: LineFormValues, before: ProductSummary, after: Pr
   // price, or nothing chosen and no price yet), unless the price was changed by hand.
   if (!line.variationId && after.variations.length > 0 && before.variations.length === 0) {
     const fresh = lineFromProduct(after, line.key, style);
-    const priceUntouched = line.unitPrice === moneyToInput(before.unitPriceCents, style);
+    const priceUntouched = line.unitPrice === moneyToInput(referencePrice(before, undefined, line.quantity)?.cents ?? before.unitPriceCents, style);
     return {
       variationId: fresh.variationId,
       variationLabel: fresh.variationLabel,
       variationName: fresh.variationName,
-      ...(priceUntouched ? { unitPrice: fresh.unitPrice } : {}),
+      ...(priceUntouched
+        ? {
+            unitPrice:
+              fresh.variationId && after.variations.length > 0
+                ? moneyToInput(referencePrice(after, fresh.variationId, line.quantity)?.cents ?? 0, style)
+                : fresh.unitPrice,
+          }
+        : {}),
     };
   }
   if (!line.variationId) return {};
@@ -351,7 +359,9 @@ function followVariation(line: LineFormValues, before: ProductSummary, after: Pr
   return {
     variationLabel: after.variationLabel ?? line.variationLabel,
     variationName: now.name,
-    ...(was && line.unitPrice === moneyToInput(was.priceCents, style) ? { unitPrice: moneyToInput(now.priceCents, style) } : {}),
+    ...(was && line.unitPrice === moneyToInput(referencePrice(before, was.id, line.quantity)?.cents ?? was.priceCents, style)
+      ? { unitPrice: moneyToInput(referencePrice(after, now.id, line.quantity)?.cents ?? now.priceCents, style) }
+      : {}),
   };
 }
 
@@ -537,13 +547,15 @@ function ConfigureView({
     setLine((l) => {
       const previous = variations.find((v) => v.id === l.variationId);
       // The price follows the variation, unless it was changed by hand for this quote.
-      const follows = l.unitPrice.trim() === "" || (previous !== undefined && l.unitPrice === moneyToInput(previous.priceCents, numberStyle));
+      const follows =
+        l.unitPrice.trim() === "" ||
+        (previous !== undefined && product !== undefined && l.unitPrice === moneyToInput(referencePrice(product, previous.id, l.quantity)?.cents ?? previous.priceCents, numberStyle));
       return {
         ...l,
         variationId: next.id,
         variationName: next.name,
         variationLabel: product?.variationLabel ?? l.variationLabel ?? "",
-        unitPrice: follows ? moneyToInput(next.priceCents, numberStyle) : l.unitPrice,
+        unitPrice: follows ? moneyToInput((product ? referencePrice(product, next.id, l.quantity)?.cents : undefined) ?? next.priceCents, numberStyle) : l.unitPrice,
         // Options priced by variation take the new one's price.
         options: repriceOptions(product?.options ?? [], product?.extras ?? [], l.options ?? [], next.id),
       };
@@ -552,8 +564,23 @@ function ConfigureView({
 
   const typedPrice = parseMoney(line.unitPrice);
   // What the product charges for what is chosen (its variation's price when it has variations).
-  const referencePrice = variations.length > 0 ? chosen?.priceCents : product?.unitPriceCents;
-  const priceDiffers = product !== undefined && referencePrice !== undefined && (!typedPrice.ok || typedPrice.value !== referencePrice);
+  // (with the quantity price that applies at the quantity typed)
+  const asked = product ? referencePrice(product, line.variationId, line.quantity) : undefined;
+  const reference = asked?.cents;
+  const applied = asked?.applied ?? null;
+  const priceDiffers = product !== undefined && reference !== undefined && (!typedPrice.ok || typedPrice.value !== reference);
+
+  // The quantity changes: a price that follows the product's takes the new quantity's price.
+  function changeQuantity(text: string) {
+    scope?.markEdited(id("quantity"));
+    setLine((l) => {
+      if (!product) return { ...l, quantity: text };
+      const before = referencePrice(product, l.variationId, l.quantity)?.cents;
+      const after = referencePrice(product, l.variationId, text)?.cents;
+      const follows = before !== undefined && l.unitPrice === moneyToInput(before, numberStyle);
+      return { ...l, quantity: text, ...(follows && after !== undefined ? { unitPrice: moneyToInput(after, numberStyle) } : {}) };
+    });
+  }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -679,7 +706,7 @@ function ConfigureView({
             autoComplete="off"
             value={line.quantity}
             error={errors.quantity}
-            onChange={set("quantity")}
+            onChange={changeQuantity}
           />
           <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />
         </div>
@@ -690,25 +717,28 @@ function ConfigureView({
             startText={symbol}
             inputMode="decimal"
             autoComplete="off"
+            hint={applied && !priceDiffers ? `Quantity price: ${priceBreakText(applied, line.unit.trim() || null, numberStyle)}.` : undefined}
             value={line.unitPrice}
             error={errors.unitPrice}
             onChange={set("unitPrice")}
           />
         )}
-        {!job && product && priceDiffers && referencePrice !== undefined && (
+        {!job && product && priceDiffers && reference !== undefined && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">
-              {chosen
-                ? `The ${KIND_WORDS[product.kind].one}'s price for ${chosen.name} is ${money(referencePrice)}.`
-                : `The ${KIND_WORDS[product.kind].one}'s price is ${money(referencePrice)}.`}
+              {applied
+                ? `The quantity price (${priceBreakText(applied, line.unit.trim() || null, numberStyle)}) is ${money(reference)}.`
+                : chosen
+                  ? `The ${KIND_WORDS[product.kind].one}'s price for ${chosen.name} is ${money(reference)}.`
+                  : `The ${KIND_WORDS[product.kind].one}'s price is ${money(reference)}.`}
             </span>
             <Button
               type="button"
               variant="link"
               className="h-auto p-0"
-              onClick={() => set("unitPrice")(moneyToInput(referencePrice, numberStyle))}
+              onClick={() => set("unitPrice")(moneyToInput(reference, numberStyle))}
             >
-              Use {money(referencePrice)}
+              Use {money(reference)}
             </Button>
           </div>
         )}

@@ -558,6 +558,14 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/products/new");
       await page.getByLabel("VAT on this").selectOption("zero");
       await expectNoViolations(page, "add product, VAT choice");
+      // Quantity prices: a row with a problem.
+      await page.getByRole("button", { name: "Add a quantity price" }).click();
+      await page.getByLabel("From (quantity)").fill("10");
+      await page.getByLabel("Name", { exact: true }).fill("Axe quantity product");
+      await page.getByLabel(/^Price/).fill("10");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "product quantity prices, with a problem");
 
       // Quotes and invoices: the settings page, then quote numbers with a number already used.
       await openDocuments(page);

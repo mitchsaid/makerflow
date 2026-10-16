@@ -12,8 +12,8 @@ Update this table whenever a feature's prototype code is read (`docs/plans/READM
 |---|---|---|
 | Types, `useAppState` (logic), `costUtils`, `App.tsx`, `BuyerView.tsx` | Read (see the scope note at the top) | This file |
 | Quotes | Read in depth; **the creation screen (both steps) and its state, load and save functions read in full again 2026-10-15** | `docs/prototype-quotes-analysis.md`, `docs/plans/quote-form-feedback.md` |
-| Jobs | Logic, list and detail screens read in full (2026-10-13); the stage editor, the material breakdown and the modals only skimmed | Section 9 below |
-| Products and Services | Parts read (`Products.tsx` for the onboarding and products plans); not in full | `docs/plans/products.md`, `docs/plans/onboarding.md` |
+| Jobs | Logic, list and detail screens read in full (2026-10-13); **`ItemStageTracker`, the tracking-method switch, the stage functions in `useAppState` and `evaluateProductStagesForTask` read in full 2026-10-16**; the material breakdown and the modals only skimmed | Section 9 below, `docs/plans/quantity-prices-and-steps.md` |
+| Products and Services | Parts read (`Products.tsx` for the onboarding and products plans); **the price-break card and state, the Production Process tab (tracking mode, stage list, conditional rules) and the product card's process chips read 2026-10-16**; the rest not in full | `docs/plans/products.md`, `docs/plans/onboarding.md`, `docs/plans/quantity-prices-and-steps.md` |
 | Invoices, credit notes, payments | **Summary only. Read before the invoice plan.** | Section 2 table only |
 | Materials, costing screens | `costUtils` read; `Materials.tsx` summary only | Section 3 |
 | Customers, statements | Summary only (statements' logo use read) | Section 2 table only |

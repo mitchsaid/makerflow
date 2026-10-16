@@ -1,0 +1,98 @@
+# Plan: quantity prices, production steps, and steps in jobs
+
+Status: **planned 2026-10-16** from the founder's request, "Next, build quantity pricing and production process steps, with the production steps reflected in jobs." Four slices, one pull request each; slices 1, 2 and 3 change the database (**migrations, human review**). **Slice 1 is built (see "Built" below).** The product form already shows "Quantity prices" and "Production steps" as "coming soon" sections (`docs/plans/products.md`); this plan makes them real.
+
+It also takes the part of `docs/plans/costs-and-recipes.md` called "steps" (decision 2: a step can depend on a choice; slice 3: richer steps; slice 4: a job carries a frozen copy of the process). Materials as inputs, minutes, labour cost and margin stay in that plan: they need the costs work, and nothing here blocks them.
+
+## Where things stand
+- Products have a price, **variations** (each with its own price), **options** and **extras** (added amounts). A quote line keeps its **own typed price**: the item sheet starts it at the product's (or the chosen variation's) price and it "follows" that price until the maker types their own (`quotes/line-sheet.tsx`, `unitPrice`, `referencePrice`). The server stores what was typed; it does not recompute a unit price.
+- Jobs hold **frozen items** (`job_items`: name, quantity, variation, options, photo; no link to the product), made from an accepted quote's sent snapshot (`create_job_from_quote`) or typed directly (`create_job`, `add_job_item`, all through `job_item_clean`). Progress is **one count per item** (`made_milli`, `set_job_item_made`); a job starts when the first unit is made and offers "Ready" when every item is made.
+- A quote's sent snapshot lines do not carry the product's id (`quote_lines.product_id` exists, the snapshot drops it).
+
+## Prototype read
+Read in full this round (2026-10-16): `prototype/src/types.ts` (`PriceBreak`, `StageCondition`, `ProductStageConfig`, `Product`, `ItemStageProgress`, `JobTaskItem`); `components/Products.tsx` (the bulk pricing card, lines 1181 to 1335; the price-break state and helpers, 352 to 365 and 685 to 780; the Production Process tab with the tracking-mode cards, the stage list with drag, move, remove and the conditional-rule panel, 2140 to 2560; the product card's process chips, 3255 to 3290); `components/Quotes.tsx` (`getTierUnitPrice` 444 to 450; adding a product 484 to 500; the quantity stepper and the "Volume discount active" and "Rate overridden" lines, 2640 to 2740; line quantity change 652 to 672; the "Bulk Pricing Applied" tag 1347); `components/Invoices.tsx` (the same tier function and notification, confirmed identical); `components/Jobs.tsx` (`ItemStageTracker` 52 to 330; the tracking-method switch and where the tracker renders, 2285 to 2335); `lib/costUtils.ts` (stage conditions: summary, clause evaluation, `evaluateProductStagesForTask`, 405 to 574); `hooks/useAppState.ts` (`convertQuoteToJob` stage copy 425 to 460, `updateJobTaskTrackingMode` and `updateJobTaskStages` 850 to 945, the completed-count reset 1470 to 1510, reusable stages 190 to 205). **Skipped:** the one-off-item "Advanced" modal's stage tab (the same stage list, with quick-add of reusable names; read as far as its list and add controls), the cost and material parts of `costUtils.ts` (belong to `costs-and-recipes.md`), `defaultData.ts` sample price breaks and stages (fixtures only).
+
+| The prototype does | MakerFlow: kept, changed, later, or dropped | Why |
+| --- | --- | --- |
+| **Price breaks:** a list of rows "Min qty, Max qty (optional), Unit price (R)", sorted by minimum; "Add bulk pricing" enables the list; the list can be edited and deleted per row | **Changed:** rows are "From quantity" and "Percent off", no maximum (the next row's start ends the range); price-each rows are a possible later addition | A percent works for a product with variations and options (the price each already differs by variation) and stays right when the product's price changes; a maximum can overlap or leave gaps, "from" cannot |
+| Breaks apply to the **base price**; the variation and extra amounts are then **added on top** unchanged | **Kept in spirit:** the percent comes off the item's own price (product or chosen variation); option and extra amounts are not reduced | Matches how the prototype and a maker think of "10 or more are cheaper" |
+| Choosing a product starts the rate at the break price for quantity 1; changing quantity re-prices the line **unless the rate was typed** ("rate dirty") | **Kept:** the price each follows the quantity until the maker types their own | Already how the item sheet's price follows the product |
+| "Volume discount active: R x per item" shown while a break applies; "Rate overridden manually. Reset to default" when typed | **Kept:** a line under the price label says "10 or more: 10% off"; "Use the usual price" already exists and now means the quantity price | Same two states |
+| "Bulk Pricing Applied" tag on a line whose price is below the base | **Dropped for now:** the quote's document shows the price each; a tag on the customer's quote is not asked for | Can be added later if wanted |
+| Quantity price re-applied when a line's quantity is changed in the list | **Kept** (the sheet is where quantity changes) | |
+| The same function in Invoices | **Later:** invoices are not built; they will reuse the same function | |
+| `defaultPricingTier` on a customer ("retail" or "wholesale") | **Dropped:** the prototype stores it and never uses it | No behaviour to keep |
+| Product group `bulkDiscountPercentage` | **Dropped:** only displayed on the group card, never applied; groups are not built | |
+| **Stages:** a product is tracked "as whole" or "in stages"; the stage list has a name per stage, drag to reorder, up and down arrows, remove, and an inline panel of conditions | **Changed:** a product simply has **steps** (no whole/stages switch: no steps means tracked as a whole); reorder by up and down buttons; no drag | The switch is an extra decision with no extra power; arrows work on a phone and by keyboard |
+| A stage can be conditional: option equals a value, option selected, or quantity threshold; several conditions joined by AND or OR | **Changed, slice 4:** a step applies "Always" or "Only when [one choice]" (a variation choice, an option's value, or an extra); quantity thresholds and AND/OR are **later** | The founder agreed steps depend on a choice (`costs-and-recipes.md`, decision 2); the rest is rarely needed and costly to explain |
+| Quick-add of **reusable stage names** (a list kept in the browser's storage) | **Later:** names typed once; a shared library of step names if makers repeat them | The prototype's list lived in local storage, which MakerFlow never uses for business data |
+| Starter stages added by the app when a job item is switched to "stages" with none defined ("Base Product Made", "Packaging & Ready") | **Dropped:** invented steps are not added | CLAUDE.md: nothing is invented for the maker |
+| A job made from a quote copies the product's stages for each item (evaluated against the item's quantity and choices), matching the product by id, then by name | **Kept, changed:** copied once at creation from the product's current steps (matched by the product id the line carries; a one-off item or an old version has no steps); frozen on the job | Matching by name guesses; the job must not change when the product does |
+| Each stage has `completedQty` (units that passed it); stepper, tap-to-type, a tick for "all done"; clamped to the units still to make | **Kept:** each job step has a done count with plus, minus, a typed number and "All done" | Same model as the item's own count |
+| The item's made count is the **fewest** of its stages; the item is Done when that equals the quantity, In Production when any stage has progress | **Kept:** an item with steps is made up to the count its slowest step has reached; any progress starts the job | |
+| The job moves to Ready by itself when every item is done | **Already decided differently:** MakerFlow offers the Ready step (Jobs slice 2) | Offer, don't force |
+| Switching an item between whole and stages in the job; adding and removing stages on a job item | **Later:** the job's steps are the product's at the time; adding a one-off step to one item is a candidate | Keeps slice 3 small; asked below |
+| "Add from stock" units count as made and need no stages (`stockCount`) | **Later:** with finished-goods stock (`costs-and-recipes.md` slice 6) | |
+| Stage progress reset or clamped when the item's count is edited by hand | **Kept in spirit:** an item with steps has no separate hand count; its count is derived | One source of truth |
+| Product card lists the process as chips with a "Rule" badge on conditional ones | **Kept:** the product list shows how many steps; the form shows them in order, with the condition in words | |
+| Stages in the one-off item modal | **Later:** a one-off item has no product, so no steps; it is made as a whole | Asked below |
+
+## What the maker sees
+**Quantity prices (product form, replacing the "coming soon" card).** A section "Quantity prices": "Lower the price when someone orders more." with an **Add a quantity price** button (plus, then label). Each row: "From" (a quantity, with the product's unit) and "% off", with a line that reads "10 or more: 10% off (R90,00 each)" when the product has one price, and remove. Rows are kept in order of quantity; a quantity cannot be repeated.
+**On a quote (item sheet).** When the quantity reaches a row, the price each drops by that percent and a line under "Price each" says "Quantity price: 10 or more: 10% off." If the maker typed their own price it is left alone, and "Use the usual price" puts the quantity price back. Changing the quantity back below the row restores the full price. Nothing is shown on the customer's quote except the lower price each.
+
+**Production steps (product form, replacing the "coming soon" card).** A section "How it's made" with **Add a step** (plus). Each step is a name, with move up, move down and remove. Slice 4 adds "Applies to: Always / only when …". Shown for products and services alike (a service can have steps, such as "Visit" and "Write up").
+**On a job.** Each product item shows its steps, in order, under the item: each step has "3 of 12" with minus, plus, a typed number and "All done". The item's own count becomes "Made 3 of 12" (the fewest step), and the "All made" shortcut marks every step done. An item without steps looks and works as it does today. The first progress on any step starts the job, and when every item is fully made the job offers "Mark ready" as now. The job shows the steps frozen as they were when it was made; changing the product later never changes a job.
+
+## Interactions reused and new interactions
+| What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
+| --- | --- | --- |
+| Add a row to a list in the product form (quantity price, step) | The Variations and Extras rows with `AddButton` (`products/variations-section.tsx`, `extras-section.tsx`) | Same row pattern and the same Add button; a small **ordered list** helper with move up and down is new only if Variations have none (they have a default and an order: check and reuse before writing) |
+| A quantity field with the product's unit | `UnitField` / quantity inputs in the item sheet (`components/unit-field.tsx`, `lib/quotes/units.ts`) | As is |
+| A percent field | The discount percent in the item sheet | As is (`DefaultAmountForm` style parsing in `lib/quotes`) |
+| The hint under the price | `hint` on `TextField` | As is (a dynamic hint) |
+| Count of a step done (minus, plus, typed number, all) | `ItemProgress` (`jobs/item-progress.tsx`) | **Reused with a mode:** the same control per step; a step's `set_job_step_done` replaces `set_job_item_made` for items with steps (lift the control's body out, don't copy it) |
+| Show an item's choices on the job | Existing job item card | As is; steps added under it |
+| Ordered list with move up and down | None yet in the app | New, small, and reusable (step lists now; Terms may use it later); reason: nothing in the app orders rows by hand |
+
+## Decisions to confirm (recommendations in bold)
+1. **Quantity price is a percent off.** **Recommended:** it works with variations and options and survives price changes. Alternative: a price each per row (simple for a product with one price; ambiguous with variations). The founder may want price-each for one-price products: say so and it is a small addition.
+2. **The percent comes off the product or variation price only**, not options and extras. **Recommended:** options and extras are add-ons the maker priced on their own.
+3. **Quantity counts the item's own quantity** (not the whole quote's). **Recommended**, as the prototype.
+4. **A step is just a name (and, in slice 4, a condition).** Minutes and labour cost come with costs (`costs-and-recipes.md`). **Recommended.**
+5. **A job copies steps when it is made; it never follows later changes to the product.** **Recommended** (decision 8 there).
+6. **An item's made count is the fewest of its steps.** **Recommended**, as the prototype.
+7. **Steps for items typed straight into a job** (not from the quote) work the same, by the product id carried in the item. A one-off item has none.
+8. **The quote's sent snapshot starts carrying the product's id** (and, in slice 4, the ids of what was chosen) on each line, for versions sent from now on. Older sent versions make jobs without steps. **Recommended**; the alternative, looking the product up by the name on the line, guesses.
+
+## Data (sketch; every table has `organisation_id`, same-business composite keys, row-level security for members, the restrictive `session_required` policy, and SQL tests)
+- **Slice 1:** `product_price_breaks` (id, organisation_id, product_id, `min_quantity_milli` bigint ≥ 1, `percent_off_bp` integer 1..9999 = hundredths of a percent, unique per product and quantity). At most 10 per product. Saved with the product (`save_product` takes `price_breaks`: null leaves them alone, an array replaces them, like variations). Members read; writes only through `save_product`.
+- **Slice 2:** `product_steps` (id, organisation_id, product_id, name 1..120, sort_order). At most 30 per product. Saved with the product (`save_product` takes `steps`). Slice 4 adds `applies_to_kind` / `applies_to_id` (none, a variation, an option value, or an extra; exactly one when set).
+- **Slice 3:** `job_item_steps` (id, organisation_id, job_item_id, sort_order, name, `done_milli` between 0 and the item's quantity); `job_items.product_id` (nullable, a live link, like `jobs.customer_id`). `create_job_from_quote`, `create_job` and `add_job_item` copy the product's steps (the item JSON, cleaned by `job_item_clean`, carries `productId`); `set_job_step_done` (service role) sets one step's count, recomputes the item's `made_milli` as the fewest step, starts the job on first progress, and writes no event beyond the existing ones. The quote snapshot gains an optional `productId` per line.
+- Members read the new tables; they cannot write them directly.
+- **What is frozen:** a sent quote version's snapshot (gains `productId`, never changes after sending), and a job's steps.
+
+## Slices
+1. **Quantity prices.** Migration `product_price_breaks` and `save_product`; parsing and the one function that works out a price (`lib/products/price-breaks.ts`, unit-tested: boundaries, rounding once, a variation, no breaks); the product form section; the item sheet follows quantity and shows the line. Usable on its own.
+2. **Production steps on a product.** Migration `product_steps` and `save_product`; the form section with the ordered list; the product list shows the step count. Usable on its own (the steps are visible and ordered, even before jobs use them).
+3. **Steps in jobs.** Migration (`job_item_steps`, `job_items.product_id`, the replaced job functions, `set_job_step_done`); snapshot gains `productId`; the job page shows steps with counts; the item's count follows. The big one: SQL tests for every function, and a browser test from product to quote to job.
+4. **Steps that depend on a choice.** Migration (`applies_to` columns), snapshot gains the ids of the variation and chosen values and extras; the form's "Applies to" control (reusing the choice pickers the product already has); steps resolved when the job is made.
+
+## Tests
+SQL: isolation; session required; same-business keys; a break or step cannot point at another business's product; limits (10, 30); duplicate quantity refused; percent bounds; `save_product` null leaves alone, array replaces; `create_job_from_quote` copies steps for new versions and none for old; a job's steps are unchanged after the product's change; `set_job_step_done` bounds, status start, fewest-step count, wrong-business refused. Unit: the price function; step ordering helpers; step parsing and limits. Browser (phone): add quantity prices and see the quote price follow the quantity, be left alone when typed, and reset; add steps in order; make a quote with the product, accept it, make the job, tick steps and see the item count and the job start and offer Ready; an item added to a job has steps too. Accessibility: the product form sections and the job page.
+
+## Questions for the founder
+1. Percent off, or a price each? (Decision 1.)
+2. Should a **one-off item** or a job item typed by hand be able to have its own steps? (Recommended: not yet.)
+3. Should a maker be able to **add or remove a step on one job item** (the prototype could)? (Recommended: later.)
+4. Should the **customer's quote** show that a quantity price was applied? (Recommended: no, just the price each.)
+
+## Not planned yet
+Minutes and labour cost per step; materials as inputs; quantity thresholds and AND/OR conditions on steps; reusable step names; step notes or photos; assigning steps to people; scheduling; stock for steps; price-each quantity rows; customer-specific or wholesale price lists.
+
+## Built (notes)
+**Slice 1, quantity prices (2026-10-16)** (needs human review: migration `20261106100000_quantity_prices.sql`, a new table with row-level security and a new `SECURITY INVOKER` function).
+- **Database:** `product_price_breaks` (from quantity in thousandths, percent off in hundredths of a percent, 1 to 9999; one row per quantity per product; at most 10; members manage; `session_required`). `save_product_layers` wraps `save_product` (the large function is unchanged), takes `p_price_breaks` (null leaves them, a list replaces them) and does everything in one transaction. The session-required test lists it among the functions signed-in people can call.
+- **Product form:** a "Quantity prices" section replaces the "coming soon" card for products and services: "Add a quantity price", each row "From (quantity)" and "Percent off (%)", remove, errors at the row and in the summary.
+- **Quote item sheet:** `referencePrice` (lib/products/price-breaks) is the one place the price at a quantity is worked out (whole-number arithmetic, rounded once, half up). The price follows the quantity (and the chosen variation) while it still equals the product's, and is left alone once typed; the hint under "Price" says "Quantity price: 10 or more: 10% off."; the existing "Use R…" line offers the quantity price back.
+- **Not built:** price-each rows, a mark on the customer's quote, anything on invoices (not built yet).

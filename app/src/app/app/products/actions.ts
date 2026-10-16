@@ -41,6 +41,8 @@ function toPayload(p: ProductFields) {
     },
     options: p.options === undefined ? null : optionsPayload(p.options),
     extras: p.extras === undefined ? null : extrasPayload(p.extras),
+    priceBreaks:
+      p.priceBreaks === undefined ? null : p.priceBreaks.map((b) => ({ from_quantity_milli: b.fromMilli, percent_off_bp: b.percentBp })),
     variations:
       p.variations === undefined
         ? null
@@ -62,13 +64,14 @@ async function saveProduct(
 
   const payload = toPayload(parsed.value);
   const supabase = await createClient();
-  const { data: savedId, error } = await supabase.rpc("save_product", {
+  const { data: savedId, error } = await supabase.rpc("save_product_layers", {
     p_org: organisation.id,
     p_product_id: id,
     p_product: payload.product,
     p_variations: payload.variations,
     p_options: payload.options,
     p_extras: payload.extras,
+    p_price_breaks: payload.priceBreaks,
   });
   if (error?.code === "23505" && error.message.includes("extras_shared_name_unique")) {
     return {

@@ -105,7 +105,7 @@ test("a product's new price never moves a line, but is offered", async ({ page }
   await line(page, 1).getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Edit product");
-  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(4);
+  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(3);
   await sheet(page).getByLabel("Price", { exact: true }).fill("900");
   await sheet(page).getByRole("button", { name: "Save changes" }).click();
 
@@ -134,7 +134,7 @@ test("add a new service from inside a quote, then straight on to configuring it"
   await sheet(page).getByRole("button", { name: "Add new service" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add a service");
   // The full service form, with a service's coming-soon layers.
-  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(3);
+  await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(2);
   // On a phone the sheet is the whole screen, with Save in reach.
   const box = (await sheet(page).boundingBox())!;
   expect(box.width).toBeGreaterThan(page.viewportSize()!.width - 2);
