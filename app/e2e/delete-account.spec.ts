@@ -30,7 +30,7 @@ const userIdOf = async (page: Page) =>
 test("deleting the account asks for the email address, removes the data and the sign-in, and the same email starts afresh", async ({ page }) => {
   test.setTimeout(180_000);
   const db = admin();
-  const email = await signUpAndOnboard(page, "del-flow", "Delete Co", { quoteSetup: "skip" });
+  const email = await signUpAndOnboard(page, "del-flow", "Delete Co");
   const userId = await userIdOf(page);
   const [membership] = (await db.rows("memberships", `user_id=eq.${userId}`)) as { organisation_id: string }[];
   const org = membership.organisation_id;
@@ -95,7 +95,8 @@ test("deleting the account asks for the email address, removes the data and the 
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page.getByTestId("business-name")).toHaveText("Fresh Start Co");
   await page.goto("/app/quotes/new");
-  await expect(page.getByRole("button", { name: "Skip for now" })).toBeVisible();
+  // Nothing of the old account is left: its first quote number starts again, with no customers.
+  await expect(page.getByTestId("quote-number")).toHaveText("QT-0001");
   // It is a different account behind the same address.
   expect(await userIdOf(page)).not.toBe(userId);
 });
@@ -104,7 +105,7 @@ test("an account that is the only owner of a business shared with someone else c
   test.setTimeout(120_000);
   const db = admin();
   const { url, secretKey } = localSupabase();
-  const email = await signUpAndOnboard(page, "del-shared", "Shared Co", { quoteSetup: "skip" });
+  const email = await signUpAndOnboard(page, "del-shared", "Shared Co");
   const userId = await userIdOf(page);
   const [membership] = (await db.rows("memberships", `user_id=eq.${userId}`)) as { organisation_id: string }[];
   const org = membership.organisation_id;

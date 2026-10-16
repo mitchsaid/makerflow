@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { Section, TextAreaField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { QUOTE_DESCRIPTION_MAX, QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
@@ -76,11 +76,11 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           onChange={set("description")}
           maxLength={QUOTE_DESCRIPTION_MAX}
         />
-        <TextField
+        <TextAreaField
           id="wordingSignOff"
           name="signOff"
           label="Sign-off message (optional)"
-          autoComplete="off"
+          rows={3}
           maxLength={QUOTE_SIGN_OFF_MAX}
           value={values.signOff}
           error={errors.signOff}

@@ -143,3 +143,40 @@ test("How to pay says what each part is: bank details, then notes about paying",
   const [bankY, notesY] = [await pay.getByRole("heading", { name: "Bank details" }).boundingBox(), await notes.boundingBox()];
   expect(notesY!.y).toBeGreaterThan(bankY!.y);
 });
+
+test("the first New quote goes straight to the form: no setup questions", async ({ page }) => {
+  await signUpAndOnboard(page, "qf2-first", "First Co");
+  await page.goto("/app/quotes/new");
+  await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Two quick questions" })).toHaveCount(0);
+  await expect(page.getByText("Skip for now")).toHaveCount(0);
+});
+
+test("the sign-off is a box for several lines, kept as typed, and printed on the quote", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "qf2-signoff", "Signoff Co");
+  await openQuotes(page);
+  await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
+  const signOff = page.getByLabel("Message (optional)");
+  // A box for lines, with room to see them: not a one-line field.
+  expect(await signOff.evaluate((el) => el.tagName)).toBe("TEXTAREA");
+  expect((await signOff.boundingBox())!.height).toBeGreaterThan(60);
+  await signOff.fill("Thank you so much for asking.\nKind regards,\nThandi");
+  await fillItem(page, 1, "Wedding cake", "1", "800");
+  await addCustomerInSheet(page, "Sarah Jacobs");
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
+  await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+  const document = page.getByTestId("quote-document");
+  await expect(document).toContainText("Thank you so much for asking.");
+  await expect(document).toContainText("Kind regards,");
+  // Back on the quote, the lines are still lines.
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await expect(page.getByLabel("Message (optional)")).toHaveValue("Thank you so much for asking.\nKind regards,\nThandi");
+  // Too many lines say how to fix it.
+  await page.getByLabel("Message (optional)").fill("1\n2\n3\n4\n5\n6");
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
+  await expect(page.getByTestId("form-summary")).toBeVisible();
+  // At the field and in the summary.
+  await expect(page.getByText(/up to 5 lines/)).toHaveCount(2);
+});

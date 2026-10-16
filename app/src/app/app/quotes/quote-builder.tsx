@@ -36,6 +36,7 @@ import {
   isBlankLine,
   optionsPerItem,
   previewTotals,
+  QUOTE_SIGN_OFF_MAX,
   type DiscountKind,
   type LineFormValues,
   type QuoteErrors,
@@ -835,11 +836,11 @@ export function QuoteBuilder({
       </Section>
 
       <Section title="Sign-off">
-        <TextField
+        <TextAreaField
           id="signOff"
           label="Message (optional)"
-          autoComplete="off"
-          maxLength={200}
+          maxLength={QUOTE_SIGN_OFF_MAX}
+          rows={3}
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}

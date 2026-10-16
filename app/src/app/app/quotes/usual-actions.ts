@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
-import { optionalMultiline, optionalText } from "@/lib/form-values";
+import { optionalMultiline } from "@/lib/form-values";
 import {
   QUOTE_DESCRIPTION_MAX,
   QUOTE_DESCRIPTION_MAX_LINES,
   QUOTE_PAYMENT_MAX,
   QUOTE_PAYMENT_MAX_LINES,
   QUOTE_SIGN_OFF_MAX,
+  QUOTE_SIGN_OFF_MAX_LINES,
 } from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,7 +51,7 @@ export async function saveUsualDescription(value: string): Promise<UsualResult> 
 
 export async function saveUsualSignOff(value: string): Promise<UsualResult> {
   if (typeof value !== "string") return { status: "error", message: GENERIC_ERROR };
-  const parsed = optionalText(value, QUOTE_SIGN_OFF_MAX, "The sign-off");
+  const parsed = optionalMultiline(value, QUOTE_SIGN_OFF_MAX, "The sign-off", QUOTE_SIGN_OFF_MAX_LINES);
   if (!parsed.ok) return { status: "error", message: parsed.error };
   return saveColumn("default_sign_off", parsed.value);
 }

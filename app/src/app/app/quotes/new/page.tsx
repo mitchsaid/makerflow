@@ -12,16 +12,6 @@ import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
-import { QuoteSetup } from "../quote-setup";
-import { createClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/page-header";
-
-/** Only asked on the rare first visit; the normal page never runs it. */
-async function hasAnyQuote(): Promise<boolean> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("quotes").select("id").limit(1);
-  return (data?.length ?? 0) > 0;
-}
 
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.
@@ -38,25 +28,6 @@ export default async function NewQuotePage() {
   const customers = forOrganisation(allCustomers, organisation.id);
   const today = todayIn(locale.timeZone);
   const usuals = usualsFromProfile(profile, locale.numberStyle);
-
-  // The first New quote of a business: two questions first, for those who can answer them, when nothing
-  // was set elsewhere (Quotes and invoices) and nobody has made a quote yet (staff can, without being asked).
-  if (
-    profile.quoteSetupAt === null &&
-    canEditBusinessProfile(role) &&
-    profile.defaultDepositKind === "none" &&
-    profile.usualFulfilment === null &&
-    !(await hasAnyQuote())
-  ) {
-    return (
-      <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-        <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
-          <h1 className="text-xl font-semibold">New quote</h1>
-        </PageHeader>
-        <QuoteSetup />
-      </main>
-    );
-  }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
