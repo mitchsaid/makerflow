@@ -84,6 +84,30 @@ begin
   exception when check_violation then null;
   end;
 
+  -- Delivery address (docs/plans/quote-form-feedback-2.md, slice 2): "same as above" by default, structured otherwise.
+  assert (select delivery_same_as_main from public.customers where id = cust_a),
+    'a new customer should be delivered to at their main address by default';
+  update public.customers
+    set delivery_same_as_main = false, delivery_address_line1 = '4 Dock Rd', delivery_city = 'Durban',
+        delivery_region = 'KwaZulu-Natal', delivery_postal_code = '4001'
+    where id = cust_a;
+  assert (select delivery_city = 'Durban' and not delivery_same_as_main from public.customers where id = cust_a),
+    'a separate delivery address was not kept';
+  begin
+    update public.customers set delivery_same_as_main = true where id = cust_a;
+    raise exception 'FAIL: "same as above" was accepted while a separate delivery address was set';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.customers set delivery_city = '' where id = cust_a;
+    raise exception 'FAIL: an empty delivery city was accepted';
+  exception when check_violation then null;
+  end;
+  update public.customers
+    set delivery_same_as_main = true, delivery_address_line1 = null, delivery_city = null, delivery_region = null,
+        delivery_postal_code = null
+    where id = cust_a;
+
   -- Shape rules: no empty strings, name limits.
   begin
     insert into public.customers (organisation_id, name) values (org_a, '');

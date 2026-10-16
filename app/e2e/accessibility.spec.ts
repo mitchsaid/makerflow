@@ -183,6 +183,10 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: /Edit details/ }).click();
       await expect(page.getByRole("dialog", { name: "Customer details" })).toBeVisible();
       await expectNoViolations(page, "new quote, edit customer sheet");
+      // Deliveries somewhere else: the same fields as the address, in their own group.
+      await page.getByRole("dialog").getByRole("checkbox", { name: "Same as the address above" }).uncheck();
+      await expect(page.getByRole("dialog").getByRole("group", { name: "Delivery" }).getByLabel("Street address")).toBeVisible();
+      await expectNoViolations(page, "edit customer sheet, delivery address open");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: "Add a needed-by date" }).click();

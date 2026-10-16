@@ -12,7 +12,13 @@ export type CustomerFormValues = {
   city: string;
   region: string;
   postalCode: string;
-  deliveryAddress: string;
+  /** Deliveries go to the address above (the default). The parts below are used when this is off. */
+  deliverySameAsMain: boolean;
+  deliveryAddressLine1: string;
+  deliveryAddressLine2: string;
+  deliveryCity: string;
+  deliveryRegion: string;
+  deliveryPostalCode: string;
   vatNumber: string;
   companyRegistrationNumber: string;
   notes: string;
@@ -29,7 +35,12 @@ export const EMPTY_CUSTOMER: CustomerFormValues = {
   city: "",
   region: "",
   postalCode: "",
-  deliveryAddress: "",
+  deliverySameAsMain: true,
+  deliveryAddressLine1: "",
+  deliveryAddressLine2: "",
+  deliveryCity: "",
+  deliveryRegion: "",
+  deliveryPostalCode: "",
   vatNumber: "",
   companyRegistrationNumber: "",
   notes: "",
@@ -47,7 +58,12 @@ export function valuesFromCustomer(c: Customer): CustomerFormValues {
     city: c.city ?? "",
     region: c.region ?? "",
     postalCode: c.postalCode ?? "",
-    deliveryAddress: c.deliveryAddress ?? "",
+    deliverySameAsMain: c.deliverySameAsMain,
+    deliveryAddressLine1: c.deliveryAddressLine1 ?? "",
+    deliveryAddressLine2: c.deliveryAddressLine2 ?? "",
+    deliveryCity: c.deliveryCity ?? "",
+    deliveryRegion: c.deliveryRegion ?? "",
+    deliveryPostalCode: c.deliveryPostalCode ?? "",
     vatNumber: c.vatNumber ?? "",
     companyRegistrationNumber: c.companyRegistrationNumber ?? "",
     notes: c.notes ?? "",

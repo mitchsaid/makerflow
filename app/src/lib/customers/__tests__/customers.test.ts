@@ -45,7 +45,12 @@ describe("parseCustomerForm", () => {
         city: null,
         region: null,
         postalCode: null,
-        deliveryAddress: null,
+        deliverySameAsMain: true,
+      deliveryAddressLine1: null,
+      deliveryAddressLine2: null,
+      deliveryCity: null,
+      deliveryRegion: null,
+      deliveryPostalCode: null,
         vatNumber: null,
         companyRegistrationNumber: null,
         notes: null,
@@ -98,14 +103,44 @@ describe("parseCustomerForm", () => {
     expect(junk.ok).toBe(false);
   });
 
-  it("keeps line breaks in the delivery address and notes, tidying the rest", () => {
+  it("keeps line breaks in the notes, tidying the rest", () => {
+    const r = parse({ name: "Thandi", notes: "Pays cash\nLikes blue" });
+    expect(r.ok && r.value.notes).toBe("Pays cash\nLikes blue");
+  });
+
+  it("delivers to the main address unless the form says otherwise, and then carries no separate address", () => {
+    const same = parse({ name: "Thandi", addressLine1: "12 Main Road", deliveryAddressLine1: "ignored" });
+    expect(same.ok && same.value.deliverySameAsMain).toBe(true);
+    expect(same.ok && same.value.deliveryAddressLine1).toBeNull();
+    // A form that never showed the delivery part (it was not opened) sends nothing about it: still "same".
+    const unopened = parse({ name: "Thandi" });
+    expect(unopened.ok && unopened.value.deliverySameAsMain).toBe(true);
+  });
+
+  it("keeps a separate delivery address as parts, checked like the main address", () => {
     const r = parse({
       name: "Thandi",
-      deliveryAddress: "  Dock 4  \r\n\r\n\r\n\r\n  Back   gate ",
-      notes: "Pays cash\nLikes blue",
+      deliverySameAsMain: "no",
+      deliveryAddressLine1: "  4 Dock   Road ",
+      deliveryCity: "Durban",
+      deliveryRegion: "KwaZulu-Natal",
+      deliveryPostalCode: "4001",
     });
-    expect(r.ok && r.value.deliveryAddress).toBe("Dock 4\n\nBack gate");
-    expect(r.ok && r.value.notes).toBe("Pays cash\nLikes blue");
+    expect(r.ok && r.value).toMatchObject({
+      deliverySameAsMain: false,
+      deliveryAddressLine1: "4 Dock Road",
+      deliveryCity: "Durban",
+      deliveryRegion: "KwaZulu-Natal",
+      deliveryPostalCode: "4001",
+    });
+    const bad = parse({ name: "Thandi", deliverySameAsMain: "no", deliveryAddressLine1: "4 Dock Road", deliveryRegion: "Narnia", deliveryPostalCode: "ABC" });
+    expect(!bad.ok && bad.errors.deliveryRegion).toBeTruthy();
+    expect(!bad.ok && bad.errors.deliveryPostalCode).toBeTruthy();
+  });
+
+  it("says how to fix a delivery address that is switched to separate but left empty", () => {
+    const r = parse({ name: "Thandi", deliverySameAsMain: "no" });
+    expect(!r.ok && r.errors.deliveryAddressLine1).toMatch(/tick/i);
   });
 });
 
@@ -177,28 +212,59 @@ describe("customerDetail", () => {
 });
 
 describe("savedAddresses", () => {
-  const base = { addressLine1: null, addressLine2: null, city: null, region: null, postalCode: null, deliveryAddress: null };
+  const base = {
+    addressLine1: null,
+    addressLine2: null,
+    city: null,
+    region: null,
+    postalCode: null,
+    deliverySameAsMain: true,
+    deliveryAddressLine1: null,
+    deliveryAddressLine2: null,
+    deliveryCity: null,
+    deliveryRegion: null,
+    deliveryPostalCode: null,
+  };
 
   it("offers nothing when the customer has no address", () => {
     expect(savedAddresses(base, ZA_LOCALE)).toEqual([]);
-    expect(savedAddresses({ ...base, deliveryAddress: "   " }, ZA_LOCALE)).toEqual([]);
+    // A separate delivery address with nothing in it is nothing.
+    expect(savedAddresses({ ...base, deliverySameAsMain: false }, ZA_LOCALE)).toEqual([]);
   });
 
   it("offers the delivery address first, then the main address written the way the country writes it", () => {
     const list = savedAddresses(
-      { ...base, deliveryAddress: "The gate at the back", addressLine1: "12 Main Road", city: "Soweto", region: "Gauteng", postalCode: "1804" },
+      {
+        ...base,
+        deliverySameAsMain: false,
+        deliveryAddressLine1: "4 Dock Road",
+        deliveryCity: "Durban",
+        deliveryPostalCode: "4001",
+        addressLine1: "12 Main Road",
+        city: "Soweto",
+        region: "Gauteng",
+        postalCode: "1804",
+      },
       ZA_LOCALE,
     );
     expect(list.map((a) => a.kind)).toEqual(["delivery", "main"]);
-    expect(list[0].text).toBe("The gate at the back");
+    expect(list[0].text).toContain("4 Dock Road");
+    expect(list[0].text).toContain("Durban");
     expect(list[1].text).toContain("12 Main Road");
     expect(list[1].text).toContain("Soweto");
     expect(list[1].text).toContain("1804");
   });
 
   it("offers one address when the main address is the delivery address", () => {
-    const list = savedAddresses({ ...base, addressLine1: "12 Main Road", city: "Soweto", deliveryAddress: "12  Main Road\nSoweto" }, ZA_LOCALE);
+    const list = savedAddresses({ ...base, addressLine1: "12 Main Road", city: "Soweto" }, ZA_LOCALE);
     expect(list).toHaveLength(1);
-    expect(list[0].kind).toBe("delivery");
+    expect(list[0].kind).toBe("main");
+    // The same written out again as a separate delivery address is still one address.
+    const again = savedAddresses(
+      { ...base, addressLine1: "12 Main Road", city: "Soweto", deliverySameAsMain: false, deliveryAddressLine1: "12  Main Road", deliveryCity: "Soweto" },
+      ZA_LOCALE,
+    );
+    expect(again).toHaveLength(1);
+    expect(again[0].kind).toBe("delivery");
   });
 });

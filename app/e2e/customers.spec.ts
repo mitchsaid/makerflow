@@ -72,11 +72,20 @@ test("a business customer keeps its details, and they persist after editing", as
   await page.getByLabel("Company registration number").fill("2020/123456/07");
   await page.getByLabel("Phone", { exact: true }).fill("021 555 0000");
   await page.getByRole("button", { name: "Add address, delivery details or notes" }).click();
-  await page.getByLabel("Street address").fill("1 Main Road");
-  await page.getByLabel("City or town").fill("Cape Town");
-  await page.getByLabel("Province").selectOption("Western Cape");
-  await page.getByLabel("Postal code").fill("8001");
-  await page.getByLabel("Deliver to (optional)").fill("Dock 4\nBack gate");
+  const address = page.getByRole("group", { name: "Address", exact: true });
+  await address.getByLabel("Street address").fill("1 Main Road");
+  await address.getByLabel("City or town").fill("Cape Town");
+  await address.getByLabel("Province").selectOption("Western Cape");
+  await address.getByLabel("Postal code").fill("8001");
+  // Delivery is the same address by default; a different one has the same fields as the first.
+  const delivery = page.getByRole("group", { name: "Delivery" });
+  await expect(delivery.getByRole("checkbox", { name: "Same as the address above" })).toBeChecked();
+  await expect(delivery.getByLabel("Street address")).toHaveCount(0);
+  await delivery.getByRole("checkbox", { name: "Same as the address above" }).uncheck();
+  await delivery.getByLabel("Street address").fill("Dock 4");
+  await delivery.getByLabel("City or town").fill("Durban");
+  await delivery.getByLabel("Province").selectOption("KwaZulu-Natal");
+  await delivery.getByLabel("Postal code").fill("4001");
   await page.getByLabel("Anything to remember (optional)").fill("Pays on 30 days");
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByTestId("customer-added")).toBeVisible();
@@ -87,8 +96,12 @@ test("a business customer keeps its details, and they persist after editing", as
   await expect(page.getByRole("heading", { name: "Cape Cakes", level: 1 })).toBeVisible();
   await expect(page.getByLabel("Contact person")).toHaveValue("Sam Jacobs");
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
-  await expect(page.getByLabel("Province")).toHaveValue("Western Cape");
-  await expect(page.getByLabel("Deliver to (optional)")).toHaveValue("Dock 4\nBack gate");
+  const saved = page.getByRole("group", { name: "Address", exact: true });
+  await expect(saved.getByLabel("Province")).toHaveValue("Western Cape");
+  const savedDelivery = page.getByRole("group", { name: "Delivery" });
+  await expect(savedDelivery.getByRole("checkbox", { name: "Same as the address above" })).not.toBeChecked();
+  await expect(savedDelivery.getByLabel("Street address")).toHaveValue("Dock 4");
+  await expect(savedDelivery.getByLabel("Province")).toHaveValue("KwaZulu-Natal");
 
   await page.getByLabel("Phone", { exact: true }).fill("021 555 9999");
   await page.getByRole("button", { name: "Save changes" }).click();
@@ -200,4 +213,36 @@ test("a customer id that is not an id is a plain not-found page", async ({ page 
   await signUpAndOnboard(page, "cust-404", "Nf Co");
   await page.goto("/app/customers/not-an-id");
   await expect(page.getByText("This page could not be found")).toBeVisible();
+});
+
+test("a separate delivery address must be filled in, and ticking 'same as above' again takes it away", async ({ page }) => {
+  await signUpAndOnboard(page, "cust-deliv", "Deliveries Co");
+  await page.goto("/app/customers/new");
+  await page.getByLabel("Name", { exact: true }).fill("Thandi Nkosi");
+  await page.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+  const delivery = page.getByRole("group", { name: "Delivery" });
+  await delivery.getByRole("checkbox", { name: "Same as the address above" }).uncheck();
+
+  // Nothing typed: it says how to fix it, at the field and in the summary.
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await expect(page.getByTestId("form-summary")).toBeVisible();
+  await expect(delivery.getByText(/Enter the delivery address, or tick/)).toBeVisible();
+
+  // Typing clears it; it saves, and the customer page shows it.
+  await delivery.getByLabel("Street address").fill("4 Dock Road");
+  await expect(delivery.getByText(/Enter the delivery address, or tick/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await expect(page.getByTestId("customer-added")).toBeVisible();
+  await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
+  const saved = page.getByRole("group", { name: "Delivery" });
+  await expect(saved.getByRole("checkbox", { name: "Same as the address above" })).not.toBeChecked();
+  await expect(saved.getByLabel("Street address")).toHaveValue("4 Dock Road");
+
+  // Same as above again: the separate address is gone, not just hidden.
+  await saved.getByRole("checkbox", { name: "Same as the address above" }).check();
+  await expect(saved.getByLabel("Street address")).toHaveCount(0);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("group", { name: "Delivery" }).getByRole("checkbox", { name: "Same as the address above" })).toBeChecked();
 });

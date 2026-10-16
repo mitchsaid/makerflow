@@ -47,13 +47,38 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
   }));
 }
 
-type AddressRow = {
+/** Where deliveries go, as the columns hold it. */
+export type DeliveryRow = {
+  delivery_same_as_main: boolean;
+  delivery_address_line1: string | null;
+  delivery_address_line2: string | null;
+  delivery_city: string | null;
+  delivery_region: string | null;
+  delivery_postal_code: string | null;
+};
+
+type AddressRow = DeliveryRow & {
   address_line1: string | null;
   address_line2: string | null;
   region: string | null;
   postal_code: string | null;
-  delivery_address: string | null;
 };
+
+/** The columns that make up where deliveries go. */
+export const DELIVERY_COLUMNS =
+  "delivery_same_as_main, delivery_address_line1, delivery_address_line2, delivery_city, delivery_region, delivery_postal_code";
+
+/** The delivery fields of a row, in the shape the app uses. */
+export function deliveryFromRow(row: DeliveryRow) {
+  return {
+    deliverySameAsMain: row.delivery_same_as_main,
+    deliveryAddressLine1: row.delivery_address_line1,
+    deliveryAddressLine2: row.delivery_address_line2,
+    deliveryCity: row.delivery_city,
+    deliveryRegion: row.delivery_region,
+    deliveryPostalCode: row.delivery_postal_code,
+  };
+}
 
 /**
  * Every customer with the address details a quote offers as "deliver to". For the quote pages only:
@@ -64,7 +89,7 @@ export async function getCustomersWithAddresses(): Promise<CustomerSummaryWithAd
   const { data, error } = await supabase
     .from("customers")
     .select(
-      "id, organisation_id, name, kind, contact_person, phone, email, city, archived_at, address_line1, address_line2, region, postal_code, delivery_address",
+      `id, organisation_id, name, kind, contact_person, phone, email, city, archived_at, address_line1, address_line2, region, postal_code, ${DELIVERY_COLUMNS}`,
     )
     .order("name", { ascending: true })
     .limit(5000);
@@ -83,7 +108,7 @@ export async function getCustomersWithAddresses(): Promise<CustomerSummaryWithAd
     addressLine2: row.address_line2,
     region: row.region,
     postalCode: row.postal_code,
-    deliveryAddress: row.delivery_address,
+    ...deliveryFromRow(row),
   }));
 }
 
@@ -101,7 +126,7 @@ export async function findCustomer(id: string): Promise<Customer | null> {
     .from("customers")
     .select(
       `id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
-       address_line1, address_line2, region, postal_code, delivery_address,
+       address_line1, address_line2, region, postal_code, ${DELIVERY_COLUMNS},
        vat_number, company_registration_number, notes`,
     )
     .eq("id", id)
@@ -122,7 +147,7 @@ export async function findCustomer(id: string): Promise<Customer | null> {
     city: row.city,
     region: row.region,
     postalCode: row.postal_code,
-    deliveryAddress: row.delivery_address,
+    ...deliveryFromRow(row),
     vatNumber: row.vat_number,
     companyRegistrationNumber: row.company_registration_number,
     notes: row.notes,
