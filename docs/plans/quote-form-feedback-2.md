@@ -54,6 +54,8 @@ Read in full this round: `prototype/src/components/Customers.tsx` (the add and e
 ### Slice 3: the quote number, shown (no migration)
 - "About this quote" shows **Quote number QT-0004** ("given when you save"), with a **Change numbering** button that opens a sheet holding the same prefix and next-number form that lives under Quotes and invoices (reused with a mode, not copied). The number is never typed onto a single quote, so numbering stays gapless.
 
+**Built (slice 3, 2026-10-16; no database change):** "About this quote" on a **new** quote starts with **Quote number QT-0004** ("Given when you first save it."), read from the business's numbering (one more parallel read on the new-quote page, like its other lists). Owners and admins get a **Change** button that opens a sheet with the same prefix and next-number form as Quotes and invoices (`QuoteNumberingForm` gained an `embedded` mode, as the term, logo and customer forms did); saving there changes the numbering for all quotes and the number on the quote follows, with everything typed on the quote kept. A saved quote shows its number in its heading, as before, and no longer needs the row.
+
 ### Slice 4: discount and balance (migration)
 - **Discount: "Save as my usual"** (the same button as the others; the founder suggested a checkbox, but the app has one way of saving a usual and a second would be a second thing to learn; tell the founder), saved as `default_discount_kind`/`default_discount_value` on the business, with a new quote starting with it open.
 - **Deposit's "Save as my usual"** shows as a button now (it was there, as plain text).
