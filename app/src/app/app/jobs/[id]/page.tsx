@@ -11,6 +11,7 @@ import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { ItemProgress } from "../item-progress";
 import { ItemSteps } from "../item-steps";
+import { StepsEditor } from "../steps-editor";
 import { JobNote } from "../job-note";
 import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
@@ -87,6 +88,18 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
                       madeMilli={item.madeMilli}
                       unit={item.unit}
                       numberStyle={locale.numberStyle}
+                    />
+                  )}
+                  {/* One editor for the item, whether or not it has steps yet, so it stays open as the first one is added. */}
+                  {counting && item.fromProduct && (
+                    <StepsEditor
+                      key={item.id}
+                      jobId={job.id}
+                      itemId={item.id}
+                      name={item.name}
+                      madeMilli={item.madeMilli}
+                      steps={item.steps}
+                      stepsEdited={item.stepsEdited}
                     />
                   )}
                 </li>

@@ -712,6 +712,16 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "One more Bake for Axe steps cake" }).click();
       await expect(page.getByTestId("item-steps")).toContainText("Bake: 1 of 4");
       await expectNoViolations(page, "job, with steps, one counted");
+      // Changing one item's steps: the editor open, with a change made (so the reset shows).
+      await page.getByRole("button", { name: "Change steps for Axe steps cake" }).focus();
+      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Add a step to Axe steps cake" }).focus();
+      await page.keyboard.press("Enter");
+      await page.getByLabel("New step").fill("Attach tags");
+      await page.getByRole("button", { name: "Save step" }).focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("button", { name: /Reset to the product/ })).toBeVisible();
+      await expectNoViolations(page, "job, changing one item's steps");
     });
   });
 }

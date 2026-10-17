@@ -200,6 +200,10 @@ export type JobDetail = JobSummary & {
     photoImageId: string | null;
     /** The steps it is made in (a frozen copy of the product's when the item was made), in order. Empty: counted as a whole. */
     steps: { id: string; name: string; doneMilli: number }[];
+    /** Made from a product: its steps can be changed for this item, and put back. A one-off item has none. */
+    fromProduct: boolean;
+    /** A step was added or taken off this item by hand, so it can be put back to the product's. */
+    stepsEdited: boolean;
   }[];
   events: {
     kind: "created" | "status" | "item_added";

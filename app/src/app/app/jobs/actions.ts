@@ -258,6 +258,86 @@ export async function setStepDone(jobId: string, stepId: string, doneMilli: numb
   return { status: "done" };
 }
 
+const STEPS_MOVED_ON = "This job has moved on, so its steps can't be changed now. Refresh the page to see where it stands.";
+
+/** The person's own session proves the item is theirs and belongs to this job, before a server-only function runs. */
+async function ownItem(organisationId: string, jobId: string, itemId: string): Promise<boolean> {
+  if (!UUID.test(jobId) || !UUID.test(itemId)) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("job_items")
+    .select("id")
+    .eq("id", itemId)
+    .eq("job_id", jobId)
+    .eq("organisation_id", organisationId)
+    .maybeSingle();
+  return !!data;
+}
+
+function stepsError(error: { code?: string; message: string }, what: string, name = false): JobActionResult {
+  if (error.code === "55006") return { status: "error", message: STEPS_MOVED_ON };
+  if (error.code === "54000") return { status: "error", message: "An item can have up to 30 steps. Remove one first." };
+  if (error.code === "P0002") return { status: "error", message: "That could not be found. Refresh the page to see where the job stands." };
+  if (error.code === "22023") {
+    return { status: "error", message: name ? "That step could not be saved. Give it a name of up to 120 characters." : "Only an item made from a product has steps." };
+  }
+  console.error(`could not ${what}:`, error.code, error.message);
+  return { status: "error", message: GENERIC_ERROR };
+}
+
+/** Adds a step to one item of a job (the product is not changed). The item must be made from a product. */
+export async function addItemStep(jobId: string, itemId: string, name: string): Promise<JobActionResult> {
+  const { organisation, user } = await requireOrganisation();
+  // One line of plain text: runs of spaces and any control characters are folded into single spaces.
+  const clean = typeof name === "string" ? name.replace(/[\p{Cc}\s]+/gu, " ").trim() : "";
+  if (clean === "" || [...clean].length > 120) {
+    return { status: "error", message: "Give the step a name of up to 120 characters." };
+  }
+  if (!(await ownItem(organisation.id, jobId, itemId))) return { status: "error", message: "That job could not be found." };
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("add_job_item_step", { p_org: organisation.id, p_item_id: itemId, p_name: clean, p_actor: user.id });
+  if (error) return stepsError(error, "add a step to a job item", true);
+  revalidatePath("/app/jobs");
+  revalidatePath(`/app/jobs/${jobId}`);
+  return { status: "done" };
+}
+
+/** Takes one step off one item of a job (the product is not changed). */
+export async function removeItemStep(jobId: string, stepId: string): Promise<JobActionResult> {
+  const { organisation, user } = await requireOrganisation();
+  if (!UUID.test(jobId) || !UUID.test(stepId)) return { status: "error", message: GENERIC_ERROR };
+  const supabase = await createClient();
+  const { data: own } = await supabase
+    .from("job_item_steps")
+    .select("id, job_items!inner ( job_id )")
+    .eq("id", stepId)
+    .eq("organisation_id", organisation.id)
+    .eq("job_items.job_id", jobId)
+    .maybeSingle();
+  if (!own) return { status: "error", message: "That job could not be found." };
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("remove_job_item_step", { p_org: organisation.id, p_step_id: stepId, p_actor: user.id });
+  if (error) return stepsError(error, "remove a step from a job item");
+  revalidatePath("/app/jobs");
+  revalidatePath(`/app/jobs/${jobId}`);
+  return { status: "done" };
+}
+
+/** Puts one item back to its product's steps as they are now, each at none. */
+export async function resetItemSteps(jobId: string, itemId: string): Promise<JobActionResult> {
+  const { organisation, user } = await requireOrganisation();
+  if (!(await ownItem(organisation.id, jobId, itemId))) return { status: "error", message: "That job could not be found." };
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { error } = await made.admin.rpc("reset_job_item_steps", { p_org: organisation.id, p_item_id: itemId, p_actor: user.id });
+  if (error) return stepsError(error, "reset the steps of a job item");
+  revalidatePath("/app/jobs");
+  revalidatePath(`/app/jobs/${jobId}`);
+  return { status: "done" };
+}
+
 export type AddJobItemResult = { status: "error"; message: string };
 
 /**
