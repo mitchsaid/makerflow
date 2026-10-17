@@ -241,8 +241,7 @@ function Conditions({
                 )}
                 <Button
                   type="button"
-                  variant="ghost"
-                  className="text-destructive"
+                  variant="danger"
                   aria-label={`Remove condition ${ci + 1} of ${stepName}`}
                   onClick={() => {
                     const next = conditions.filter((x) => x.key !== c.key);
