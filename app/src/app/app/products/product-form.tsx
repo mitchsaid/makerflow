@@ -190,6 +190,14 @@ export function ProductForm({
   // The further variations are numbered after the first one ("Variation 2"), and a further variation with no name
   // is called that (the same words in the card, the summary and what is saved).
   const furtherNumber = values.variations.length > 0 ? 2 : 1;
+  // What a step can depend on: the variations, the choices in the lists, and the extras, as named on this form.
+  const stepChoices = [
+    ...values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ value: `variation:${r.key}`, label: `${values.variationLabel.trim() || "Variation"}: ${r.name.trim()}` })),
+    ...values.options.flatMap((g, gi) =>
+      g.values.filter((x) => x.name.trim() !== "").map((x) => ({ value: `value:${g.key}/${x.key}`, label: `${g.name.trim() || `Variation ${gi + furtherNumber}`}: ${x.name.trim()}` })),
+    ),
+    ...values.extras.filter((x) => x.name.trim() !== "").map((x) => ({ value: `extra:${x.key}`, label: `Extra: ${x.name.trim()}` })),
+  ];
   const namedVariations = values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }));
 
   const problems: FormProblem[] = (
@@ -256,6 +264,12 @@ export function ProductForm({
   values.steps.forEach((row, i) => {
     const e = errors.steps?.rows[row.key];
     if (e?.name) problems.push({ fieldId: fid(`step-${row.key}-name`), label: `Step ${i + 1}`, message: e.name });
+    if (e?.list) problems.push({ fieldId: fid(`step-${row.key}-add-condition`), label: `Step ${i + 1}`, message: e.list });
+    row.conditions.forEach((c, ci) => {
+      const ce = e?.conditions?.[c.key];
+      if (ce?.ref) problems.push({ fieldId: fid(`step-${row.key}-c-${c.key}-ref`), label: `Step ${i + 1}: condition ${ci + 1}`, message: ce.ref });
+      if (ce?.quantity) problems.push({ fieldId: fid(`step-${row.key}-c-${c.key}-quantity`), label: `Step ${i + 1}: condition ${ci + 1} quantity`, message: ce.quantity });
+    });
   });
   if (errors.steps?.list) problems.push({ fieldId: fid("steps-error"), label: "Steps", message: errors.steps.list });
   if (errors.priceBreaks?.list) problems.push({ fieldId: fid("price-breaks-error"), label: "Quantity prices", message: errors.priceBreaks.list });
@@ -553,6 +567,8 @@ export function ProductForm({
         }
         rows={values.steps}
         errors={errors.steps}
+        choices={stepChoices}
+        unit={values.unit.trim() || undefined}
         fid={fid}
         onChange={(steps) => {
           setEditedSinceSave(true);

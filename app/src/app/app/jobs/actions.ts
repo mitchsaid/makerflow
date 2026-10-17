@@ -157,7 +157,7 @@ export async function createManualJob(values: NewJobValues): Promise<NewJobResul
     // (Everything but the known fields is dropped by the database; here they are already only the known ones.)
     p_items: job.items,
   });
-  if (error?.code === "22023") {
+  if (error?.code === "22023" || error?.code === "23503") {
     return { status: "error", message: "Something in this job was not accepted. Check the customer and the items, then try again." };
   }
   if (error || typeof jobId !== "string") {

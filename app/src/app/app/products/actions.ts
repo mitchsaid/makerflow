@@ -12,6 +12,7 @@ import {
 import { findProduct } from "@/lib/products/data";
 import { extrasPayload } from "@/lib/products/extras";
 import { optionsPayload } from "@/lib/products/options";
+import { stepsPayload } from "@/lib/products/steps";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProductSaveState =
@@ -43,7 +44,7 @@ function toPayload(p: ProductFields) {
     extras: p.extras === undefined ? null : extrasPayload(p.extras),
     priceBreaks:
       p.priceBreaks === undefined ? null : p.priceBreaks.map((b) => ({ from_quantity_milli: b.fromMilli, percent_off_bp: b.percentBp })),
-    steps: p.steps === undefined ? null : p.steps.map((name) => ({ name })),
+    steps: p.steps === undefined ? null : stepsPayload(p.steps),
     variations:
       p.variations === undefined
         ? null

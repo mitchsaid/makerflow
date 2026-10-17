@@ -24,7 +24,24 @@ type Row = {
   vat_status: VatStatus;
   variation_label: string | null;
   product_variations: { id: string; name: string; price_cents: number | string; usual: boolean; sort_order: number; image_id: string | null }[] | null;
-  product_steps: { name: string; sort_order: number }[] | null;
+  product_steps:
+    | {
+        name: string;
+        sort_order: number;
+        condition_logic: "all" | "any";
+        product_step_conditions:
+          | {
+              sort_order: number;
+              kind: "chosen" | "quantity_at_least";
+              negate: boolean;
+              variation_id: string | null;
+              option_value_id: string | null;
+              extra_id: string | null;
+              quantity_milli: number | string | null;
+            }[]
+          | null;
+      }[]
+    | null;
   product_price_breaks: { from_quantity_milli: number | string; percent_off_bp: number }[] | null;
   product_option_groups:
     | {
@@ -63,7 +80,7 @@ type Row = {
     | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_price_breaks ( from_quantity_milli, percent_off_bp ),\n  product_steps ( name, sort_order ),\n  product_variations ( id, name, price_cents, usual, sort_order, image_id ),\n  product_option_groups ( id, name, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, image_id, product_option_value_prices ( variation_id, price_cents ) ) ),\n  product_extras ( sort_order,\n    extras ( id, name, price_cents, asks_for_wording, text_max, product_id, price_by_variation, extra_variation_prices ( variation_id, price_cents ), product_extras ( count ) ) )";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_price_breaks ( from_quantity_milli, percent_off_bp ),\n  product_steps ( name, sort_order, condition_logic,\n    product_step_conditions ( sort_order, kind, negate, variation_id, option_value_id, extra_id, quantity_milli ) ),\n  product_variations ( id, name, price_cents, usual, sort_order, image_id ),\n  product_option_groups ( id, name, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, image_id, product_option_value_prices ( variation_id, price_cents ) ) ),\n  product_extras ( sort_order,\n    extras ( id, name, price_cents, asks_for_wording, text_max, product_id, price_by_variation, extra_variation_prices ( variation_id, price_cents ), product_extras ( count ) ) )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -78,7 +95,19 @@ function fromRow(row: Row): ProductSummary {
     photoImageId: row.photo_image_id,
     vatStatus: row.vat_status,
     variationLabel: row.variation_label,
-    steps: [...(row.product_steps ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((x) => x.name),
+    steps: [...(row.product_steps ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((x) => ({
+        name: x.name,
+        logic: x.condition_logic,
+        conditions: [...(x.product_step_conditions ?? [])]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((c) =>
+            c.kind === "quantity_at_least"
+              ? { kind: "quantity" as const, negate: c.negate, quantityMilli: Number(c.quantity_milli) }
+              : { kind: "chosen" as const, negate: c.negate, variationId: c.variation_id, optionValueId: c.option_value_id, extraId: c.extra_id },
+          ),
+      })),
     priceBreaks: [...(row.product_price_breaks ?? [])]
       .map((b) => ({ fromMilli: Number(b.from_quantity_milli), percentBp: b.percent_off_bp }))
       .sort((a, b) => a.fromMilli - b.fromMilli),
