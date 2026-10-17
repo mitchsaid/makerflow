@@ -133,6 +133,7 @@ begin
 end;
 $$;
 
+revoke execute on function public.cost_line_check(jsonb) from public, anon;
 grant execute on function public.cost_line_check(jsonb) to authenticated;
 
 create or replace function public.save_product_costs(p_org uuid, p_product_id uuid, p_costs jsonb)

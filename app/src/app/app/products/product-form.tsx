@@ -336,7 +336,7 @@ export function ProductForm({
     const ce = errors.extraCosts?.byExtra[x.key];
     if (ce) pushCostProblems(x.costLines ?? [], ce.rows, `${x.name.trim() || `Extra ${xi + 1}`}: `, fid(`extra-${x.key}-costs-error`), ce.list);
   });
-  if (errors.extraCosts?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras' costs", message: errors.extraCosts.list });
+  if (errors.extraCosts?.list) problems.push({ fieldId: fid("add-extra"), label: "Extras' costs", message: errors.extraCosts.list });
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
@@ -677,6 +677,14 @@ export function ProductForm({
         value={JSON.stringify(values.options.map((g, gi) => (g.name.trim() === "" ? { ...g, name: `Variation ${gi + furtherNumber}` } : g)))}
       />
       <input type="hidden" name="extras" value={JSON.stringify(values.extras)} />
+      {/* The extras' own cost lines: only the ones that were changed are saved. */}
+      <input
+        type="hidden"
+        name="extraCosts"
+        value={JSON.stringify(values.extras.map((x) => ({ key: x.key, changed: x.costsEdited === true, lines: x.costLines ?? [] })))}
+      />
+      <input type="hidden" name="makes" value={values.makes} />
+
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 
@@ -720,13 +728,6 @@ export function ProductForm({
             }}
           />
           <input type="hidden" name="costLines" value={JSON.stringify(values.costLines)} />
-          {/* The extras' own cost lines: only the ones that were changed are saved. */}
-          <input
-            type="hidden"
-            name="extraCosts"
-            value={JSON.stringify(values.extras.map((x) => ({ key: x.key, changed: x.costsEdited === true, lines: x.costLines ?? [] })))}
-          />
-          <input type="hidden" name="makes" value={values.makes} />
         </>
       )}
       {COMING_SOON[values.kind].filter(([title]) => !(costing && title === "Costs and margin")).map(([title, description]) => (

@@ -68,7 +68,7 @@ async function saveProduct(
 ): Promise<{ ok: true; product: ProductSummary } | { ok: false; state: ProductSaveState }> {
   const { organisation } = await requireOrganisation();
   // A cost line's unit must suit its material, so the materials are read only when the form carries cost lines.
-  const materials = formData.get("costLines") === null ? [] : (await getMaterials()).filter((m) => m.organisationId === organisation.id);
+  const materials = formData.get("costLines") === null && formData.get("extraCosts") === null ? [] : (await getMaterials()).filter((m) => m.organisationId === organisation.id);
   const parsed = parseProductForm(formData, new Map(materials.map((m) => [m.id, m.unit])));
   if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 

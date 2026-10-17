@@ -257,7 +257,8 @@ export function ExtrasSection({
                           ? (also ?? "Other products can use it too, with this price.")
                           : "Its own price here, and it can cost more on a bigger size."
                       }
-                      onChange={(v) => setRow(x.key, v === "only" ? { shared: false } : { shared: true, priceByVariation: false })}
+                      // (Made "this product only", the extra becomes a copy on save; its cost lines are sent again so the copy keeps them.)
+                      onChange={(v) => setRow(x.key, v === "only" ? { shared: false, costsEdited: x.costsEdited === true || (x.costLines ?? []).length > 0 } : { shared: true, priceByVariation: false })}
                     />
                     {!x.shared && variations.length > 0 && (
                       <>

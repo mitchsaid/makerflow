@@ -81,6 +81,16 @@ begin
   assert (select count(*) from public.extra_cost_lines where extra_id = wrap) = 1, 'the shared extra''s costs were not replaced';
   assert (select minutes from public.extra_cost_lines where extra_id = wrap) = 10, 'the shared extra has the wrong cost';
 
+  -- Made "this product only" while other products have it, the extra becomes a copy for this product; the lines sent
+  -- with the save go to the copy, and the shared one keeps its own.
+  perform public.save_product_layers(org_a, pie, pg_temp.product('Pie'), null, null,
+    jsonb_build_array(jsonb_build_object('id', wrap, 'name', 'Gift wrap', 'price_cents', 3000, 'shared', false, 'changed', true)),
+    null, null, '{"extras": [{"index": 0, "lines": [{"kind": "time", "minutes": 20}]}]}'::jsonb);
+  assert (select count(*) from public.extra_cost_lines where extra_id = wrap) = 1, 'the shared extra lost its lines';
+  assert (select minutes from public.extra_cost_lines where extra_id = wrap) = 10, 'the shared extra''s lines changed';
+  assert (select count(*) from public.extras where organisation_id = org_a and name = 'Gift wrap') = 2, 'the extra was not copied';
+  assert (select l.minutes from public.extra_cost_lines l join public.product_extras pe on pe.extra_id = l.extra_id where pe.product_id = pie) = 20, 'the copy did not get the lines';
+
   ----------------------------------------------------------------------
   -- What is refused, and nothing else saved with it
   ----------------------------------------------------------------------

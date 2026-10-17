@@ -288,6 +288,14 @@ test("an extra has its own costs, counted for each one on the quote, and kept", 
   await expect(again.getByLabel("What is it", { exact: true })).toHaveValue("Paper");
   await expect(again.getByLabel("What it costs", { exact: true })).toHaveValue("4");
 
+  // Made "this product only" (a copy on save), it keeps its costs.
+  await page.getByLabel("Where does it apply?").selectOption("only");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Edit Gift wrap" }).click();
+  await expect(page.getByRole("list", { name: "What Gift wrap costs" }).getByRole("listitem").first().getByLabel("What it costs", { exact: true })).toHaveValue("4");
+
   // On a quote: two cakes, each with gift wrap. R260 less 2 × R4.
   await page.goto("/app/quotes/new");
   await tap(page.getByRole("button", { name: "Add item" }));

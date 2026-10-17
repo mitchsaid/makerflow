@@ -78,7 +78,8 @@ export function costItem(args: {
       add(lines, itemCost(lines, 1000, { quantityMilli: on.countMilli, chosenIds: [] }, settings), `${extra.name}: `);
     }
     if (parts.length === 0) return { margin: null, parts: [] };
-    return { margin: itemMargin(args.revenueCents, { cents: Math.min(total, MAX_CENTS), hasCosts: counted, incomplete }), parts };
+    // More than money can hold is flagged, never a quietly capped number.
+    return { margin: itemMargin(args.revenueCents, { cents: Math.min(total, MAX_CENTS), hasCosts: counted, incomplete: incomplete || total > MAX_CENTS }), parts };
   }
   if (args.unitCostCents !== null) {
     // Each, times how many (quantity is in thousandths), rounded once, in whole numbers. More than money can hold is no
