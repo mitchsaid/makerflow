@@ -5,7 +5,9 @@ import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { UnitField } from "@/components/unit-field";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
-import type { NumberStyle, VatStatus } from "@/lib/money";
+import type { Cents, NumberStyle, VatSettings, VatStatus } from "@/lib/money";
+import { summariseCosts } from "@/lib/products/cost-summary";
+import { CostsSection, type MaterialOption } from "./costs-section";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -85,6 +87,7 @@ export function ProductForm({
   numberStyle,
   idPrefix = "",
   embedded,
+  costing,
 }: {
   action: Action;
   initial: ProductFormValues;
@@ -103,6 +106,16 @@ export function ProductForm({
   /** In front of every field id, for when the form shares a page with other fields. */
   idPrefix?: string;
   embedded?: EmbeddedProductForm;
+  /**
+   * What the "What it costs to make" section needs. Absent in a sheet over a quote: the section is not shown there,
+   * and what is saved for the costs is left as it is.
+   */
+  costing?: {
+    materials: MaterialOption[];
+    /** What an hour of the maker's time is worth, or null when it is not set in the business profile. */
+    hourlyRateCents: Cents | null;
+    vat: VatSettings;
+  };
 }) {
   const [state, formAction, pending] = useActionState(embedded ? guarded(action) : action, initialState);
   // Hand the result to whoever opened the sheet, once per result.
@@ -294,6 +307,27 @@ export function ProductForm({
     });
   });
   if (errors.steps?.list) problems.push({ fieldId: fid("steps-error"), label: "Steps", message: errors.steps.list });
+  // The cost lines' problems, in the order they appear.
+  values.costLines.forEach((row, i) => {
+    const e = errors.costs?.rows[row.key];
+    if (!e) return;
+    const title = `Cost ${i + 1}`;
+    const id = (field: string) => fid(`cost-${row.key}-${field}`);
+    if (e.materialId) problems.push({ fieldId: id("first"), label: `${title}: material`, message: e.materialId });
+    if (e.amount) problems.push({ fieldId: id("amount"), label: `${title}: how much`, message: e.amount });
+    if (e.unit) problems.push({ fieldId: id("unit"), label: `${title}: unit`, message: e.unit });
+    if (e.time) problems.push({ fieldId: id("first"), label: `${title}: how long`, message: e.time });
+    if (e.name) problems.push({ fieldId: id("first"), label: `${title}: what is it`, message: e.name });
+    if (e.cost) problems.push({ fieldId: id("cost"), label: `${title}: what it costs`, message: e.cost });
+    if (e.list) problems.push({ fieldId: id("cond-add-condition"), label: title, message: e.list });
+    row.conditions.forEach((c, ci) => {
+      const ce = e.conditions?.[c.key];
+      if (ce?.ref) problems.push({ fieldId: id(`cond-c-${c.key}-ref`), label: `${title}: condition ${ci + 1}`, message: ce.ref });
+      if (ce?.quantity) problems.push({ fieldId: id(`cond-c-${c.key}-quantity`), label: `${title}: condition ${ci + 1} quantity`, message: ce.quantity });
+    });
+  });
+  if (errors.costs?.makes) problems.push({ fieldId: fid("makes"), label: "How many one batch makes", message: errors.costs.makes });
+  if (errors.costs?.list) problems.push({ fieldId: fid("costs-error"), label: "Costs", message: errors.costs.list });
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
@@ -626,7 +660,50 @@ export function ProductForm({
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 
-      {COMING_SOON[values.kind].map(([title, description]) => (
+      {costing && (
+        <>
+          <CostsSection
+            title={values.kind === "service" ? "What it costs" : "What it costs to make"}
+            rows={values.costLines}
+            makes={values.makes}
+            errors={errors.costs}
+            choices={stepChoices}
+            materials={costing.materials}
+            hourlyRateSet={costing.hourlyRateCents !== null}
+            summary={summariseCosts({
+              rows: values.costLines,
+              makes: values.makes,
+              variations: values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim(), price: r.price })),
+              unitPrice: values.unitPrice,
+              vatStatus: values.vatStatus,
+              vat: costing.vat,
+              settings: {
+                materials: new Map(costing.materials.map((m) => [m.id, m])),
+                hourlyRateCents: costing.hourlyRateCents,
+                vatRateBp: costing.vat.registered ? costing.vat.standardRateBp : null,
+              },
+              materialUnits: new Map(costing.materials.map((m) => [m.id, m.unit])),
+            })}
+            unit={values.unit.trim() || undefined}
+            numberStyle={numberStyle}
+            currencySymbol={currencySymbol}
+            currencyCode={currencyCode}
+            vatRegistered={costing.vat.registered}
+            fid={fid}
+            onChange={(costLines) => {
+              setEditedSinceSave(true);
+              setValues((v) => ({ ...v, costLines }));
+            }}
+            onMakesChange={(makes) => {
+              setEditedSinceSave(true);
+              setValues((v) => ({ ...v, makes }));
+            }}
+          />
+          <input type="hidden" name="costLines" value={JSON.stringify(values.costLines)} />
+          <input type="hidden" name="makes" value={values.makes} />
+        </>
+      )}
+      {COMING_SOON[values.kind].filter(([title]) => !(costing && title === "Costs and margin")).map(([title, description]) => (
         <ComingSoonSection key={title} title={title} description={description} />
       ))}
 

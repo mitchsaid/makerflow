@@ -1,0 +1,298 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Trash2Icon } from "lucide-react";
+import { AddButton } from "@/components/add-button";
+import { ChoiceCards } from "@/components/choice-cards";
+import { Section, SelectField, TextField } from "@/components/form-fields";
+import { QuantityField } from "@/components/quantity-field";
+import { Button } from "@/components/ui/button";
+import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
+import type { Material } from "@/lib/materials";
+import { UNIT_CHOICES, UNITS, type UnitCode } from "@/lib/materials/units";
+import { blankCostRow, COST_LINES_MAX, type CostErrors, type CostFormRow, type CostKind } from "@/lib/products/costs";
+import type { CostSummary } from "@/lib/products/cost-summary";
+import { ConditionsEditor, type ChoiceOption } from "./conditions-editor";
+
+let keyCounter = 0;
+const newCostKey = () => `cost-new-${(keyCounter += 1)}`;
+
+/** The materials a cost line can use: the ones in use, and any that are not archived. */
+export type MaterialOption = Pick<Material, "id" | "name" | "unit" | "archived" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">;
+
+const KIND_TITLES: Record<CostKind, string> = { material: "Material", time: "Your time", other: "Other cost" };
+
+/**
+ * "What it costs to make" (docs/plans/costing-and-margin.md, slice A): what goes into one batch, and how many a batch
+ * makes. Each line is a material (an amount of one of your materials), your time (at the hourly rate in the Business
+ * profile) or another cost, and can be only for some items (the same conditions as a production step). Costs are
+ * without VAT. Underneath, what it costs to make one and the margin, for the product or each variation.
+ */
+export function CostsSection({
+  title,
+  rows,
+  makes,
+  errors,
+  choices,
+  materials,
+  hourlyRateSet,
+  summary,
+  unit,
+  numberStyle,
+  currencySymbol,
+  currencyCode,
+  vatRegistered,
+  fid,
+  onChange,
+  onMakesChange,
+}: {
+  title: string;
+  rows: CostFormRow[];
+  makes: string;
+  errors: CostErrors | undefined;
+  /** The variations, list choices and extras the product has, named: what a line can depend on. */
+  choices: ChoiceOption[];
+  materials: MaterialOption[];
+  /** Whether the Business profile says what an hour of the maker's time is worth. */
+  hourlyRateSet: boolean;
+  summary: CostSummary;
+  /** What the product is counted in ("dozen"), written after a quantity. */
+  unit?: string;
+  numberStyle: NumberStyle;
+  currencySymbol: string;
+  currencyCode: string;
+  vatRegistered: boolean;
+  fid: (key: string) => string;
+  onChange: (rows: CostFormRow[]) => void;
+  onMakesChange: (makes: string) => void;
+}) {
+  const [choosing, setChoosing] = useState(false);
+  // Where focus goes after a line is added or removed (once it is on the screen).
+  const pendingFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pendingFocus.current) return;
+    document.getElementById(pendingFocus.current)?.focus();
+    pendingFocus.current = null;
+  });
+  const setRow = (key: string, change: Partial<CostFormRow>) => onChange(rows.map((r) => (r.key === key ? { ...r, ...change } : r)));
+  const idOf = (key: string, field: string) => fid(`cost-${key}-${field}`);
+  const usable = (current: string) => materials.filter((m) => !m.archived || m.id === current);
+  const unitOf = (id: string): UnitCode | null => materials.find((m) => m.id === id)?.unit ?? null;
+  const unitsLike = (code: UnitCode | null): UnitCode[] =>
+    code === null ? UNIT_CHOICES.flatMap((g) => g.units) : (UNIT_CHOICES.find((g) => g.units.includes(code))?.units ?? [code]);
+
+  return (
+    <Section title={title}>
+      <p className="-mt-2 text-sm text-muted-foreground">What goes into making one batch, without VAT. Only you see this.</p>
+      {rows.length > 0 && (
+        <ol className="space-y-4" aria-label={title}>
+          {rows.map((row, i) => {
+            const e = errors?.rows[row.key];
+            const name = `${KIND_TITLES[row.kind]} ${rows.filter((r, ri) => ri <= i && r.kind === row.kind).length}`;
+            const materialUnit = unitOf(row.materialId);
+            return (
+              <li key={row.key} className="space-y-3 rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-base font-medium">{name}</h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive"
+                    aria-label={`Remove ${name}`}
+                    onClick={() => {
+                      const next = rows.filter((r) => r.key !== row.key);
+                      onChange(next);
+                      pendingFocus.current = next.length > 0 ? idOf(next[Math.max(0, i - 1)].key, "first") : fid("add-cost");
+                    }}
+                  >
+                    <Trash2Icon aria-hidden="true" />
+                  </Button>
+                </div>
+                {row.kind === "material" && (
+                  <>
+                    {materials.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        You have no materials yet.{" "}
+                        <Link href="/app/products/materials/new" className="underline underline-offset-4">
+                          Add a material
+                        </Link>{" "}
+                        first, then come back.
+                      </p>
+                    ) : (
+                      <SelectField
+                        id={idOf(row.key, "first")}
+                        label="Material"
+                        placeholder="Choose…"
+                        value={row.materialId}
+                        options={usable(row.materialId).map((m) => m.id)}
+                        optionLabels={Object.fromEntries(materials.map((m) => [m.id, m.archived ? `${m.name} (archived)` : m.name]))}
+                        error={e?.materialId}
+                        onChange={(materialId) => {
+                          // The unit starts as the material's own; one that no longer suits it is cleared.
+                          const next = unitOf(materialId);
+                          const keep = next !== null && row.unit !== "" && unitsLike(next).includes(row.unit as UnitCode);
+                          setRow(row.key, { materialId, unit: keep ? row.unit : (next ?? "") });
+                        }}
+                      />
+                    )}
+                    <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                      <QuantityField id={idOf(row.key, "amount")} label="How much goes in" value={row.amount} error={e?.amount} onChange={(amount) => setRow(row.key, { amount })} />
+                      <div className="w-32">
+                        <SelectField
+                          id={idOf(row.key, "unit")}
+                          label="Unit"
+                          placeholder="Unit"
+                          value={row.unit}
+                          options={unitsLike(materialUnit)}
+                          optionLabels={Object.fromEntries(Object.entries(UNITS).map(([code, info]) => [code, info.label]))}
+                          error={e?.unit}
+                          onChange={(u) => setRow(row.key, { unit: u })}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+                {row.kind === "time" && (
+                  <>
+                    <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                      <QuantityField id={idOf(row.key, "first")} label="How long it takes" value={row.time} error={e?.time} onChange={(time) => setRow(row.key, { time })} />
+                      <div className="w-32">
+                        <SelectField
+                          id={idOf(row.key, "timeUnit")}
+                          label="In"
+                          placeholder="Minutes"
+                          value={row.timeUnit}
+                          options={["minutes", "hours"]}
+                          optionLabels={{ minutes: "Minutes", hours: "Hours" }}
+                          onChange={(timeUnit) => setRow(row.key, { timeUnit: timeUnit === "hours" ? "hours" : "minutes" })}
+                        />
+                      </div>
+                    </div>
+                    {!hourlyRateSet && (
+                      <p className="text-sm text-muted-foreground">
+                        Your time is counted at an hourly rate.{" "}
+                        <Link href="/app/business" className="underline underline-offset-4">
+                          Set what an hour of your time is worth
+                        </Link>{" "}
+                        in your business profile.
+                      </p>
+                    )}
+                  </>
+                )}
+                {row.kind === "other" && (
+                  <>
+                    <TextField id={idOf(row.key, "first")} label="What is it" autoComplete="off" maxLength={120} placeholder="e.g. Box" value={row.name} error={e?.name} onChange={(v) => setRow(row.key, { name: v })} />
+                    <TextField
+                      id={idOf(row.key, "cost")}
+                      label="What it costs"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      startText={currencySymbol}
+                      value={row.cost}
+                      error={e?.cost}
+                      onChange={(v) => setRow(row.key, { cost: v })}
+                    />
+                  </>
+                )}
+                <ConditionsEditor
+                  subject={name}
+                  logicLabel="Include this cost when"
+                  groupLabel={`When to include ${name}`}
+                  idBase={idOf(row.key, "cond")}
+                  logic={row.logic}
+                  conditions={row.conditions}
+                  choices={choices}
+                  unit={unit}
+                  errors={e}
+                  onChange={(change) => setRow(row.key, change)}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {errors?.list && (
+        <p id={fid("costs-error")} tabIndex={-1} className="text-sm text-destructive">
+          {errors.list}
+        </p>
+      )}
+      {rows.length > 0 && (
+        <QuantityField
+          id={fid("makes")}
+          label="How many one batch makes"
+          hint="The costs above are for one batch. Use 1 if you make one at a time."
+          unit={unit}
+          value={makes}
+          error={errors?.makes}
+          onChange={onMakesChange}
+        />
+      )}
+      {choosing && (
+        <ChoiceCards<CostKind | "">
+          legend="What kind of cost?"
+          value=""
+          onChange={(kind) => {
+            if (kind === "") return;
+            const row = blankCostRow(newCostKey(), kind);
+            onChange([...rows, row]);
+            setChoosing(false);
+            pendingFocus.current = idOf(row.key, "first");
+          }}
+          idFor={(k) => fid(`cost-kind-${k}`)}
+          choices={[
+            { value: "material", title: "A material", hint: "An amount of one of your materials." },
+            { value: "time", title: "Your time", hint: "Counted at your hourly rate." },
+            { value: "other", title: "Another cost", hint: "A box, delivery, a fee." },
+          ]}
+        />
+      )}
+      {!choosing && rows.length < COST_LINES_MAX && (
+        <AddButton id={fid("add-cost")} className="self-start" onClick={() => setChoosing(true)}>
+          {rows.length === 0 ? "Add a cost" : "Add another cost"}
+        </AddButton>
+      )}
+      <CostSummaryView summary={summary} numberStyle={numberStyle} currencyCode={currencyCode} hasRows={rows.length > 0} vatRegistered={vatRegistered} />
+    </Section>
+  );
+}
+
+function CostSummaryView({
+  summary,
+  numberStyle,
+  currencyCode,
+  hasRows,
+  vatRegistered,
+}: {
+  summary: CostSummary;
+  numberStyle: NumberStyle;
+  currencyCode: string;
+  hasRows: boolean;
+  vatRegistered: boolean;
+}) {
+  if (!hasRows) return null;
+  const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
+  const shown = summary.scopes.filter((s) => s.margin !== null && s.margin.costCents !== null);
+  if (shown.length === 0) return null;
+  return (
+    <div className="space-y-1 border-t border-border pt-3 text-sm" data-testid="cost-summary" aria-live="polite">
+      {shown.map((s) => {
+        const m = s.margin!;
+        return (
+          <p key={s.name} data-testid="cost-summary-row">
+            {s.name && <span className="font-medium">{s.name}: </span>}
+            Costs {money(m.costCents ?? 0)}
+            {m.incomplete ? " or more" : ""} to make one. Sells for {money(m.revenueCents)}
+            {vatRegistered ? " without VAT" : ""}.{" "}
+            {m.marginBp === null ? "" : `Margin ${formatPercent(m.marginBp, numberStyle)}.`}
+          </p>
+        );
+      })}
+      {summary.leftOutConditions && (
+        <p className="text-muted-foreground">Lines that depend on a list choice, an extra or a quantity are not counted here.</p>
+      )}
+      <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
+    </div>
+  );
+}

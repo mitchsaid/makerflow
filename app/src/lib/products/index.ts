@@ -4,6 +4,8 @@ import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
 import { parseExtras, type ExtraErrors, type ExtraSummary, type ParsedExtra } from "./extras";
 import { parseOptionGroups, type OptionErrors, type OptionGroup, type ParsedOptionGroup } from "./options";
+import { parseCosts, type CostErrors, type CostLineSummary, type ParsedCosts } from "./costs";
+import type { UnitCode } from "../materials/units";
 import { parseSteps, type ParsedStep, type StepChoices, type StepErrors, type StepSummary } from "./steps";
 import { parsePriceBreaks, type ParsedPriceBreak, type PriceBreak, type PriceBreakErrors } from "./price-breaks";
 import { parseVariations, type ParsedVariation, type ProductVariation, type VariationErrors } from "./variations";
@@ -54,6 +56,8 @@ export type ProductFields = {
   priceBreaks?: ParsedPriceBreak[];
   /** The steps it is made in, in order. Undefined when the form did not carry them: they are left as they are. */
   steps?: ParsedStep[];
+  /** What it costs to make: the lines and how many a batch makes. Undefined when the form did not carry them: they are left as they are. */
+  costs?: ParsedCosts;
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
@@ -70,6 +74,8 @@ export type ProductFieldErrors = Partial<Record<ProductFieldName, string>> & {
   priceBreaks?: PriceBreakErrors;
   /** Problems with the steps, by row. */
   steps?: StepErrors;
+  /** Problems with the cost lines and the batch size. */
+  costs?: CostErrors;
 };
 
 export type ParsedProductForm =
@@ -118,7 +124,11 @@ function stepChoicesOf(variations: FormDataEntryValue | null, options: FormDataE
 }
 
 /** Turns the product form into validated values. */
-export function parseProductForm(form: FormData): ParsedProductForm {
+export function parseProductForm(
+  form: FormData,
+  /** The units of the business's materials, by id: a cost line's unit must measure the same kind of thing. Needed only when the form carries cost lines. */
+  materialUnits: ReadonlyMap<string, UnitCode> = new Map(),
+): ParsedProductForm {
   const errors: ProductFieldErrors = {};
 
   const kindRaw = form.get("kind");
@@ -235,6 +245,15 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     else errors.steps = parsed.errors;
   }
 
+  // What it costs to make: the same way, in their own field, with how many a batch makes beside them.
+  let costs: ParsedCosts | undefined;
+  const costLinesRaw = form.get("costLines");
+  if (costLinesRaw !== null) {
+    const parsed = parseCosts(readJson(costLinesRaw), form.get("makes"), stepChoicesOf(variationsRaw, optionsRaw, extrasRaw), materialUnits);
+    if (parsed.ok) costs = parsed.costs;
+    else errors.costs = parsed.errors;
+  }
+
   const hasVariations = (variations?.length ?? 0) > 0 || (errors.variations !== undefined && variationsRaw !== null && variationsRaw !== "[]");
 
   // With variations each has its own price, and the product's is the lowest of theirs.
@@ -279,6 +298,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
       ...(extras === undefined ? {} : { extras }),
       ...(priceBreaks === undefined ? {} : { priceBreaks }),
       ...(steps === undefined ? {} : { steps }),
+      ...(costs === undefined ? {} : { costs }),
     },
   };
 }
@@ -309,6 +329,10 @@ export type ProductSummary = {
   priceBreaks: PriceBreak[];
   /** The steps it is made in, in order, with when each applies. Empty when it has none. */
   steps: StepSummary[];
+  /** How many one batch makes (thousandths); the cost lines are for a batch. */
+  makesMilli: number;
+  /** What goes into a batch, in the maker's order. Empty when no costs are entered. */
+  costLines: CostLineSummary[];
 };
 
 /** Does a list row match what the person typed in the search box? */

@@ -1,6 +1,7 @@
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
+import { getMaterials } from "@/lib/materials/data";
 import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { defaultQuotePolicies } from "@/lib/policies";
@@ -15,9 +16,10 @@ import { QuoteBuilder } from "../quote-builder";
 
 export default async function NewQuotePage() {
   // Customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, allPolicies, sequences, { organisation, profile, role, bankDetails }] = await Promise.all([
+  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails }] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
+    getMaterials(),
     getPolicies(),
     getQuoteSequences(),
     requireOrganisation(),
@@ -33,6 +35,7 @@ export default async function NewQuotePage() {
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <QuoteBuilder
         quoteId={null}
+        costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents }}
         header={
           // A new quote has its X to cancel; there is no page above it to go back to.
           <div className="space-y-1 pt-2">

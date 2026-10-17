@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
+import { getMaterials } from "@/lib/materials/data";
 import { bankPreview, canEditBankDetails } from "@/lib/bank";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getPolicies } from "@/lib/policies/data";
@@ -39,10 +40,11 @@ export default async function QuotePage({
 }: PageProps<"/app/quotes/[id]">) {
   const { id } = await params;
   // The quote and the customers load beside the workspace check, not after it.
-  const [quote, allCustomers, allProducts, allPolicies, { organisation, profile, role, bankDetails, dismissedPrompts }, query] = await Promise.all([
+  const [quote, allCustomers, allProducts, allMaterials, allPolicies, { organisation, profile, role, bankDetails, dismissedPrompts }, query] = await Promise.all([
     getStoredQuote(id),
     getCustomersWithAddresses(),
     getProducts(),
+    getMaterials(),
     getPolicies(),
     requireOrganisation(),
     searchParams,
@@ -88,6 +90,7 @@ export default async function QuotePage({
           initial={toFormValues(quote, locale.numberStyle)}
           customers={customerOptions(customers, locale)}
           products={forOrganisation(allProducts, organisation.id)}
+          costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents }}
           vat={vatSettingsFor(profile, locale)}
           currencyCode={profile.currencyCode}
           countryCode={profile.countryCode}

@@ -28,6 +28,7 @@ import {
   type VatSettings,
 } from "@/lib/money";
 import type { ProductSummary } from "@/lib/products";
+import type { Material } from "@/lib/materials";
 import { getLocalePack, priceEntryLabel, type LocalePack } from "@/lib/locale";
 import { addDays } from "@/lib/quotes/dates";
 import { vatChoicesFor } from "@/lib/quotes/vat-choices";
@@ -42,6 +43,8 @@ import {
   type QuoteErrors,
   type QuoteFormValues,
 } from "@/lib/quotes";
+import { lineMargins } from "@/lib/quotes/margin";
+import { MarginPanel } from "./margin-panel";
 import { MISSING_CUSTOMER, MISSING_ITEMS } from "@/lib/quotes/send-checks";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
@@ -90,6 +93,7 @@ export function QuoteBuilder({
   numbering: initialNumbering,
   canChangeNumbering = false,
   askForDeposit = false,
+  costing,
   header,
   children,
 }: {
@@ -135,6 +139,8 @@ export function QuoteBuilder({
   canChangeNumbering?: boolean;
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;
+  /** What costs are worked out with (the materials and the hourly rate), for the private margin on the draft. */
+  costing: { materials: Pick<Material, "id" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null };
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
   header?: React.ReactNode;
   /** What goes between the form and the bar, such as Delete draft. */
@@ -215,6 +221,12 @@ export function QuoteBuilder({
   }
   // The item sheet: choosing what to add, configuring a line, or a product form.
   const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
+  const costSettings = {
+    materials: new Map(costing.materials.map((m) => [m.id, m])),
+    hourlyRateCents: costing.hourlyRateCents,
+    vatRateBp: vat.registered ? vat.standardRateBp : null,
+  };
+  const margins = lineMargins(values, totals, vat, products, costSettings);
   const [policyLibrary, setPolicyLibrary] = useState(initialPolicyLibrary);
   const [bankDetails, setBankDetails] = useState(initialBankDetails);
   // What new quotes start with; saving one from here moves it.
@@ -897,6 +909,7 @@ export function QuoteBuilder({
             />
           )}
         </dl>
+        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} />
       </Section>
 
       {state.status === "error" && state.message && (
