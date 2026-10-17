@@ -68,6 +68,9 @@ test("one item's steps can be added to, taken off and reset, without touching th
   await tap(editor.getByRole("button", { name: "Save step" }));
   await expect(cupcakes.getByTestId("step-progress")).toHaveCount(4);
   await expect(cupcakes.getByTestId("step-progress").nth(3)).toContainText("Attach name tags: 0 of 12");
+  await expect(cupcakes.getByTestId("item-made")).toHaveText("Made 0 of 12");
+  // The editor stays open, and Enter in the box saves too.
+  await expect(editor).toBeVisible();
   await expect(editor.getByRole("button", { name: /Reset to the product/ })).toBeVisible();
 
   // A step with nothing counted comes off at once; one with a count asks first.
@@ -118,4 +121,10 @@ test("one item's steps can be added to, taken off and reset, without touching th
   await tap(tea.getByRole("button", { name: "Save step" }));
   await expect(page.getByTestId("item-steps")).toHaveCount(2);
   await expect(page.getByRole("list", { name: "Steps for Tea" }).getByTestId("step-progress")).toContainText("Pack: 0 of 10");
+  // The editor did not close when the first step arrived, and a second goes in with Enter.
+  await expect(tea).toBeVisible();
+  await tap(tea.getByRole("button", { name: "Add a step to Tea" }));
+  await tea.getByLabel("New step").fill("Label");
+  await tea.getByLabel("New step").press("Enter");
+  await expect(page.getByRole("list", { name: "Steps for Tea" }).getByTestId("step-progress")).toHaveCount(2);
 });

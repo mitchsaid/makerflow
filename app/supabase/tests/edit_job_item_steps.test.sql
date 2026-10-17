@@ -255,6 +255,58 @@ begin
   reset role;
 
   ----------------------------------------------------------------------
+  -- Numbers stay 0..n-1 as steps come and go, and a reset keeps steps that depend on the item's quantity
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  cake := public.save_product_layers(org_a, cake, pg_temp.product('Cake'), null, null, null, null,
+    '[{"name": "Bake"}, {"name": "Ice"}, {"name": "Big-order check", "conditions": [{"kind": "quantity", "quantityMilli": 12000}]}]'::jsonb);
+  reset role;
+  set local role service_role;
+  j := public.create_job(org_a, a, cust_a, 'none', null, null, null, jsonb_build_array(
+    jsonb_build_object('kind', 'product', 'name', 'Cake', 'quantityMilli', 12000, 'productId', cake),
+    jsonb_build_object('kind', 'product', 'name', 'Cake', 'quantityMilli', 6000, 'productId', cake)));
+  reset role;
+  select id into i_cake from public.job_items where job_id = j and sort_order = 0;
+  select id into i_tea from public.job_items where job_id = j and sort_order = 1;
+  assert (select count(*) from public.job_item_steps where job_item_id = i_cake) = 3, 'a quantity of 12 should take the big-order step';
+  assert (select count(*) from public.job_item_steps where job_item_id = i_tea) = 2, 'a quantity of 6 should not';
+  set local role service_role;
+  perform public.remove_job_item_step(org_a, (select id from public.job_item_steps where job_item_id = i_cake and name = 'Ice'), a);
+  perform public.add_job_item_step(org_a, i_cake, 'Last one', a);
+  reset role;
+  assert (select array_agg(sort_order order by sort_order) from public.job_item_steps where job_item_id = i_cake) = array[0, 1, 2], 'the step numbers should stay 0..n-1';
+  assert (select array_agg(name order by sort_order) from public.job_item_steps where job_item_id = i_cake) = array['Bake', 'Big-order check', 'Last one'], 'the new step should be last';
+  set local role service_role;
+  perform public.reset_job_item_steps(org_a, i_cake, a);
+  perform public.reset_job_item_steps(org_a, i_tea, a);
+  reset role;
+  assert (select array_agg(name order by sort_order) from public.job_item_steps where job_item_id = i_cake) = array['Bake', 'Ice', 'Big-order check'], 'reset lost a step that depends on the quantity';
+  assert (select array_agg(name order by sort_order) from public.job_item_steps where job_item_id = i_tea) = array['Bake', 'Ice'], 'reset gave the small order a step it does not need';
+  -- The count is never more than the quantity.
+  set local role service_role;
+  perform public.set_job_step_done(org_a, (select id from public.job_item_steps where job_item_id = i_tea and name = 'Bake'), 6000, a);
+  perform public.set_job_step_done(org_a, (select id from public.job_item_steps where job_item_id = i_tea and name = 'Ice'), 6000, a);
+  perform public.remove_job_item_step(org_a, (select id from public.job_item_steps where job_item_id = i_tea and name = 'Ice'), a);
+  reset role;
+  assert (select made_milli from public.job_items where id = i_tea) = 6000, 'the count should be the fewest step, not more than the quantity';
+
+  -- Cancelled and done jobs take no changes either, and the internal copy is for the owner alone.
+  set local role service_role;
+  begin
+    perform public.copy_product_steps_to_item(i_cake);
+    raise exception 'the service key called the internal copy';
+  exception when insufficient_privilege then null;
+  end;
+  perform public.move_job_status(org_a, j, a, 'cancelled');
+  begin
+    perform public.add_job_item_step(org_a, i_cake, 'Late', a);
+    raise exception 'a step was added to a cancelled job';
+  exception when sqlstate '55006' then null;
+  end;
+  reset role;
+
+  ----------------------------------------------------------------------
   -- Members cannot call any of it, or write a job's steps directly
   ----------------------------------------------------------------------
   perform pg_temp.as_user(c);
@@ -284,7 +336,7 @@ begin
     raise exception 'a member changed an item directly';
   exception when insufficient_privilege then null;
   end;
-  assert (select count(*) from public.job_item_steps where job_item_id = i_cake) = 2, 'staff could not read the steps';
+  assert (select count(*) from public.job_item_steps where job_item_id = i_cake) = 3, 'staff could not read the steps';
   reset role;
   raise notice 'edit job item steps tests passed';
 end

@@ -20,12 +20,15 @@ export function StepsEditor({
   jobId,
   itemId,
   name,
+  madeMilli,
   steps,
   stepsEdited,
 }: {
   jobId: string;
   itemId: string;
   name: string;
+  /** How many of the item are made now: a new step starts at none and can lower it. */
+  madeMilli: number;
   steps: { id: string; name: string; doneMilli: number }[];
   stepsEdited: boolean;
 }) {
@@ -39,12 +42,14 @@ export function StepsEditor({
   const [busy, setBusy] = useState(false);
   const question = useRef<HTMLDivElement>(null);
   const openButton = useRef<HTMLButtonElement>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
 
   // A question opens beside the step it is about: bring it into view and take focus on its first button.
   useEffect(() => {
     if (!asking) return;
     question.current?.scrollIntoView({ block: "center" });
-    question.current?.querySelector("button")?.focus({ preventScroll: true });
+    // The safe answer first: a keyboard press on arrival cannot throw anything away.
+    question.current?.querySelectorAll("button")[1]?.focus({ preventScroll: true });
   }, [asking]);
 
   async function run(action: () => Promise<JobActionResult>, then?: () => void) {
@@ -80,6 +85,7 @@ export function StepsEditor({
       setNewName("");
       setNameError(undefined);
       setAdding(false);
+      setTimeout(() => addButton.current?.focus(), 0);
     });
   }
 
@@ -132,10 +138,17 @@ export function StepsEditor({
       )}
 
       {adding ? (
-        <div className="space-y-2">
+        <form
+          className="space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void add();
+          }}
+        >
           <TextField
             id={`add-step-${itemId}`}
             label="New step"
+            hint={madeMilli > 0 && steps.length > 0 ? "It starts at none, so the item's count goes down until it is counted." : undefined}
             autoComplete="off"
             maxLength={120}
             value={newName}
@@ -146,7 +159,7 @@ export function StepsEditor({
             }}
           />
           <div className="flex flex-wrap gap-2">
-            <Button type="button" disabled={busy} onClick={add}>
+            <Button type="submit" disabled={busy}>
               Save step
             </Button>
             <Button
@@ -156,15 +169,17 @@ export function StepsEditor({
                 setAdding(false);
                 setNewName("");
                 setNameError(undefined);
+                setTimeout(() => addButton.current?.focus(), 0);
               }}
             >
               Cancel
             </Button>
           </div>
-        </div>
+        </form>
       ) : (
         steps.length < 30 && (
           <AddButton
+            ref={addButton}
             onClick={() => {
               setAdding(true);
               setTimeout(() => document.getElementById(`add-step-${itemId}`)?.focus(), 0);
@@ -209,6 +224,7 @@ export function StepsEditor({
           setAdding(false);
           setAsking(null);
           setMessage(null);
+          setTimeout(() => openButton.current?.focus(), 0);
         }}
       >
         Done

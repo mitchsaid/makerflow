@@ -43,7 +43,8 @@ begin
 end;
 $$;
 
-revoke execute on function public.copy_product_steps_to_item(uuid) from public, anon, authenticated;
+-- (only the functions below and the trigger use it: they run as the owner, so nobody else needs to call it)
+revoke execute on function public.copy_product_steps_to_item(uuid) from public, anon, authenticated, service_role;
 
 create or replace function public.job_items_copy_steps()
 returns trigger
@@ -56,6 +57,8 @@ begin
   return new;
 end;
 $$;
+
+revoke execute on function public.job_items_copy_steps() from public, anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- add_job_item_step. Errors: P0002 the item or its job is not found; 55006 the job is not Not started or Making; 22023
@@ -82,7 +85,13 @@ begin
   end if;
   -- Lock in the same order as the counting functions: the job, then the item.
   select * into j from public.jobs where id = it.job_id and organisation_id = p_org for update;
+  if not found then
+    raise exception 'job not found' using errcode = 'P0002';
+  end if;
   select * into it from public.job_items where id = it.id for update;
+  if not found then
+    raise exception 'item not found' using errcode = 'P0002';
+  end if;
   if j.status not in ('not_started', 'in_progress') then
     raise exception 'a job that is % takes no changes to its steps', j.status using errcode = '55006';
   end if;
@@ -92,13 +101,18 @@ begin
   if nm is null or char_length(nm) not between 1 and 120 then
     raise exception 'a step needs a name of up to 120 characters' using errcode = '22023';
   end if;
-  select count(*), coalesce(max(sort_order), -1) + 1 into n, next_order from public.job_item_steps where job_item_id = it.id;
+  select count(*) into n from public.job_item_steps where job_item_id = it.id;
   if n >= 30 then
     raise exception 'an item can have at most 30 steps' using errcode = '54000';
   end if;
+  -- Numbered 0..n-1 again, so adding and taking off never runs the numbers out.
+  update public.job_item_steps s set sort_order = r.rn
+    from (select id, (row_number() over (order by sort_order, id) - 1)::integer as rn from public.job_item_steps where job_item_id = it.id) r
+   where s.id = r.id and s.sort_order <> r.rn;
+  next_order := n;
 
   insert into public.job_item_steps (organisation_id, job_item_id, sort_order, name, done_milli)
-  values (p_org, it.id, least(next_order, 1000), nm, case when n = 0 then it.made_milli else 0 end)
+  values (p_org, it.id, next_order, nm, case when n = 0 then it.made_milli else 0 end)
   returning id into sid;
   update public.job_items
      set steps_edited = true,
@@ -133,12 +147,18 @@ begin
   end if;
   select * into it from public.job_items where id = st.job_item_id and organisation_id = p_org;
   select * into j from public.jobs where id = it.job_id and organisation_id = p_org for update;
+  if not found then
+    raise exception 'job not found' using errcode = 'P0002';
+  end if;
   select * into it from public.job_items where id = it.id for update;
   if j.status not in ('not_started', 'in_progress') then
     raise exception 'a job that is % takes no changes to its steps', j.status using errcode = '55006';
   end if;
 
   delete from public.job_item_steps where id = st.id;
+  update public.job_item_steps s set sort_order = r.rn
+    from (select id, (row_number() over (order by sort_order, id) - 1)::integer as rn from public.job_item_steps where job_item_id = it.id) r
+   where s.id = r.id and s.sort_order <> r.rn;
   select min(done_milli) into fewest from public.job_item_steps where job_item_id = it.id;
   update public.job_items
      set steps_edited = true,
@@ -170,6 +190,9 @@ begin
     raise exception 'item not found' using errcode = 'P0002';
   end if;
   select * into j from public.jobs where id = it.job_id and organisation_id = p_org for update;
+  if not found then
+    raise exception 'job not found' using errcode = 'P0002';
+  end if;
   select * into it from public.job_items where id = it.id for update;
   if j.status not in ('not_started', 'in_progress') then
     raise exception 'a job that is % takes no changes to its steps', j.status using errcode = '55006';

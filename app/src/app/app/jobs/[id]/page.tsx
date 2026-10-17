@@ -80,18 +80,27 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
                   </div>
                   {counting && item.steps.length > 0 && <ItemSteps jobId={job.id} item={item} numberStyle={locale.numberStyle} />}
                   {counting && item.steps.length === 0 && (
-                    <>
-                      <ItemProgress
-                        jobId={job.id}
-                        itemId={item.id}
-                        name={item.name}
-                        quantityMilli={item.quantityMilli}
-                        madeMilli={item.madeMilli}
-                        unit={item.unit}
-                        numberStyle={locale.numberStyle}
-                      />
-                      {item.fromProduct && <StepsEditor jobId={job.id} itemId={item.id} name={item.name} steps={item.steps} stepsEdited={item.stepsEdited} />}
-                    </>
+                    <ItemProgress
+                      jobId={job.id}
+                      itemId={item.id}
+                      name={item.name}
+                      quantityMilli={item.quantityMilli}
+                      madeMilli={item.madeMilli}
+                      unit={item.unit}
+                      numberStyle={locale.numberStyle}
+                    />
+                  )}
+                  {/* One editor for the item, whether or not it has steps yet, so it stays open as the first one is added. */}
+                  {counting && item.fromProduct && (
+                    <StepsEditor
+                      key={item.id}
+                      jobId={job.id}
+                      itemId={item.id}
+                      name={item.name}
+                      madeMilli={item.madeMilli}
+                      steps={item.steps}
+                      stepsEdited={item.stepsEdited}
+                    />
                   )}
                 </li>
               ))}
