@@ -5,7 +5,7 @@ import type { ValidationResult } from "../validation";
 import { parseExtras, type ExtraErrors, type ExtraSummary, type ParsedExtra } from "./extras";
 import { parseOptionGroups, type OptionErrors, type OptionGroup, type ParsedOptionGroup } from "./options";
 import { parseSteps, type ParsedStep, type StepChoices, type StepErrors, type StepSummary } from "./steps";
-import { parsePriceBreaks, type PriceBreak, type PriceBreakErrors } from "./price-breaks";
+import { parsePriceBreaks, type ParsedPriceBreak, type PriceBreak, type PriceBreakErrors } from "./price-breaks";
 import { parseVariations, type ParsedVariation, type ProductVariation, type VariationErrors } from "./variations";
 
 /**
@@ -51,7 +51,7 @@ export type ProductFields = {
   /** Extras. Undefined when the form did not carry them: they are left as they are. */
   extras?: ParsedExtra[];
   /** Quantity prices, in order of quantity. Undefined when the form did not carry them: they are left as they are. */
-  priceBreaks?: PriceBreak[];
+  priceBreaks?: ParsedPriceBreak[];
   /** The steps it is made in, in order. Undefined when the form did not carry them: they are left as they are. */
   steps?: ParsedStep[];
 };
@@ -94,6 +94,12 @@ function readJson(raw: FormDataEntryValue | null): unknown {
 
 const keyOf = (row: unknown): string[] =>
   typeof row === "object" && row !== null && typeof (row as { key?: unknown }).key === "string" ? [(row as { key: string }).key] : [];
+
+/** The keys of the rows in a JSON list of rows, in order. */
+function keysOf(raw: FormDataEntryValue | null): string[] {
+  const rows = readJson(raw);
+  return Array.isArray(rows) ? rows.flatMap(keyOf) : [];
+}
 
 /** The keys of the variations, lists and extras on the form, in the order they are sent: what a step's conditions point at. */
 function stepChoicesOf(variations: FormDataEntryValue | null, options: FormDataEntryValue | null, extras: FormDataEntryValue | null): StepChoices {
@@ -214,21 +220,6 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     else errors.extras = parsed.errors;
   }
 
-  // Quantity prices: the same way, in their own field.
-  let priceBreaks: PriceBreak[] | undefined;
-  const breaksRaw = form.get("priceBreaks");
-  if (breaksRaw !== null) {
-    let rows: unknown = null;
-    try {
-      rows = JSON.parse(typeof breaksRaw === "string" ? breaksRaw : "");
-    } catch {
-      rows = null;
-    }
-    const parsed = parsePriceBreaks(rows);
-    if (parsed.ok) priceBreaks = parsed.breaks;
-    else errors.priceBreaks = parsed.errors;
-  }
-
   // Production steps: the same way, in their own field.
   let steps: ParsedStep[] | undefined;
   const stepsRaw = form.get("steps");
@@ -254,6 +245,20 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     : parseMoney(priceText);
   if (!price.ok) {
     errors.unitPrice = priceText.trim() === "" ? "Enter a price. Use 0 if it is free." : price.error;
+  }
+
+  // Quantity prices: the same way, in their own field. They are checked against the prices they come off (an amount
+  // must be less than its price), so this comes after the price is known.
+  let priceBreaks: ParsedPriceBreak[] | undefined;
+  const breaksRaw = form.get("priceBreaks");
+  if (breaksRaw !== null) {
+    const parsed = parsePriceBreaks(
+      readJson(breaksRaw),
+      keysOf(variationsRaw),
+      { single: price.ok && !hasVariations ? price.value : undefined, variations: variations?.map((v) => v.priceCents) ?? [] },
+    );
+    if (parsed.ok) priceBreaks = parsed.breaks;
+    else errors.priceBreaks = parsed.errors;
   }
 
   if (Object.keys(errors).length > 0 || kind === null || !name.ok || !description.ok || !unit.ok || !price.ok) {
@@ -300,7 +305,7 @@ export type ProductSummary = {
   options: OptionGroup[];
   /** Extras, in the maker's order. */
   extras: ExtraSummary[];
-  /** Quantity prices, in order of quantity. Empty when the price is the same whatever the quantity. */
+  /** Quantity prices, for each price in order of quantity (a variation's by its id; null is the product's own). Empty when the price is the same whatever the quantity. */
   priceBreaks: PriceBreak[];
   /** The steps it is made in, in order, with when each applies. Empty when it has none. */
   steps: StepSummary[];

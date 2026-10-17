@@ -247,6 +247,8 @@ export function LineSheet({
               vatChoices={vatChoices}
               variationSuggestions={variationSuggestions(businessTypes, view.product?.kind ?? view.productKind ?? "product")}
               currencySymbol={symbol}
+              currencyCode={currencyCode}
+              numberStyle={numberStyle}
               idPrefix="product-sheet-"
               embedded={{
                 onPendingChange: setSaving,
@@ -717,7 +719,7 @@ function ConfigureView({
             startText={symbol}
             inputMode="decimal"
             autoComplete="off"
-            hint={applied && !priceDiffers ? `Quantity price: ${priceBreakText(applied, line.unit.trim() || null, numberStyle)}.` : undefined}
+            hint={applied && !priceDiffers ? `Quantity price: ${priceBreakText(applied, line.unit.trim() || null, numberStyle, money)}.` : undefined}
             value={line.unitPrice}
             error={errors.unitPrice}
             onChange={set("unitPrice")}
@@ -727,7 +729,7 @@ function ConfigureView({
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">
               {applied
-                ? `The quantity price (${priceBreakText(applied, line.unit.trim() || null, numberStyle)}) is ${money(reference)}.`
+                ? `The quantity price (${priceBreakText(applied, line.unit.trim() || null, numberStyle, money)}) is ${money(reference)}.`
                 : chosen
                   ? `The ${KIND_WORDS[product.kind].one}'s price for ${chosen.name} is ${money(reference)}.`
                   : `The ${KIND_WORDS[product.kind].one}'s price is ${money(reference)}.`}

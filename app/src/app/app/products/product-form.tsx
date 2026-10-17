@@ -5,19 +5,20 @@ import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { UnitField } from "@/components/unit-field";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
-import type { VatStatus } from "@/lib/money";
+import type { NumberStyle, VatStatus } from "@/lib/money";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
 import { carryPrice } from "@/lib/products/variations";
+import { carryPriceBreaks, sentPriceBreaks } from "@/lib/products/price-breaks";
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
-import { QuantityPricesSection } from "./quantity-prices-section";
+import { QuantityPrices } from "./quantity-prices-section";
 import { newStepKey, StepsSection } from "./steps-section";
 import type { StepFormRow } from "@/lib/products/steps";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
@@ -79,6 +80,8 @@ export function ProductForm({
   vatChoices,
   variationSuggestions,
   currencySymbol,
+  currencyCode,
+  numberStyle,
   idPrefix = "",
   embedded,
 }: {
@@ -93,6 +96,9 @@ export function ProductForm({
   variationSuggestions: string[];
   /** "R": shown before the price. */
   currencySymbol: string;
+  /** "ZAR" and the country's number style: the price each that a quantity price leaves is written with them. */
+  currencyCode: string;
+  numberStyle: NumberStyle;
   /** In front of every field id, for when the form shares a page with other fields. */
   idPrefix?: string;
   embedded?: EmbeddedProductForm;
@@ -257,12 +263,19 @@ export function ProductForm({
     }
   });
   if (errors.extras?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras", message: errors.extras.list });
-  // The quantity prices' problems, in the order they appear.
-  values.priceBreaks.forEach((row, i) => {
-    const e = errors.priceBreaks?.rows[row.key];
-    if (e?.from) problems.push({ fieldId: fid(`price-break-${row.key}-from`), label: `Quantity price ${i + 1}: from`, message: e.from });
-    if (e?.percent) problems.push({ fieldId: fid(`price-break-${row.key}-percent`), label: `Quantity price ${i + 1}: percent off`, message: e.percent });
-  });
+  // The quantity prices' problems, in the order they appear: the product's own, then each variation's.
+  const scopes = values.variations.length > 0 ? values.variations.map((r, i) => ({ key: r.key, name: r.name.trim() || `${variationWord} ${i + 1}` })) : [{ key: "", name: "" }];
+  for (const scope of scopes) {
+    values.priceBreaks
+      .filter((row) => row.variationKey === scope.key)
+      .forEach((row, i) => {
+        const e = errors.priceBreaks?.rows[row.key];
+        const title = `${scope.name ? `${scope.name}: ` : ""}quantity price ${i + 1}`;
+        if (e?.from) problems.push({ fieldId: fid(`price-break-${row.key}-from`), label: `${title}: from`, message: e.from });
+        if (e?.value) problems.push({ fieldId: fid(`price-break-${row.key}-value`), label: `${title}: ${row.kind === "percent" ? "percent off" : "amount off"}`, message: e.value });
+      });
+  }
+  if (errors.priceBreaks?.list) problems.push({ fieldId: fid("price-breaks-error"), label: "Quantity prices", message: errors.priceBreaks.list });
   values.steps.forEach((row, i) => {
     const e = errors.steps?.rows[row.key];
     if (e?.name) problems.push({ fieldId: fid(`step-${row.key}-name`), label: `Step ${i + 1}`, message: e.name });
@@ -274,7 +287,6 @@ export function ProductForm({
     });
   });
   if (errors.steps?.list) problems.push({ fieldId: fid("steps-error"), label: "Steps", message: errors.steps.list });
-  if (errors.priceBreaks?.list) problems.push({ fieldId: fid("price-breaks-error"), label: "Quantity prices", message: errors.priceBreaks.list });
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
@@ -283,6 +295,10 @@ export function ProductForm({
   const hasVariations = priced || values.options.length > 0;
   // The question's examples come from what we know of the business ("size, material, flavour").
   const examples = variationSuggestions.slice(0, 3).map((w) => w.toLowerCase()).join(", ");
+  function changeBreaks(priceBreaks: ProductFormValues["priceBreaks"]) {
+    setEditedSinceSave(true);
+    setValues((v) => ({ ...v, priceBreaks }));
+  }
   // The price moves into the first choice when variations start, and back when the last one goes.
   function changeVariations(change: { label?: string; rows?: ProductFormValues["variations"] }) {
     setEditedSinceSave(true);
@@ -295,6 +311,7 @@ export function ProductForm({
             return {
               variations: carried.rows,
               unitPrice: carried.unitPrice,
+              priceBreaks: carryPriceBreaks(v.priceBreaks, v.variations, carried.rows),
               // With no sizes left there is nothing for a price to depend on (and no stale prices to come back).
               ...(carried.rows.length === 0
                 ? {
@@ -443,6 +460,12 @@ export function ProductForm({
             errors={errors.variations}
             priceLabel={priceLabel}
             currencySymbol={currencySymbol}
+            currencyCode={currencyCode}
+            numberStyle={numberStyle}
+            unit={values.unit}
+            breaks={values.priceBreaks}
+            breakErrors={errors.priceBreaks}
+            onBreaksChange={changeBreaks}
             fid={fid}
             onPendingChange={onChoicePending}
             onImage={setVariationImage}
@@ -499,6 +522,26 @@ export function ProductForm({
             onChange={set("unitPrice")}
           />
         )}
+        {!priced && (
+          <QuantityPrices
+            rows={values.priceBreaks}
+            scope=""
+            scopeName=""
+            priceText={values.unitPrice}
+            unit={values.unit}
+            currencyCode={currencyCode}
+            currencySymbol={currencySymbol}
+            numberStyle={numberStyle}
+            errors={errors.priceBreaks}
+            fid={fid}
+            onChange={changeBreaks}
+          />
+        )}
+        {errors.priceBreaks?.list && (
+          <p id={fid("price-breaks-error")} tabIndex={-1} className="text-sm text-destructive">
+            {errors.priceBreaks.list}
+          </p>
+        )}
         <UnitField
           id={fid("unit")}
           name="unit"
@@ -536,16 +579,6 @@ export function ProductForm({
           setValues((v) => ({ ...v, extras }));
         }}
       />
-      <QuantityPricesSection
-        rows={values.priceBreaks}
-        errors={errors.priceBreaks}
-        unit={values.unit}
-        fid={fid}
-        onChange={(priceBreaks) => {
-          setEditedSinceSave(true);
-          setValues((v) => ({ ...v, priceBreaks }));
-        }}
-      />
       <StepsSection
         title={values.kind === "service" ? "Steps" : "Production steps"}
         tracked={trackedAsSteps}
@@ -570,7 +603,7 @@ export function ProductForm({
       />
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
       <input type="hidden" name="steps" value={JSON.stringify(trackedAsSteps ? values.steps : [])} />
-      <input type="hidden" name="priceBreaks" value={JSON.stringify(values.priceBreaks)} />
+      <input type="hidden" name="priceBreaks" value={JSON.stringify(sentPriceBreaks(values.priceBreaks, values.variations))} />
       <input
         type="hidden"
         name="options"

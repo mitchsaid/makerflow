@@ -7,6 +7,9 @@ import { ChoiceImage } from "@/components/choice-image";
 import { Button } from "@/components/ui/button";
 import type { VariationErrors, VariationFormRow } from "@/lib/products/variations";
 import { AddButton } from "@/components/add-button";
+import type { NumberStyle } from "@/lib/money";
+import type { PriceBreakErrors, PriceBreakFormRow } from "@/lib/products/price-breaks";
+import { QuantityPrices } from "./quantity-prices-section";
 
 // New rows' keys come from one counter that is never reset (the product form starts the first rows too).
 let rowKeyCounter = 0;
@@ -25,6 +28,12 @@ export function PricedVariations({
   errors,
   priceLabel,
   currencySymbol,
+  currencyCode,
+  numberStyle,
+  unit,
+  breaks,
+  breakErrors,
+  onBreaksChange,
   fid,
   onPendingChange,
   onImage,
@@ -36,6 +45,14 @@ export function PricedVariations({
   errors: VariationErrors | undefined;
   priceLabel: string;
   currencySymbol: string;
+  currencyCode: string;
+  numberStyle: NumberStyle;
+  /** The product's unit, written beside quantities. */
+  unit: string;
+  /** All the quantity prices of the form: each choice shows and changes its own. */
+  breaks: PriceBreakFormRow[];
+  breakErrors: PriceBreakErrors | undefined;
+  onBreaksChange: (rows: PriceBreakFormRow[]) => void;
   fid: (key: string) => string;
   /** A choice's picture is on its way (true) or has arrived (false), so the form can wait for it before saving. */
   onPendingChange: (pending: boolean) => void;
@@ -150,6 +167,21 @@ export function PricedVariations({
                     Remove picture<span className="sr-only"> of {title}</span>
                   </Button>
                 )}
+              </div>
+              <div className="col-start-2 col-span-2">
+                <QuantityPrices
+                  rows={breaks}
+                  scope={row.key}
+                  scopeName={title}
+                  priceText={row.price}
+                  unit={unit}
+                  currencyCode={currencyCode}
+                  currencySymbol={currencySymbol}
+                  numberStyle={numberStyle}
+                  errors={breakErrors}
+                  fid={fid}
+                  onChange={onBreaksChange}
+                />
               </div>
               {problem && (
                 <p role="alert" className="col-start-2 col-span-2 text-sm text-destructive">

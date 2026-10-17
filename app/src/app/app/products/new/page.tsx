@@ -28,6 +28,8 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
         variationSuggestions={variationSuggestions(profile.businessTypes, kind)}
         vatChoices={vatChoicesFor(vatSettingsFor(profile, locale), locale.tax.statuses, locale.numberStyle)}
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
+        currencyCode={profile.currencyCode}
+        numberStyle={locale.numberStyle}
       />
     </main>
   );

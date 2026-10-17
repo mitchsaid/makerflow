@@ -40,6 +40,8 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
         variationSuggestions={variationSuggestions(profile.businessTypes, product.kind)}
         vatChoices={vatChoicesFor(vatSettingsFor(profile, locale), locale.tax.statuses, locale.numberStyle)}
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
+        currencyCode={profile.currencyCode}
+        numberStyle={locale.numberStyle}
       />
       <ProductArchiveButton id={product.id} archived={product.archived} kind={product.kind} />
     </main>
