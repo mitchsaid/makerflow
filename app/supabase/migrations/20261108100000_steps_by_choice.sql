@@ -73,7 +73,11 @@ create table public.product_step_conditions (
   )
 );
 
-create index product_step_conditions_step_idx on public.product_step_conditions (organisation_id, step_id, sort_order);
+create index product_step_conditions_step_idx on public.product_step_conditions (step_id, sort_order);
+-- (deleting a choice finds the conditions that name it)
+create index product_step_conditions_variation_idx on public.product_step_conditions (variation_id) where variation_id is not null;
+create index product_step_conditions_value_idx on public.product_step_conditions (option_value_id) where option_value_id is not null;
+create index product_step_conditions_extra_idx on public.product_step_conditions (extra_id) where extra_id is not null;
 
 -- A step has at most 10 conditions.
 create function public.product_step_conditions_limit()
