@@ -216,8 +216,6 @@ describe("a deposit on a quote", () => {
       itemCount: 1,
       validUntil: "2026-10-24",
       today: "2026-10-10",
-      profile: { phone: "011", email: null, addressLine1: null, city: null },
-      locale: ZA_LOCALE,
       depositTooBig: true,
     });
     expect(problems.map((p) => p.code)).toEqual(["deposit"]);

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { canEditBusinessProfile, missingForQuote } from "@/lib/business-profile";
+import { missingForQuote } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
 import { getProducts } from "@/lib/products/data";
@@ -14,8 +14,6 @@ import { prepareQuote } from "@/lib/quotes/prepare";
 import type { SendProblem } from "@/lib/quotes/send-checks";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { optionalValidated } from "@/lib/form-values";
-import { validateEmail, validatePhone } from "@/lib/validation";
 import { saveQuoteDraft } from "./actions";
 
 /**
@@ -39,23 +37,23 @@ function serverClient() {
   }
 }
 
-export type ContactDetails = { canEdit: boolean; phone: string; email: string };
-
 /** What the send sheet shows: what is missing, or the quote ready to send. */
 export type SendSheetState =
-  | { status: "problems"; problems: SendProblem[]; contact: ContactDetails }
+  | { status: "problems"; problems: SendProblem[] }
   | {
       status: "ready";
       number: string;
       version: number;
       customerName: string;
       totalText: string;
+      /** The business has no phone number or email to show on the quote: said on the confirmation, not a blocker. */
+      noContact: boolean;
     }
   | { status: "error"; message: string };
 
 export type SendResult =
   | { status: "sent"; number: string; version: number }
-  | { status: "problems"; problems: SendProblem[]; contact: ContactDetails }
+  | { status: "problems"; problems: SendProblem[] }
   | { status: "error"; message: string };
 
 /** Looks at the SAVED draft and says what stops it being sent, or that it is ready. */
@@ -77,18 +75,8 @@ export async function checkQuoteForSending(quoteId: string): Promise<SendSheetSt
   if (stored.status !== "draft") {
     return { status: "error", message: "This quote has already been sent." };
   }
-  const { profile, role } = workspace;
-  if (problems.length > 0) {
-    return {
-      status: "problems",
-      problems,
-      contact: {
-        canEdit: canEditBusinessProfile(role),
-        phone: profile.phone ?? "",
-        email: profile.email ?? "",
-      },
-    };
-  }
+  const { profile } = workspace;
+  if (problems.length > 0) return { status: "problems", problems };
   const locale = getLocalePack(profile.countryCode);
   return {
     status: "ready",
@@ -96,6 +84,7 @@ export async function checkQuoteForSending(quoteId: string): Promise<SendSheetSt
     version: stored.version,
     customerName: customerName ?? "",
     totalText: formatMoney(snapshot.totals.grossCents, profile.currencyCode, locale.numberStyle),
+    noContact: missingForQuote(profile, locale).length > 0,
   };
 }
 
@@ -114,14 +103,7 @@ export async function sendQuote(quoteId: string): Promise<SendResult> {
   if (!prepared.ok) return { status: "error", message: "That quote could not be found." };
   const { stored, parsed, snapshot, problems } = prepared.value;
   if (stored.status !== "draft") return { status: "error", message: "This quote has already been sent." };
-  if (problems.length > 0) {
-    const { profile, role } = workspace;
-    return {
-      status: "problems",
-      problems,
-      contact: { canEdit: canEditBusinessProfile(role), phone: profile.phone ?? "", email: profile.email ?? "" },
-    };
-  }
+  if (problems.length > 0) return { status: "problems", problems };
 
   // The person's session has proved the draft is theirs to send. From here the server key acts.
   const admin = serverClient();
@@ -264,47 +246,4 @@ export async function discardRevision(quoteId: string): Promise<{ status: "error
   revalidatePath("/app/quotes");
   revalidatePath(`/app/quotes/${quoteId}`);
   redirect(`/app/quotes/${quoteId}`);
-}
-
-export type ContactState =
-  | { status: "saved" }
-  | { status: "error"; message?: string; errors?: { phone?: string; email?: string } };
-
-/**
- * The send sheet's way to give the business a phone number or email. It updates the Business
- * profile (the one place these facts live) and only those two fields; owners and admins only.
- */
-export async function saveBusinessContact(values: { phone: string; email: string }): Promise<ContactState> {
-  const { organisation, role, profile } = await requireOrganisation();
-  if (!canEditBusinessProfile(role)) {
-    return { status: "error", message: "Only owners and admins can change the business details. Ask one of them to add a phone number or email." };
-  }
-  if (typeof values?.phone !== "string" || typeof values?.email !== "string") {
-    return { status: "error", message: GENERIC_ERROR };
-  }
-
-  const errors: { phone?: string; email?: string } = {};
-  const phone = optionalValidated(values.phone, validatePhone);
-  if (!phone.ok) errors.phone = phone.error;
-  const email = optionalValidated(values.email, validateEmail);
-  if (!email.ok) errors.email = email.error;
-  if (Object.keys(errors).length > 0 || !phone.ok || !email.ok) return { status: "error", errors };
-
-  const locale = getLocalePack(profile.countryCode);
-  if (missingForQuote({ ...profile, phone: phone.value, email: email.value }, locale).length > 0) {
-    return { status: "error", errors: { phone: "Add a phone number or an email so customers can reach you." } };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("business_profiles")
-    .update({ phone: phone.value, email: email.value })
-    .eq("organisation_id", organisation.id)
-    .select("organisation_id");
-  if (error || !data || data.length !== 1) {
-    console.error("could not save contact details:", error?.message);
-    return { status: "error", message: GENERIC_ERROR };
-  }
-  revalidatePath("/app", "layout");
-  return { status: "saved" };
 }
