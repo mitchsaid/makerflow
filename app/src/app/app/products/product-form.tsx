@@ -6,7 +6,9 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { UnitField } from "@/components/unit-field";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import type { Cents, NumberStyle, VatSettings, VatStatus } from "@/lib/money";
-import { summariseCosts } from "@/lib/products/cost-summary";
+import type { CostRowErrors } from "@/lib/products/costs";
+import { extraCostOf, summariseCosts } from "@/lib/products/cost-summary";
+import { formatMoney } from "@/lib/money";
 import { CostsSection, type MaterialOption } from "./costs-section";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -192,7 +194,7 @@ export function ProductForm({
         ...v,
         extras:
           savedExtras.length === sentExtras && v.extras.length === sentExtras
-            ? v.extras.map((r, i) => ({ ...r, id: savedExtras[i].id, shared: savedExtras[i].shared, usedOn: savedExtras[i].usedOn, edited: false }))
+            ? v.extras.map((r, i) => ({ ...r, id: savedExtras[i].id, shared: savedExtras[i].shared, usedOn: savedExtras[i].usedOn, edited: false, costsEdited: false }))
             : v.extras,
         variations: v.variations.map((r) => (r.id ? r : { ...r, id: idOf.get(r.key) ?? "" })),
         options: v.options.map((g) => ({
@@ -305,27 +307,36 @@ export function ProductForm({
     });
   });
   if (errors.steps?.list) problems.push({ fieldId: fid("steps-error"), label: "Steps", message: errors.steps.list });
-  // The cost lines' problems, in the order they appear.
-  values.costLines.forEach((row, i) => {
-    const e = errors.costs?.rows[row.key];
-    if (!e) return;
-    const title = `Cost ${i + 1}`;
-    const id = (field: string) => fid(`cost-${row.key}-${field}`);
-    if (e.materialId) problems.push({ fieldId: id("first"), label: `${title}: material`, message: e.materialId });
-    if (e.amount) problems.push({ fieldId: id("amount"), label: `${title}: how much`, message: e.amount });
-    if (e.unit) problems.push({ fieldId: id("unit"), label: `${title}: unit`, message: e.unit });
-    if (e.time) problems.push({ fieldId: id("first"), label: `${title}: how long`, message: e.time });
-    if (e.name) problems.push({ fieldId: id("first"), label: `${title}: what is it`, message: e.name });
-    if (e.cost) problems.push({ fieldId: id("cost"), label: `${title}: what it costs`, message: e.cost });
-    if (e.list) problems.push({ fieldId: id("cond-add-condition"), label: title, message: e.list });
-    row.conditions.forEach((c, ci) => {
-      const ce = e.conditions?.[c.key];
-      if (ce?.ref) problems.push({ fieldId: id(`cond-c-${c.key}-ref`), label: `${title}: condition ${ci + 1}`, message: ce.ref });
-      if (ce?.quantity) problems.push({ fieldId: id(`cond-c-${c.key}-quantity`), label: `${title}: condition ${ci + 1} quantity`, message: ce.quantity });
+  // The cost lines' problems, in the order they appear (the product's, then each extra's).
+  const pushCostProblems = (lines: ProductFormValues["costLines"], rowErrors: Record<string, CostRowErrors> | undefined, prefix: string, listFieldId?: string, list?: string) => {
+    lines.forEach((row, i) => {
+      const e = rowErrors?.[row.key];
+      if (!e) return;
+      const title = `${prefix}Cost ${i + 1}`;
+      const id = (field: string) => fid(`cost-${row.key}-${field}`);
+      if (e.materialId) problems.push({ fieldId: id("first"), label: `${title}: material`, message: e.materialId });
+      if (e.amount) problems.push({ fieldId: id("amount"), label: `${title}: how much`, message: e.amount });
+      if (e.unit) problems.push({ fieldId: id("unit"), label: `${title}: unit`, message: e.unit });
+      if (e.time) problems.push({ fieldId: id("first"), label: `${title}: how long`, message: e.time });
+      if (e.name) problems.push({ fieldId: id("first"), label: `${title}: what is it`, message: e.name });
+      if (e.cost) problems.push({ fieldId: id("cost"), label: `${title}: what it costs`, message: e.cost });
+      if (e.list) problems.push({ fieldId: id("cond-add-condition"), label: title, message: e.list });
+      row.conditions.forEach((c, ci) => {
+        const ce = e.conditions?.[c.key];
+        if (ce?.ref) problems.push({ fieldId: id(`cond-c-${c.key}-ref`), label: `${title}: condition ${ci + 1}`, message: ce.ref });
+        if (ce?.quantity) problems.push({ fieldId: id(`cond-c-${c.key}-quantity`), label: `${title}: condition ${ci + 1} quantity`, message: ce.quantity });
+      });
     });
-  });
+    if (list && listFieldId) problems.push({ fieldId: listFieldId, label: `${prefix}Costs`, message: list });
+  };
+  pushCostProblems(values.costLines, errors.costs?.rows, "");
   if (errors.costs?.makes) problems.push({ fieldId: fid("makes"), label: "How many one batch makes", message: errors.costs.makes });
   if (errors.costs?.list) problems.push({ fieldId: fid("costs-error"), label: "Costs", message: errors.costs.list });
+  values.extras.forEach((x, xi) => {
+    const ce = errors.extraCosts?.byExtra[x.key];
+    if (ce) pushCostProblems(x.costLines ?? [], ce.rows, `${x.name.trim() || `Extra ${xi + 1}`}: `, fid(`extra-${x.key}-costs-error`), ce.list);
+  });
+  if (errors.extraCosts?.list) problems.push({ fieldId: fid("extras-error"), label: "Extras' costs", message: errors.extraCosts.list });
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
@@ -609,6 +620,17 @@ export function ProductForm({
       </Section>
 
       <ExtrasSection
+        costing={costing ? { materials: costing.materials, hourlyRateSet: costing.hourlyRateCents !== null } : undefined}
+        costErrors={errors.extraCosts?.byExtra}
+        costNote={(x) => {
+          if (!costing) return null;
+          const cost = extraCostOf({
+            rows: x.costLines ?? [],
+            settings: { materials: new Map(costing.materials.map((m) => [m.id, m])), hourlyRateCents: costing.hourlyRateCents, vatRateBp: costing.vat.registered ? costing.vat.standardRateBp : null },
+            materialUnits: new Map(costing.materials.map((m) => [m.id, m.unit])),
+          });
+          return cost ? `Costs ${formatMoney(cost.cents, currencyCode, numberStyle)}${cost.incomplete ? " or more" : ""} each.` : null;
+        }}
         rows={values.extras}
         errors={errors.extras}
         variations={namedVariations}
@@ -698,6 +720,12 @@ export function ProductForm({
             }}
           />
           <input type="hidden" name="costLines" value={JSON.stringify(values.costLines)} />
+          {/* The extras' own cost lines: only the ones that were changed are saved. */}
+          <input
+            type="hidden"
+            name="extraCosts"
+            value={JSON.stringify(values.extras.map((x) => ({ key: x.key, changed: x.costsEdited === true, lines: x.costLines ?? [] })))}
+          />
           <input type="hidden" name="makes" value={values.makes} />
         </>
       )}

@@ -5,7 +5,7 @@ import { EXTRA_TEXT_DEFAULT, type ExtraFormRow } from "@/lib/products/extras";
 import type { OptionGroupFormRow } from "@/lib/products/options";
 import type { PriceBreakFormRow } from "@/lib/products/price-breaks";
 import type { StepFormRow } from "@/lib/products/steps";
-import { blankCostRow, type CostFormRow } from "@/lib/products/costs";
+import { costRowFromSummary, type CostFormRow } from "@/lib/products/costs";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
 export type ProductFormValues = {
@@ -130,17 +130,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       logic: s.logic,
       conditions: conditionRows(`saved-step-${i}`, s.conditions),
     })),
-    costLines: p.costLines.map((l, i): CostFormRow => {
-      const base = { ...blankCostRow(`saved-cost-${i}`, l.kind), logic: l.logic, conditions: conditionRows(`saved-cost-${i}`, l.conditions) };
-      if (l.kind === "material") return { ...base, materialId: l.materialId, amount: quantityToInput(l.amountMilli, style), unit: l.unit };
-      if (l.kind === "time") {
-        // Whole hours read better as hours.
-        return l.minutes % 60 === 0
-          ? { ...base, time: quantityToInput((l.minutes / 60) * 1000, style), timeUnit: "hours" }
-          : { ...base, time: quantityToInput(l.minutes * 1000, style), timeUnit: "minutes" };
-      }
-      return { ...base, name: l.name, cost: moneyToInput(l.cents, style) };
-    }),
+    costLines: p.costLines.map((l, i): CostFormRow => costRowFromSummary(l, `saved-cost-${i}`, style, conditionRows(`saved-cost-${i}`, l.conditions))),
     makes: quantityToInput(p.makesMilli, style),
     extras: p.extras.map((x) => ({
       key: x.id,
@@ -153,6 +143,8 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       shared: x.shared,
       usedOn: x.usedOn,
       edited: false,
+      costLines: x.costLines.map((l, i) => costRowFromSummary(l, `saved-xcost-${x.id}-${i}`, style)),
+      costsEdited: false,
       priceByVariation: x.priceByVariation,
       prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
     })),

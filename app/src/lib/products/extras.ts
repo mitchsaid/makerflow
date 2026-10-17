@@ -1,4 +1,5 @@
 import { parseMoney, type Cents } from "../money";
+import type { CostFormRow, CostLineSummary } from "./costs";
 
 /**
  * Extras (docs/plans/product-extras.md): what people can add to a product, like gift wrap or engraving.
@@ -29,6 +30,8 @@ export type ExtraSummary = {
   priceByVariation: boolean;
   /** By variation id, when `priceByVariation`. */
   prices: Record<string, Cents>;
+  /** What goes into ONE of it (no conditions). Empty when no costs are entered. */
+  costLines: CostLineSummary[];
 };
 
 /** A saved extra offered when another product wants one the business already has. */
@@ -55,6 +58,10 @@ export type ExtraFormRow = {
   priceByVariation?: boolean;
   /** By the variation row's key, when `priceByVariation`. */
   prices?: Record<string, string>;
+  /** What goes into one of it, as the form holds it. Absent from a form that did not know about costs. */
+  costLines?: CostFormRow[];
+  /** The cost lines were changed on this form (a shared extra's costs are left alone otherwise). */
+  costsEdited?: boolean;
 };
 
 export type ParsedExtra = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blankCostRow, costLinesOf, costsPayload, parseCosts, type CostFormRow } from "../costs";
+import { blankCostRow, costLinesOf, costsPayload, extraCostsPayload, parseCosts, parseExtraCosts, type CostFormRow } from "../costs";
 import type { StepChoices } from "../steps";
 
 const choices: StepChoices = { variations: ["v-small", "v-large"], lists: [{ key: "g", values: ["red", "blue"] }], extras: ["wrap"] };
@@ -146,5 +146,69 @@ describe("costLinesOf", () => {
       { kind: "chosen", negate: false, id: "e" },
       { kind: "quantity", negate: false, quantityMilli: 2000 },
     ]);
+  });
+});
+
+describe("an extra's own cost lines", () => {
+  const keys = ["wrap", "engraving"];
+  const entry = (key: string, changed: boolean, lines: CostFormRow[]) => ({ key, changed, lines });
+
+  it("reads only the extras that were changed, each by its place among the extras", () => {
+    const r = parseExtraCosts(
+      [
+        entry("wrap", false, [row("time", { time: "oops" })]),
+        entry("engraving", true, [row("material", { materialId: "flour", amount: "1", unit: "kg" }), row("other", { name: "Plate", cost: "15" })]),
+      ],
+      keys,
+      materials,
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.extras).toEqual([
+        {
+          index: 1,
+          lines: [
+            { kind: "material", materialId: "flour", amountMilli: 1000, unit: "kg", logic: "all", conditions: [] },
+            { kind: "other", name: "Plate", cents: 1500, logic: "all", conditions: [] },
+          ],
+        },
+      ]);
+      expect(extraCostsPayload(r.extras)).toEqual([
+        {
+          index: 1,
+          lines: [
+            { kind: "material", material_id: "flour", amount_milli: 1000, unit: "kg", logic: "all", conditions: [] },
+            { kind: "other", name: "Plate", cents: 1500, logic: "all", conditions: [] },
+          ],
+        },
+      ]);
+    }
+  });
+
+  it("clearing the lines of a changed extra is saved as none", () => {
+    const r = parseExtraCosts([entry("wrap", true, [])], keys, materials);
+    expect(r).toEqual({ ok: true, extras: [{ index: 0, lines: [] }] });
+  });
+
+  it("says how to fix a line of a changed extra, at that extra, and ignores conditions", () => {
+    const r = parseExtraCosts([entry("wrap", true, [row("time", { key: "t", time: "0,5" })])], keys, materials);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.byExtra.wrap.rows.t.time).toMatch(/whole minutes/);
+    // (a condition sent by a stale form is dropped, not an error)
+    const withCondition = row("time", { time: "5", conditions: [{ key: "c", kind: "chosen", negate: false, ref: "variation:x", quantity: "" }] });
+    expect(parseExtraCosts([entry("wrap", true, [withCondition])], keys, materials).ok).toBe(true);
+  });
+
+  it("refuses too many lines and unreadable input", () => {
+    const many = Array.from({ length: 21 }, () => row("time", { time: "1" }));
+    const r = parseExtraCosts([entry("wrap", true, many)], keys, materials);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.byExtra.wrap.list).toMatch(/up to 20/);
+    expect(parseExtraCosts("nope", keys)).toMatchObject({ ok: false });
+    expect(parseExtraCosts([{ key: "wrap" }], keys)).toMatchObject({ ok: false });
+  });
+
+  it("an extra that is no longer on the form is skipped", () => {
+    expect(parseExtraCosts([entry("gone", true, [row("time", { time: "5" })])], keys, materials)).toEqual({ ok: true, extras: [] });
   });
 });

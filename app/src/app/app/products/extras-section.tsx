@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { EXTRAS_MAX, usedOnWords, type ExtraErrors, type ExtraFormRow } from "@/lib/products/extras";
 import { listSharedExtras, type SharedExtraChoice } from "./extras-actions";
 import { AddButton } from "@/components/add-button";
+import { CostLineEditor, type MaterialOption } from "./costs-section";
+import type { CostErrors } from "@/lib/products/costs";
 
 // New keys come from one counter that is never reset (the form keeps rows by key).
 let keyCounter = 0;
@@ -34,6 +36,9 @@ export function ExtrasSection({
   numberStyle,
   bases,
   fid,
+  costing,
+  costErrors,
+  costNote,
   onChange,
 }: {
   rows: ExtraFormRow[];
@@ -49,6 +54,12 @@ export function ExtrasSection({
   numberStyle: NumberStyle;
   bases: PriceBase[];
   fid: (key: string) => string;
+  /** What an extra's own cost lines need. Absent in a sheet over a quote: the lines are not shown there. */
+  costing?: { materials: MaterialOption[]; hourlyRateSet: boolean };
+  /** Problems with an extra's cost lines, by the extra's row key. */
+  costErrors?: NonNullable<CostErrors["extras"]>;
+  /** "Costs R12,50 each." for an extra, or null while it cannot be worked out. */
+  costNote?: (row: ExtraFormRow) => string | null;
   onChange: (rows: ExtraFormRow[]) => void;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -68,7 +79,7 @@ export function ExtrasSection({
     onChange(rows.map((r) => (r.key === key ? { ...r, ...change, edited: true } : r)));
 
   function addNew() {
-    const row: ExtraFormRow = { key: nextKey(), id: "", name: "", price: "", asksForWording: false, textMax: "", shared: true, usedOn: 0, edited: true };
+    const row: ExtraFormRow = { key: nextKey(), id: "", name: "", price: "", asksForWording: false, textMax: "", shared: true, usedOn: 0, edited: true, costLines: [], costsEdited: false };
     onChange([...rows, row]);
     setPicker(null);
     setOpenKey(row.key);
@@ -88,6 +99,8 @@ export function ExtrasSection({
       usedOn: x.usedOn + 1,
       // As saved: taking it onto this product does not change it.
       edited: false,
+      costLines: x.costLines,
+      costsEdited: false,
     };
     onChange([...rows, row]);
     setPicker(null);
@@ -126,7 +139,8 @@ export function ExtrasSection({
         <ol className="space-y-3">
           {rows.map((x, xi) => {
             const e = errors?.rows[x.key];
-            const open = openKey === x.key || e !== undefined;
+            const costProblems = costErrors?.[x.key];
+            const open = openKey === x.key || e !== undefined || costProblems !== undefined;
             const title = x.name.trim() || `Extra ${xi + 1}`;
             const byVariation = !x.shared && x.priceByVariation === true && variations.length > 0;
             const price = byVariation ? "price by size" : x.price.trim() === "" ? "free" : `+${currencySymbol}${x.price.trim()}`;
@@ -267,6 +281,32 @@ export function ExtrasSection({
                           </FieldLabel>
                         </Field>
                       </>
+                    )}
+
+                    {costing && (
+                      <div className="space-y-3 border-t border-border pt-3">
+                        <p className="text-base font-medium">What it costs you</p>
+                        <p className="-mt-2 text-sm text-muted-foreground">What goes into one, without VAT. Only you see this.</p>
+                        <CostLineEditor
+                          label={`What ${title} costs`}
+                          subject={title}
+                          scope={`extra-${x.key}-`}
+                          max={20}
+                          rows={x.costLines ?? []}
+                          errors={costProblems}
+                          choices={null}
+                          materials={costing.materials}
+                          hourlyRateSet={costing.hourlyRateSet}
+                          currencySymbol={currencySymbol}
+                          fid={fid}
+                          // (the extra's price and wording are not touched: only its costs are saved as changed)
+                          onChange={(costLines) => onChange(rows.map((r) => (r.key === x.key ? { ...r, costLines, costsEdited: true } : r)))}
+                        />
+                        {costNote?.(x) && <p className="text-sm text-muted-foreground" data-testid="extra-cost-note">{costNote(x)}</p>}
+                        {x.shared && also && (x.costsEdited ?? false) && (
+                          <p className="text-sm text-muted-foreground">Its costs are the same on every product that has it.</p>
+                        )}
+                      </div>
                     )}
 
                     <div className="flex justify-end">

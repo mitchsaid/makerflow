@@ -144,7 +144,9 @@ export async function costingForSending(parsed: ParsedQuote, workspace: Workspac
   const productIds = [...new Set(parsed.lines.flatMap((l) => (l.productId ? [l.productId] : [])))];
   const quoteProducts = await getProductsByIds(productIds);
   const costedProducts = quoteProducts.filter((p) => p.organisationId === organisation.id);
-  const needsMaterials = costedProducts.some((p) => p.costLines.some((l) => l.kind === "material"));
+  const needsMaterials = costedProducts.some(
+    (p) => p.costLines.some((l) => l.kind === "material") || p.extras.some((x) => x.costLines.some((l) => l.kind === "material")),
+  );
   const materials = needsMaterials ? (await getMaterials()).filter((m) => m.organisationId === organisation.id) : [];
   const costing = freezeCosting({
     quote: parsed,

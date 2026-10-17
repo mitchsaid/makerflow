@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProductSummary } from "../../products";
 import { calculateDocument } from "../../money";
-import { lineMargins } from "../margin";
+import { costItem, extrasOn, lineMargins } from "../margin";
 import type { LineFormValues, QuoteFormValues } from "../index";
 
 const LARGE = "11111111-1111-4111-8111-111111111111";
@@ -84,5 +84,61 @@ describe("lineMargins", () => {
     expect(lineMargins(values([line()]), null, vat, [product()], settings)).toEqual([]);
     const ls = [line({ key: "x", name: "", productId: "", quantity: "", unitPrice: "" })];
     expect(lineMargins(values(ls), totalsFor([line({ key: "y" })]), vat, [], settings)).toEqual([]);
+  });
+});
+
+describe("an extra's own costs", () => {
+  const WRAP = "33333333-3333-4333-8333-333333333333";
+  const withWrap = product({
+    costLines: [{ id: "c1", kind: "other", name: "Box", cents: 2500, logic: "all", conditions: [] }],
+    extras: [
+      {
+        id: WRAP,
+        name: "Gift wrap",
+        priceCents: 3000,
+        asksForWording: false,
+        textMax: 100,
+        shared: true,
+        usedOn: 1,
+        priceByVariation: false,
+        prices: {},
+        costLines: [
+          { id: "x1", kind: "other", name: "Paper", cents: 400, logic: "all", conditions: [] },
+          { id: "x2", kind: "time", minutes: 5, logic: "all", conditions: [] },
+        ],
+      },
+    ],
+  });
+  const wrapOption = { groupId: "", group: "Gift wrap", kind: "any" as const, valueId: WRAP, value: "", text: "", amountCents: 3000 };
+
+  it("counts what is in the extra once for each item", () => {
+    const ls = [line({ quantity: "2", options: [wrapOption] })];
+    const [m] = lineMargins(values(ls), totalsFor(ls), vat, [withWrap], settings);
+    // 2 cakes: 2 × R25,00; 2 wraps: 2 × (R4,00 + 5 minutes at R120 an hour = R10,00)
+    expect(m.margin).toMatchObject({ costCents: 5000 + 2800 });
+  });
+
+  it("counts a fixed number of an extra, whatever the quantity", () => {
+    const ls = [line({ quantity: "5", options: [{ ...wrapOption, quantityMilli: 1000 }] })];
+    const [m] = lineMargins(values(ls), totalsFor(ls), vat, [withWrap], settings);
+    expect(m.margin?.costCents).toBe(5 * 2500 + 1400);
+  });
+
+  it("an extra the item does not have costs nothing, and a product with only an extra's cost is costed", () => {
+    const ls = [line({ quantity: "1" })];
+    expect(lineMargins(values(ls), totalsFor(ls), vat, [withWrap], settings)[0].margin?.costCents).toBe(2500);
+    const onlyExtra = { ...withWrap, costLines: [] };
+    const ls2 = [line({ quantity: "1", options: [wrapOption] })];
+    expect(lineMargins(values(ls2), totalsFor(ls2), vat, [onlyExtra], settings)[0].margin?.costCents).toBe(1400);
+  });
+
+  it("names each part with its extra", () => {
+    const r = costItem({ quantityMilli: 1000, chosenIds: [], extras: extrasOn([wrapOption], 1000), revenueCents: 10_000, product: withWrap, unitCostCents: null, settings });
+    expect(r.parts.map((p) => p.label)).toEqual(["Box", "Gift wrap: Paper", "Gift wrap: Your time"]);
+  });
+
+  it("extrasOn takes only extras (not a list choice) and the item's quantity unless a count is fixed", () => {
+    expect(extrasOn([wrapOption, { ...wrapOption, kind: "one", valueId: "v" }, { ...wrapOption, valueId: null }], 3000)).toEqual([{ id: WRAP, countMilli: 3000 }]);
+    expect(extrasOn([{ ...wrapOption, quantityMilli: 2000 }], 3000)).toEqual([{ id: WRAP, countMilli: 2000 }]);
   });
 });
