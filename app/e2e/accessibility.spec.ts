@@ -677,10 +677,17 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Step 1", { exact: true }).fill("Bake");
       await page.getByRole("button", { name: "Add another step" }).click();
       await expectNoViolations(page, "product steps");
+      // The second step depends on two things, neither chosen yet.
+      const second = page.getByRole("list", { name: "Production steps" }).getByRole("listitem").nth(1);
+      await second.getByRole("button", { name: /^Only for some items/ }).click();
+      await second.getByRole("button", { name: /^Add a condition/ }).click();
+      await expectNoViolations(page, "product step conditions");
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
-      await expectNoViolations(page, "product steps, with a problem");
+      await expectNoViolations(page, "product steps, with problems");
       await page.getByLabel("Step 2", { exact: true }).fill("Ice");
+      await second.getByRole("button", { name: /^Remove condition/ }).first().click();
+      await second.getByRole("button", { name: /^Remove condition/ }).first().click();
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("product-added")).toBeVisible();
 

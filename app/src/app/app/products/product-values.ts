@@ -63,6 +63,7 @@ export function listHref(kind: ProductKind): string {
 }
 
 export function valuesFromProduct(p: ProductSummary, style: NumberStyle): ProductFormValues {
+  const groupOfValue = new Map(p.options.flatMap((g) => g.values.map((x) => [x.id, g.id] as const)));
   return {
     kind: p.kind,
     name: p.name,
@@ -92,7 +93,28 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       })),
     })),
     priceBreaks: p.priceBreaks.map((b, i) => ({ key: `saved-${i}`, from: quantityToInput(b.fromMilli, style), percent: percentToInput(b.percentBp, style) })),
-    steps: p.steps.map((name, i) => ({ key: `saved-step-${i}`, name })),
+    steps: p.steps.map((s, i) => ({
+      key: `saved-step-${i}`,
+      name: s.name,
+      logic: s.logic,
+      conditions: s.conditions.map((c, ci) => ({
+        key: `saved-step-${i}-c${ci}`,
+        kind: c.kind,
+        negate: c.negate,
+        // A saved row's key is its id, so a condition points at it by id.
+        ref:
+          c.kind !== "chosen"
+            ? ""
+            : c.variationId
+              ? `variation:${c.variationId}`
+              : c.optionValueId
+                ? `value:${groupOfValue.get(c.optionValueId) ?? ""}/${c.optionValueId}`
+                : c.extraId
+                  ? `extra:${c.extraId}`
+                  : "",
+        quantity: c.kind === "quantity" ? quantityToInput(c.quantityMilli, style) : "",
+      })),
+    })),
     extras: p.extras.map((x) => ({
       key: x.id,
       id: x.id,

@@ -398,6 +398,26 @@ describe("pictures in the snapshot", () => {
     expect("productId" in s.lines[1]).toBe(false);
   });
 
+  it("carries the ids of what was chosen on a product line (so a job can take the steps that depend on them), and none otherwise", () => {
+    const variationId = "44444444-4444-4444-8444-444444444444";
+    const valueId = "66666666-6666-4666-8666-666666666666";
+    const s = snap({
+      lines: [
+        line({
+          variationId,
+          variationLabel: "Size",
+          variationName: "Large",
+          options: [{ groupId: "55555555-5555-4555-8555-555555555555", group: "Flavour", kind: "one", valueId, value: "Vanilla", text: "", amountCents: 0 }],
+        }),
+        line({ key: "plain" }),
+        line({ key: "b", kind: "custom", productId: "", name: "One-off" }),
+      ],
+    });
+    expect(s.lines[0].chosenIds).toEqual([variationId, valueId]);
+    expect("chosenIds" in s.lines[1]).toBe(false);
+    expect("chosenIds" in s.lines[2]).toBe(false);
+  });
+
   it("leaves photos out when the quote has them switched off", () => {
     expect(snap({ showPhotos: false }).lines.map((l) => l.photoImageId)).toEqual([null, null]);
   });

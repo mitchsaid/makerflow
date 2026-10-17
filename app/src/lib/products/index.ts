@@ -4,7 +4,7 @@ import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
 import { parseExtras, type ExtraErrors, type ExtraSummary, type ParsedExtra } from "./extras";
 import { parseOptionGroups, type OptionErrors, type OptionGroup, type ParsedOptionGroup } from "./options";
-import { parseSteps, type StepErrors } from "./steps";
+import { parseSteps, type ParsedStep, type StepChoices, type StepErrors, type StepSummary } from "./steps";
 import { parsePriceBreaks, type PriceBreak, type PriceBreakErrors } from "./price-breaks";
 import { parseVariations, type ParsedVariation, type ProductVariation, type VariationErrors } from "./variations";
 
@@ -53,7 +53,7 @@ export type ProductFields = {
   /** Quantity prices, in order of quantity. Undefined when the form did not carry them: they are left as they are. */
   priceBreaks?: PriceBreak[];
   /** The steps it is made in, in order. Undefined when the form did not carry them: they are left as they are. */
-  steps?: string[];
+  steps?: ParsedStep[];
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
@@ -82,6 +82,33 @@ export function validateProductName(input: unknown): ValidationResult<string> {
   if (!r.ok) return r;
   if (r.value === null) return { ok: false, error: "Give it a name, like “Wedding cake” or “Design time”." };
   return { ok: true, value: r.value };
+}
+
+function readJson(raw: FormDataEntryValue | null): unknown {
+  try {
+    return JSON.parse(typeof raw === "string" ? raw : "");
+  } catch {
+    return null;
+  }
+}
+
+const keyOf = (row: unknown): string[] =>
+  typeof row === "object" && row !== null && typeof (row as { key?: unknown }).key === "string" ? [(row as { key: string }).key] : [];
+
+/** The keys of the variations, lists and extras on the form, in the order they are sent: what a step's conditions point at. */
+function stepChoicesOf(variations: FormDataEntryValue | null, options: FormDataEntryValue | null, extras: FormDataEntryValue | null): StepChoices {
+  const list = (raw: FormDataEntryValue | null): unknown[] => {
+    const rows = readJson(raw);
+    return Array.isArray(rows) ? rows : [];
+  };
+  return {
+    variations: list(variations).flatMap(keyOf),
+    lists: list(options).map((g) => ({
+      key: keyOf(g)[0] ?? "",
+      values: Array.isArray((g as { values?: unknown }).values) ? ((g as { values: unknown[] }).values).flatMap(keyOf) : [],
+    })),
+    extras: list(extras).flatMap(keyOf),
+  };
 }
 
 /** Turns the product form into validated values. */
@@ -203,7 +230,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
   }
 
   // Production steps: the same way, in their own field.
-  let steps: string[] | undefined;
+  let steps: ParsedStep[] | undefined;
   const stepsRaw = form.get("steps");
   if (stepsRaw !== null) {
     let rows: unknown = null;
@@ -212,7 +239,7 @@ export function parseProductForm(form: FormData): ParsedProductForm {
     } catch {
       rows = null;
     }
-    const parsed = parseSteps(rows);
+    const parsed = parseSteps(rows, stepChoicesOf(variationsRaw, optionsRaw, extrasRaw));
     if (parsed.ok) steps = parsed.steps;
     else errors.steps = parsed.errors;
   }
@@ -275,8 +302,8 @@ export type ProductSummary = {
   extras: ExtraSummary[];
   /** Quantity prices, in order of quantity. Empty when the price is the same whatever the quantity. */
   priceBreaks: PriceBreak[];
-  /** The steps it is made in, in order. Empty when it has none. */
-  steps: string[];
+  /** The steps it is made in, in order, with when each applies. Empty when it has none. */
+  steps: StepSummary[];
 };
 
 /** Does a list row match what the person typed in the search box? */

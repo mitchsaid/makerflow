@@ -53,7 +53,7 @@ describe("parseNewJob", () => {
         deliveryAddress: null,
         neededBy: null,
         note: null,
-        items: [{ kind: "custom", name: "Oak shelf", description: null, quantityMilli: 1000, unit: null, variationLabel: null, variationName: null, options: [], photoImageId: null, productId: null }],
+        items: [{ kind: "custom", name: "Oak shelf", description: null, quantityMilli: 1000, unit: null, variationLabel: null, variationName: null, options: [], photoImageId: null, productId: null, chosenIds: [] }],
       },
     });
   });
@@ -77,6 +77,28 @@ describe("parseNewJob", () => {
       },
     });
     if (r.ok) expect(JSON.stringify(r.value)).not.toContain("amountCents");
+  });
+
+  it("keeps the ids of what was chosen (the variation, list choices and extras), once each, lower-case; none for a one-off item", () => {
+    const upper = "66666666-6666-4666-8666-66666666666A";
+    const r = parseNewJob(
+      good({
+        items: [
+          cake({
+            options: [
+              { groupId: "55555555-5555-4555-8555-555555555555", group: "Flavour", kind: "one", valueId: upper, value: "Vanilla", text: "", amountCents: 500 },
+              { groupId: "", group: "Extras", kind: "any", valueId: upper.toLowerCase(), value: "Gift wrap", text: "", amountCents: 0 },
+              { groupId: "", group: "Extras", kind: "any", valueId: "", value: "Typed", text: "", amountCents: 0 },
+            ],
+          }),
+          oneOff("b"),
+        ],
+      }),
+    );
+    expect(r).toMatchObject({
+      ok: true,
+      value: { items: [{ chosenIds: ["44444444-4444-4444-8444-444444444444", "66666666-6666-4666-8666-66666666666a"] }, { chosenIds: [] }] },
+    });
   });
 
   it("takes the picture only from the server's own lookup, and only for an item from a product", () => {

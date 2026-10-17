@@ -1,5 +1,6 @@
 import { bankLines, type BankDetails, type BankLine } from "../bank";
 import { formatPercent } from "../money";
+import { chosenIdsOf } from "./chosen";
 import { depositAmounts } from "./deposit";
 import { formatDay } from "./dates";
 import type { Customer } from "../customers";
@@ -60,6 +61,11 @@ export type SnapshotLine = {
   vatStatus?: VatStatus;
   /** The product the item came from (a job made from this version takes its steps). Absent for one-off items and for versions sent before it existed. */
   productId?: string;
+  /**
+   * The ids of the variation, list choices and extras chosen on the item, so a job made from this version can take the
+   * steps that depend on them. Absent on one-off items, items with no choices and versions sent before it existed.
+   */
+  chosenIds?: string[];
   /**
    * The variation chosen, as the item kept it: the product's word for the list and the variation's name.
    * Absent on items without one, and on versions sent before variations existed.
@@ -344,6 +350,7 @@ export function buildQuoteSnapshot(input: {
       ...(vat.registered ? { vatStatus: l.vatStatus } : {}),
       // Where it came from, so a job made from this version can take the product's steps. Absent for one-off items.
       ...(l.productId ? { productId: l.productId } : {}),
+      ...(l.productId && chosenIdsOf(l).length > 0 ? { chosenIds: chosenIdsOf(l) } : {}),
       ...(l.variation ? { variation: { label: l.variation.label, name: l.variation.name } } : {}),
       ...(l.options.length > 0
         ? { options: l.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, amountCents: o.amountCents, ...(o.quantityMilli === null ? {} : { quantityMilli: o.quantityMilli }) })) }

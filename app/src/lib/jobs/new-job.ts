@@ -1,4 +1,5 @@
 import { parseLine, type LineFormValues } from "@/lib/quotes";
+import { chosenIdsOf } from "@/lib/quotes/chosen";
 import { isIsoDay } from "@/lib/quotes/dates";
 import type { QuantityMilli } from "@/lib/money";
 import type { JobFulfilment } from "./index";
@@ -36,6 +37,8 @@ export type NewJobItem = {
   photoImageId: string | null;
   /** The product it came from, or null. The job takes a frozen copy of the product's steps. */
   productId: string | null;
+  /** The ids of the variation, list choices and extras chosen on it: the job takes the steps that depend on them. */
+  chosenIds: string[];
 };
 
 export type NewJob = {
@@ -152,6 +155,7 @@ export function parseJobLine(
       photoImageId: r.line.productId ? photoFor(item) : null,
       // Where it came from: the job takes a frozen copy of the product's steps (the database checks it is this business's).
       productId: r.line.productId ?? null,
+      chosenIds: chosenIdsOf(r.line),
     },
   };
 }
