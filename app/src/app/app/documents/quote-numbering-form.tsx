@@ -6,7 +6,7 @@ import { Section, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { formatDocumentNumber, parseNumbering, type NumberingErrors } from "@/lib/quotes/numbering";
-import { saveQuoteNumbering, type NumberingState } from "./numbering-actions";
+import { saveInvoiceNumbering, saveQuoteNumbering, type NumberingState } from "./numbering-actions";
 import { FormErrorScope } from "@/components/form-errors";
 
 /**
@@ -24,18 +24,25 @@ export type EmbeddedNumberingForm = {
 };
 
 export function QuoteNumberingForm({
+  docType = "quote",
   initialPrefix,
   initialNext,
   minDigits,
   lastIssued,
   embedded,
 }: {
+  /** Quotes (the default) or invoices: each business has one run of numbers for each. */
+  docType?: "quote" | "invoice";
   initialPrefix: string;
   initialNext: number;
   minDigits: number;
   lastIssued: number | null;
   embedded?: EmbeddedNumberingForm;
 }) {
+  const noun = docType;
+  // Both forms can be on one page: their fields differ in id and in name.
+  const ids = docType === "invoice" ? { prefix: "invoiceNumberPrefix", next: "invoiceNextNumber" } : { prefix: "numberPrefix", next: "nextNumber" };
+  const labels = docType === "invoice" ? { prefix: "Invoice prefix", next: "Invoice next number" } : { prefix: "Prefix", next: "Next number" };
   const [prefix, setPrefix] = useState(initialPrefix);
   const [next, setNext] = useState(String(initialNext));
   const [state, setState] = useState<NumberingState>({ status: "idle" });
@@ -45,8 +52,8 @@ export function QuoteNumberingForm({
 
   const errors: NumberingErrors = state.status === "error" ? (state.errors ?? {}) : {};
   const problems: FormProblem[] = [
-    ...(errors.prefix ? [{ fieldId: "numberPrefix", label: "Prefix", message: errors.prefix }] : []),
-    ...(errors.nextNumber ? [{ fieldId: "nextNumber", label: "Next number", message: errors.nextNumber }] : []),
+    ...(errors.prefix ? [{ fieldId: ids.prefix, label: labels.prefix, message: errors.prefix }] : []),
+    ...(errors.nextNumber ? [{ fieldId: ids.next, label: labels.next, message: errors.nextNumber }] : []),
   ];
 
   // What the next quote will be called, while the typed values make sense.
@@ -67,7 +74,7 @@ export function QuoteNumberingForm({
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        const result = await saveQuoteNumbering({ prefix, nextNumber: next });
+        const result = await (docType === "invoice" ? saveInvoiceNumbering : saveQuoteNumbering)({ prefix, nextNumber: next });
         setState(result);
         if (result.status === "saved" && embedded) embedded.onDone({ prefix: prefix.trim(), nextNumber: Number(next.trim()) });
       } catch {
@@ -83,9 +90,11 @@ export function QuoteNumberingForm({
   return (
     <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <Fields embedded={!!embedded}>
+      <Fields embedded={!!embedded} title={docType === "invoice" ? "Invoice numbers" : "Quote numbers"}>
         <p className="text-base text-muted-foreground">
-          Each quote is numbered when first saved. To carry on from another system, set the next number.
+          {docType === "invoice"
+            ? "Each invoice gets the next number when it is issued, with none skipped. To carry on from another system, set the next number."
+            : "Each quote is numbered when first saved. To carry on from another system, set the next number."}
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {state.status === "error" && state.message && (
@@ -94,9 +103,9 @@ export function QuoteNumberingForm({
           </Alert>
         )}
         <TextField
-          id="numberPrefix"
+          id={ids.prefix}
           name="prefix"
-          label="Prefix"
+          label={labels.prefix}
           autoComplete="off"
           value={prefix}
           error={errors.prefix}
@@ -106,9 +115,9 @@ export function QuoteNumberingForm({
           }}
         />
         <TextField
-          id="nextNumber"
+          id={ids.next}
           name="nextNumber"
-          label="Next number"
+          label={labels.next}
           inputMode="numeric"
           autoComplete="off"
           value={next}
@@ -118,13 +127,13 @@ export function QuoteNumberingForm({
             setNext(v);
           }}
         />
-        <p className="text-base" aria-live="polite" data-testid="number-preview">
+        <p className="text-base" aria-live="polite" data-testid={docType === "invoice" ? "invoice-number-preview" : "number-preview"}>
           {previewText ? (
             <>
-              Your next quote will be <strong>{previewText}</strong>.
+              Your next {noun} will be <strong>{previewText}</strong>.
             </>
           ) : (
-            "Fix the details above to see your next quote number."
+            `Fix the details above to see your next ${noun} number.`
           )}
         </p>
         {lastIssued !== null && (
@@ -135,7 +144,7 @@ export function QuoteNumberingForm({
       </Fields>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : "Save quote numbers"}
+          {pending ? "Saving…" : `Save ${noun} numbers`}
         </Button>
         {embedded && (
           <Button type="button" variant="outline" size="lg" disabled={pending} onClick={embedded.onCancel}>
@@ -154,6 +163,6 @@ export function QuoteNumberingForm({
 }
 
 /** The fields in their own titled card on the page, or plain in a sheet (which has its own title). */
-function Fields({ embedded, children }: { embedded: boolean; children: React.ReactNode }) {
-  return embedded ? <div className="space-y-4">{children}</div> : <Section title="Quote numbers">{children}</Section>;
+function Fields({ embedded, title, children }: { embedded: boolean; title: string; children: React.ReactNode }) {
+  return embedded ? <div className="space-y-4">{children}</div> : <Section title={title}>{children}</Section>;
 }

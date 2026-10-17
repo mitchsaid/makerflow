@@ -1,8 +1,8 @@
 -- Delete my account (migration 20261101100000): server only; deletes the businesses the person is alone in (every
 -- table with an organisation_id ends up empty for them, with a row in every link that does not cascade); keeps
 -- businesses that have other people; refuses the only owner of a shared business and changes nothing then (including
--- the person's own businesses); two owners leaving at the same moment never strand a business; and reminds us to
--- rework it when invoices exist. Plain SQL, one transaction, rolled back.
+-- the person's own businesses); two owners leaving at the same moment never strand a business; refuses to delete a
+-- business that has issued invoices; and reminds us to keep credit notes when they exist. Plain SQL, one transaction, rolled back.
 
 begin;
 
@@ -56,7 +56,9 @@ declare
   g uuid := '00000000-0000-4000-8000-000000004191';   -- a business of their own, and staff in a shared one
   h uuid := '00000000-0000-4000-8000-000000004192';   -- only owner of a shared business, and a business of their own
   k uuid := '00000000-0000-4000-8000-000000004193';   -- sends a quote in a business that stays
-  org_a uuid; org_shared uuid; org_c uuid; org_two uuid; org_g uuid; org_g_shared uuid; org_h uuid; org_h_shared uuid; org_k uuid;
+  m uuid := '00000000-0000-4000-8000-000000004194';   -- alone in a business that has an issued invoice
+  m2 uuid := '00000000-0000-4000-8000-000000004195';  -- joins that business later
+  org_a uuid; org_shared uuid; org_c uuid; org_two uuid; org_g uuid; org_g_shared uuid; org_h uuid; org_h_shared uuid; org_k uuid; org_m uuid; q_m uuid;
   cust uuid; q uuid; q2 uuid; job uuid; prod uuid; flour uuid; xtra uuid; img uuid := gen_random_uuid();
   stamp timestamptz;
   result jsonb;
@@ -65,7 +67,7 @@ declare
 begin
   insert into auth.users (id, email) values
     (a, 'da@example.test'), (b, 'db@example.test'), (c, 'dc@example.test'), (d, 'dd@example.test'), (e, 'de@example.test'),
-    (f1, 'df1@example.test'), (f2, 'df2@example.test'), (g, 'dg@example.test'), (h, 'dh@example.test'), (k, 'dk@example.test');
+    (f1, 'df1@example.test'), (f2, 'df2@example.test'), (g, 'dg@example.test'), (h, 'dh@example.test'), (k, 'dk@example.test'), (m, 'dm@example.test'), (m2, 'dm2@example.test');
 
   ----------------------------------------------------------------------
   -- A: alone in a business that has real data in many tables
@@ -267,17 +269,45 @@ begin
      where contype = 'f' and connamespace = 'public'::regnamespace and confdeltype in ('a', 'r')
        and confrelid::regclass::text <> 'organisations'
   ) = array[
-    'business_profiles->images', 'extra_cost_lines->materials', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
+    'business_profiles->images', 'extra_cost_lines->materials', 'invoice_events->invoices', 'invoices->customers', 'invoices->quotes', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
     'product_cost_lines->materials', 'product_option_values->images', 'product_variations->images', 'products->images',
     'quote_lines->products', 'quote_versions->quotes', 'quotes->customers'
   ], 'a link between tables that does not cascade was added or removed: teach delete_account (and the seed and this list) about it';
 
   ----------------------------------------------------------------------
-  -- Issued invoices and credit notes must never be deleted. None exist yet; when a table for them does, this
-  -- function has to keep them (docs/plans/delete-account.md, decision 4) before this test is changed.
+  -- Issued invoices must never be deleted: a person alone in a business that has one is refused, and nothing changes.
+  -- Once someone else is in the business, the person can leave it and the invoice stays.
   ----------------------------------------------------------------------
-  assert to_regclass('public.invoices') is null and to_regclass('public.credit_notes') is null,
-    'an invoices or credit notes table now exists: rework delete_account to keep issued documents, then update this test';
+  insert into public.organisations (name) values ('M Co') returning id into org_m;
+  insert into public.memberships (organisation_id, user_id, role) values (org_m, m, 'owner');
+  insert into public.customers (organisation_id, name) values (org_m, 'M customer') returning id into cust;
+  perform pg_temp.as_user(m);
+  set local role authenticated;
+  q_m := public.save_quote_draft(org_m, null, pg_temp.quote_json(cust), jsonb_build_array(pg_temp.line(0, 'Pie')));
+  reset role;
+  insert into public.invoices (organisation_id, number, quote_id, quote_version, customer_id, customer_name, issue_date, due_date,
+    currency_code, net_cents, vat_cents, gross_cents, snapshot, issued_by)
+  values (org_m, 'INV-0001', q_m, 1, cust, 'M customer', date '2026-10-20', date '2026-11-03', 'ZAR', 100000, 15000, 115000, '{}'::jsonb, m);
+  before_h := pg_temp.rows_of(org_m);
+  set local role service_role;
+  begin
+    perform public.delete_account(m);
+    raise exception 'FAIL: a business with an issued invoice was deleted';
+  exception when sqlstate '55007' then null;
+  end;
+  reset role;
+  assert pg_temp.rows_of(org_m) = before_h, 'a refusal changed the business';
+  assert exists (select 1 from public.memberships where user_id = m and organisation_id = org_m), 'a refusal removed a membership';
+  insert into public.memberships (organisation_id, user_id, role) values (org_m, m2, 'owner');
+  set local role service_role;
+  result := public.delete_account(m);
+  reset role;
+  assert result -> 'organisations' = '[]'::jsonb, 'a business with invoices and another owner was deleted';
+  assert exists (select 1 from public.invoices where organisation_id = org_m), 'the invoice went with the person who left';
+  assert not exists (select 1 from public.memberships where user_id = m), 'the person is still in the business';
+  -- Credit notes are a later slice: when their table exists, delete_account has to keep them too.
+  assert to_regclass('public.credit_notes') is null,
+    'a credit notes table now exists: make delete_account keep issued credit notes, then update this test';
 
   raise notice 'delete account tests passed';
 end

@@ -154,6 +154,9 @@ function bankSummary(details: Record<string, string>): string {
 
 const STANDARD_RATE_BP: BasisPoints = 1500;
 
+/** At or above this a tax invoice must be a full one (VAT 404 guide, 13.3). */
+const FULL_INVOICE_THRESHOLD_CENTS = 500_000;
+
 /** A way to contact the maker is all a quote needs (docs/locales/za/vat-and-documents.md, answer 5). */
 function missingForQuote(facts: ContactFacts): ProfileField[] {
   return facts.phone || facts.email ? [] : ["phone"];
@@ -281,7 +284,7 @@ export const ZA_LOCALE: LocalePack = {
     validateRegistrationNumber: validateVatNumber,
     standardRateBp: STANDARD_RATE_BP,
     // A tax invoice for R5 000 or more must be a full tax invoice (VAT 404 guide, 13.3).
-    fullInvoiceThresholdCents: 500_000,
+    fullInvoiceThresholdCents: FULL_INVOICE_THRESHOLD_CENTS,
     // VAT Act section 65: a quoted price must say it includes VAT (or show both prices).
     inclusiveStatement: (rateBp) => `All prices include VAT at ${formatPercent(rateBp, ZA_NUMBER_STYLE)}.`,
     // VAT 404 guide, 13.6: a document that mixes standard-rated, zero-rated and exempt supplies must
@@ -331,6 +334,16 @@ export const ZA_LOCALE: LocalePack = {
     },
     // A quotation is not a tax invoice (VAT 404 guide, 13.2).
     quoteNotATaxInvoice: "This quotation is not a tax invoice.",
+    // A full tax invoice (R5 000 and above) carries the recipient's name and address; below that it may be abridged
+    // (docs/locales/za/vat-and-documents.md, answer 7). Only a registered vendor issues a tax invoice at all.
+    invoice: {
+      title: (taxRegistered) => (taxRegistered ? "Tax invoice" : "Invoice"),
+      billedToLabel: "Billed to",
+      dueLabel: "Due date",
+      quoteLabel: "Quote",
+      dueDays: 14,
+      needsCustomerAddress: (grossCents, taxRegistered) => taxRegistered && grossCents >= FULL_INVOICE_THRESHOLD_CENTS,
+    },
     quoteStart: {
       description: "Thank you for your interest. Below is what I would prepare for you.",
       signOff: "Thank you for the opportunity to quote. Please get in touch with any questions.",

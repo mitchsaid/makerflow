@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
-import { addCustomerInSheet } from "./quote-helpers";
+import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
@@ -783,6 +783,50 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
       await page.getByRole("dialog").getByLabel("What it costs you").fill("30");
       await expectNoViolations(page, "quote, a one-off item that says what it costs");
+    });
+
+    test("creating an invoice, the invoice page and the list", async ({ page }) => {
+      test.setTimeout(240_000);
+      await signUpAndOnboard(page, `a11y-invoices-${scheme}`, "Invoice Axe Co");
+      await openMore(page);
+      await page.getByRole("link", { name: /^Invoices/ }).click();
+      await expect(page.getByText("No invoices yet")).toBeVisible();
+      await expectNoViolations(page, "invoices, empty");
+
+      await sentQuote(page);
+      await page.getByRole("button", { name: "They accepted" }).click();
+      await page.getByRole("dialog").getByLabel("How they told you").selectOption("whatsapp");
+      await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
+      await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
+      await expectNoViolations(page, "accepted quote, with Create invoice");
+
+      await page.getByRole("button", { name: "Create invoice" }).click();
+      await expect(page.getByRole("dialog").getByText(/Add your business address/)).toBeVisible();
+      await expectNoViolations(page, "create invoice, with what is missing");
+      await page.keyboard.press("Escape");
+      await openBusinessProfile(page);
+      await page.getByLabel("Street address").fill("12 Long Street");
+      await page.getByLabel("City or town").fill("Cape Town");
+      await page.getByRole("button", { name: "Save details" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
+      await page.goto("/app/quotes");
+      await page.getByRole("link", { name: /QT-0001/ }).first().click();
+      await page.getByRole("button", { name: "Create invoice" }).click();
+      await page.getByRole("dialog").getByLabel("Due day").fill("2000-01-01");
+      await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "create invoice, with a problem");
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "Create invoice" }).click();
+      await expectNoViolations(page, "create invoice, ready");
+      await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
+      await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
+      await expectNoViolations(page, "an invoice");
+
+      await openMore(page);
+      await page.getByRole("link", { name: /^Invoices/ }).click();
+      await expect(page.getByTestId("invoice-count")).toHaveText("1 invoice");
+      await expectNoViolations(page, "invoices, with one");
     });
   });
 }

@@ -63,6 +63,13 @@ export async function deleteAccount(typedEmail: string): Promise<DeleteAccountSt
       message: `You are the only owner of ${business}, so it would be left with nobody in charge. Make someone else an owner first. Nothing was deleted.`,
     };
   }
+  if (error?.code === "55007") {
+    const business = error.details ? `${error.details}, which has` : "a business that has";
+    return {
+      status: "error",
+      message: `You are on your own in ${business} issued invoices, and those must be kept. Add someone else to the business first, or write to us. Nothing was deleted.`,
+    };
+  }
   if (error) {
     console.error("could not delete the account:", error.code, error.message);
     return { status: "error", message: GENERIC_ERROR };

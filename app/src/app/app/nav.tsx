@@ -14,7 +14,7 @@ type Item = {
 
 /**
  * On a phone five tabs fit: Home, Quotes, Jobs, Products and More (founder chose Products as its own
- * tab, 2026-10-03, and Jobs over Customers, 2026-10-11). Customers, Business and Settings sit behind "More".
+ * tab, 2026-10-03, and Jobs over Customers, 2026-10-11). Invoices, Customers, Business and Settings sit behind "More".
  * The desktop sidebar has room for everything and has no "More".
  */
 const ITEMS: Item[] = [
@@ -22,6 +22,7 @@ const ITEMS: Item[] = [
   { href: "/app/quotes", label: "Quotes", match: (p) => p.startsWith("/app/quotes"), icon: QuotesIcon },
   { href: "/app/jobs", label: "Jobs", match: (p) => p.startsWith("/app/jobs"), icon: JobsIcon },
   { href: "/app/products", label: "Products", match: (p) => p.startsWith("/app/products"), icon: ProductsIcon },
+  { href: "/app/invoices", label: "Invoices", match: (p) => p.startsWith("/app/invoices"), icon: InvoicesIcon, only: "desktop" },
   { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon, only: "desktop" },
   { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
   { href: "/app/documents", label: "Quotes and invoices", match: (p) => p.startsWith("/app/documents"), icon: DocumentsIcon, only: "desktop" },
@@ -31,6 +32,7 @@ const ITEMS: Item[] = [
     label: "More",
     match: (p) =>
       p.startsWith("/app/more") ||
+      p.startsWith("/app/invoices") ||
       p.startsWith("/app/customers") ||
       p.startsWith("/app/business") ||
       p.startsWith("/app/documents") ||
@@ -192,6 +194,16 @@ function DocumentsIcon() {
       <path d="M6 3h8l4 4v14H6z" />
       <path d="M14 3v4h4" />
       <path d="M9 12h6M9 16h6" />
+    </svg>
+  );
+}
+
+function InvoicesIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+      <path d="M9 8h6M9 12h6" />
     </svg>
   );
 }

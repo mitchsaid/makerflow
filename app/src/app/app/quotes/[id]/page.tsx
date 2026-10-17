@@ -19,8 +19,11 @@ import { frozenMargins } from "@/lib/quotes/costing";
 import { MarginPanel } from "../margin-panel";
 import { themeFromStored } from "@/lib/quotes/themes";
 import { usualsFromProfile } from "@/lib/quotes/usuals";
+import { customerParty } from "@/lib/quotes/snapshot";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { currentOutcome, outcomeSentence } from "@/lib/quotes/outcome";
+import { defaultInvoiceForm, invoiceProblems } from "@/lib/invoices";
+import { formatMoney } from "@/lib/money";
 import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_PROMPT, jobNumberText, shouldNudgeCreateJob } from "@/lib/jobs";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
@@ -32,6 +35,7 @@ import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
 import { CreateJobButton } from "../create-job-button";
 import { CreateJobNudge } from "../create-job-nudge";
+import { CreateInvoice, InvoiceMade } from "../../invoices/create-invoice";
 import { DeleteDraftButton } from "./delete-draft-button";
 import { DiscardRevisionButton } from "./discard-revision-button";
 import { PageHeader } from "@/components/page-header";
@@ -198,7 +202,7 @@ export default async function QuotePage({
             today={today}
             askToCreateJob={!dismissedPrompts.includes(CREATE_JOB_PROMPT)}
           />}
-        {isLatest && answered && !quote.job && <ChangeAnswerButton quoteId={quote.id} />}
+        {isLatest && answered && !quote.job && !quote.invoice && <ChangeAnswerButton quoteId={quote.id} />}
         {isLatest && quote.status === "accepted" && !nudgeJob && (
           quote.job ? (
             <Card>
@@ -214,6 +218,28 @@ export default async function QuotePage({
             </Card>
           ) : (
             <CreateJobButton quoteId={quote.id} />
+          )
+        )}
+        {isLatest && quote.status === "accepted" && (
+          quote.invoice ? (
+            <InvoiceMade id={quote.invoice.id} number={quote.invoice.number} />
+          ) : (
+            <CreateInvoice
+              quoteId={quote.id}
+              documentTitle={locale.documents.invoice.title(shown.snapshot.vat.registered)}
+              customerName={shown.snapshot.customer?.name ?? ""}
+              totalText={formatMoney(shown.snapshot.totals.grossCents, shown.snapshot.currencyCode, shown.snapshot.numberStyle)}
+              defaults={defaultInvoiceForm(today, locale.documents.invoice.dueDays)}
+              problems={invoiceProblems({
+                business: profile,
+                customer: quote.customer ? customerParty(quote.customer, locale) : shown.snapshot.customer,
+                grossCents: shown.snapshot.totals.grossCents,
+                taxRegistered: shown.snapshot.vat.registered,
+                businessRegistered: profile.vatRegistered,
+                locale,
+              })}
+              customerId={quote.customer?.id ?? null}
+            />
           )
         )}
         {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}

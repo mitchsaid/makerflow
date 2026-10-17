@@ -36,23 +36,34 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
         </div>
 
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
-          <dt className="text-muted-foreground">Quote</dt>
-          <dd className="font-medium">{s.version > 1 ? `${s.number} · version ${s.version}` : s.number}</dd>
+          <dt className="text-muted-foreground">{s.invoice ? s.wording.title : "Quote"}</dt>
+          <dd className="font-medium">{s.version > 1 && !s.invoice ? `${s.number} · version ${s.version}` : s.number}</dd>
           <dt className="text-muted-foreground">Date</dt>
           <dd>{day(s.issueDate)}</dd>
-          <dt className="text-muted-foreground">Valid until</dt>
-          <dd>{day(s.validUntil)}</dd>
-          {s.neededBy && (
+          {s.invoice ? (
             <>
-              <dt className="text-muted-foreground">Needed by</dt>
-              <dd>{day(s.neededBy)}</dd>
+              <dt className="text-muted-foreground">{s.invoice.dueLabel}</dt>
+              <dd>{day(s.invoice.dueDate)}</dd>
+              <dt className="text-muted-foreground">{s.invoice.quoteLabel}</dt>
+              <dd>{s.invoice.quoteNumber}</dd>
+            </>
+          ) : (
+            <>
+              <dt className="text-muted-foreground">Valid until</dt>
+              <dd>{day(s.validUntil)}</dd>
+              {s.neededBy && (
+                <>
+                  <dt className="text-muted-foreground">Needed by</dt>
+                  <dd>{day(s.neededBy)}</dd>
+                </>
+              )}
             </>
           )}
         </dl>
 
         {s.customer && (
           <div className="space-y-0.5">
-            <p className="text-xs font-medium uppercase text-muted-foreground">Prepared for</p>
+            <p className="text-xs font-medium uppercase text-muted-foreground">{s.invoice?.billedToLabel ?? "Prepared for"}</p>
             <p className="text-base font-medium">{s.customer.name}</p>
             <PartyLines party={s.customer} />
             {s.customer.vatNumber && (
@@ -234,7 +245,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
 
         <div className="space-y-0.5 text-sm text-muted-foreground">
           {s.wording.inclusiveStatement && <p>{s.wording.inclusiveStatement}</p>}
-          <p>{s.wording.notATaxInvoice}</p>
+          {s.wording.notATaxInvoice && <p>{s.wording.notATaxInvoice}</p>}
         </div>
       </CardContent>
     </Card>
