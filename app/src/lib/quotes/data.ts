@@ -92,6 +92,8 @@ type LineRow = {
   variation_label: string | null;
   variation_name: string | null;
   options: unknown;
+  list_price_cents: number | string | null;
+  quantity_price_text: string | null;
 };
 
 type VersionRow = {
@@ -153,6 +155,7 @@ type QuoteRow = {
   payment_instructions: string | null;
   show_bank_details: boolean;
   show_photos: boolean;
+  show_quantity_prices: boolean;
   theme_id: string | null;
   theme_starter: string | null;
   deposit_kind: DepositKind;
@@ -196,6 +199,8 @@ export type StoredQuote = {
   showBankDetails: boolean;
   /** Show each product's photo beside its item. */
   showPhotos: boolean;
+  /** Say under an item that a quantity price set its price. */
+  showQuantityPrices: boolean;
   /** This quote's own theme: one of the business's (an id) or a starter; neither means it follows the business's default. */
   themeId: string | null;
   themeStarter: StarterKey | null;
@@ -224,6 +229,9 @@ export type StoredQuote = {
     variationLabel: string | null;
     variationName: string | null;
     options: LineOption[];
+    /** The price before the quantity price that set this item's price, and its words. */
+    listPriceCents: number | null;
+    quantityPriceText: string | null;
   }[];
   /** The customer as they are now (a draft shows live details; a sent version has its own copy). */
   customer: Customer | null;
@@ -300,11 +308,12 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, payment_instructions, show_bank_details, show_photos, theme_id, theme_starter,
+       title, description, sign_off, payment_instructions, show_bank_details, show_photos, show_quantity_prices, theme_id, theme_starter,
        deposit_kind, deposit_value, balance_due, balance_due_date, balance_due_text, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
-         discount_kind, discount_value, vat_status, variation_id, variation_label, variation_name, options
+         discount_kind, discount_value, vat_status, variation_id, variation_label, variation_name, options,
+         list_price_cents, quantity_price_text
        ),
        customers (
          id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
@@ -341,6 +350,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     paymentInstructions: row.payment_instructions,
     showBankDetails: row.show_bank_details,
     showPhotos: row.show_photos,
+    showQuantityPrices: row.show_quantity_prices,
     themeId: row.theme_id,
     themeStarter: isStarterKey(row.theme_starter) ? row.theme_starter : null,
     depositKind: row.deposit_kind,
@@ -366,6 +376,8 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       variationLabel: l.variation_label,
       variationName: l.variation_name,
       options: storedOptions(l.options),
+      listPriceCents: l.list_price_cents === null ? null : Number(l.list_price_cents),
+      quantityPriceText: l.quantity_price_text,
     })),
     customer: (() => {
       const c = Array.isArray(row.customers) ? row.customers[0] : row.customers;

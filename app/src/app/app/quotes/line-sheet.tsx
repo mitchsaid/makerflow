@@ -36,7 +36,7 @@ import { optionsFixed, optionsPerItem, parseLine, type LineOption, type Discount
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
 import { QuantityField } from "@/components/quantity-field";
-import { priceBreakText, referencePrice } from "@/lib/products/price-breaks";
+import { listPriceOf, priceBreakText, referencePrice } from "@/lib/products/price-breaks";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 import { AddButton } from "@/components/add-button";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
@@ -604,7 +604,14 @@ function ConfigureView({
       return;
     }
     setErrors({});
-    startTransition(() => onSave(line));
+    // When a quantity price set the price each (and it was not typed over), the item keeps the price before it and
+    // its words, for the quote to show if the maker wants; otherwise nothing is kept.
+    const before = product && applied && !priceDiffers ? listPriceOf(product, line.variationId) : undefined;
+    const saved: LineFormValues =
+      before !== undefined && applied
+        ? { ...line, listPrice: moneyToInput(before, numberStyle), quantityPriceText: priceBreakText(applied, line.unit.trim() || null, numberStyle, money) }
+        : { ...line, listPrice: undefined, quantityPriceText: undefined };
+    startTransition(() => onSave(saved));
   }
 
   const problems: FormProblem[] = (

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
-import { item, rand, sheet } from "./quote-helpers";
+import { addCustomerInSheet, item, rand, sheet } from "./quote-helpers";
 
 async function addProductWithQuantityPrices(page: Page) {
   await page.goto("/app/products/new");
@@ -177,4 +177,59 @@ test("quantity prices follow the price when variations are turned on and off", a
   await page.getByRole("radio", { name: /^No/ }).click();
   await expect(page.getByRole("group", { name: "Quantity prices", exact: true }).getByLabel("From (quantity)")).toHaveValue("6");
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("50");
+});
+
+test("the customer's quote shows a quantity price only when the maker turns it on", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "qp-customer", "Quantity Quote Co");
+  await addProductWithQuantityPrices(page);
+
+  await page.goto("/app/quotes/new");
+  // Nothing to decide until an item's price came from a quantity price.
+  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
+  await sheet(page).getByLabel("Quantity").fill("12");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  const show = page.getByRole("checkbox", { name: "Show quantity prices on this quote" });
+  await expect(show).not.toBeChecked();
+  await addCustomerInSheet(page, "Thandi Nkosi");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  const quoteUrl = page.url().split("?")[0];
+
+  // Off: the quote says nothing about it.
+  await page.goto(`${quoteUrl}/preview`);
+  const text = page.getByRole("region", { name: "The quote as text" });
+  await expect(text).toContainText("Cupcakes");
+  await expect(text).not.toContainText("Quantity price");
+
+  // On: it says which quantity price applied and what the price usually is. Kept when the quote is opened again.
+  await page.goto(quoteUrl);
+  await page.getByRole("checkbox", { name: "Show quantity prices on this quote" }).check();
+  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  // (By keyboard: a button below the fold of the headless phone emulation can be reported as covered when pressed with a pointer.)
+  await page.getByRole("button", { name: "Save draft" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Draft saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  await page.goto(`${quoteUrl}/preview`);
+  await expect(text).toContainText(/Quantity price: 10 or more: 10% off \(usually R\s?100,00\)/);
+
+  // A price typed over the quantity price is the maker's own: nothing is said about it.
+  await page.goto(quoteUrl);
+  await item(page, 1).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByLabel(/^Price/).fill("80");
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  // (The tick stays while it is on, so it never turns itself off out of sight.)
+  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  await page.getByRole("button", { name: "Save draft" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Draft saved.")).toBeVisible();
+  await page.goto(`${quoteUrl}/preview`);
+  await expect(text).toContainText("Cupcakes");
+  await expect(text).not.toContainText("Quantity price");
 });

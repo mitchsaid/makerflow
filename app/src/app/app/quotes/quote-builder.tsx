@@ -602,6 +602,20 @@ export function QuoteBuilder({
             </FieldLabel>
           </Field>
         )}
+        {/* Only when an item's price came from a quantity price; nothing to decide otherwise. */}
+        {(values.showQuantityPrices === true || values.lines.some((l) => l.quantityPriceText)) && (
+          <Field orientation="horizontal" className="items-start py-2.5">
+            <Checkbox
+              id="showQuantityPrices"
+              name="showQuantityPrices"
+              checked={values.showQuantityPrices === true}
+              onCheckedChange={(checked) => update({ showQuantityPrices: checked === true })}
+            />
+            <FieldLabel htmlFor="showQuantityPrices" className="text-base">
+              Show quantity prices on this quote
+            </FieldLabel>
+          </Field>
+        )}
         <LineSheet
           open={sheetOpen}
           view={sheetView}

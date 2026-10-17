@@ -77,6 +77,13 @@ export type LineFormValues = {
   variationName?: string;
   /** The options and extras chosen, each the item's own copy (see LineOption). Absent from an older app. */
   options?: LineOption[];
+  /**
+   * When the price each came from a quantity price (and was not typed over): the price before it (as typed in the
+   * price box) and its words ("10 or more: 10% off"). Both, or neither; whether a document shows them is the quote's
+   * `showQuantityPrices`. Absent from an older app, and on items typed by hand.
+   */
+  listPrice?: string;
+  quantityPriceText?: string;
 };
 
 /**
@@ -123,6 +130,8 @@ export type QuoteFormValues = {
   showBankDetails: boolean;
   /** Show each product's photo beside its item. On unless switched off. */
   showPhotos: boolean;
+  /** Say under an item that a quantity price set its price. Off unless switched on. */
+  showQuantityPrices?: boolean;
   /** The deposit and when the balance is due (see ./deposit). */
   depositKind: DepositFormValues["depositKind"];
   depositValue: string;
@@ -184,6 +193,8 @@ export type ParsedLine = {
   options: ParsedLineOption[];
   extrasPerItemCents: Cents;
   extrasFixedCents: Cents;
+  /** The price before the quantity price that set this price each, and its words; null when no quantity price did. */
+  quantityPrice: { listPriceCents: Cents; text: string } | null;
 };
 
 export type ParsedLineOption = {
@@ -219,6 +230,8 @@ export type ParsedQuote = {
   showBankDetails: boolean;
   /** Show each product's photo beside its item. Undefined when an older app saved the quote: the draft keeps its setting. */
   showPhotos: boolean | undefined;
+  /** Say under an item that a quantity price set its price. Undefined when an older app saved the quote: the draft keeps its setting. */
+  showQuantityPrices: boolean | undefined;
   /** Null: no deposit. */
   deposit: ParsedDeposit | null;
   policies: { policyId: string | null; title: string | null; body: string }[];
@@ -263,6 +276,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   // A phone still running an older version of the app does not send it: that means on.
   if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
   if (v.showPhotos !== undefined && typeof v.showPhotos !== "boolean") return false;
+  if (v.showQuantityPrices !== undefined && typeof v.showQuantityPrices !== "boolean") return false;
   // Same for the deposit: an older app does not send it, and that means no deposit.
   if (v.depositKind !== undefined && !isDepositKind(v.depositKind)) return false;
   if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date" && v.balanceDue !== "other") return false;
@@ -302,6 +316,8 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
       (l.vatStatus === undefined || VAT_STATUSES.includes(l.vatStatus as VatStatus)) &&
       // Nor the variation: that means none.
       ["variationId", "variationLabel", "variationName"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
+      // Nor the quantity price that set the price: that means none.
+      ["listPrice", "quantityPriceText"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
       // Nor the options: that means none.
       (l.options === undefined || (Array.isArray(l.options) && l.options.length <= MAX_LINE_OPTIONS && l.options.every(isLineOption)))
     );
@@ -309,6 +325,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
 }
 
 const MAX_LINE_OPTIONS = 100;
+const QUANTITY_PRICE_TEXT_MAX = 200;
 const OPTION_KINDS: readonly unknown[] = ["one", "any", "text"];
 
 function isLineOption(value: unknown): value is LineOption {
@@ -467,6 +484,15 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
     }
   }
 
+  // The quantity price that set the price each: a note for the document, kept only when both parts can be read (a
+  // note that cannot be read is left out rather than stopping the quote).
+  let quantityPrice: ParsedLine["quantityPrice"] = null;
+  const priceNote = (line.quantityPriceText ?? "").replace(/\s+/g, " ").trim();
+  const listPrice = parseMoney(line.listPrice ?? "");
+  if (fromProduct && priceNote !== "" && priceNote.length <= QUANTITY_PRICE_TEXT_MAX && !priceNote.includes("\u0000") && listPrice.ok) {
+    quantityPrice = { listPriceCents: listPrice.value, text: priceNote };
+  }
+
   if (Object.keys(errors).length > 0 || !name.ok || !description.ok || !quantity.ok || !unit.ok || !price.ok || !discount.ok) {
     return { ok: false, errors };
   }
@@ -487,6 +513,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       options,
       extrasPerItemCents: optionsPerItem(options),
       extrasFixedCents: optionsFixed(options),
+      quantityPrice,
     },
   };
 }
@@ -511,14 +538,14 @@ function fulfilmentLine(
   if (values.fulfilment === "collection") {
     return {
       ok: true,
-      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasFixedCents: 0 },
+      line: { key: "fulfilment", kind: "collection", productId: null, name: "Collection", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 0, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasFixedCents: 0, quantityPrice: null },
     };
   }
   const fee = parseMoney(values.deliveryFee.trim() === "" ? "0" : values.deliveryFee);
   if (!fee.ok) return { ok: false, error: fee.error };
   return {
     ok: true,
-    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasFixedCents: 0 },
+    line: { key: "fulfilment", kind: "delivery", productId: null, name: "Delivery", description: null, quantityMilli: 1000, unit: null, unitPriceCents: fee.value, vatStatus: "standard", variation: null, options: [], extrasPerItemCents: 0, extrasFixedCents: 0, quantityPrice: null },
   };
 }
 
@@ -660,6 +687,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       paymentInstructions: payment.value,
       showBankDetails: values.showBankDetails !== false,
       showPhotos: typeof values.showPhotos === "boolean" ? values.showPhotos : undefined,
+      showQuantityPrices: typeof values.showQuantityPrices === "boolean" ? values.showQuantityPrices : undefined,
       deposit: deposit.deposit,
       policies: policies.policies,
       totals,
@@ -692,6 +720,7 @@ export function previewTotals(values: QuoteFormValues, vat: VatSettings): Docume
       discount: discount.ok ? discount.value : undefined,
       vatStatus: vat.registered && line.vatStatus && VAT_STATUSES.includes(line.vatStatus) ? line.vatStatus : "standard",
       variation: null,
+      quantityPrice: null,
       ...(() => {
         const r = line.productId ? parseLineOptions(line.options ?? []) : ({ ok: false } as const);
         const options = r.ok ? r.options : [];
@@ -738,6 +767,7 @@ export function toDatabasePayload(
       show_bank_details: quote.showBankDetails,
       // Absent (not false) when an older app did not send it, so the draft keeps its setting.
       ...(quote.showPhotos === undefined ? {} : { show_photos: quote.showPhotos }),
+      ...(quote.showQuantityPrices === undefined ? {} : { show_quantity_prices: quote.showQuantityPrices }),
       ...depositColumns(quote.deposit),
       policies: quote.policies.map((p) => ({ policy_id: p.policyId, title: p.title, body: p.body })),
       country_code: context.countryCode,
@@ -765,6 +795,8 @@ export function toDatabasePayload(
       variation_id: l.variation?.id ?? null,
       variation_label: l.variation?.label ?? null,
       variation_name: l.variation?.name ?? null,
+      list_price_cents: l.quantityPrice?.listPriceCents ?? null,
+      quantity_price_text: l.quantityPrice?.text ?? null,
       options: l.options.map((o) => ({
         group_id: o.groupId,
         group: o.group,

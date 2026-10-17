@@ -6,6 +6,23 @@ export function itemName(line: { name: string; variation?: { name: string } | nu
   return line.variation ? `${line.name}, ${line.variation.name}` : line.name;
 }
 
+/**
+ * The note under an item whose price each came from a quantity price, when the quote shows them:
+ * "Quantity price: 10 or more: 10% off (usually R100,00)". The price before is on the same footing as the price each the
+ * document shows: with the choices that add to each item folded into it, they are in the price before too; with extras
+ * shown separately (`separate`) the price each is the item's own, and so is the price before.
+ */
+export function quantityPriceNote(
+  line: { quantityPrice?: { listPriceCents: number; text: string }; options?: readonly OptionLike[] },
+  money: (cents: number) => string,
+  separate = false,
+): string | null {
+  const q = line.quantityPrice;
+  if (!q) return null;
+  const perItem = separate ? 0 : (line.options ?? []).reduce((sum, o) => sum + (fixedCount(o) === null ? o.amountCents : 0), 0);
+  return `Quantity price: ${q.text} (usually ${money(q.listPriceCents + perItem)})`;
+}
+
 type OptionLike = {
   group: string;
   kind: "one" | "any" | "text";

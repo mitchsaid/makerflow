@@ -35,6 +35,7 @@ export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
       description: clean(l.description),
       unit: clean(l.unit ?? null),
       ...(l.variation ? { variation: { label: drawable(l.variation.label), name: drawable(l.variation.name) } } : {}),
+      ...(l.quantityPrice ? { quantityPrice: { listPriceCents: l.quantityPrice.listPriceCents, text: drawable(l.quantityPrice.text) } } : {}),
       ...(l.options
         ? { options: l.options.map((o) => ({ ...o, group: drawable(o.group), value: o.value === null ? null : drawable(o.value), text: o.text === null ? null : drawable(o.text) })) }
         : {}),

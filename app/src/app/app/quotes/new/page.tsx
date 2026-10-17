@@ -64,6 +64,8 @@ export default async function NewQuotePage() {
           showBankDetails: true,
           // Product photos show by default (each quote can switch them off).
           showPhotos: true,
+          // Quantity prices are not mentioned on the quote unless the maker asks.
+          showQuantityPrices: false,
           // The deposit the business has set as its default, if any (the balance starts on collection or delivery).
           // "Ask me each time" starts with nothing chosen: the deposit section puts the choice in front of the maker.
           depositKind: profile.defaultDepositKind === "ask" ? "none" : profile.defaultDepositKind,

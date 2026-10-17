@@ -19,6 +19,7 @@ export type StoredQuoteFields = {
   paymentInstructions: string | null;
   showBankDetails: boolean;
   showPhotos: boolean;
+  showQuantityPrices?: boolean;
   depositKind: DepositKind;
   depositValue: number;
   balanceDue: BalanceDue;
@@ -42,6 +43,8 @@ export type StoredQuoteFields = {
     variationLabel?: string | null;
     variationName?: string | null;
     options?: LineOption[];
+    listPriceCents?: number | null;
+    quantityPriceText?: string | null;
   }[];
 };
 
@@ -75,6 +78,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
       variationLabel: l.variationLabel ?? "",
       variationName: l.variationName ?? "",
       options: l.options ?? [],
+      ...(l.listPriceCents != null && l.quantityPriceText ? { listPrice: moneyToInput(l.listPriceCents, style), quantityPriceText: l.quantityPriceText } : {}),
     }));
   const fulfilmentLine = sorted.find((l) => l.kind === "delivery" || l.kind === "collection");
   const fulfilment: Fulfilment = fulfilmentLine ? (fulfilmentLine.kind as Fulfilment) : "none";
@@ -98,6 +102,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     paymentInstructions: quote.paymentInstructions ?? "",
     showBankDetails: quote.showBankDetails,
     showPhotos: quote.showPhotos,
+    showQuantityPrices: quote.showQuantityPrices,
     depositKind: quote.depositKind,
     depositValue:
       quote.depositKind === "percent"
