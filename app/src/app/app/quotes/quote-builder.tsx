@@ -603,7 +603,7 @@ export function QuoteBuilder({
           </Field>
         )}
         {/* Only when an item's price came from a quantity price; nothing to decide otherwise. */}
-        {values.lines.some((l) => l.quantityPriceText) && (
+        {(values.showQuantityPrices === true || values.lines.some((l) => l.quantityPriceText)) && (
           <Field orientation="horizontal" className="items-start py-2.5">
             <Checkbox
               id="showQuantityPrices"

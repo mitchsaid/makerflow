@@ -199,6 +199,18 @@ describe("quantityPriceNote", () => {
   it("says what the quantity price is and what the price usually is", () => {
     expect(quantityPriceNote({ quantityPrice: { listPriceCents: 10_000, text: "10 or more: 10% off" } }, money)).toBe("Quantity price: 10 or more: 10% off (usually R100,00)");
   });
+  it("is on the same footing as the price each: choices that add to each item are in both, or in neither when shown separately", () => {
+    const line = {
+      quantityPrice: { listPriceCents: 10_000, text: "10 or more: 10% off" },
+      options: [
+        { group: "Flavour", kind: "one" as const, value: "Vanilla", text: null, amountCents: 500 },
+        { group: "Extras", kind: "any" as const, value: "Gift box", text: null, amountCents: 3_000, quantityMilli: 1_000 },
+      ],
+    };
+    // (the gift box is a fixed count: it is not in the price each)
+    expect(quantityPriceNote(line, money)).toBe("Quantity price: 10 or more: 10% off (usually R105,00)");
+    expect(quantityPriceNote(line, money, true)).toBe("Quantity price: 10 or more: 10% off (usually R100,00)");
+  });
   it("says nothing for an item without one", () => {
     expect(quantityPriceNote({}, money)).toBeNull();
   });

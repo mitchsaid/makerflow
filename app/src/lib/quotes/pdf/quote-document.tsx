@@ -123,7 +123,7 @@ export function QuoteDocument({
     return (
       <>
         {x.folded ? <Text style={styles.description}>{x.folded}</Text> : null}
-        {quantityPriceNote(l, money) ? <Text style={styles.description}>{quantityPriceNote(l, money)}</Text> : null}
+        {quantityPriceNote(l, money, theme.extraPrices === "separate") ? <Text style={styles.description}>{quantityPriceNote(l, money, theme.extraPrices === "separate")}</Text> : null}
         {x.priced.map((p, k) => (
           <View key={k} style={{ flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Text style={[styles.description, { flexShrink: 1 }]}>{p.label}</Text>

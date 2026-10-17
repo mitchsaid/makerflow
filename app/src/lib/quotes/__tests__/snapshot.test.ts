@@ -418,7 +418,7 @@ describe("pictures in the snapshot", () => {
     expect("chosenIds" in s.lines[2]).toBe(false);
   });
 
-  it("keeps the quantity price on an item only when the quote shows them (with the choices that add to each item in the price before)", () => {
+  it("keeps the quantity price on an item only when the quote shows them", () => {
     const priced = line({
       quantity: "12",
       unitPrice: "90",
@@ -432,8 +432,8 @@ describe("pictures in the snapshot", () => {
     const off = snap({ lines: [priced, line({ key: "plain" })] });
     expect("quantityPrice" in off.lines[0]).toBe(false);
     const on = snap({ lines: [priced, line({ key: "plain" })], showQuantityPrices: true });
-    // 100,00 before + 5,00 the choice adds to each item, as the price each shows 90,00 + 5,00.
-    expect(on.lines[0].quantityPrice).toEqual({ listPriceCents: 10_500, text: "10 or more: 10% off" });
+    // The item's own 100,00 before (the document adds the 5,00 the choice adds to each item when it folds extras in).
+    expect(on.lines[0].quantityPrice).toEqual({ listPriceCents: 10_000, text: "10 or more: 10% off" });
     expect(on.lines[0].unitPriceCents).toBe(9_500);
     expect("quantityPrice" in on.lines[1]).toBe(false);
   });

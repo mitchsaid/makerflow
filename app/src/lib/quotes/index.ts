@@ -487,7 +487,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   // The quantity price that set the price each: a note for the document, kept only when both parts can be read (a
   // note that cannot be read is left out rather than stopping the quote).
   let quantityPrice: ParsedLine["quantityPrice"] = null;
-  const priceNote = (line.quantityPriceText ?? "").trim();
+  const priceNote = (line.quantityPriceText ?? "").replace(/\s+/g, " ").trim();
   const listPrice = parseMoney(line.listPrice ?? "");
   if (fromProduct && priceNote !== "" && priceNote.length <= QUANTITY_PRICE_TEXT_MAX && !priceNote.includes("\u0000") && listPrice.ok) {
     quantityPrice = { listPriceCents: listPrice.value, text: priceNote };

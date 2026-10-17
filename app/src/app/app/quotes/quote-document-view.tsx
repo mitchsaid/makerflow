@@ -95,7 +95,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
               </p>
               {l.description && <p className="whitespace-pre-line text-sm text-muted-foreground">{l.description}</p>}
               {extras(l).folded && <p className="text-sm text-muted-foreground">{extras(l).folded}</p>}
-              {quantityPriceNote(l, money) && <p className="text-sm text-muted-foreground">{quantityPriceNote(l, money)}</p>}
+              {quantityPriceNote(l, money, separate) && <p className="text-sm text-muted-foreground">{quantityPriceNote(l, money, separate)}</p>}
               {extras(l).priced.map((p, k) => (
                 <p key={k} className="flex justify-between gap-3 text-sm text-muted-foreground">
                   <span>{p.label}</span>

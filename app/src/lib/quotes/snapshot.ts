@@ -60,8 +60,8 @@ export type SnapshotLine = {
    */
   vatStatus?: VatStatus;
   /**
-   * The price before the quantity price that set this item's price each (as the document shows it), and the quantity
-   * price's words. Written only when the quote was set to show quantity prices. Absent otherwise.
+   * The item's own price before the quantity price that set its price each (without what its choices add to each item:
+   * the document adds them when it shows extras folded in), and the quantity price's words. Written only when the quote was set to show quantity prices. Absent otherwise.
    */
   quantityPrice?: { listPriceCents: number; text: string };
   /** The product the item came from (a job made from this version takes its steps). Absent for one-off items and for versions sent before it existed. */
@@ -358,7 +358,7 @@ export function buildQuoteSnapshot(input: {
       ...(l.productId && chosenIdsOf(l).length > 0 ? { chosenIds: chosenIdsOf(l) } : {}),
       ...(l.variation ? { variation: { label: l.variation.label, name: l.variation.name } } : {}),
       ...(quote.showQuantityPrices === true && l.quantityPrice
-        ? { quantityPrice: { listPriceCents: l.quantityPrice.listPriceCents + l.extrasPerItemCents, text: l.quantityPrice.text } }
+        ? { quantityPrice: { listPriceCents: l.quantityPrice.listPriceCents, text: l.quantityPrice.text } }
         : {}),
       ...(l.options.length > 0
         ? { options: l.options.map((o) => ({ group: o.group, kind: o.kind, value: o.value, text: o.text, amountCents: o.amountCents, ...(o.quantityMilli === null ? {} : { quantityMilli: o.quantityMilli }) })) }
