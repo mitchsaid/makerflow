@@ -218,11 +218,18 @@ test("the customer's quote shows a quantity price only when the maker turns it o
   await page.goto(`${quoteUrl}/preview`);
   await expect(text).toContainText(/Quantity price: 10 or more: 10% off \(usually R\s?100,00\)/);
 
-  // A price typed over the quantity price is the maker's own: nothing is said, and nothing is left to switch on.
+  // A price typed over the quantity price is the maker's own: nothing is said about it.
   await page.goto(quoteUrl);
   await item(page, 1).getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByLabel(/^Price/).fill("80");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(sheet(page)).toHaveCount(0);
-  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toHaveCount(0);
+  // (The tick stays while it is on, so it never turns itself off out of sight.)
+  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  await page.getByRole("button", { name: "Save draft" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Draft saved.")).toBeVisible();
+  await page.goto(`${quoteUrl}/preview`);
+  await expect(text).toContainText("Cupcakes");
+  await expect(text).not.toContainText("Quantity price");
 });
