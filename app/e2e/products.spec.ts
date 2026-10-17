@@ -14,7 +14,8 @@ async function addProduct(page: Page, name: string, price: string) {
   await expect(page.getByTestId("product-added")).toHaveText(`Added ${name}.`);
 }
 
-const COMING_SOON = ["Costs and margin", "Stock"];
+// Costs are built (a real section now); stock is still to come.
+const COMING_SOON = ["Stock"];
 
 test("the first product: a name and a price; the later layers are shown but do nothing", async ({ page }) => {
   await signUpAndOnboard(page, "p-first", "Product Co");
@@ -79,12 +80,9 @@ test("services are their own list, with their own form, and save, edit and come 
 
   await page.getByRole("link", { name: "Add your first service" }).click();
   await expect(page.getByRole("heading", { name: "Add a service", level: 1 })).toBeVisible();
-  // A service's own coming-soon layers: no photo or stock.
-  const placeholders = page.getByTestId("coming-soon");
-  await expect(placeholders).toHaveCount(1);
-  for (const title of ["Costs and margin"]) {
-    await expect(placeholders.filter({ hasText: title })).toHaveCount(1);
-  }
+  // A service has no photo or stock, and nothing is left to come: what it costs is a real section.
+  await expect(page.getByTestId("coming-soon")).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "What it costs" })).toBeVisible();
   await expect(page.getByText("Stock")).toHaveCount(0);
 
   await page.getByLabel("Name", { exact: true }).fill("Design time");
@@ -103,7 +101,7 @@ test("services are their own list, with their own form, and save, edit and come 
 
   await page.getByRole("link", { name: /Design time/ }).click();
   await expect(page.getByRole("heading", { name: "Design time", level: 1 })).toBeVisible();
-  await expect(page.getByTestId("coming-soon")).toHaveCount(1);
+  await expect(page.getByTestId("coming-soon")).toHaveCount(0);
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("450,50");
   await expect(page.getByLabel("Description (optional)")).toHaveValue("Per hour\nMinimum one hour");
   await page.getByLabel("Price", { exact: true }).fill("500");

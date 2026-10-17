@@ -39,9 +39,7 @@ const COMING_SOON: Record<ProductKind, readonly (readonly [string, string])[]> =
     ["Stock", "How many you have ready to sell."],
   ],
   // Services (founder, 2026-10-03): no photo or stock; costs are mostly your time.
-  service: [
-    ["Costs and margin", "Your time and other costs, to show your profit."],
-  ],
+  service: [["Costs and margin", "Your time and other costs, to show your profit."]],
 };
 
 
