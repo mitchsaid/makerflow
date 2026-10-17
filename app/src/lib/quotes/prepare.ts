@@ -113,8 +113,6 @@ export async function prepareQuote(
     itemCount: parsed.quote.lines.filter((l) => l.kind !== "delivery" && l.kind !== "collection").length,
     validUntil: parsed.quote.validUntil,
     today: todayIn(locale.timeZone),
-    profile,
-    locale,
     depositTooBig: depositNow?.tooBig ?? false,
     depositIsNothing: !!depositNow && parsed.quote.totals.grossCents > 0 && depositNow.depositCents === 0,
     balanceDueDate: parsed.quote.deposit?.balance.kind === "date" ? parsed.quote.deposit.balance.date : null,

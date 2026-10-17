@@ -295,16 +295,10 @@ for (const scheme of ["light", "dark"] as const) {
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
-      await expect(page.getByRole("dialog", { name: "Before you can mark this quote as sent" })).toBeVisible();
-      await expectNoViolations(page, "send sheet, something missing");
-      await page.getByRole("dialog").getByLabel(/^Phone/).fill("bad");
-      await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
-      await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
-      await expectNoViolations(page, "send sheet, contact error");
-      await page.getByRole("dialog").getByLabel(/^Phone/).fill("011 555 0101");
-      await page.getByRole("dialog").getByRole("button", { name: "Save and continue" }).click();
+      // No phone or email on the business yet: the confirmation says so, and does not stop the record.
       await expect(page.getByRole("dialog", { name: "Mark this quote as sent" })).toContainText("QT-0001");
-      await expectNoViolations(page, "send sheet, ready");
+      await expect(page.getByTestId("no-contact-note")).toBeVisible();
+      await expectNoViolations(page, "send sheet, ready, no contact details");
       await page.getByRole("dialog").getByRole("button", { name: "Mark as sent", exact: true }).click();
       await expect(page.getByTestId("sent-banner")).toBeVisible();
       await expectNoViolations(page, "sent quote");

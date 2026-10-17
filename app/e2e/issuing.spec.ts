@@ -68,9 +68,9 @@ test("a draft is numbered when first saved, and the next step is a preview of th
   expect(download.headers()["content-disposition"]).toContain("QT-0001.pdf");
   expect((await download.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
 
-  // This business has no phone or email yet, so "Mark as sent" lists what is missing.
+  // This business has no phone or email yet; that does not stop "Mark as sent", which says so and waits for a decision.
   await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Before you can mark this quote as sent" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Mark this quote as sent" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
@@ -146,7 +146,7 @@ test("the preview offers Download, Email and Mark as sent; Download changes noth
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
 });
 
-test("sending lists what is missing, carries on once contact details are added, and marking as sent locks the quote", async ({
+test("marking as sent needs no phone number or email, mentions it, and locks the quote", async ({
   page,
   browser,
 }) => {
@@ -155,25 +155,11 @@ test("sending lists what is missing, carries on once contact details are added, 
 
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
-  const urlBefore = await page.getByTestId("pdf-pages").getAttribute("data-url");
   await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
-  await expect(sheet(page)).toHaveAccessibleName("Before you can mark this quote as sent");
-  await expect(sheet(page).getByText(/Add a phone number or email/)).toBeVisible();
-  // Nothing about the customer or items is wrong, so only the contact details are asked for.
-  await expect(sheet(page).getByRole("list", { name: "What is missing" })).toHaveCount(0);
-
-  // Nothing at all is not enough: it says how to fix it, at the field and in a summary.
-  await sheet(page).getByRole("button", { name: "Save and continue" }).click();
-  await expect(sheet(page).getByTestId("form-summary")).toBeVisible();
-  await expect(sheet(page).getByText("Add a phone number or an email so customers can reach you.")).toHaveCount(2);
-
-  await sheet(page).getByLabel(/^Phone/).fill("011 555 0101");
-  await sheet(page).getByRole("button", { name: "Save and continue" }).click();
-  // It carries on: the sheet now asks to mark the quote as sent.
+  // The maker may have sent the quote some other way, so a missing phone or email does not stop the record: it is said, once.
   await expect(sheet(page)).toHaveAccessibleName("Mark this quote as sent");
-  // The document now has a phone number on it, so the preview behind the sheet is fetched and
-  // drawn again (its address carries a stamp of what the document says).
-  await expect.poll(() => page.getByTestId("pdf-pages").getAttribute("data-url")).not.toBe(urlBefore);
+  await expect(sheet(page).getByTestId("no-contact-note")).toContainText("no phone number or email");
+  await expect(sheet(page).getByRole("link", { name: "Add one in your Business profile" })).toHaveAttribute("href", "/app/business");
   await expect(sheet(page)).toContainText("QT-0001 for Thandi Nkosi");
   await expect(sheet(page)).toContainText(/R\s?800,00/);
 
@@ -205,11 +191,9 @@ test("sending lists what is missing, carries on once contact details are added, 
   expect(pdf.headers()["content-disposition"]).toContain('filename="QT-0001.pdf"');
   expect((await pdf.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
 
-  // It stays sent after a reload, and the contact details went into the Business profile.
+  // It stays sent after a reload.
   await page.reload();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
-  await openBusinessProfile(page);
-  await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("011 555 0101");
   await openQuotes(page);
   const row = page.getByRole("link", { name: /Thandi Nkosi/ });
   await expect(row).toContainText("QT-0001");

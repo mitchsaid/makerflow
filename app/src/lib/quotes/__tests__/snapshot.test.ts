@@ -245,28 +245,11 @@ describe("the quote snapshot", () => {
 });
 
 describe("what stops a quote being sent", () => {
-  const profile = {
-    countryCode: "ZA",
-    currencyCode: "ZAR",
-    phone: "011 555 0101",
-    email: null,
-    addressLine1: null,
-    addressLine2: null,
-    city: null,
-    region: null,
-    postalCode: null,
-    vatRegistered: false,
-    vatNumber: null,
-    pricesIncludeVat: true,
-  };
   const ok = {
     hasCustomer: true,
     itemCount: 1,
     validUntil: "2026-10-16",
     today: "2026-10-03",
-    profile,
-    locale: ZA_LOCALE,
-    bank: null,
   };
 
   it("lets a complete quote through", () => {
@@ -279,14 +262,12 @@ describe("what stops a quote being sent", () => {
       hasCustomer: false,
       itemCount: 0,
       validUntil: "2026-10-01",
-      profile: { ...profile, phone: null },
     });
-    expect(problems.map((p) => p.code)).toEqual(["customer", "items", "validity", "contact"]);
+    expect(problems.map((p) => p.code)).toEqual(["customer", "items", "validity"]);
     for (const p of problems) expect(p.message).toMatch(/\.$/);
   });
 
-  it("accepts an email instead of a phone number, and a quote valid until today", () => {
-    expect(sendProblems({ ...ok, profile: { ...profile, phone: null, email: "a@b.test" } })).toEqual([]);
+  it("accepts a quote valid until today, and does not ask for a phone number or email (marking as sent is a record)", () => {
     expect(sendProblems({ ...ok, validUntil: "2026-10-03" })).toEqual([]);
   });
 });

@@ -1,13 +1,12 @@
-import { missingForQuote } from "../business-profile";
-import type { ContactFacts, LocalePack } from "../locale";
-
 /**
- * What stops a draft being sent, in plain words. The send sheet lists these (the error
+ * What stops a draft being marked as sent, in plain words. (A phone number or email is not one of them: marking a quote as
+ * sent is a record, the maker may have sent it some other way, and no law asks a quote for contact details,
+ * docs/locales/za/vat-and-documents.md answer 5. A missing one is mentioned on the confirmation, not made a blocker.) The send sheet lists these (the error
  * standard: say what is wrong and how to fix it) and the server checks them again before it
  * sends, so a hand-built request cannot skip them.
  */
 
-export type SendProblemCode = "customer" | "items" | "contact" | "validity" | "deposit" | "balance-date";
+export type SendProblemCode = "customer" | "items" | "validity" | "deposit" | "balance-date";
 
 export type SendProblem = {
   code: SendProblemCode;
@@ -25,9 +24,6 @@ export function sendProblems(input: {
   validUntil: string;
   /** Today in the business's time zone, as YYYY-MM-DD. */
   today: string;
-  /** The business's contact details (phone, email and address). */
-  profile: ContactFacts;
-  locale: LocalePack;
   /** A fixed deposit that is more than the quote total. */
   depositTooBig?: boolean;
   /** A deposit that works out to nothing (a tiny percentage of a small total). */
@@ -59,12 +55,6 @@ export function sendProblems(input: {
   }
   if (input.balanceDueDate && input.balanceDueDate < input.today) {
     problems.push({ code: "balance-date", message: "The date the balance is due has passed. Choose a new date." });
-  }
-  if (missingForQuote(input.profile, input.locale).length > 0) {
-    problems.push({
-      code: "contact",
-      message: "Add a phone number or email, so your customer can get hold of you about this quote.",
-    });
   }
   return problems;
 }

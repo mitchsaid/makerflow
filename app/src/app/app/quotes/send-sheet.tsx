@@ -1,27 +1,19 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { SendProblem, SendProblemCode } from "@/lib/quotes/send-checks";
-import {
-  checkQuoteForSending,
-  saveBusinessContact,
-  sendQuote,
-  type ContactDetails,
-  type SendSheetState,
-} from "./issue-actions";
-import { FormErrorScope } from "@/components/form-errors";
+import { checkQuoteForSending, sendQuote, type SendSheetState } from "./issue-actions";
 
 const OFFLINE =
   "Couldn't reach the server. Open the quote to see if it went through before trying again.";
 
 /** Where each problem is fixed: the id of the field on the edit screen. */
-const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label: string }> = {
+const FIX_FIELD: Record<SendProblemCode, { id: string; label: string }> = {
   customer: { id: "customer", label: "Choose a customer" },
   items: { id: "add-item", label: "Add an item" },
   validity: { id: "validUntil", label: "Change the date" },
@@ -31,8 +23,7 @@ const FIX_FIELD: Record<Exclude<SendProblemCode, "contact">, { id: string; label
 
 /**
  * Pressing "Mark as sent" on the preview opens this. It looks at the saved quote and either lists exactly what is
- * missing (the business's phone or email can be added right here, and it carries on) or asks to mark the quote as
- * sent. Then the quote is sent: it is frozen and keeps its number.
+ * missing or asks to mark the quote as sent. Then the quote is sent: it is frozen and keeps its number.
  */
 export function SendQuoteSheet({
   quoteId,
@@ -119,7 +110,7 @@ function SendFlow({
     try {
       const result = await sendQuote(quoteId);
       if (result.status === "problems") {
-        setView({ status: "problems", problems: result.problems, contact: result.contact });
+        setView({ status: "problems", problems: result.problems });
         working(false);
         return;
       }
@@ -165,7 +156,7 @@ function SendFlow({
         )}
 
         {view?.status === "problems" && (
-          <Problems problems={view.problems} contact={view.contact} onGoTo={onGoTo} onSaved={check} />
+          <Problems problems={view.problems} onGoTo={onGoTo} />
         )}
 
         {view?.status === "ready" && (
@@ -174,6 +165,15 @@ function SendFlow({
               <Alert variant="destructive" role="alert">
                 <AlertDescription>{message}</AlertDescription>
               </Alert>
+            )}
+            {view.noContact && (
+              <p className="text-sm text-muted-foreground" data-testid="no-contact-note">
+                Your quote shows no phone number or email for customers to reach you.{" "}
+                <Link href="/app/business" className="underline">
+                  Add one in your Business profile
+                </Link>
+                .
+              </p>
             )}
             <p className="text-base">
               Mark it as sent once your customer has it. That locks this version. To change it later, revise it: it keeps the number {view.number}.
@@ -193,118 +193,20 @@ function SendFlow({
   );
 }
 
-function Problems({
-  problems,
-  contact,
-  onGoTo,
-  onSaved,
-}: {
-  problems: SendProblem[];
-  contact: ContactDetails;
-  onGoTo: (fieldId: string) => void;
-  onSaved: () => void;
-}) {
-  const [phone, setPhone] = useState(contact.phone);
-  const [email, setEmail] = useState(contact.email);
-  const [errors, setErrors] = useState<{ phone?: string; email?: string }>({});
-  const [message, setMessage] = useState<string | null>(null);
-  const [tries, setTries] = useState(0);
-  const [pending, startTransition] = useTransition();
-
-  function saveContact(event: React.FormEvent<HTMLFormElement>) {
-    // The sheet is a portal over the quote form: this submit must not reach it.
-    event.preventDefault();
-    event.stopPropagation();
-    setMessage(null);
-    startTransition(async () => {
-      try {
-        const result = await saveBusinessContact({ phone, email });
-        setTries((n) => n + 1);
-        if (result.status === "saved") {
-          setErrors({});
-          onSaved();
-        } else {
-          setErrors(result.errors ?? {});
-          setMessage(result.message ?? null);
-        }
-      } catch {
-        setMessage("Couldn't reach the server, so nothing was saved. Try again.");
-      }
-    });
-  }
-
-  const contactProblem = problems.find((p) => p.code === "contact");
-  const others = problems.filter((p) => p.code !== "contact");
-  const summary: FormProblem[] = [
-    ...(errors.phone ? [{ fieldId: "send-phone", label: "Phone", message: errors.phone }] : []),
-    ...(errors.email ? [{ fieldId: "send-email", label: "Email", message: errors.email }] : []),
-  ];
-
+function Problems({ problems, onGoTo }: { problems: SendProblem[]; onGoTo: (fieldId: string) => void }) {
   return (
-    <>
-      {others.length > 0 && (
-        <ul className="space-y-3" aria-label="What is missing">
-          {others.map((p) => {
-            const fix = FIX_FIELD[p.code as keyof typeof FIX_FIELD];
-            return (
-              <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
-                <p className="text-base">{p.message}</p>
-                <Button type="button" variant="outline" onClick={() => onGoTo(fix.id)}>
-                  {fix.label}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {contactProblem && (
-        <FormErrorScope epoch={tries}>
-        <form onSubmit={saveContact} className="space-y-3 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" noValidate>
-          <p className="text-base">{contactProblem.message}</p>
-          {contact.canEdit ? (
-            <>
-              <FormSummary problems={summary} trigger={tries} />
-              {message && (
-                <Alert variant="destructive" role="alert">
-                  <AlertDescription>{message}</AlertDescription>
-                </Alert>
-              )}
-              <TextField
-                id="send-phone"
-                name="phone"
-                label="Phone (optional if you add an email)"
-                type="tel"
-                autoComplete="tel"
-                value={phone}
-                error={errors.phone}
-                onChange={setPhone}
-              />
-              <TextField
-                id="send-email"
-                name="email"
-                label="Email (optional if you add a phone number)"
-                type="email"
-                autoComplete="email"
-                value={email}
-                error={errors.email}
-                onChange={setEmail}
-              />
-              <p className="text-sm text-muted-foreground">
-                Saved to your Business profile, so you only add it once.
-              </p>
-              <Button type="submit" size="lg" className="w-full" disabled={pending}>
-                {pending ? "Saving…" : "Save and continue"}
-              </Button>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Only owners and admins can add these. Ask one of them to add a phone or email in the Business profile.
-            </p>
-          )}
-        </form>
-        </FormErrorScope>
-      )}
-    </>
+    <ul className="space-y-3" aria-label="What is missing">
+      {problems.map((p) => {
+        const fix = FIX_FIELD[p.code];
+        return (
+          <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
+            <p className="text-base">{p.message}</p>
+            <Button type="button" variant="outline" onClick={() => onGoTo(fix.id)}>
+              {fix.label}
+            </Button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
