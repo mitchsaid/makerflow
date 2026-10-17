@@ -296,6 +296,95 @@ begin
   end;
   reset role;
 
+
+  ----------------------------------------------------------------------
+  -- Rows made before variations had their own: copied onto every variation, the originals removed (the same two
+  -- statements as the migration, on a product that has variations and a row for the product itself)
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  wedding := public.save_product_layers(org_a, null, pg_temp.sized('Old cake'),
+    '[{"name": "Small", "price_cents": 30000}, {"name": "Large", "price_cents": 60000}]'::jsonb, null, null, '[]'::jsonb);
+  reset role;
+  insert into public.product_price_breaks (organisation_id, product_id, from_quantity_milli, percent_off_bp)
+  select org_a, wedding, i * 1000, 500 from generate_series(1, 10) i;
+  insert into public.product_price_breaks (organisation_id, product_id, variation_id, from_quantity_milli, percent_off_bp, amount_off_cents)
+  select b.organisation_id, b.product_id, v.id, b.from_quantity_milli, b.percent_off_bp, null
+    from public.product_price_breaks b
+    join public.product_variations v on v.product_id = b.product_id and v.organisation_id = b.organisation_id
+   where b.variation_id is null and b.percent_off_bp is not null and b.product_id = wedding;
+  delete from public.product_price_breaks b
+   where b.variation_id is null and b.product_id = wedding
+     and exists (select 1 from public.product_variations v where v.product_id = b.product_id and v.organisation_id = b.organisation_id);
+  assert (select count(*) from public.product_price_breaks where product_id = wedding) = 20, 'the old rows were not copied onto both variations';
+  assert not exists (select 1 from public.product_price_breaks where product_id = wedding and variation_id is null), 'an old row was left on the product';
+  assert (select count(*) from public.product_price_breaks where product_id = cake and variation_id is null) = 1, 'a product with one price lost its rows';
+
+  ----------------------------------------------------------------------
+  -- Members cannot move a row to another price (it would skip the limit), and a lowered price cannot leave an amount
+  -- that takes off all of it, even when the call carries no quantity prices
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(c);
+  set local role authenticated;
+  begin
+    update public.product_price_breaks set variation_id = null where product_id = wedding;
+    raise exception 'a member moved a row to another price';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.product_price_breaks set amount_off_cents = 5 where product_id = wedding;
+    raise exception 'a member changed an amount directly';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'),
+    '[{"name": "Small", "price_cents": 30000}, {"name": "Large", "price_cents": 60000}]'::jsonb, null, null,
+    '[{"from_quantity_milli": 2000, "amount_off_cents": 20000, "variation": 0}]'::jsonb);
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'),
+      jsonb_build_array(jsonb_build_object('id', (select id from public.product_variations where product_id = wedding and sort_order = 0), 'name', 'Small', 'price_cents', 15000),
+                        jsonb_build_object('id', (select id from public.product_variations where product_id = wedding and sort_order = 1), 'name', 'Large', 'price_cents', 60000)),
+      null, null, null);
+    raise exception 'a price was lowered below an amount taken off it';
+  exception when sqlstate '22023' then null;
+  end;
+  -- Many variations with ten rows each is allowed (up to 500 in one call); more than that is not.
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'), null, null, null,
+      (select jsonb_agg(jsonb_build_object('from_quantity_milli', i * 1000, 'percent_off_bp', 100, 'variation', 0)) from generate_series(1, 501) i));
+    raise exception 'more than 500 rows were accepted';
+  exception when sqlstate '54000' then null;
+  end;
+  -- Odd shapes are refused as not valid, not as server errors.
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'), null, null, null, '[{"from_quantity_milli": 1000, "percent_off_bp": 500, "variation": 1.5}]'::jsonb);
+    raise exception 'a fractional variation place was accepted';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'), null, null, null, '[{"from_quantity_milli": 1000, "percent_off_bp": 500, "variation": -1}]'::jsonb);
+    raise exception 'a negative variation place was accepted';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'), null, null, null, '[{"from_quantity_milli": 1000, "amount_off_cents": 1.5, "variation": 0}]'::jsonb);
+    raise exception 'a fractional amount was accepted';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'), null, null, null, '[{"from_quantity_milli": 1000, "amount_off_cents": true, "variation": 0}]'::jsonb);
+    raise exception 'an amount that is true was accepted';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform public.save_product_layers(org_a, wedding, pg_temp.sized('Old cake'), null, null, null, '[{"from_quantity_milli": 1000, "variation": 0}]'::jsonb);
+    raise exception 'a row with no reduction was accepted';
+  exception when sqlstate '22023' then null;
+  end;
+  reset role;
+
   ----------------------------------------------------------------------
   -- A request with no active session reads and writes nothing
   ----------------------------------------------------------------------

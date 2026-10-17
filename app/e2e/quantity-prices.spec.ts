@@ -151,3 +151,30 @@ test("quantity prices sit with each variation's price, as a percent or an amount
   await sheet(page).getByLabel("Quantity").fill("1");
   await expect(price).toHaveValue("300");
 });
+
+test("quantity prices follow the price when variations are turned on and off", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "qp-switch", "Quantity Switch Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Candles");
+  await page.getByLabel("Price", { exact: true }).fill("50");
+  await page.getByRole("button", { name: "Add a quantity price" }).click();
+  await page.getByLabel("From (quantity)").fill("6");
+  await page.getByLabel("Percent off (%)").fill("10");
+
+  // With variations the price moves into the first choice, and the quantity price goes with it.
+  await page.getByRole("radio", { name: /^Yes/ }).click();
+  await page.getByLabel("Variation name", { exact: true }).fill("Size");
+  await page.getByRole("textbox", { name: "Size 1", exact: true }).fill("Small");
+  await page.getByRole("textbox", { name: "Size 2", exact: true }).fill("Large");
+  await page.getByLabel("Size 2 price", { exact: true }).fill("90");
+  const small = page.getByRole("group", { name: "Quantity prices for Small" });
+  await expect(small.getByLabel("From (quantity)")).toHaveValue("6");
+  await expect(small.getByTestId("quantity-price-final")).toHaveText(/R\s?45,00 each/);
+  await expect(page.getByRole("group", { name: "Quantity prices for Large" }).getByLabel("From (quantity)")).toHaveCount(0);
+
+  // And back to one price: the first choice's quantity price is the product's again.
+  await page.getByRole("radio", { name: /^No/ }).click();
+  await expect(page.getByRole("group", { name: "Quantity prices", exact: true }).getByLabel("From (quantity)")).toHaveValue("6");
+  await expect(page.getByLabel("Price", { exact: true })).toHaveValue("50");
+});

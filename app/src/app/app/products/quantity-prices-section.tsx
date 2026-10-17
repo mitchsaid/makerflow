@@ -82,12 +82,12 @@ export function QuantityPrices({
       {own.length > 0 && (
         <>
           <p className="text-base font-medium">Quantity prices</p>
-          <ol className="space-y-3" aria-label={`Quantity prices${forName}`}>
+          <ol className="space-y-3">
             {own.map((row, i) => {
               const rowErrors = errors?.rows[row.key];
               const final = finalText(row);
               return (
-                <li key={row.key} className="space-y-2 rounded-xl border border-border p-3">
+                <li key={row.key} aria-label={`Quantity price ${i + 1}${forName}`} className="space-y-2 rounded-xl border border-border p-3">
                   <div className="grid grid-cols-2 items-start gap-x-3 gap-y-1">
                     <QuantityField
                       id={fid(`price-break-${row.key}-from`)}
@@ -102,7 +102,7 @@ export function QuantityPrices({
                       <NativeSelect
                         id={fid(`price-break-${row.key}-kind`)}
                         value={row.kind}
-                        onChange={(e) => setRow(row.key, { kind: e.target.value === "amount" ? "amount" : "percent", value: "" })}
+                        onChange={(e) => setRow(row.key, { kind: e.target.value === "amount" ? "amount" : "percent" })}
                       >
                         <NativeSelectOption value="percent">A percentage</NativeSelectOption>
                         <NativeSelectOption value="amount">An amount</NativeSelectOption>
@@ -121,7 +121,7 @@ export function QuantityPrices({
                       error={rowErrors?.value}
                       onChange={(v) => setRow(row.key, { value: v })}
                     />
-                    <p className="mt-8 flex h-11 items-center text-sm text-muted-foreground" data-testid="quantity-price-final">
+                    <p className="mt-8 flex min-h-11 min-w-0 items-center text-sm text-muted-foreground" data-testid="quantity-price-final">
                       {final ? <span>{final}</span> : null}
                     </p>
                     <Button

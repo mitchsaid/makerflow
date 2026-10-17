@@ -36,7 +36,7 @@ create unique index product_price_breaks_quantity_unique
 create index product_price_breaks_variation_idx on public.product_price_breaks (variation_id) where variation_id is not null;
 
 grant insert (variation_id, amount_off_cents) on public.product_price_breaks to authenticated;
-grant update (variation_id, amount_off_cents) on public.product_price_breaks to authenticated;
+-- (no update grant for the new columns: save_product_layers replaces rows, and moving a row to another price could skip the limit)
 
 -- At most 10 for each price (the product's, or one variation's).
 create or replace function public.product_price_breaks_limit()
@@ -98,8 +98,8 @@ begin
     if jsonb_typeof(p_price_breaks) <> 'array' then
       raise exception 'quantity prices must be a list' using errcode = '22023';
     end if;
-    -- (ten for each price; the table's trigger counts them for each variation)
-    if jsonb_array_length(p_price_breaks) > 300 then
+    -- (ten for each price, and up to 50 variations; the table's trigger counts them for each variation)
+    if jsonb_array_length(p_price_breaks) > 500 then
       raise exception 'too many quantity prices' using errcode = '54000';
     end if;
     for b in select * from jsonb_array_elements(p_price_breaks) loop
@@ -190,18 +190,19 @@ begin
        and exists (select 1 from public.product_price_breaks where product_id = pid and variation_id is null) then
       raise exception 'quantity prices belong to a variation when the product has variations' using errcode = '22023';
     end if;
-    -- An amount taken off is always less than the price it is taken from.
-    if exists (
-      select 1
-        from public.product_price_breaks b
-        join public.products p on p.id = b.product_id and p.organisation_id = b.organisation_id
-        left join public.product_variations v on v.id = b.variation_id and v.organisation_id = b.organisation_id
-       where b.product_id = pid and b.organisation_id = p_org
-         and b.amount_off_cents is not null
-         and b.amount_off_cents >= coalesce(v.price_cents, p.unit_price_cents)
-    ) then
-      raise exception 'a quantity price takes off the whole price or more' using errcode = '22023';
-    end if;
+  end if;
+
+  -- An amount taken off is always less than the price it is taken from (also when only the prices were changed).
+  if exists (
+    select 1
+      from public.product_price_breaks b
+      join public.products p on p.id = b.product_id and p.organisation_id = b.organisation_id
+      left join public.product_variations v on v.id = b.variation_id and v.organisation_id = b.organisation_id
+     where b.product_id = pid and b.organisation_id = p_org
+       and b.amount_off_cents is not null
+       and b.amount_off_cents >= coalesce(v.price_cents, p.unit_price_cents)
+  ) then
+    raise exception 'a quantity price takes off the whole price or more' using errcode = '22023';
   end if;
 
   if p_steps is not null then

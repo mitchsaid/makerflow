@@ -1,5 +1,8 @@
 "use client";
 
+import type { NumberStyle } from "@/lib/money";
+import { addedPriceNote, type PriceBase } from "@/lib/products/added-price";
+import { AddedPrice } from "./added-price";
 import { useEffect, useRef, useState } from "react";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,6 +30,9 @@ export function ExtrasSection({
   variationWord,
   priceLabel,
   currencySymbol,
+  currencyCode,
+  numberStyle,
+  bases,
   fid,
   onChange,
 }: {
@@ -38,6 +44,10 @@ export function ExtrasSection({
   variationWord: string;
   priceLabel: string;
   currencySymbol: string;
+  /** For the note beside an added amount: the prices it goes onto, and how to write money. */
+  currencyCode: string;
+  numberStyle: NumberStyle;
+  bases: PriceBase[];
   fid: (key: string) => string;
   onChange: (rows: ExtraFormRow[]) => void;
 }) {
@@ -175,6 +185,7 @@ export function ExtrasSection({
                                 error={e?.prices?.[variation.key]}
                                 onChange={(p) => setRow(x.key, { prices: { ...(x.prices ?? {}), [variation.key]: p } })}
                               />
+                              <AddedPrice note={addedPriceNote(x.prices?.[variation.key] ?? "", bases, currencyCode, numberStyle, variation.key)} />
                             </div>
                           ))}
                         </div>
@@ -191,6 +202,9 @@ export function ExtrasSection({
                         error={e?.price}
                         onChange={(p) => setRow(x.key, { price: p })}
                       />
+                    )}
+                    {!byVariation && (
+                      <AddedPrice note={addedPriceNote(x.price, bases, currencyCode, numberStyle)} />
                     )}
 
                     <Field orientation="horizontal" className="items-start py-1">

@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
 import { carryPrice } from "@/lib/products/variations";
+import type { PriceBase } from "@/lib/products/added-price";
 import { carryPriceBreaks, sentPriceBreaks } from "@/lib/products/price-breaks";
 import Link from "next/link";
 import type { ProductSaveState } from "./actions";
@@ -206,6 +207,12 @@ export function ProductForm({
     ),
     ...values.extras.filter((x) => x.name.trim() !== "").map((x) => ({ value: `extra:${x.key}`, label: `Extra: ${x.name.trim()}` })),
   ];
+  // The prices that choices and extras add to: each variation's, or the product's own. An amount added is shown with
+  // what it makes.
+  const priceBases: PriceBase[] =
+    values.variations.length > 0
+      ? values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim(), price: r.price }))
+      : [{ key: "", name: "", price: values.unitPrice }];
   const namedVariations = values.variations.filter((r) => r.name.trim() !== "").map((r) => ({ key: r.key, name: r.name.trim() }));
 
   const problems: FormProblem[] = (
@@ -493,6 +500,9 @@ export function ProductForm({
             groups={values.options}
             errors={errors.options}
             currencySymbol={currencySymbol}
+            currencyCode={currencyCode}
+            numberStyle={numberStyle}
+            bases={priceBases}
             fid={fid}
             onPendingChange={onChoicePending}
             onImage={setValueImage}
@@ -573,6 +583,9 @@ export function ProductForm({
         variationWord={values.variationLabel.trim() || "variation"}
         priceLabel={priceLabel}
         currencySymbol={currencySymbol}
+        currencyCode={currencyCode}
+        numberStyle={numberStyle}
+        bases={priceBases}
         fid={fid}
         onChange={(extras) => {
           setEditedSinceSave(true);
