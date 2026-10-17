@@ -632,6 +632,7 @@ export function QuoteBuilder({
         onChange={update}
         saved={savedAddresses}
         hasCustomer={values.customerId !== ""}
+        countryCode={countryCode}
         feeLabel={priceEntryLabel(vat, taxName, "Delivery fee")}
         symbol={symbol}
         errors={{ deliveryFee: f.deliveryFee, deliveryAddress: f.deliveryAddress }}

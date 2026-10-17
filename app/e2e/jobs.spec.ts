@@ -205,7 +205,7 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await addCustomerInSheet(page, "Sam Jacobs", { phone: "021 555 0000" });
   await page.getByLabel("Needed by (optional)").fill("2030-01-15");
   await page.getByRole("radio", { name: "Delivery (you deliver)" }).check();
-  await page.getByLabel("Deliver to (optional)").fill("14 Oak Road");
+  await page.getByTestId("delivery-address-fields").getByLabel("Street address").fill("14 Oak Road");
   await page.getByLabel("Note (optional)").fill("Match the desk");
   await page.getByRole("button", { name: "Create job" }).click();
 
@@ -369,7 +369,7 @@ async function sentQuoteForDelivery(page: Page) {
   await fillItem(page, 1, "Wedding cake", "1", "800");
   await addCustomerInSheet(page, "Thandi Nkosi");
   await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
-  await page.getByLabel("Deliver to (optional)").fill("14 Oak Road");
+  await page.getByTestId("delivery-address-fields").getByLabel("Street address").fill("14 Oak Road");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   await startSend(page);

@@ -87,7 +87,14 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await sheet(page).getByRole("checkbox", { name: /Gold sprinkles/ }).check();
   await sheet(page).getByRole("checkbox", { name: /Gift box/ }).check();
   // One gift box, not one for each cupcake.
-  await sheet(page).getByLabel("Gift box: how many (optional)").fill("1");
+  await sheet(page).getByRole("checkbox", { name: "A set number, not one for each item", description: /Gift box/ }).check();
+  await expect(sheet(page).getByLabel("Gift box: how many")).toHaveValue("1");
+  // Plus and minus step it; it never goes below one.
+  await sheet(page).getByRole("button", { name: "One more", description: "Gift box: how many" }).click();
+  await expect(sheet(page).getByLabel("Gift box: how many")).toHaveValue("2");
+  await sheet(page).getByRole("button", { name: "One less", description: "Gift box: how many" }).click();
+  await expect(sheet(page).getByLabel("Gift box: how many")).toHaveValue("1");
+  await expect(sheet(page).getByRole("button", { name: "One less", description: "Gift box: how many" })).toBeDisabled();
   await sheet(page).getByRole("checkbox", { name: /Message on the cake/ }).check();
   // Ticked without its wording: it says so, at the field and in the summary.
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
@@ -108,7 +115,8 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await page.reload();
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("318"));
   await item(page, 1).getByRole("button", { name: /Edit/ }).click();
-  await expect(sheet(page).getByLabel("Gift box: how many (optional)")).toHaveValue("1");
+  await expect(sheet(page).getByRole("checkbox", { name: "A set number, not one for each item", description: /Gift box/ })).toBeChecked();
+  await expect(sheet(page).getByLabel("Gift box: how many")).toHaveValue("1");
   await expect(sheet(page).getByLabel("Message on the cake: what should it say?")).toHaveValue("Happy 40th Thandi");
   await page.keyboard.press("Escape");
   await expect(sheet(page)).toHaveCount(0);

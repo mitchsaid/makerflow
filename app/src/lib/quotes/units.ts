@@ -1,5 +1,5 @@
 import type { BusinessType } from "../business-types";
-import { formatQuantity, type NumberStyle, type QuantityMilli } from "../money";
+import { formatQuantity, MAX_QUANTITY_MILLI, parseQuantity, quantityToInput, type NumberStyle, type QuantityMilli } from "../money";
 
 /**
  * Units on quantities: "2 kg", "1 dozen", "3 hours". A unit is a short optional label the maker
@@ -37,4 +37,15 @@ export function quantityText(
 ): string {
   const number = formatQuantity(milli, style);
   return unit ? `${number}${space}${unit}` : number;
+}
+
+/**
+ * One tap on plus or minus in a quantity box: up to the next whole unit, or down to the whole unit below, never below
+ * `min` (a quantity is more than none). What is typed that cannot be read counts as none, so plus gives 1.
+ */
+export function stepQuantityText(text: string, direction: 1 | -1, style: NumberStyle, min: QuantityMilli = 1000): string {
+  const parsed = parseQuantity(text);
+  const current = parsed.ok ? parsed.value : 0;
+  const next = direction === 1 ? (Math.floor(current / 1000) + 1) * 1000 : current % 1000 === 0 ? current - 1000 : Math.floor(current / 1000) * 1000;
+  return quantityToInput(Math.min(MAX_QUANTITY_MILLI, Math.max(min, next)), style);
 }

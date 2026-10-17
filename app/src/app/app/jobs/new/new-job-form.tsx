@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
+import { DeliveryAddress } from "@/components/delivery-address";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
 import { FieldError, Field, FieldLabel } from "@/components/ui/field";
@@ -284,16 +285,14 @@ export function NewJobForm({
           ))}
         </RadioGroup>
         {values.fulfilment === "delivery" && (
-          <TextAreaField
-            id="deliveryAddress"
-            label="Deliver to (optional)"
-            hint={saved.length > 0 ? "Started from the address on file. Change it for this job if it goes elsewhere." : "Type the address, or leave it for later."}
-            rows={3}
-            maxLength={NEW_JOB_LIMITS.address + 100}
-            autoComplete="off"
+          <DeliveryAddress
+            subject="job"
             value={values.deliveryAddress}
-            error={errors.deliveryAddress}
             onChange={(deliveryAddress) => update({ deliveryAddress })}
+            saved={saved}
+            hasCustomer={values.customerId !== ""}
+            countryCode={countryCode}
+            error={errors.deliveryAddress}
           />
         )}
       </Section>

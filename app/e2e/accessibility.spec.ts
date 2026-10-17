@@ -513,7 +513,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("dialog").getByTestId("line-sum")).toBeVisible();
       await expectNoViolations(page, "item sheet, an option that adds to the price");
       await page.getByRole("dialog").getByRole("checkbox", { name: /Gift wrap/ }).check();
-      await expect(page.getByRole("dialog").getByLabel("Gift wrap: how many (optional)")).toBeVisible();
+      await page.getByRole("dialog").getByRole("checkbox", { name: "A set number, not one for each item", description: /Gift wrap/ }).check();
+      await expect(page.getByRole("dialog").getByLabel("Gift wrap: how many")).toBeVisible();
       await expectNoViolations(page, "item sheet, an extra ticked with how many");
       await page.keyboard.press("Escape");
 

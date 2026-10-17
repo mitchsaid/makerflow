@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { TextAreaField, TextField } from "@/components/form-fields";
+import { TextAreaField } from "@/components/form-fields";
+import { QuantityField } from "@/components/quantity-field";
+import { quantityToInput, parseQuantity, type NumberStyle } from "@/lib/money";
+import { useState } from "react";
 import { imageUrl } from "@/lib/images";
 import { extraAmount, type ExtraSummary } from "@/lib/products/extras";
 import type { OptionGroup } from "@/lib/products/options";
@@ -25,6 +28,7 @@ export function OptionChoices({
   money,
   showPrices = true,
   variationId,
+  numberStyle,
   onChange,
 }: {
   idPrefix: string;
@@ -38,6 +42,8 @@ export function OptionChoices({
   money: (cents: number) => string;
   /** False on a job: it has no prices to show. */
   showPrices?: boolean;
+  /** How the country writes numbers: for the minus and plus on a set number of an extra. */
+  numberStyle: NumberStyle;
   onChange: (options: LineOption[]) => void;
 }) {
   const id = (part: string) => `${idPrefix}${part}`;
@@ -180,19 +186,26 @@ export function OptionChoices({
                           onChange={(text) => replace(entry, { ...entry, text })}
                         />
                       )}
-                      <TextField
-                        id={id(`extra-${x.id}-quantity`)}
-                        label={`${x.name}: how many (optional)`}
-                        hint="Leave empty for one for each item."
-                        inputMode="numeric"
-                        autoComplete="off"
-                        maxLength={6}
-                        value={quantity === null ? "" : String(quantity / 1000)}
-                        onChange={(text) => {
-                          const digits = text.replace(/\D/g, "");
-                          replace(entry, { ...entry, quantityMilli: digits === "" || Number(digits) < 1 ? null : Number(digits) * 1000 });
-                        }}
-                      />
+                      <Field orientation="horizontal" className="items-center">
+                        <Checkbox
+                          id={id(`extra-${x.id}-set`)}
+                          aria-describedby={`${fieldId}-label`}
+                          checked={quantity !== null}
+                          onCheckedChange={(on) => replace(entry, { ...entry, quantityMilli: on === true ? 1000 : null })}
+                        />
+                        <FieldLabel htmlFor={id(`extra-${x.id}-set`)} className="text-base">
+                          A set number, not one for each item
+                        </FieldLabel>
+                      </Field>
+                      {quantity !== null && (
+                        <ExtraCount
+                          id={id(`extra-${x.id}-quantity`)}
+                          label={`${x.name}: how many`}
+                          quantityMilli={quantity}
+                          numberStyle={numberStyle}
+                          onChange={(quantityMilli) => replace(entry, { ...entry, quantityMilli })}
+                        />
+                      )}
                     </div>
                   )}
                 </div>
@@ -268,4 +281,24 @@ export function missingOptions(groups: readonly OptionGroup[], extras: readonly 
     if (entry && entry.text.trim() === "") missing[x.id] = `Type what the ${x.name.toLowerCase()} should say.`;
   }
   return missing;
+}
+
+/**
+ * How many of an extra, when it is a set number and not one for each item: whole numbers, 1 or more, with minus and plus.
+ * What is typed is held here while it is being typed (an empty box is not yet a number); the item takes the number once it is one.
+ */
+function ExtraCount({ id, label, quantityMilli, numberStyle, onChange }: { id: string; label: string; quantityMilli: number; numberStyle: NumberStyle; onChange: (milli: number) => void }) {
+  const [text, setText] = useState(quantityToInput(quantityMilli, numberStyle));
+  const [problem, setProblem] = useState<string | undefined>();
+  function typed(next: string) {
+    setText(next);
+    const parsed = parseQuantity(next);
+    if (!parsed.ok || parsed.value < 1000 || parsed.value % 1000 !== 0) {
+      setProblem("Enter a whole number, 1 or more.");
+      return;
+    }
+    setProblem(undefined);
+    onChange(parsed.value);
+  }
+  return <QuantityField id={id} label={label} stepper numberStyle={numberStyle} value={text} error={problem} onChange={typed} />;
 }
