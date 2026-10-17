@@ -141,6 +141,27 @@ begin
     'a refused issue used up a number';
 
   ----------------------------------------------------------------------
+  -- An owner can start the run from another system; it can never go back, and credit notes stay refused
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  perform public.set_document_numbering(org_a, 'invoice', 'FAC/', 100);
+  begin
+    perform public.set_document_numbering(org_a, 'credit_note', 'CN-', 5);
+    raise exception 'credit note numbering was changed';
+  exception when sqlstate '22023' then null;
+  end;
+  reset role;
+  perform pg_temp.as_user(b);
+  set local role authenticated;
+  begin
+    perform public.set_document_numbering(org_a, 'invoice', 'X-', 1);
+    raise exception 'another business changed the numbering';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+
+  ----------------------------------------------------------------------
   -- Issuing: the next number, the reference line, the costing, the event
   ----------------------------------------------------------------------
   set local role service_role;
@@ -149,20 +170,20 @@ begin
   made2 := public.issue_invoice(org_a, q2, a, date '2026-10-21', date '2026-11-04', null,
     pg_temp.invoice_doc(pg_temp.snap((select number from public.quotes where id = q2), 1), date '2026-10-21', date '2026-11-04'));
   reset role;
-  assert made ->> 'number' = 'INV-0001' and made2 ->> 'number' = 'INV-0002', 'invoice numbers were not sequential';
+  assert made ->> 'number' = 'FAC/0100' and made2 ->> 'number' = 'FAC/0101', 'invoice numbers were not sequential';
   assert (select count(*) from public.invoices where organisation_id = org_a) = 2, 'both invoices were not kept';
-  assert (select snapshot ->> 'number' from public.invoices where id = (made ->> 'id')::uuid) = 'INV-0001', 'the number is not in the document';
+  assert (select snapshot ->> 'number' from public.invoices where id = (made ->> 'id')::uuid) = 'FAC/0100', 'the number is not in the document';
   assert (select snapshot -> 'bankDetails' -> 1 from public.invoices where id = (made ->> 'id')::uuid)
-    = '{"label": "Payment reference", "value": "INV-0001"}'::jsonb, 'the payment reference was not added';
+    = '{"label": "Payment reference", "value": "FAC/0100"}'::jsonb, 'the payment reference was not added';
   assert jsonb_array_length((select snapshot -> 'bankDetails' from public.invoices where id = (made2 ->> 'id')::uuid)) = 1,
     'a reference was added when none was asked for';
   assert (select costing from public.invoices where id = (made ->> 'id')::uuid) = frozen, 'the quote''s costing was not copied';
   assert (select costing from public.invoices where id = (made2 ->> 'id')::uuid) is null, 'a costing appeared from nowhere';
   assert not ((select snapshot from public.invoices where id = (made ->> 'id')::uuid) ? 'costing'), 'the costing leaked into the document';
-  assert (select gross_cents from public.invoices where organisation_id = org_a and number = 'INV-0001') = 115000
-     and (select customer_name from public.invoices where organisation_id = org_a and number = 'INV-0001') = 'Thandi'
-     and (select note from public.invoices where organisation_id = org_a and number = 'INV-0001') = 'Thanks!'
-     and (select quote_version from public.invoices where organisation_id = org_a and number = 'INV-0001') = 1, 'the invoice row is wrong';
+  assert (select gross_cents from public.invoices where organisation_id = org_a and number = 'FAC/0100') = 115000
+     and (select customer_name from public.invoices where organisation_id = org_a and number = 'FAC/0100') = 'Thandi'
+     and (select note from public.invoices where organisation_id = org_a and number = 'FAC/0100') = 'Thanks!'
+     and (select quote_version from public.invoices where organisation_id = org_a and number = 'FAC/0100') = 1, 'the invoice row is wrong';
   assert (select count(*) from public.invoice_events where invoice_id = (made ->> 'id')::uuid and kind = 'issued' and actor_id = a) = 1,
     'the issue was not logged';
 
@@ -174,7 +195,7 @@ begin
   exception when sqlstate '23505' then null;
   end;
   reset role;
-  assert (select last_issued_number from public.document_sequences where organisation_id = org_a and doc_type = 'invoice') = 2,
+  assert (select last_issued_number from public.document_sequences where organisation_id = org_a and doc_type = 'invoice') = 101,
     'a refused second invoice used up a number';
 
   -- An invoiced quote keeps its answer.
@@ -226,6 +247,11 @@ begin
   exception when sqlstate '55000' then null;
   end;
   begin
+    truncate public.invoices cascade;
+    raise exception 'the invoices were truncated';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
     delete from public.invoice_events;
     raise exception 'an invoice''s history was deleted';
   exception when sqlstate '55000' then null;
@@ -251,7 +277,7 @@ begin
   set local role authenticated;
   select count(*) into n from public.invoices;
   assert n = 2, 'a member cannot read the invoices';
-  assert (select costing from public.invoices where organisation_id = org_a and number = 'INV-0001') = frozen, 'a member cannot read the costing';
+  assert (select costing from public.invoices where organisation_id = org_a and number = 'FAC/0100') = frozen, 'a member cannot read the costing';
   select count(*) into n from public.invoice_events;
   assert n = 2, 'a member cannot read the history';
   reset role;

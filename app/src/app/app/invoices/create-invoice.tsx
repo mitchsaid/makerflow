@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { INVOICE_NOTE_MAX, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
+import { INVOICE_NOTE_MAX, parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { issueInvoice } from "./actions";
 
@@ -102,7 +102,9 @@ function InvoiceForm({
     setMessage(null);
     setTries((n) => n + 1);
     // Fix what is missing first: nothing is asked of the server until the invoice could be issued.
-    if (problems.length > 0) return;
+    const checked = parseInvoiceForm(values);
+    setErrors(checked.ok ? {} : checked.errors);
+    if (problems.length > 0 || !checked.ok) return;
     onBusyChange(true);
     startTransition(async () => {
       try {
@@ -122,6 +124,8 @@ function InvoiceForm({
   }
 
   const summary: FormProblem[] = [
+    // The list below shows what is missing from the start; the summary joins in once the button has been pressed.
+    ...(tries === 0 ? [] : problems).map((p) => ({ fieldId: `invoice-problem-${p.code}`, label: "Before you can issue it", message: p.message })),
     ...(errors.issueDate ? [{ fieldId: "invoice-issue-date", label: "Invoice date", message: errors.issueDate }] : []),
     ...(errors.dueDate ? [{ fieldId: "invoice-due-date", label: "Due day", message: errors.dueDate }] : []),
     ...(errors.note ? [{ fieldId: "invoice-note", label: "Note", message: errors.note }] : []),
@@ -148,12 +152,19 @@ function InvoiceForm({
               {problems.map((p) => (
                 <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
                   <p className="text-base">{p.message}</p>
-                  <Link
-                    href={p.code === "business" ? "/app/business" : customerId ? `/app/customers/${customerId}` : "/app/customers"}
-                    className="inline-flex min-h-11 items-center font-medium underline"
-                  >
-                    {p.code === "business" ? "Open your business profile" : "Open the customer"}
-                  </Link>
+                  {p.code === "vat-changed" ? (
+                    <Link id={`invoice-problem-${p.code}`} href={`/app/quotes/${quoteId}`} className="inline-flex min-h-11 items-center font-medium underline">
+                      Back to the quote
+                    </Link>
+                  ) : (
+                    <Link
+                      id={`invoice-problem-${p.code}`}
+                      href={p.code === "business" ? "/app/business" : customerId ? `/app/customers/${customerId}` : "/app/customers"}
+                      className="inline-flex min-h-11 items-center font-medium underline"
+                    >
+                      {p.code === "business" ? "Open your business profile" : "Open the customer"}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

@@ -7,7 +7,8 @@ import { getLocalePack } from "@/lib/locale";
 import { currencySymbol } from "@/lib/money";
 import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { formatDocumentNumber } from "@/lib/quotes/numbering";
-import { getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
+import { getInvoiceSequences, getQuoteSequences, sequenceFor } from "@/lib/quotes/sequence";
+import { DEFAULT_INVOICE_PREFIX } from "@/lib/quotes/numbering";
 import { DepositDefaultForm } from "./deposit-default-form";
 import { HandoverDefaultForm } from "./handover-default-form";
 import { DiscountDefaultForm } from "./discount-default-form";
@@ -22,8 +23,9 @@ import { QuoteWordingForm } from "./quote-wording-form";
  */
 export default async function DocumentSettingsPage() {
   // The numbering query runs beside the workspace check, not after it.
-  const [{ organisation, profile, role }, sequences] = await Promise.all([requireOrganisation(), getQuoteSequences()]);
+  const [{ organisation, profile, role }, sequences, invoiceSequences] = await Promise.all([requireOrganisation(), getQuoteSequences(), getInvoiceSequences()]);
   const sequence = sequenceFor(sequences, organisation.id);
+  const invoiceSequence = sequenceFor(invoiceSequences, organisation.id, DEFAULT_INVOICE_PREFIX);
   const locale = getLocalePack(profile.countryCode);
   const usuals = usualsFromProfile(profile, locale.numberStyle);
   const canEdit = canEditBusinessProfile(role);
@@ -110,6 +112,25 @@ export default async function DocumentSettingsPage() {
             <CardTitle className="text-lg">Quote numbers</CardTitle>
             <CardDescription className="text-base">
               Next quote: {formatDocumentNumber(sequence.prefix, sequence.nextNumber, sequence.minDigits)}. Only owners and admins can change numbering.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {canEdit ? (
+        <QuoteNumberingForm
+          docType="invoice"
+          initialPrefix={invoiceSequence.prefix}
+          initialNext={invoiceSequence.nextNumber}
+          minDigits={invoiceSequence.minDigits}
+          lastIssued={invoiceSequence.lastIssued}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Invoice numbers</CardTitle>
+            <CardDescription className="text-base">
+              Next invoice: {formatDocumentNumber(invoiceSequence.prefix, invoiceSequence.nextNumber, invoiceSequence.minDigits)}. Only owners and admins can change numbering.
             </CardDescription>
           </CardHeader>
         </Card>

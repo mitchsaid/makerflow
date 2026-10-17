@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openMore, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openDocuments, openMore, signUpAndOnboard } from "./helpers";
 import { sentQuote } from "./quote-helpers";
 
 /** Invoices, slice I1 (docs/plans/invoices-and-payments.md). */
@@ -38,6 +38,14 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
+  // Carrying on from another system: invoices continue from the number set here, and it can't go back.
+  await openDocuments(page);
+  await expect(page.getByLabel("Invoice prefix", { exact: true })).toHaveValue("INV-");
+  await page.getByLabel("Invoice next number", { exact: true }).fill("41");
+  await page.getByRole("button", { name: "Save invoice numbers" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await expect(page.getByTestId("invoice-number-preview").filter({ hasText: "INV-0041" })).toBeVisible();
+
   await page.goto("/app/quotes");
   await page.getByRole("link", { name: /QT-0001/ }).first().click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
@@ -58,12 +66,12 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   const url = page.url();
 
   // It has the first number, says what it is, and is for the whole of the quote.
-  await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Invoice INV-0041/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("invoice-status-chip")).toHaveText(/Unpaid|Overdue/);
   await expect(page.getByTestId("invoice-total")).toHaveText(/^R\s?800,00$/);
   await expect(page.getByTestId("invoice-owing")).toHaveText(/^R\s?800,00$/);
   await expect(page.getByText("Thandi Nkosi").first()).toBeVisible();
-  await expect(page.getByTestId("activity")).toContainText("Issued as INV-0001");
+  await expect(page.getByTestId("activity")).toContainText("Issued as INV-0041");
   await expect(page.getByRole("link", { name: "quote QT-0001" })).toBeVisible();
 
   // The document is a real PDF; the page has no way to edit or delete it, and shows what is still to come.
@@ -86,7 +94,7 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   await expect(page.getByRole("button", { name: "Create invoice" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Change the answer" })).toHaveCount(0);
   await page.getByRole("link", { name: "Open the invoice" }).click();
-  await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Invoice INV-0041/, level: 1 })).toBeVisible();
 
   // The list (behind More on a phone) shows it, and finds it by customer.
   await openMore(page);
@@ -107,4 +115,21 @@ test("a new business sees an empty list with the way to its first invoice", asyn
   await expect(page.getByText("No invoices yet")).toBeVisible();
   await page.getByRole("link", { name: "Go to your quotes" }).click();
   await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
+});
+
+test("invoice numbering never goes back", async ({ page }) => {
+  await signUpAndOnboard(page, "invoice-numbering", "Numbering Co");
+  await openDocuments(page);
+  await page.getByLabel("Invoice next number", { exact: true }).fill("0");
+  await page.getByRole("button", { name: "Save invoice numbers" }).click();
+  await expect(page.getByTestId("form-summary")).toBeVisible();
+  await page.getByLabel("Invoice prefix", { exact: true }).fill("FAC/");
+  await page.getByLabel("Invoice next number", { exact: true }).fill("7");
+  await page.getByRole("button", { name: "Save invoice numbers" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Invoice prefix", { exact: true })).toHaveValue("FAC/");
+  await expect(page.getByLabel("Invoice next number", { exact: true })).toHaveValue("7");
+  // The quote numbers are a separate run.
+  await expect(page.getByLabel("Prefix", { exact: true })).toHaveValue("QT-");
 });

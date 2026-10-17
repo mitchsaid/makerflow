@@ -36,7 +36,7 @@ export function parseInvoiceForm(
 }
 
 export type InvoiceProblem = {
-  code: "business" | "customer-address";
+  code: "business" | "customer-address" | "vat-changed";
   /** What is wrong and how to fix it. */
   message: string;
 };
@@ -53,10 +53,21 @@ export function invoiceProblems(input: {
   business: ContactFacts;
   customer: CustomerFacts;
   grossCents: Cents;
+  /** Whether the quote (and so the invoice's amounts) was made for a business registered for the tax. */
   taxRegistered: boolean;
+  /** Whether the business is registered for the tax now. */
+  businessRegistered: boolean;
   locale: LocalePack;
 }): InvoiceProblem[] {
   const problems: InvoiceProblem[] = [];
+  // The amounts are the quote's, so the invoice cannot be made if the business's registration changed since: it would
+  // show tax the business doesn't charge, or no tax number on a tax invoice.
+  if (input.taxRegistered !== input.businessRegistered) {
+    problems.push({
+      code: "vat-changed",
+      message: "Your VAT registration has changed since this quote was sent, so an invoice made from it would be wrong. Quote again with your new VAT setting, and invoice that.",
+    });
+  }
   const missing = missingForInvoice(input.business, input.locale).filter((f) => f === "addressLine1" || f === "city");
   if (missing.length > 0) {
     problems.push({
@@ -141,5 +152,10 @@ export function visibleInvoices(
       if (filter === "unpaid" && status === "paid") return false;
       return needle === "" || i.number.toLowerCase().includes(needle) || i.customerName.toLowerCase().includes(needle);
     })
-    .sort((a, b) => (a.issueDate === b.issueDate ? b.number.localeCompare(a.number) : b.issueDate.localeCompare(a.issueDate)));
+    .sort((a, b) => (a.issueDate === b.issueDate ? compareNumbers(b.number, a.number) : b.issueDate.localeCompare(a.issueDate)));
+}
+
+/** Invoice numbers in order: a longer number is a later one (INV-10000 after INV-9999), else by the letters and digits. */
+function compareNumbers(a: string, b: string): number {
+  return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
 }

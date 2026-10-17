@@ -210,21 +210,33 @@ describe("what an invoice needs before it is issued", () => {
   const customer = { addressLines: ["2 Side St", "Paarl"] };
 
   it("needs the business's address, but not its phone or email", () => {
-    expect(invoiceProblems({ business: full, customer, grossCents: 1000, taxRegistered: true, locale: ZA_LOCALE })).toEqual([]);
-    const noAddress = invoiceProblems({ business: { ...full, addressLine1: null, city: null }, customer, grossCents: 1000, taxRegistered: false, locale: ZA_LOCALE });
+    expect(invoiceProblems({ business: full, customer, grossCents: 1000, taxRegistered: true, businessRegistered: true, locale: ZA_LOCALE })).toEqual([]);
+    const noAddress = invoiceProblems({ business: { ...full, addressLine1: null, city: null }, customer, grossCents: 1000, taxRegistered: false, businessRegistered: false, locale: ZA_LOCALE });
     expect(noAddress.map((p) => p.code)).toEqual(["business"]);
     expect(noAddress[0].message).toMatch(/business address/i);
   });
 
   it("needs the customer's address on a tax invoice of R5 000 or more, and not below", () => {
     const check = (grossCents: number, taxRegistered: boolean, c: { addressLines: string[] } | null) =>
-      invoiceProblems({ business: full, customer: c, grossCents, taxRegistered, locale: ZA_LOCALE }).map((p) => p.code);
+      invoiceProblems({ business: full, customer: c, grossCents, taxRegistered, businessRegistered: taxRegistered, locale: ZA_LOCALE }).map((p) => p.code);
     expect(check(499_999, true, { addressLines: [] })).toEqual([]);
     expect(check(500_000, true, { addressLines: [] })).toEqual(["customer-address"]);
     expect(check(500_000, true, null)).toEqual(["customer-address"]);
     expect(check(500_000, true, customer)).toEqual([]);
     // Not registered: it is not a tax invoice, so the threshold does not apply.
     expect(check(900_000, false, { addressLines: [] })).toEqual([]);
+  });
+});
+
+describe("an invoice cannot disagree with the business about the tax", () => {
+  const full = { phone: "011", email: null, addressLine1: "1 Main", city: "Paarl" };
+  const check = (taxRegistered: boolean, businessRegistered: boolean) =>
+    invoiceProblems({ business: full, customer: { addressLines: ["x"] }, grossCents: 1000, taxRegistered, businessRegistered, locale: ZA_LOCALE }).map((p) => p.code);
+  it("is refused when the registration changed since the quote, either way", () => {
+    expect(check(true, true)).toEqual([]);
+    expect(check(false, false)).toEqual([]);
+    expect(check(true, false)).toEqual(["vat-changed"]);
+    expect(check(false, true)).toEqual(["vat-changed"]);
   });
 });
 
@@ -265,6 +277,10 @@ describe("the invoices list", () => {
 
   it("lists newest first, the later number first on the same day", () => {
     expect(visibleInvoices(list, "all", "", "2026-10-20").map((i) => i.id)).toEqual(["c", "b", "a"]);
+  });
+  it("puts INV-10000 after INV-9999", () => {
+    const long = [inv({ id: "x", number: "INV-9999" }), inv({ id: "y", number: "INV-10000" })];
+    expect(visibleInvoices(long, "all", "", "2026-10-20").map((i) => i.id)).toEqual(["y", "x"]);
   });
   it("filters by what is owing and overdue, and searches by number or customer", () => {
     expect(visibleInvoices(list, "overdue", "", "2026-10-20").map((i) => i.id)).toEqual(["a"]);

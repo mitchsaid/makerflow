@@ -7,6 +7,7 @@
 export const NUMBER_PREFIX_MAX = 12;
 export const NUMBER_MAX = 999_999_999;
 export const DEFAULT_QUOTE_PREFIX = "QT-";
+export const DEFAULT_INVOICE_PREFIX = "INV-";
 export const DEFAULT_MIN_DIGITS = 4;
 
 const PREFIX_PATTERN = /^[A-Za-z0-9._/-]{0,12}$/;
@@ -39,7 +40,7 @@ export function parseNumbering(
     if (nextNumber < 1) errors.nextNumber = "The next number must be 1 or more.";
     else if (nextNumber > NUMBER_MAX) errors.nextNumber = `The next number can be up to ${NUMBER_MAX}.`;
     else if (lastIssued !== null && nextNumber <= lastIssued) {
-      errors.nextNumber = `Number ${lastIssued} has already been used. Choose ${lastIssued + 1} or higher so no two quotes share a number.`;
+      errors.nextNumber = `Number ${lastIssued} has already been used. Choose ${lastIssued + 1} or higher so no two documents share a number.`;
     }
   }
   if (Object.keys(errors).length > 0) return { ok: false, errors };

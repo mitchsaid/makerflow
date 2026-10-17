@@ -110,6 +110,26 @@ create trigger invoice_events_immutable
   before update or delete on public.invoice_events
   for each row execute function public.invoice_events_immutable();
 
+-- TRUNCATE skips row triggers: refuse it too, for the tables of issued documents.
+create function public.invoices_no_truncate()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  raise exception 'issued invoices cannot be removed' using errcode = '55000';
+end;
+$$;
+
+revoke execute on function public.invoices_no_truncate() from public, anon, authenticated;
+
+create trigger invoices_no_truncate
+  before truncate on public.invoices
+  for each statement execute function public.invoices_no_truncate();
+create trigger invoice_events_no_truncate
+  before truncate on public.invoice_events
+  for each statement execute function public.invoices_no_truncate();
+
 -- Members read. Nobody writes directly: no insert, update or delete grant.
 revoke all on public.invoices, public.invoice_events from anon, authenticated;
 grant select on public.invoices, public.invoice_events to authenticated;
@@ -239,6 +259,58 @@ $$;
 revoke execute on function public.issue_invoice(uuid, uuid, uuid, date, date, text, jsonb, text)
   from public, anon, authenticated;
 grant execute on function public.issue_invoice(uuid, uuid, uuid, date, date, text, jsonb, text) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- set_document_numbering now also sets the prefix and next number of INVOICES (a maker moving from another system
+-- continues their run). Same function as before (20261004100000_quote_issuing.sql); the rules that make it safe for a
+-- legal document are the ones it already had: owners and admins only, and the next number can never go back to one
+-- already used (so the run stays gapless forward and no number repeats). Credit notes are still refused.
+-- ---------------------------------------------------------------------------
+create or replace function public.set_document_numbering(
+  p_org uuid,
+  p_doc_type text,
+  p_prefix text,
+  p_next_number integer
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  seq public.document_sequences%rowtype;
+begin
+  if not (select public.session_is_active()) then
+    raise exception 'not signed in' using errcode = '42501';
+  end if;
+  if not public.has_org_role(p_org, array['owner', 'admin']) then
+    raise exception 'only owners and admins can change numbering' using errcode = '42501';
+  end if;
+  if p_doc_type not in ('quote', 'invoice') then
+    raise exception 'only quote and invoice numbering can be changed' using errcode = '22023';
+  end if;
+
+  insert into public.document_sequences (organisation_id, doc_type, prefix)
+  values (p_org, p_doc_type, case p_doc_type when 'invoice' then 'INV-' else 'QT-' end)
+  on conflict (organisation_id, doc_type) do nothing;
+
+  select * into seq from public.document_sequences
+   where organisation_id = p_org and doc_type = p_doc_type
+     for update;
+
+  if p_next_number is null or p_next_number < 1 then
+    raise exception 'the next number must be at least 1' using errcode = '22023';
+  end if;
+  if seq.last_issued_number is not null and p_next_number <= seq.last_issued_number then
+    raise exception 'the next number must be higher than the last one used (%)', seq.last_issued_number
+      using errcode = '22023';
+  end if;
+
+  update public.document_sequences
+     set prefix = p_prefix, next_number = p_next_number
+   where organisation_id = p_org and doc_type = p_doc_type;
+end;
+$$;
 
 -- ---------------------------------------------------------------------------
 -- A quote that has been invoiced keeps its answer: the invoice was made from the accepted version. Same function as

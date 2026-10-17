@@ -228,13 +228,14 @@ export default async function QuotePage({
               quoteId={quote.id}
               documentTitle={locale.documents.invoice.title(shown.snapshot.vat.registered)}
               customerName={shown.snapshot.customer?.name ?? ""}
-              totalText={formatMoney(shown.snapshot.totals.grossCents, profile.currencyCode, locale.numberStyle)}
+              totalText={formatMoney(shown.snapshot.totals.grossCents, shown.snapshot.currencyCode, shown.snapshot.numberStyle)}
               defaults={defaultInvoiceForm(today, locale.documents.invoice.dueDays)}
               problems={invoiceProblems({
                 business: profile,
                 customer: quote.customer ? customerParty(quote.customer, locale) : shown.snapshot.customer,
                 grossCents: shown.snapshot.totals.grossCents,
                 taxRegistered: shown.snapshot.vat.registered,
+                businessRegistered: profile.vatRegistered,
                 locale,
               })}
               customerId={quote.customer?.id ?? null}

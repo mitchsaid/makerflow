@@ -49,6 +49,7 @@ export async function issueInvoice(quoteId: string, values: InvoiceFormValues): 
     customer: customer ? customerParty(customer, locale) : version.snapshot.customer,
     grossCents: version.snapshot.totals.grossCents,
     taxRegistered: version.snapshot.vat.registered,
+    businessRegistered: profile.vatRegistered,
     locale,
   });
   if (problems.length > 0) return { status: "problems", problems };

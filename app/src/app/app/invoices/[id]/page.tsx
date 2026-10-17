@@ -11,11 +11,9 @@ import { getLocalePack } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { frozenMargins } from "@/lib/quotes/costing";
-import { themeFromStored } from "@/lib/quotes/themes";
 import { MarginPanel } from "../../quotes/margin-panel";
 import { PdfPreview } from "../../quotes/pdf-preview";
 import { QuoteDocumentView } from "../../quotes/quote-document-view";
-import { DesignSection } from "../../quotes/design-section";
 import { InvoiceStatusChip } from "../invoice-status-chip";
 import { ShareInvoice } from "../share-invoice";
 
@@ -96,7 +94,6 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
       <section className="sr-only" aria-label="The invoice as text">
         <QuoteDocumentView snapshot={invoice.snapshot} />
       </section>
-      <DesignSection theme={themeFromStored(invoice.snapshot)} />
 
       {margins && margins.length > 0 && (
         <section className="space-y-2" aria-labelledby="margin-heading">
