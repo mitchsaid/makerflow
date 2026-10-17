@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
 import type { Material } from "@/lib/materials";
 import { UNIT_CHOICES, UNITS, type UnitCode } from "@/lib/materials/units";
-import { blankCostRow, COST_LINES_MAX, type CostErrors, type CostFormRow, type CostKind } from "@/lib/products/costs";
+import { blankCostRow, COST_LINES_MAX, type CostErrors, type CostFormRow, type CostKind, type CostRowErrors } from "@/lib/products/costs";
 import type { CostSummary } from "@/lib/products/cost-summary";
 import { ConditionsEditor, type ChoiceOption } from "./conditions-editor";
 
@@ -23,48 +23,41 @@ export type MaterialOption = Pick<Material, "id" | "name" | "unit" | "archived" 
 const KIND_TITLES: Record<CostKind, string> = { material: "Material", time: "Your time", other: "Other cost" };
 
 /**
- * "What it costs to make" (docs/plans/costing-and-margin.md, slice A): what goes into one batch, and how many a batch
- * makes. Each line is a material (an amount of one of your materials), your time (at the hourly rate in the Business
- * profile) or another cost, and can be only for some items (the same conditions as a production step). Costs are
- * without VAT. Underneath, what it costs to make one and the margin, for the product or each variation.
+ * The cost lines themselves (a material, your time, another cost) and the three buttons that add one. Used for a
+ * product's lines (with "Only for some items" conditions) and for an extra's (`choices` null: no conditions).
+ * `subject` names whose lines they are for screen readers when there are several lists on the page.
  */
-export function CostsSection({
-  title,
+export function CostLineEditor({
+  label,
+  subject,
+  scope = "",
+  max = COST_LINES_MAX,
   rows,
-  makes,
   errors,
   choices,
   materials,
   hourlyRateSet,
-  summary,
   unit,
-  numberStyle,
   currencySymbol,
-  currencyCode,
-  vatRegistered,
   fid,
   onChange,
-  onMakesChange,
 }: {
-  title: string;
+  /** The list's name for screen readers. */
+  label: string;
+  subject?: string;
+  /** In front of the add buttons' ids, so two lists on one form do not share them. */
+  scope?: string;
+  max?: number;
   rows: CostFormRow[];
-  makes: string;
-  errors: CostErrors | undefined;
-  /** The variations, list choices and extras the product has, named: what a line can depend on. */
-  choices: ChoiceOption[];
+  errors: { list?: string; rows: Record<string, CostRowErrors> } | undefined;
+  /** What a line can depend on, or null when lines have no conditions. */
+  choices: ChoiceOption[] | null;
   materials: MaterialOption[];
-  /** Whether the Business profile says what an hour of the maker's time is worth. */
   hourlyRateSet: boolean;
-  summary: CostSummary;
-  /** What the product is counted in ("dozen"), written after a quantity. */
   unit?: string;
-  numberStyle: NumberStyle;
   currencySymbol: string;
-  currencyCode: string;
-  vatRegistered: boolean;
   fid: (key: string) => string;
   onChange: (rows: CostFormRow[]) => void;
-  onMakesChange: (makes: string) => void;
 }) {
   // Where focus goes after a line is added or removed (once it is on the screen).
   const pendingFocus = useRef<string | null>(null);
@@ -81,10 +74,9 @@ export function CostsSection({
     code === null ? UNIT_CHOICES.flatMap((g) => g.units) : (UNIT_CHOICES.find((g) => g.units.includes(code))?.units ?? [code]);
 
   return (
-    <Section title={title}>
-      <p className="-mt-2 text-sm text-muted-foreground">What goes into making one batch, without VAT. Only you see this.</p>
+    <>
       {rows.length > 0 && (
-        <ol className="space-y-4" aria-label={title}>
+        <ol className="space-y-4" aria-label={label}>
           {rows.map((row, i) => {
             const e = errors?.rows[row.key];
             const name = `${KIND_TITLES[row.kind]} ${rows.filter((r, ri) => ri <= i && r.kind === row.kind).length}`;
@@ -98,11 +90,11 @@ export function CostsSection({
                     variant="ghost"
                     size="icon"
                     className="text-destructive"
-                    aria-label={`Remove ${name}`}
+                    aria-label={`Remove ${name}${subject ? ` (${subject})` : ""}`}
                     onClick={() => {
                       const next = rows.filter((r) => r.key !== row.key);
                       onChange(next);
-                      pendingFocus.current = next.length > 0 ? idOf(next[Math.max(0, i - 1)].key, "first") : fid("add-cost");
+                      pendingFocus.current = next.length > 0 ? idOf(next[Math.max(0, i - 1)].key, "first") : fid(`${scope}add-cost`);
                     }}
                   >
                     <Trash2Icon aria-hidden="true" />
@@ -194,7 +186,8 @@ export function CostsSection({
                     />
                   </>
                 )}
-                <ConditionsEditor
+                {choices && (
+                  <ConditionsEditor
                   subject={name}
                   logicLabel="Include this cost when"
                   groupLabel={`When to include ${name}`}
@@ -204,36 +197,26 @@ export function CostsSection({
                   choices={choices}
                   unit={unit}
                   errors={e}
-                  onChange={(change) => setRow(row.key, change)}
-                />
+                    onChange={(change) => setRow(row.key, change)}
+                  />
+                )}
               </li>
             );
           })}
         </ol>
       )}
       {errors?.list && (
-        <p id={fid("costs-error")} tabIndex={-1} className="text-sm text-destructive">
+        <p id={fid(`${scope}costs-error`)} tabIndex={-1} className="text-sm text-destructive">
           {errors.list}
         </p>
       )}
-      {rows.length > 0 && (
-        <QuantityField
-          id={fid("makes")}
-          label="How many one batch makes"
-          hint="The costs above are for one batch. Use 1 if you make one at a time."
-          unit={unit}
-          value={makes}
-          error={errors?.makes}
-          onChange={onMakesChange}
-        />
-      )}
-      {rows.length < COST_LINES_MAX && (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Add a cost">
+      {rows.length < max && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label={`Add a cost${subject ? ` (${subject})` : ""}`}>
           {(
             [
-              ["material", "Add a material", "add-cost"],
-              ["time", "Add your time", "add-time"],
-              ["other", "Add other cost", "add-other"],
+              ["material", "Add a material", `${scope}add-cost`],
+              ["time", "Add your time", `${scope}add-time`],
+              ["other", "Add other cost", `${scope}add-other`],
             ] as const
           ).map(([kind, label, id]) => (
             <AddButton
@@ -249,6 +232,80 @@ export function CostsSection({
             </AddButton>
           ))}
         </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * "What it costs to make" (docs/plans/costing-and-margin.md, slice A): what goes into one batch, and how many a batch
+ * makes. Each line is a material (an amount of one of your materials), your time (at the hourly rate in the Business
+ * profile) or another cost, and can be only for some items (the same conditions as a production step). Costs are
+ * without VAT. Underneath, what it costs to make one and the margin, for the product or each variation.
+ */
+export function CostsSection({
+  title,
+  rows,
+  makes,
+  errors,
+  choices,
+  materials,
+  hourlyRateSet,
+  summary,
+  unit,
+  numberStyle,
+  currencySymbol,
+  currencyCode,
+  vatRegistered,
+  fid,
+  onChange,
+  onMakesChange,
+}: {
+  title: string;
+  rows: CostFormRow[];
+  makes: string;
+  errors: CostErrors | undefined;
+  /** The variations, list choices and extras the product has, named: what a line can depend on. */
+  choices: ChoiceOption[];
+  materials: MaterialOption[];
+  /** Whether the Business profile says what an hour of the maker's time is worth. */
+  hourlyRateSet: boolean;
+  summary: CostSummary;
+  /** What the product is counted in ("dozen"), written after a quantity. */
+  unit?: string;
+  numberStyle: NumberStyle;
+  currencySymbol: string;
+  currencyCode: string;
+  vatRegistered: boolean;
+  fid: (key: string) => string;
+  onChange: (rows: CostFormRow[]) => void;
+  onMakesChange: (makes: string) => void;
+}) {
+  return (
+    <Section title={title}>
+      <p className="-mt-2 text-sm text-muted-foreground">What goes into making one batch, without VAT. Only you see this.</p>
+      <CostLineEditor
+        label={title}
+        rows={rows}
+        errors={errors}
+        choices={choices}
+        materials={materials}
+        hourlyRateSet={hourlyRateSet}
+        unit={unit}
+        currencySymbol={currencySymbol}
+        fid={fid}
+        onChange={onChange}
+      />
+      {rows.length > 0 && (
+        <QuantityField
+          id={fid("makes")}
+          label="How many one batch makes"
+          hint="The costs above are for one batch. Use 1 if you make one at a time."
+          unit={unit}
+          value={makes}
+          error={errors?.makes}
+          onChange={onMakesChange}
+        />
       )}
       <CostSummaryView summary={summary} numberStyle={numberStyle} currencyCode={currencyCode} hasRows={rows.length > 0} vatRegistered={vatRegistered} />
     </Section>

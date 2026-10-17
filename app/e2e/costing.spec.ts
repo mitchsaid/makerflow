@@ -256,3 +256,59 @@ test("a one-off item can say what it costs, and a sent quote keeps its margin wh
   await page.getByRole("link", { name: /Sam Jacobs/ }).first().click();
   await expect(page.getByTestId("margin-panel").getByTestId("margin-summary")).toHaveText(/^R\s?150,00 · 60%$/);
 });
+
+test("an extra has its own costs, counted for each one on the quote, and kept", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signUpAndOnboard(page, "cost-extra", "Extra Costs Co");
+
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cake");
+  await page.getByLabel("Price", { exact: true }).fill("100");
+  await page.getByRole("button", { name: "Add an extra" }).click();
+  const fresh = page.getByLabel("Extra name").last();
+  await expect(fresh).toBeFocused();
+  await fresh.fill("Gift wrap");
+  await page.getByRole("listitem").filter({ has: page.getByLabel("Extra name") }).getByLabel(/^Price/).fill("30");
+
+  // What goes into one gift wrap: paper (R4) and five minutes of your time (at the rate, none set yet).
+  const adders = page.getByRole("group", { name: "Add a cost (Gift wrap)" });
+  await tap(adders.getByRole("button", { name: "Add other cost" }));
+  const paper = page.getByRole("list", { name: "What Gift wrap costs" }).getByRole("listitem").first();
+  await paper.getByLabel("What is it", { exact: true }).fill("Paper");
+  await paper.getByLabel("What it costs", { exact: true }).fill("4");
+  await expect(page.getByTestId("extra-cost-note")).toContainText(/Costs R\s?4,00 each\./);
+  await page.getByRole("button", { name: "Done Gift wrap" }).click();
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Cake.");
+
+  // Opened again, the extra's costs are as they were left.
+  await page.getByRole("link", { name: /Cake/ }).click();
+  await page.getByRole("button", { name: "Edit Gift wrap" }).click();
+  const again = page.getByRole("list", { name: "What Gift wrap costs" }).getByRole("listitem").first();
+  await expect(again.getByLabel("What is it", { exact: true })).toHaveValue("Paper");
+  await expect(again.getByLabel("What it costs", { exact: true })).toHaveValue("4");
+
+  // Made "this product only" (a copy on save), it keeps its costs.
+  await page.getByLabel("Where does it apply?").selectOption("only");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Edit Gift wrap" }).click();
+  await expect(page.getByRole("list", { name: "What Gift wrap costs" }).getByRole("listitem").first().getByLabel("What it costs", { exact: true })).toHaveValue("4");
+
+  // On a quote: two cakes, each with gift wrap. R260 less 2 × R4.
+  await page.goto("/app/quotes/new");
+  await tap(page.getByRole("button", { name: "Add item" }));
+  await sheet(page).getByRole("button", { name: /Cake/ }).click();
+  await sheet(page).getByRole("checkbox", { name: /Gift wrap/ }).check();
+  await sheet(page).getByLabel("Quantity").fill("2");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByTestId("margin-summary")).toHaveText(/^R\s?252,00 · 96,92%$/);
+  // Without the wrap, the cake has no costs at all.
+  await page.getByTestId("quote-line").first().getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("checkbox", { name: /Gift wrap/ }).uncheck();
+  await sheet(page).getByRole("button", { name: /Save|Update|Add to quote/ }).first().click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByTestId("margin-panel")).toContainText("add what a product costs");
+});

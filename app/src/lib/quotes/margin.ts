@@ -26,13 +26,26 @@ export type CostPart = { label: string; cents: Cents | null };
 
 export type ItemCosting = { margin: ItemMargin | null; parts: CostPart[] };
 
+/** An extra on the item and how many of it: one for each item (the item's quantity), or a fixed count. */
+export type ItemExtra = { id: string; countMilli: QuantityMilli };
+
+/** The extras among an item's choices, with how many of each. */
+export function extrasOn(
+  options: readonly { kind: string; valueId: string | null; quantityMilli?: number | null }[],
+  itemQuantityMilli: QuantityMilli,
+): ItemExtra[] {
+  return options.flatMap((o) => (o.kind !== "one" && o.valueId ? [{ id: o.valueId, countMilli: o.quantityMilli ?? itemQuantityMilli }] : []));
+}
+
 /** What the item the quote line describes costs, and what that is made of. */
 export function costItem(args: {
   quantityMilli: QuantityMilli;
   chosenIds: readonly string[];
+  /** The extras on the item and how many of each. */
+  extras?: readonly ItemExtra[];
   /** What the item sells for without VAT, after discounts. */
   revenueCents: Cents;
-  product: Pick<ProductSummary, "makesMilli" | "costLines"> | undefined;
+  product: Pick<ProductSummary, "makesMilli" | "costLines" | "extras"> | undefined;
   /** A one-off item's typed cost each. */
   unitCostCents: Cents | null;
   settings: CostSettings;
@@ -40,18 +53,35 @@ export function costItem(args: {
   materialNames?: ReadonlyMap<string, string>;
 }): ItemCosting {
   const { product, settings } = args;
-  if (product && product.costLines.length > 0) {
-    const lines: CostLine[] = costLinesOf(product.costLines);
-    const cost = itemCost(lines, product.makesMilli, { quantityMilli: args.quantityMilli, chosenIds: args.chosenIds }, settings);
-    const labelOf = (l: CostLine): string =>
-      l.kind === "material" ? (args.materialNames?.get(l.materialId) ?? "Material") : l.kind === "time" ? "Your time" : l.name;
-    const parts = cost.lines.map((c) => ({ label: labelOf(lines.find((l) => l.id === c.id)!), cents: c.cents }));
-    return {
-      margin: itemMargin(args.revenueCents, { cents: cost.cents, hasCosts: cost.lines.some((l) => l.cents !== null), incomplete: cost.problems.length > 0 }),
-      parts,
+  const labelOf = (l: CostLine): string =>
+    l.kind === "material" ? (args.materialNames?.get(l.materialId) ?? "Material") : l.kind === "time" ? "Your time" : l.name;
+  if (product) {
+    const parts: CostPart[] = [];
+    let total = 0;
+    let counted = false;
+    let incomplete = false;
+    const add = (lines: CostLine[], cost: ReturnType<typeof itemCost>, prefix: string) => {
+      for (const c of cost.lines) parts.push({ label: `${prefix}${labelOf(lines.find((l) => l.id === c.id)!)}`, cents: c.cents });
+      total += cost.cents;
+      counted = counted || cost.lines.some((l) => l.cents !== null);
+      incomplete = incomplete || cost.problems.length > 0;
     };
+    if (product.costLines.length > 0) {
+      const lines = costLinesOf(product.costLines);
+      add(lines, itemCost(lines, product.makesMilli, { quantityMilli: args.quantityMilli, chosenIds: args.chosenIds }, settings), "");
+    }
+    // Each extra on the item costs what is in one of it, for as many as there are.
+    for (const on of args.extras ?? []) {
+      const extra = product.extras.find((x) => x.id === on.id);
+      if (!extra || extra.costLines.length === 0) continue;
+      const lines = costLinesOf(extra.costLines);
+      add(lines, itemCost(lines, 1000, { quantityMilli: on.countMilli, chosenIds: [] }, settings), `${extra.name}: `);
+    }
+    if (parts.length === 0) return { margin: null, parts: [] };
+    // More than money can hold is flagged, never a quietly capped number.
+    return { margin: itemMargin(args.revenueCents, { cents: Math.min(total, MAX_CENTS), hasCosts: counted, incomplete: incomplete || total > MAX_CENTS }), parts };
   }
-  if (!product && args.unitCostCents !== null) {
+  if (args.unitCostCents !== null) {
     // Each, times how many (quantity is in thousandths), rounded once, in whole numbers. More than money can hold is no
     // cost at all (the form refuses it), never a wrong number.
     const exact = (BigInt(args.unitCostCents) * BigInt(args.quantityMilli) * BigInt(2) + BigInt(1000)) / BigInt(2000);
@@ -82,6 +112,7 @@ export function lineMargins(
     const { margin } = costItem({
       quantityMilli: quantity.value,
       chosenIds: chosenIdsOf({ variation: line.variationId ? { id: line.variationId } : null, options: line.options ?? [] }),
+      extras: extrasOn(line.options ?? [], quantity.value),
       revenueCents: lineNetCents(result, vat),
       product: line.productId ? products.find((p) => p.id === line.productId) : undefined,
       unitCostCents: typed && typed.ok ? typed.value : null,
@@ -105,6 +136,7 @@ export function parsedLineCosting(
   return costItem({
     quantityMilli: line.quantityMilli,
     chosenIds: chosenIdsOf({ variation: line.variation, options: line.options }),
+    extras: extrasOn(line.options, line.quantityMilli),
     revenueCents: lineNetCents(result, vat),
     product: line.productId ? product : undefined,
     unitCostCents: line.productId ? null : (line.unitCostCents ?? null),

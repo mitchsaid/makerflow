@@ -1,5 +1,5 @@
 import { isUnitCode, sameKind, type UnitCode } from "../materials/units";
-import { MAX_CENTS, parseMoney, parseQuantity, type Cents, type QuantityMilli } from "../money";
+import { MAX_CENTS, moneyToInput, parseMoney, parseQuantity, quantityToInput, type Cents, type NumberStyle, type QuantityMilli } from "../money";
 import type { CostCondition, CostLine } from "../costing";
 import {
   conditionsPayload,
@@ -55,7 +55,13 @@ export type CostRowErrors = {
   list?: string;
   conditions?: Record<string, { ref?: string; quantity?: string }>;
 };
-export type CostErrors = { list?: string; makes?: string; rows: Record<string, CostRowErrors> };
+export type CostErrors = {
+  list?: string;
+  makes?: string;
+  rows: Record<string, CostRowErrors>;
+  /** Problems with an extra's own cost lines, by the extra's row key. */
+  extras?: Record<string, { list?: string; rows: Record<string, CostRowErrors> }>;
+};
 
 export type ParsedCostLine = { logic: StepLogic; conditions: ParsedStepCondition[] } & (
   | { kind: "material"; materialId: string; amountMilli: QuantityMilli; unit: UnitCode }
@@ -210,4 +216,66 @@ export function parseCosts(
 /** A blank cost line of a kind, for the form. */
 export function blankCostRow(key: string, kind: CostKind): CostFormRow {
   return { key, kind, logic: "all", conditions: [], materialId: "", amount: "", unit: "", time: "", timeUnit: "minutes", name: "", cost: "" };
+}
+
+/** A saved line as the form holds it (a saved row's key is `key`); `conditions` are the form rows of its conditions. */
+export function costRowFromSummary(l: CostLineSummary, key: string, style: NumberStyle, conditions: StepConditionFormRow[] = []): CostFormRow {
+  const base = { ...blankCostRow(key, l.kind), logic: l.logic, conditions };
+  if (l.kind === "material") return { ...base, materialId: l.materialId, amount: quantityToInput(l.amountMilli, style), unit: l.unit };
+  if (l.kind === "time") {
+    // Whole hours read better as hours.
+    return l.minutes % 60 === 0
+      ? { ...base, time: quantityToInput((l.minutes / 60) * 1000, style), timeUnit: "hours" }
+      : { ...base, time: quantityToInput(l.minutes * 1000, style), timeUnit: "minutes" };
+  }
+  return { ...base, name: l.name, cost: moneyToInput(l.cents, style) };
+}
+
+/** What goes into one of an extra, as the form holds it while it is being filled in (`changed`: the maker touched it). */
+export type ExtraCostsFormEntry = { key: string; changed: boolean; lines: CostFormRow[] };
+
+export type ParsedExtraCosts = { index: number; lines: ParsedCostLine[] }[];
+
+export const EXTRA_COST_LINES_MAX = 20;
+
+export type ExtraCostsErrors = { list?: string; byExtra: NonNullable<CostErrors["extras"]> };
+
+/**
+ * Checks the cost lines of the extras the maker changed. `extraKeys` are the extras' form keys in the order they are
+ * saved with the product: an extra is named to the database by its place in that list. An extra that was not changed
+ * is left as it is (it may be shared with other products), so its lines are not even read.
+ */
+export function parseExtraCosts(
+  input: unknown,
+  extraKeys: readonly string[],
+  materials: ReadonlyMap<string, UnitCode> = new Map(),
+): { ok: true; extras: ParsedExtraCosts } | { ok: false; errors: ExtraCostsErrors } {
+  if (!Array.isArray(input)) return { ok: false, errors: { list: "The extras' costs could not be read. Open the product again.", byExtra: {} } };
+  const extras: ParsedExtraCosts = [];
+  const errors: NonNullable<CostErrors["extras"]> = {};
+  for (const entry of input) {
+    if (typeof entry !== "object" || entry === null) return { ok: false, errors: { list: "The extras' costs could not be read. Open the product again.", byExtra: {} } };
+    const e = entry as Record<string, unknown>;
+    if (typeof e.key !== "string" || typeof e.changed !== "boolean" || !Array.isArray(e.lines)) {
+      return { ok: false, errors: { list: "The extras' costs could not be read. Open the product again.", byExtra: {} } };
+    }
+    if (!e.changed) continue;
+    const index = extraKeys.indexOf(e.key);
+    if (index < 0) continue;
+    if (e.lines.length > EXTRA_COST_LINES_MAX) {
+      errors[e.key] = { list: `An extra can have up to ${EXTRA_COST_LINES_MAX} cost lines.`, rows: {} };
+      continue;
+    }
+    // An extra's lines have no conditions and no batch: they are for one of it.
+    const parsed = parseCosts(e.lines.map((l) => (typeof l === "object" && l !== null ? { ...l, conditions: [], logic: "all" } : l)), "1", undefined, materials);
+    if (parsed.ok) extras.push({ index, lines: parsed.costs.lines });
+    else errors[e.key] = { list: parsed.errors.list, rows: parsed.errors.rows };
+  }
+  if (Object.keys(errors).length > 0) return { ok: false, errors: { byExtra: errors } };
+  return { ok: true, extras };
+}
+
+/** What save_product_costs takes for the extras' lines. */
+export function extraCostsPayload(extras: ParsedExtraCosts) {
+  return extras.map((x) => ({ index: x.index, lines: costsPayload({ makesMilli: 1000, lines: x.lines }).lines }));
 }

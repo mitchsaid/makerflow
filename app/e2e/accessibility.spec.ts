@@ -752,6 +752,19 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product costs, with problems");
       await page.getByRole("button", { name: "Remove condition 1 of Other cost 1" }).click();
+      // An extra with its own costs.
+      await page.getByRole("button", { name: "Add an extra" }).click();
+      await page.getByLabel("Extra name").last().fill("Axe wrap");
+      const adders = page.getByRole("group", { name: "Add a cost (Axe wrap)" });
+      await adders.getByRole("button", { name: "Add other cost" }).focus();
+      await page.keyboard.press("Enter");
+      await expectNoViolations(page, "product, an extra with a cost line");
+      await page.getByRole("button", { name: "Done Axe wrap" }).click();
+      await page.getByRole("button", { name: "Edit Axe wrap" }).click();
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "product, an extra's cost with problems");
+      await page.getByRole("list", { name: "What Axe wrap costs" }).getByRole("button", { name: "Remove Other cost 1 (Axe wrap)" }).click();
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("product-added")).toBeVisible();
 

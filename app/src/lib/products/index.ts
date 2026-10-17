@@ -4,7 +4,7 @@ import { parseMoney, type Cents, type VatStatus } from "../money";
 import type { ValidationResult } from "../validation";
 import { parseExtras, type ExtraErrors, type ExtraSummary, type ParsedExtra } from "./extras";
 import { parseOptionGroups, type OptionErrors, type OptionGroup, type ParsedOptionGroup } from "./options";
-import { parseCosts, type CostErrors, type CostLineSummary, type ParsedCosts } from "./costs";
+import { parseCosts, parseExtraCosts, type CostErrors, type CostLineSummary, type ExtraCostsErrors, type ParsedCosts, type ParsedExtraCosts } from "./costs";
 import type { UnitCode } from "../materials/units";
 import { parseSteps, type ParsedStep, type StepChoices, type StepErrors, type StepSummary } from "./steps";
 import { parsePriceBreaks, type ParsedPriceBreak, type PriceBreak, type PriceBreakErrors } from "./price-breaks";
@@ -58,6 +58,8 @@ export type ProductFields = {
   steps?: ParsedStep[];
   /** What it costs to make: the lines and how many a batch makes. Undefined when the form did not carry them: they are left as they are. */
   costs?: ParsedCosts;
+  /** The cost lines of the extras the maker changed, each by the extra's place among the product's extras. Undefined when the form carried none. */
+  extraCosts?: ParsedExtraCosts;
 };
 
 export type Product = ProductFields & { id: string; organisationId: string; archived: boolean };
@@ -76,6 +78,8 @@ export type ProductFieldErrors = Partial<Record<ProductFieldName, string>> & {
   steps?: StepErrors;
   /** Problems with the cost lines and the batch size. */
   costs?: CostErrors;
+  /** Problems with the extras' own cost lines. */
+  extraCosts?: ExtraCostsErrors;
 };
 
 export type ParsedProductForm =
@@ -254,6 +258,15 @@ export function parseProductForm(
     else errors.costs = parsed.errors;
   }
 
+  // The extras' own cost lines: only the extras the maker changed are read; each is named by its place among the extras.
+  let extraCosts: ParsedExtraCosts | undefined;
+  const extraCostsRaw = form.get("extraCosts");
+  if (extraCostsRaw !== null) {
+    const parsed = parseExtraCosts(readJson(extraCostsRaw), stepChoicesOf(variationsRaw, optionsRaw, extrasRaw).extras, materialUnits);
+    if (parsed.ok) extraCosts = parsed.extras;
+    else errors.extraCosts = parsed.errors;
+  }
+
   const hasVariations = (variations?.length ?? 0) > 0 || (errors.variations !== undefined && variationsRaw !== null && variationsRaw !== "[]");
 
   // With variations each has its own price, and the product's is the lowest of theirs.
@@ -299,6 +312,7 @@ export function parseProductForm(
       ...(priceBreaks === undefined ? {} : { priceBreaks }),
       ...(steps === undefined ? {} : { steps }),
       ...(costs === undefined ? {} : { costs }),
+      ...(extraCosts === undefined ? {} : { extraCosts }),
     },
   };
 }

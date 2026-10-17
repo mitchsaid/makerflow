@@ -1,0 +1,105 @@
+# Plan: invoices and payments (thin)
+
+Status: **planned 2026-10-17** from the founder's order of work ("costing and margins first, then thin invoices"; "you can do thin invoices after this"). Two slices, each changing the database (**money, tax documents, immutability, numbering and migrations: human review**). Nothing is built yet.
+
+It builds on `docs/plans/jobs-and-invoices.md`, Part 2 (the founder's answers there still stand: **one invoice, with the deposit shown as a payment**; invoices are the maker's choice, never automatic) and finishes what that plan sketched, now that quotes, jobs and costing exist. Where the two differ, this one wins.
+
+## Where things stand
+- **Quotes are complete up to online acceptance:** drafts, a frozen snapshot per sent version (`quote_versions.snapshot`), a real PDF drawn from it (`lib/quotes/pdf`), outcomes (accepted, declined), deposits, themes, bank details, terms, delivery or collection.
+- **Costing is frozen with each sent version** (`quote_versions.costing`, private, members only), so an invoice made from a version carries the margin it was quoted at.
+- **Jobs exist** (made from an accepted quote or by hand); nothing links a job to an invoice yet.
+- **Numbering:** `document_sequences` already allows `invoice` and `credit_note`; `issue_document_number` is the one place numbers are given. Quotes may have gaps (not tax documents); **invoices must be gapless** and are numbered only when issued.
+- **Locale:** `docs/locales/za/vat-and-documents.md` has the SARS particulars; the ZA pack has `fullInvoiceThresholdCents` (R5 000) and `missingForInvoice` (the premises address). Nothing yet has an invoice's wording.
+- **Not there:** invoices, payments, credit notes, an "overdue" notion, a Documents setting for invoice wording/terms/due days.
+
+## Prototype read
+Read in full on 2026-10-17: `prototype/src/components/Invoices.tsx` (lines 1 to 2230 and 3100 to 3334 line by line; 2230 to 3100 is the item sheet, the customer form and the fulfilment settings, the same as Quotes' and read for their labels and handlers), `BuyerView.tsx` (all), the invoice, credit-note and status functions in `hooks/useAppState.ts` (`convertQuoteToInvoice`, `createInvoiceDirect`, `updateInvoice*`, `deleteInvoice`, `createCreditNote`, `deleteCreditNote`, `recordQuoteAccepted`), the `Invoice`, `InvoiceLineItem`, `CreditNote` types in `types.ts`, `CreateCreditNoteModal.tsx` (lines 1 to 200: state, reasons, totals, submit), the invoice branches of `DocumentRenderer.tsx` (title, due date, "Total Due", banking block) and `Dashboard.tsx` lines 55 to 80 (the money cards). **Not read in full:** `CustomerStatementModal.tsx` (a customer statement and ageing; header and types only), the rest of `CreateCreditNoteModal.tsx`, `Customers.tsx`'s invoice list. They belong to the credit-note and statement slices, which are not planned here.
+
+| The prototype does | MakerFlow: kept, changed, later, or dropped | Why |
+| --- | --- | --- |
+| **Accepting a quote creates an invoice automatically** (`recordQuoteAccepted` calls `convertQuoteToInvoice`), and moves the job to Not Started | **Changed:** the maker chooses. An accepted quote and its job show "Create invoice"; a finished job prompts for one (slice I3, later) | Founder (2026-10-11): "invoice conversion is the maker's choice". An invoice is a tax document |
+| An invoice copies the quote: customer, items with their prices, options, discount, fulfilment, notes, template; due date **30 days** after today; notes "Tax invoice converted from Quote…" | **Kept, changed:** copies the accepted quote's last sent version (its frozen snapshot), so the invoice is the quote as agreed, to the cent. Due date: a setting under Quotes and invoices (default 14 days; it is a wording of the business) | The frozen snapshot is the single source; no float recomputation |
+| **Dropped data on conversion:** `unitCost`, `baseUnitPrice`, `hideImage`, line tax rates | **Fixed:** the quote version's frozen costing is copied onto the invoice (private), so the invoice's margin is the quoted margin | `prototype-discovery.md` item 4 |
+| Invoice number `INV-<year>-<count + 1>` from the array length; **editable by hand** on the form | **Changed:** gapless per business, given only when issued, by the one checked server function; never typed. Prefix/start set under Quotes and invoices | Legal: sequential, gapless; `prototype-discovery.md` item 1 |
+| **Edit** an invoice at any time (items, customer, dates, even its number), from the list or the detail | **Dropped:** an issued invoice never changes. A mistake is a credit note (slice later) | Issued documents are immutable |
+| **Delete** an invoice (list row and detail, with a confirmation) | **Dropped:** never deleted | Immutable; kept 5 years |
+| Direct invoice with no quote: a full builder (customer, items, fulfilment presets, discount, tax toggle, dates, template) that also **spins up a job** | **Later (I3):** "New invoice" without a quote, using the item sheet and customer picker the quote uses (`LineSheet`, `CustomerPicker`); no job is created behind the maker's back | One way to ask for an item; jobs are the maker's choice |
+| Create/edit form fields: invoice number, issue date, due date, customer, items (qty stepper, edit, remove, clear all), fulfilment preset + price + address, invoice discount (% or R), tax on/off and rate, notes and banking text, template, internal financials | **Kept for slice I1 only what is not in the quote:** issue date (default today), due date, a note. The rest come from the quote and are not editable before issuing; the "adjust before issuing" step is a visible placeholder. VAT is the business's setting, never a per-invoice toggle; discount, fulfilment and items are the quote's | A draft that changes the agreed quote needs the full builder; thin first |
+| Statuses `unpaid`, `paid`, `overdue`, `partially_credited`, `credited`; **"Mark Paid" / "Mark Unpaid" buttons** flip the status | **Changed:** the status is **worked out** from payments and credit notes, never set: Unpaid, Part paid, Paid, Overdue (unpaid after the due date). No "Mark Unpaid". "Mark paid" is "Record a payment" for what is owing | A status that can be flipped by hand hides money |
+| `overdue` is **never set** by the code (only displayed); the dashboard computes overdue as unpaid with `dueDate < today` | **Kept as a derived label:** overdue = something owing and the due date is past; Home gets "Owing" and "Overdue" amounts (slice I2) | The dashboard logic was right; the stored status was dead |
+| Payments: **none.** The only payment is the status flip, and the buyer's "proof of payment" button | **New (slice I2):** append-only payments (amount, day, how, note); the deposit shows as the first payment; balance owing worked out; a mistake is a reversing entry | Founder: partial payments and deposits are in scope |
+| Buyer portal: "Accept quote", "Decline with feedback", **"Submit Proof of Payment" marks the invoice paid instantly** with an EFT reference | **Dropped for invoices:** nobody can mark an invoice paid but the maker. Online accept and "I've paid" with proof come with the hosted page (layer 10) and would be a message to the maker, not a status change | `prototype-discovery.md` item 5 |
+| Detail screen: document preview (`DocumentRenderer`, themes), Download PDF, Print, Buyer Portal, Issue Credit Note, Edit, Delete, a credit-note ledger card, internal financials (cost and margin) | **Kept:** the PDF preview and download, the same document pipeline and themes as quotes; **the private margin (frozen)**; credit notes later (a visible "coming soon" card); Print is the PDF's print; no edit, no delete | |
+| Document: title "Tax Invoice" (VAT registered) or "Invoice", "Invoice Billed To", "Due Date", "Total Due", banking block from the profile, notes | **Kept, locale-driven:** the words, the required particulars (supplier address and VAT number, recipient details for R5 000 and above, the quantity on every line, the serial number, date), the VAT shown by the business's method come from the ZA pack; the bank details are the saved ones; "Total due" is the balance after payments | `docs/locales/za/vat-and-documents.md`; never hard-coded |
+| List: search by number or customer; filters All, Unpaid, Paid, Overdue, Credited; a table and a phone card list; per-row Credit, Edit, View, Delete | **Kept:** search and the filters (Credited joins when credit notes exist); a phone card list; one tap opens the invoice. No row actions that change an issued invoice | |
+| Dashboard money cards: Outstanding (unpaid), Collected (paid), Overdue | **Kept (I2):** Home shows what is owing and what is overdue | |
+| Credit notes (reasons list, item select with qty and price, restock to stock, links to the invoice, gapless-ish `CN-` numbers, deletable) | **Later (I4):** issued from an invoice with a reason from a short list and amounts that cannot pass what was invoiced; gapless numbers; never deleted; restock waits for stock | Out of this plan |
+| Customer statement (ledger and ageing) | **Later** | |
+
+### Missed from the prototype
+(None yet. Anything found while building is listed here, with what it cost.)
+
+## What the maker sees
+- **From an accepted quote or its job: "Create invoice".** A sheet shows the invoice as it will be (customer, items, totals from the quote's last sent version, the deposit already asked for), with the **invoice date** (today) and the **due date** (the business's usual, changeable), a note, and a line that says what happens next: the invoice gets its number, can't be changed, and a mistake is fixed with a credit note. **Issue invoice** gives it the next number and opens it.
+- **The invoice page** is the quote page's sibling: the PDF preview (the same themes and bank details), Download, the status (Unpaid, Part paid, Paid, Overdue), what is owing, the private margin ("Only you see this", from the version's frozen costing), the activity, and a link back to the quote and the job. Nothing on it edits the invoice.
+- **Invoices tab/list** (More on a phone, beside Jobs' pattern): search by number or customer; filters Unpaid, Overdue, Paid; each row shows number, customer, total, owing and the status.
+- **Slice I2, payments:** "Record a payment" on the invoice (amount, day, how, note); the deposit asked for on the quote can be recorded in one tap as the first payment; payments are listed, a wrong one is reversed (a new line), never edited; the status and "owing" follow. Home gets Owing and Overdue.
+- **Unbuilt parts are visible placeholders:** "Adjust before issuing", "Credit note", "Email it", "Send a link they can pay". No stand-in interactions.
+
+## Interactions reused and new interactions
+| What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
+| --- | --- | --- |
+| The document preview and PDF | `PdfPreview`, `lib/quotes/pdf` (drawn from a frozen snapshot), the quote's themes | **With a document kind**: the snapshot gains `kind: "invoice"`, due date, payments summary and the invoice wording; the drawing code takes the title and the extra blocks from the snapshot. Not a copy |
+| Frozen snapshot builder | `buildQuoteSnapshot` | An invoice's snapshot is built from the accepted quote version's snapshot (customer, lines, totals, wording) plus the invoice's number, dates and wording; a new small builder, not a second copy of the quote's |
+| Number | `issue_document_number` | As is, inside the issuing function so a failed issue gives no number |
+| Bank details block | `bankLines` | As is |
+| Private margin panel | `MarginPanel` (`frozen` mode) | As is |
+| Status chip | `StatusChip` pattern (`quotes/status-chip.tsx`) | A sibling for invoice statuses (Unpaid, Part paid, Paid, Overdue) |
+| List page, search, filters | Quotes list and Jobs list | The same components/patterns |
+| "Create invoice" confirmation | The "Mark as sent" sheet pattern (`send-sheet.tsx`) | The same sheet shape |
+| Dates | `TextField type="date"` | As is (invoice date, due date, payment day) |
+| Money | `TextField` with `startText`, `parseMoney` | As is (payment amount) |
+| How it was paid | `SelectField` (a short list: EFT, cash, card, other) | As is |
+| A note | `TextAreaField` | As is |
+| Back/close | `PageHeader` | As is |
+
+**Inputs by kind (`docs/ux-inputs.md`):** dates (`TextField type="date"`), the payment amount (money field), how paid (choice, `SelectField`), a note (`TextAreaField`), no address, quantity or customer is asked for on an invoice (they come from the quote).
+
+## Decisions (recommendations in bold)
+1. **Issue straight from the accepted quote version; no editable draft in slice I1.** *Recommended.* A draft the maker adjusts needs the full item builder and a second set of tables; the quote is already edited and revised before it is accepted. Changes after issue are credit notes. (The earlier plan's draft stays as "Adjust before issuing", a visible placeholder.)
+2. **Only an accepted quote can be invoiced, and from its latest sent version.** *Recommended.* A job made by hand with no quote waits for slice I3 (a direct invoice through the same item sheet).
+3. **One invoice per quote by default, deposit shown as a payment** (founder 2026-10-11). *Confirmed.* A second invoice for the same quote is refused with a clear message in this slice (progress billing is a later layer). The deposit's VAT treatment is the open adviser question (`docs/locales/za/vat-and-documents.md`, answer 3: VAT may be due on receipt of a deposit); the invoice carries the quote's VAT as agreed, and the wording on the deposit is provisional.
+4. **The invoice's money is the quote version's snapshot, copied, never recomputed.** *Recommended.* The totals come from the same function as the quote did, stored; the database checks nothing is made up (net + VAT = gross, lines add up) in its constraint.
+5. **Status is derived, never stored or set.** *Recommended.* Unpaid / Part paid / Paid from payments; Overdue when something is owing past the due date. The list filters work from a view or from the same function.
+6. **Payments are append-only; a mistake is a reversal.** *Recommended.* Slice I2.
+7. **Number prefix and start under Quotes and invoices** (the page that was set up for it), with `INV-` the default; "next number" can never go back. Gapless is the database's job (the number is taken inside the issuing transaction).
+8. **Due date default: 14 days** *(a suggestion)*, changeable on the invoice and as a business default (the same "your usual" pattern as the deposit).
+9. **Invoice wording, per locale pack:** "Tax invoice" only for a VAT-registered business, "Invoice" otherwise (never "tax invoice" for a business that is not registered); a full invoice (R5 000 and above) needs the customer's address, and a business customer's VAT number if it has one; the abridged form leaves the customer's details and quantity out only if the pack says so. *The pack decides; the ZA rules are in `docs/locales/za/vat-and-documents.md`.* Issuing is refused with how to fix it when a required particular is missing (the business's premises address, the customer's address for a full invoice).
+10. **Issued invoices never leave:** no delete grant, no update grant, a trigger that refuses changes, and `delete_account` is reworked to keep them (the test that fails the day an invoices table exists says so).
+11. **No emailing and no online pay** yet (no sending domain; layer 10): Download and Share like quotes.
+
+## Data (sketch)
+Every table: `organisation_id`, same-business composite keys, row-level security for members, the restrictive `session_required` policy, SQL tests. Server-only `SECURITY DEFINER` functions do the writes (like `send_quote`), with the session and role checked.
+- `invoices`: id, organisation, `number` (unique per business), `quote_id` + `quote_version` (unique: one invoice per quote in this slice), `job_id` (null), `customer_id`, `issue_date`, `due_date`, `currency_code`, `net_cents`, `vat_cents`, `gross_cents`, `snapshot` (jsonb, what the document is drawn from), `costing` (jsonb, private, copied from the version), `issued_by`, `created_at`. No update, no delete; a trigger refuses both (the one allowed change: forgetting `issued_by` when that login is deleted, as for quote versions).
+- `issue_invoice(p_org, p_quote_id, p_actor, p_issue_date, p_due_date, p_snapshot, ...)`: server-only; locks the quote and the sequence; checks the quote is accepted, has a sent version and no invoice; gives the next number inside the same transaction; inserts the invoice; writes an event.
+- `invoice_events` (issued; later: payment recorded, reversed): append-only.
+- Slice I2: `invoice_payments` (amount_cents > 0, paid_on, method, note, `reverses_id`, created_by): append-only, never updated or deleted; the balance is the invoice total less the sum (reversals count negative); a payment cannot exceed what is owing (checked in the recording function under a lock).
+- Settings: `business_profiles.invoice_due_days` (usual); invoice wording lives in the locale pack, the prefix/start in `document_sequences`.
+
+## Slices
+**I1. Create and issue an invoice** (the thin invoice): "Create invoice" from an accepted quote (and its job), the issuing function and migration, the snapshot builder, the PDF with the invoice's wording and the quote's themes, the invoice page, the Invoices list, numbering settings for invoices, Home link, `delete_account` rework, tests. *Usable: an accepted quote becomes a numbered tax invoice, as a PDF, that never changes.*
+**I2. Payments:** record a payment (and the deposit in one tap), reverse one, the derived status, what is owing, Overdue, Home's Owing/Overdue, the document's "paid so far / total due", tests.
+**I3 (later).** The prompt on a finished job; a direct invoice with no quote through the item sheet; the "adjust before issuing" draft.
+**I4 (later).** Credit notes.
+
+## Tests
+SQL: isolation and session-required for every table; numbering gapless under 30 concurrent issues and after a failed issue; the invoice cannot be updated or deleted by anyone (member, owner, admin, definer path); one invoice per quote; only an accepted quote with a sent version; the totals check; costing copied; `issue_invoice` server-only; payments append-only, no overpayment, reversal. Unit: the snapshot builder, the derived status (every case, the due-date boundary), the invoice wording by VAT registration, the required particulars. Browser: accept a quote, create the invoice, see the number, the PDF text, the margin, that nothing edits it, a second invoice refused, record payments and watch the status (I2). Accessibility: the sheet, the invoice page, the list.
+
+## Questions for the founder
+1. **No editable draft in slice I1** (decision 1): issue straight from the accepted quote, and fix mistakes with a credit note (slice I4 follows). OK, or do you want the adjust-before-issue draft first?
+2. **Default due date 14 days** (decision 8). OK?
+3. **The deposit** (decision 3): until the tax adviser answers, the invoice shows the deposit as a payment and the VAT as quoted. OK for now?
+4. **Where does "Invoices" live?** Recommendation: a row on More beside Jobs, and a "Create invoice" button on an accepted quote and on its job.
+
+## Not planned yet
+Credit notes, customer statements and ageing, progress/stage invoices, an invoice with no quote, the draft, emailing, paying online, recurring invoices, payment reminders, restocking.

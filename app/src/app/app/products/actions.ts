@@ -14,7 +14,7 @@ import { extrasPayload } from "@/lib/products/extras";
 import { optionsPayload } from "@/lib/products/options";
 import { priceBreaksPayload } from "@/lib/products/price-breaks";
 import { stepsPayload } from "@/lib/products/steps";
-import { costsPayload } from "@/lib/products/costs";
+import { costsPayload, extraCostsPayload } from "@/lib/products/costs";
 import { getMaterials } from "@/lib/materials/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,7 +47,10 @@ function toPayload(p: ProductFields) {
     extras: p.extras === undefined ? null : extrasPayload(p.extras),
     priceBreaks: p.priceBreaks === undefined ? null : priceBreaksPayload(p.priceBreaks),
     steps: p.steps === undefined ? null : stepsPayload(p.steps),
-    costs: p.costs === undefined ? null : costsPayload(p.costs),
+    costs:
+      p.costs === undefined && p.extraCosts === undefined
+        ? null
+        : { ...(p.costs === undefined ? {} : costsPayload(p.costs)), ...(p.extraCosts === undefined ? {} : { extras: extraCostsPayload(p.extraCosts) }) },
     variations:
       p.variations === undefined
         ? null
@@ -65,7 +68,7 @@ async function saveProduct(
 ): Promise<{ ok: true; product: ProductSummary } | { ok: false; state: ProductSaveState }> {
   const { organisation } = await requireOrganisation();
   // A cost line's unit must suit its material, so the materials are read only when the form carries cost lines.
-  const materials = formData.get("costLines") === null ? [] : (await getMaterials()).filter((m) => m.organisationId === organisation.id);
+  const materials = formData.get("costLines") === null && formData.get("extraCosts") === null ? [] : (await getMaterials()).filter((m) => m.organisationId === organisation.id);
   const parsed = parseProductForm(formData, new Map(materials.map((m) => [m.id, m.unit])));
   if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 

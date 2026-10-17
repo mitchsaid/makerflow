@@ -57,7 +57,7 @@ declare
   h uuid := '00000000-0000-4000-8000-000000004192';   -- only owner of a shared business, and a business of their own
   k uuid := '00000000-0000-4000-8000-000000004193';   -- sends a quote in a business that stays
   org_a uuid; org_shared uuid; org_c uuid; org_two uuid; org_g uuid; org_g_shared uuid; org_h uuid; org_h_shared uuid; org_k uuid;
-  cust uuid; q uuid; q2 uuid; job uuid; prod uuid; flour uuid; img uuid := gen_random_uuid();
+  cust uuid; q uuid; q2 uuid; job uuid; prod uuid; flour uuid; xtra uuid; img uuid := gen_random_uuid();
   stamp timestamptz;
   result jsonb;
   before_c integer;
@@ -91,6 +91,9 @@ begin
   update public.products set photo_image_id = img where id = prod;
   insert into public.product_variations (organisation_id, product_id, name, price_cents, image_id) values (org_a, prod, 'Large', 60000, img);
   update public.quote_lines set product_id = prod, kind = 'product' where organisation_id = org_a;
+  -- an extra with a cost line using a material
+  insert into public.extras (organisation_id, name, price_cents) values (org_a, 'Gift wrap', 3000) returning id into xtra;
+  insert into public.extra_cost_lines (organisation_id, extra_id, kind, material_id, amount_milli, unit) values (org_a, xtra, 'material', flour, 100, 'kg');
   -- a cost line using a material
   insert into public.product_cost_lines (organisation_id, product_id, kind, material_id, amount_milli, unit) values (org_a, prod, 'material', flour, 500, 'kg');
   perform public.create_job(org_a, a, cust, 'none', null, null, null,
@@ -264,7 +267,7 @@ begin
      where contype = 'f' and connamespace = 'public'::regnamespace and confdeltype in ('a', 'r')
        and confrelid::regclass::text <> 'organisations'
   ) = array[
-    'business_profiles->images', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
+    'business_profiles->images', 'extra_cost_lines->materials', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
     'product_cost_lines->materials', 'product_option_values->images', 'product_variations->images', 'products->images',
     'quote_lines->products', 'quote_versions->quotes', 'quotes->customers'
   ], 'a link between tables that does not cascade was added or removed: teach delete_account (and the seed and this list) about it';

@@ -102,3 +102,35 @@ export function summariseCosts(input: {
   });
   return { scopes: out, leftOutConditions: leftOut };
 }
+
+/**
+ * What one of an extra costs, from its lines as typed ("Costs R12,50 each"); null when no line can be worked out yet.
+ * Lines not finished yet are left out, and the cost is then "or more".
+ */
+export function extraCostOf(args: {
+  rows: readonly CostFormRow[];
+  settings: CostSettings;
+  materialUnits: ReadonlyMap<string, UnitCode>;
+}): { cents: number; incomplete: boolean } | null {
+  const lines: CostLine[] = [];
+  let unfinished = false;
+  for (const row of args.rows) {
+    const parsed = parseCosts([{ ...row, conditions: [], logic: "all" }], "1", undefined, args.materialUnits);
+    if (!parsed.ok || parsed.costs.lines.length !== 1) {
+      unfinished = true;
+      continue;
+    }
+    const l = parsed.costs.lines[0];
+    const base = { id: row.key, logic: "all" as const, conditions: [] };
+    lines.push(
+      l.kind === "material"
+        ? { ...base, kind: "material", materialId: l.materialId, amountMilli: l.amountMilli, unit: l.unit }
+        : l.kind === "time"
+          ? { ...base, kind: "time", minutes: l.minutes }
+          : { ...base, kind: "other", name: l.name, cents: l.cents },
+    );
+  }
+  const cost = itemCost(lines, 1000, { quantityMilli: 1000, chosenIds: [] }, args.settings);
+  if (!cost.lines.some((l) => l.cents !== null)) return null;
+  return { cents: cost.cents, incomplete: unfinished || cost.problems.length > 0 };
+}
