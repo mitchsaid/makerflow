@@ -220,6 +220,16 @@ export async function getProducts(): Promise<ProductSummary[]> {
   return (data as unknown as Row[]).map(fromRow);
 }
 
+/** The products with these ids (those this person can see), with their costs. One query. */
+export async function getProductsByIds(ids: readonly string[]): Promise<ProductSummary[]> {
+  const wanted = [...new Set(ids)].filter((id) => UUID.test(id));
+  if (wanted.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("products").select(COLUMNS).in("id", wanted);
+  if (error) throw new Error(`Could not load the products: ${error.message}`);
+  return (data as unknown as Row[]).map(fromRow);
+}
+
 /** One product, or null for a bad id or one this person cannot see. */
 export async function findProduct(id: string): Promise<ProductSummary | null> {
   if (!UUID.test(id)) return null;

@@ -94,6 +94,7 @@ type LineRow = {
   options: unknown;
   list_price_cents: number | string | null;
   quantity_price_text: string | null;
+  unit_cost_cents: number | string | null;
 };
 
 type VersionRow = {
@@ -231,6 +232,7 @@ export type StoredQuote = {
     options: LineOption[];
     /** The price before the quantity price that set this item's price, and its words. */
     listPriceCents: number | null;
+    unitCostCents: number | null;
     quantityPriceText: string | null;
   }[];
   /** The customer as they are now (a draft shows live details; a sent version has its own copy). */
@@ -313,7 +315,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
          discount_kind, discount_value, vat_status, variation_id, variation_label, variation_name, options,
-         list_price_cents, quantity_price_text
+         list_price_cents, quantity_price_text, unit_cost_cents
        ),
        customers (
          id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
@@ -378,6 +380,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       options: storedOptions(l.options),
       listPriceCents: l.list_price_cents === null ? null : Number(l.list_price_cents),
       quantityPriceText: l.quantity_price_text,
+      unitCostCents: l.unit_cost_cents === null ? null : Number(l.unit_cost_cents),
     })),
     customer: (() => {
       const c = Array.isArray(row.customers) ? row.customers[0] : row.customers;
@@ -426,4 +429,16 @@ export async function getStoredQuote(id: string): Promise<StoredQuote> {
   const quote = await findStoredQuote(id);
   if (!quote) notFound();
   return quote;
+}
+
+/**
+ * What a sent version cost to make, frozen when it was sent (the maker's private figures: read only here, for members
+ * of the business, and never part of the snapshot). Null when none was recorded or this person cannot see it.
+ */
+export async function getVersionCosting(quoteId: string, version: number): Promise<unknown> {
+  if (!UUID.test(quoteId)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("quote_versions").select("costing").eq("quote_id", quoteId).eq("version", version).maybeSingle();
+  if (error) throw new Error(`Could not load the costing: ${error.message}`);
+  return (data as { costing: unknown } | null)?.costing ?? null;
 }

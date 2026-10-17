@@ -11,6 +11,9 @@ import { depositAmounts } from "./deposit";
 import { toFormValues } from "./form-values";
 import { sendProblems, type SendProblem } from "./send-checks";
 import { buildQuoteSnapshot, type QuoteSnapshot } from "./snapshot";
+import { freezeCosting, type FrozenCosting } from "./costing";
+import { getProductsByIds } from "../products/data";
+import { getMaterials } from "../materials/data";
 
 /**
  * Everything the server needs to preview or send a quote, worked out the same way every time:
@@ -128,4 +131,31 @@ export async function prepareQuote(
       currencyCode: profile.currencyCode,
     },
   };
+}
+
+/**
+ * What the quote costs to make as it stands, to be frozen with the version when it is sent (private: recorded beside
+ * the snapshot, never inside it). Read only when sending, so a preview does not pay for it. Null when nothing is
+ * costed.
+ */
+export async function costingForSending(parsed: ParsedQuote, workspace: Workspace): Promise<FrozenCosting | null> {
+  const { organisation, profile } = workspace;
+  const vat = vatSettingsFor(profile, getLocalePack(profile.countryCode));
+  const productIds = [...new Set(parsed.lines.flatMap((l) => (l.productId ? [l.productId] : [])))];
+  const quoteProducts = await getProductsByIds(productIds);
+  const costedProducts = quoteProducts.filter((p) => p.organisationId === organisation.id);
+  const needsMaterials = costedProducts.some((p) => p.costLines.some((l) => l.kind === "material"));
+  const materials = needsMaterials ? (await getMaterials()).filter((m) => m.organisationId === organisation.id) : [];
+  const costing = freezeCosting({
+    quote: parsed,
+    vat,
+    products: costedProducts,
+    settings: {
+      materials: new Map(materials.map((m) => [m.id, m])),
+      hourlyRateCents: profile.labourRateCents,
+      vatRateBp: vat.registered ? vat.standardRateBp : null,
+    },
+    materialNames: new Map(materials.map((m) => [m.id, m.name])),
+  });
+  return costing;
 }
