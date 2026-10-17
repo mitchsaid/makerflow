@@ -60,8 +60,14 @@ describe("summariseCosts", () => {
       rows: [row("other", { name: "Wrap", cost: "5", conditions: [{ key: "c", kind: "chosen", negate: false, ref: "extra:wrap", quantity: "" }] })],
     });
     expect(s.leftOutConditions).toBe(true);
-    // the line does not apply here, so there is nothing to cost and no margin to show
+    // the line is left out, so there is nothing to cost and no margin to show
     expect(s.scopes[0].margin?.costCents).toBeNull();
+    // a "not" is left out too, rather than counted because nothing was chosen
+    const negated = summariseCosts({
+      ...base,
+      rows: [row("other", { name: "Plain", cost: "5", conditions: [{ key: "c", kind: "chosen", negate: true, ref: "extra:wrap", quantity: "" }] })],
+    });
+    expect(negated.scopes[0].margin?.costCents).toBeNull();
   });
 
   it("an unfinished line leaves the cost a minimum, and no lines is no margin", () => {
@@ -72,7 +78,8 @@ describe("summariseCosts", () => {
 
   it("time with no hourly rate is a problem, not a free hour", () => {
     const s = summariseCosts({ ...base, settings: { ...settings, hourlyRateCents: null }, rows: [row("time", { time: "30" })] });
-    expect(s.scopes[0].margin).toMatchObject({ costCents: 0, incomplete: true });
+    // nothing could be costed, so there is no margin to show (never a free item)
+    expect(s.scopes[0].margin?.costCents).toBeNull();
   });
 
   it("no price yet gives no margin", () => {

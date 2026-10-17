@@ -40,8 +40,9 @@ export function summariseCosts(input: {
   settings: CostSettings;
   materialUnits: ReadonlyMap<string, UnitCode>;
 }): CostSummary {
-  const makes = parseCosts([], input.makes);
-  const makesMilli = makes.ok ? makes.costs.makesMilli : 1000;
+  // A batch size that is not a number (yet) counts as one.
+  const makes = parseQuantity(input.makes);
+  const makesMilli = makes.ok && makes.value >= 1 ? makes.value : 1000;
   const lines: CostLine[] = [];
   let unfinished = false;
   let leftOut = false;
@@ -67,7 +68,11 @@ export function summariseCosts(input: {
       unfinished = true;
       continue;
     }
-    if (conditions.some((c) => c.kind === "quantity" || !c.id.startsWith("variation:"))) leftOut = true;
+    // Lines that depend on a list choice, an extra or a quantity are left out (a "not" would count them wrongly).
+    if (conditions.some((c) => c.kind === "quantity" || !c.id.startsWith("variation:"))) {
+      leftOut = true;
+      continue;
+    }
     const base = { id: row.key, logic: row.logic, conditions };
     const line: CostLine =
       l.kind === "material"
@@ -85,7 +90,8 @@ export function summariseCosts(input: {
     // One of the item: the variation is the only choice made. Lines that depend on anything else do not hold here.
     const item = { quantityMilli: 1000, chosenIds: scope.key === "" ? [] : [`variation:${scope.key}`] };
     const cost = itemCost(lines, makesMilli, item, input.settings);
-    const applies = cost.lines.length > 0;
+    // Nothing could be costed (a time line with no rate, say): no margin, never a free item.
+    const applies = cost.lines.some((l) => l.cents !== null);
     const incomplete = unfinished || cost.problems.length > 0;
     return {
       name: scope.name,

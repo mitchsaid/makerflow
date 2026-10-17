@@ -735,12 +735,11 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/products/new");
       await page.getByLabel("Name", { exact: true }).fill("Axe cost cake");
       await page.getByLabel("Price", { exact: true }).fill("100");
-      await expectNoViolations(page, "product, costs empty");
-      for (const [i, kind] of ["Your time", "Another cost"].entries()) {
-        await page.getByRole("button", { name: i === 0 ? "Add a cost" : "Add another cost" }).focus();
+      
+      await expectNoViolations(page, "product, choosing the kind of cost");
+      for (const label of ["Add your time", "Add other cost"]) {
+        await page.getByRole("button", { name: label, exact: true }).focus();
         await page.keyboard.press("Enter");
-        await expectNoViolations(page, "product, choosing the kind of cost");
-        await page.getByRole("radio", { name: new RegExp(`^${kind}`) }).click();
       }
       await page.getByLabel("How long it takes").fill("30");
       await page.getByLabel("What is it", { exact: true }).fill("Box");

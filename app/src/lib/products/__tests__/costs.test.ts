@@ -35,9 +35,14 @@ describe("parseCosts", () => {
   });
 
   it("an empty batch size means one, nothing is not a batch", () => {
-    expect(ok([], "").makesMilli).toBe(1000);
-    expect(fail([], "0").makes).toBeDefined();
-    expect(fail([], "twelve").makes).toBeDefined();
+    const line = [row("time", { time: "5" })];
+    expect(ok(line, "").makesMilli).toBe(1000);
+    expect(fail(line, "0").makes).toBeDefined();
+    expect(fail(line, "twelve").makes).toBeDefined();
+  });
+
+  it("with no lines the batch size is not checked (its box is not on the screen)", () => {
+    expect(ok([], "twelve").makesMilli).toBe(1000);
   });
 
   it("no lines is fine and clears them", () => {

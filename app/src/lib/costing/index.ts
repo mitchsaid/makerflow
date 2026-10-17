@@ -122,7 +122,11 @@ export function itemCost(lines: readonly CostLine[], makesMilli: QuantityMilli, 
     result.lines.push({ id: line.id, cents: Number(cents) });
     total += cents;
   }
-  result.cents = total > BigInt(MAX_CENTS) ? MAX_CENTS : Number(total);
+  if (total > BigInt(MAX_CENTS)) {
+    // The lines together are more than money can hold: say so, never a silently clamped number.
+    result.problems.push({ kind: "size", lineId: "" });
+    result.cents = MAX_CENTS;
+  } else result.cents = Number(total);
   return result;
 }
 

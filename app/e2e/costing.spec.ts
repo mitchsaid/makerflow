@@ -28,9 +28,9 @@ async function addFlour(page: Page) {
   await expect(page.getByTestId("material-added")).toBeVisible();
 }
 
-async function addKind(page: Page, kind: "A material" | "Your time" | "Another cost", first: boolean) {
-  await tap(page.getByRole("button", { name: first ? "Add a cost" : "Add another cost" }));
-  await page.getByRole("radio", { name: new RegExp(`^${kind}`) }).click();
+async function addKind(page: Page, kind: "A material" | "Your time" | "Another cost") {
+  const label = { "A material": "Add a material", "Your time": "Add your time", "Another cost": "Add other cost" }[kind];
+  await tap(page.getByRole("button", { name: label, exact: true }));
 }
 
 test("what it costs to make is set on a product, worked out for each size, and kept", async ({ page }) => {
@@ -50,21 +50,21 @@ test("what it costs to make is set on a product, worked out for each size, and k
   }
 
   // Nothing yet: an invitation, no numbers.
-  await expect(page.getByRole("button", { name: "Add a cost" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a material", exact: true })).toBeVisible();
   await expect(page.getByTestId("cost-summary")).toHaveCount(0);
 
   // 600 g of flour (R15 a kg, so R9), half an hour of your time (R60), and a box only for the Large (R10).
-  await addKind(page, "A material", true);
+  await addKind(page, "A material");
   let row = costRow(page, "Material 1");
   await row.getByLabel("Material", { exact: true }).selectOption({ label: "Cake flour" });
   // The unit starts as the material's own.
   await expect(row.getByLabel("Unit", { exact: true })).toHaveValue("kg");
   await row.getByLabel("How much goes in").fill("600");
   await row.getByLabel("Unit", { exact: true }).selectOption("g");
-  await addKind(page, "Your time", false);
+  await addKind(page, "Your time");
   row = costRow(page, "Your time 1");
   await row.getByLabel("How long it takes").fill("30");
-  await addKind(page, "Another cost", false);
+  await addKind(page, "Another cost");
   row = costRow(page, "Other cost 1");
   await row.getByLabel("What is it").fill("Box");
   await row.getByLabel("What it costs").fill("10");
@@ -103,9 +103,9 @@ test("a cost line says how to fix it, and nothing typed is lost", async ({ page 
   await page.getByLabel("Name", { exact: true }).fill("Soap");
   await page.getByLabel("Price", { exact: true }).fill("40");
   // With no materials, a material line says where to add one.
-  await addKind(page, "A material", true);
+  await addKind(page, "A material");
   await expect(costRow(page, "Material 1").getByRole("link", { name: "Add a material" })).toBeVisible();
-  await addKind(page, "Your time", false);
+  await addKind(page, "Your time");
   // With no hourly rate, time says where to set it.
   await expect(costRow(page, "Your time 1").getByRole("link", { name: /Set what an hour of your time is worth/ })).toBeVisible();
   // An unfinished material line is a problem too, said at its fields.
@@ -140,14 +140,14 @@ test("a draft quote shows the margin only to you, following the size, the quanti
     await r.getByLabel(`Size ${i + 1}`, { exact: true }).fill(name);
     await r.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
   }
-  await addKind(page, "A material", true);
+  await addKind(page, "A material");
   let row = costRow(page, "Material 1");
   await row.getByLabel("Material", { exact: true }).selectOption({ label: "Cake flour" });
   await row.getByLabel("How much goes in").fill("600");
   await row.getByLabel("Unit", { exact: true }).selectOption("g");
-  await addKind(page, "Your time", false);
+  await addKind(page, "Your time");
   await costRow(page, "Your time 1").getByLabel("How long it takes").fill("30");
-  await addKind(page, "Another cost", false);
+  await addKind(page, "Another cost");
   row = costRow(page, "Other cost 1");
   await row.getByLabel("What is it").fill("Box");
   await row.getByLabel("What it costs").fill("10");

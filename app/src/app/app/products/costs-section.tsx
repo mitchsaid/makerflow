@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Trash2Icon } from "lucide-react";
 import { AddButton } from "@/components/add-button";
-import { ChoiceCards } from "@/components/choice-cards";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { QuantityField } from "@/components/quantity-field";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,6 @@ export function CostsSection({
   onChange: (rows: CostFormRow[]) => void;
   onMakesChange: (makes: string) => void;
 }) {
-  const [choosing, setChoosing] = useState(false);
   // Where focus goes after a line is added or removed (once it is on the screen).
   const pendingFocus = useRef<string | null>(null);
   useEffect(() => {
@@ -229,29 +227,28 @@ export function CostsSection({
           onChange={onMakesChange}
         />
       )}
-      {choosing && (
-        <ChoiceCards<CostKind | "">
-          legend="What kind of cost?"
-          value=""
-          onChange={(kind) => {
-            if (kind === "") return;
-            const row = blankCostRow(newCostKey(), kind);
-            onChange([...rows, row]);
-            setChoosing(false);
-            pendingFocus.current = idOf(row.key, "first");
-          }}
-          idFor={(k) => fid(`cost-kind-${k}`)}
-          choices={[
-            { value: "material", title: "A material", hint: "An amount of one of your materials." },
-            { value: "time", title: "Your time", hint: "Counted at your hourly rate." },
-            { value: "other", title: "Another cost", hint: "A box, delivery, a fee." },
-          ]}
-        />
-      )}
-      {!choosing && rows.length < COST_LINES_MAX && (
-        <AddButton id={fid("add-cost")} className="self-start" onClick={() => setChoosing(true)}>
-          {rows.length === 0 ? "Add a cost" : "Add another cost"}
-        </AddButton>
+      {rows.length < COST_LINES_MAX && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Add a cost">
+          {(
+            [
+              ["material", "Add a material", "add-cost"],
+              ["time", "Add your time", "add-time"],
+              ["other", "Add other cost", "add-other"],
+            ] as const
+          ).map(([kind, label, id]) => (
+            <AddButton
+              key={kind}
+              id={fid(id)}
+              onClick={() => {
+                const row = blankCostRow(newCostKey(), kind);
+                onChange([...rows, row]);
+                pendingFocus.current = idOf(row.key, "first");
+              }}
+            >
+              {label}
+            </AddButton>
+          ))}
+        </div>
       )}
       <CostSummaryView summary={summary} numberStyle={numberStyle} currencyCode={currencyCode} hasRows={rows.length > 0} vatRegistered={vatRegistered} />
     </Section>

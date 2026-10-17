@@ -44,6 +44,6 @@ export function lineMargins(
       { quantityMilli: quantity.value, chosenIds: chosenIdsOf({ variation: line.variationId ? { id: line.variationId } : null, options: line.options ?? [] }) },
       settings,
     );
-    return [{ ...base, margin: itemMargin(revenue, { cents: cost.cents, hasCosts: cost.lines.length > 0, incomplete: cost.problems.length > 0 }) }];
+    return [{ ...base, margin: itemMargin(revenue, { cents: cost.cents, hasCosts: cost.lines.some((l) => l.cents !== null), incomplete: cost.problems.length > 0 }) }];
   });
 }

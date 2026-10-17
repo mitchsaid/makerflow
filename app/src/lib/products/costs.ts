@@ -147,9 +147,9 @@ export function parseCosts(
     return { ok: false, errors: { rows: {}, list: `A product can have up to ${COST_LINES_MAX} cost lines.` } };
   }
 
-  // Empty is one: most things make one at a time.
+  // Empty is one: most things make one at a time. With no lines the box is not on the screen, so it is not checked.
   const makesText = typeof makesInput === "string" ? makesInput : "";
-  const makes = makesText.trim() === "" ? ({ ok: true, value: 1000 } as const) : parseQuantity(makesText);
+  const makes = makesText.trim() === "" || list.length === 0 ? ({ ok: true, value: 1000 } as const) : parseQuantity(makesText);
   if (!makes.ok) errors.makes = makes.error;
   else if (makes.value < 1) errors.makes = "Enter how many one batch makes, like 12. Use 1 if you make one at a time.";
   else if (makes.value > MAKES_MAX) errors.makes = "That is too many.";

@@ -65,7 +65,7 @@ async function saveProduct(
 ): Promise<{ ok: true; product: ProductSummary } | { ok: false; state: ProductSaveState }> {
   const { organisation } = await requireOrganisation();
   // A cost line's unit must suit its material, so the materials are read only when the form carries cost lines.
-  const materials = formData.get("costLines") === null ? [] : await getMaterials();
+  const materials = formData.get("costLines") === null ? [] : (await getMaterials()).filter((m) => m.organisationId === organisation.id);
   const parsed = parseProductForm(formData, new Map(materials.map((m) => [m.id, m.unit])));
   if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 
@@ -90,6 +90,18 @@ async function saveProduct(
         errors: { extras: { list: "You already have a saved extra with that name. Pick it from your saved extras, or give this one its own name.", rows: {} } },
       },
     };
+  }
+  if (error?.code === "22023" && error.message.includes("cost depends on a choice")) {
+    return {
+      ok: false,
+      state: {
+        status: "error",
+        message: "A cost on this product depends on a choice you removed. Open the product's own page to change its costs first.",
+      },
+    };
+  }
+  if (error?.code === "23503" && error.message.includes("cost_lines")) {
+    return { ok: false, state: { status: "error", errors: { costs: { rows: {}, list: "A material in your costs could not be used. Choose it again." } } } };
   }
   if (error?.code === "23503") {
     return { ok: false, state: { status: "error", errors: { photo: "That photo could not be used. Choose it again." } } };

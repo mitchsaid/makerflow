@@ -415,7 +415,17 @@ declare
   rid uuid;
   ref jsonb;
   bad_step constant text := 'a step is not valid';
+  cost_conditions_before integer := 0;
 begin
+  -- Costs the caller does not carry (a form that has no cost section) must not lose a condition because a choice it
+  -- depends on is removed here: that would turn "only for Large" into "always", and the margin would be wrong.
+  if p_costs is null and p_product_id is not null then
+    select count(*) into cost_conditions_before
+      from public.product_cost_line_conditions c
+      join public.product_cost_lines l on l.id = c.line_id and l.organisation_id = c.organisation_id
+     where l.product_id = p_product_id and l.organisation_id = p_org;
+  end if;
+
   if p_price_breaks is not null then
     if jsonb_typeof(p_price_breaks) <> 'array' then
       raise exception 'quantity prices must be a list' using errcode = '22023';
@@ -489,6 +499,13 @@ begin
   end if;
 
   pid := public.save_product(p_org, p_product_id, p_product, p_variations, p_options, p_extras);
+
+  if p_costs is null and cost_conditions_before > 0
+     and (select count(*) from public.product_cost_line_conditions c
+            join public.product_cost_lines l on l.id = c.line_id and l.organisation_id = c.organisation_id
+           where l.product_id = pid and l.organisation_id = p_org) < cost_conditions_before then
+    raise exception 'a cost depends on a choice that was removed' using errcode = '22023';
+  end if;
 
   if p_price_breaks is not null then
     delete from public.product_price_breaks where product_id = pid and organisation_id = p_org;

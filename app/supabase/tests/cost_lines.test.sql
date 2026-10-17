@@ -93,6 +93,15 @@ begin
   assert (select c.extra_id from public.product_cost_line_conditions c where c.extra_id is not null) = wrap, 'an extra condition pointed at the wrong extra';
   assert (select negate from public.product_cost_line_conditions where kind = 'quantity_at_least'), 'the not was lost';
 
+  -- A form that carries no costs cannot remove a choice a cost depends on (the line would quietly become "always").
+  begin
+    perform public.save_product_layers(org_a, cake, pg_temp.product('Cake'), '[{"name": "Small", "price_cents": 30000}]'::jsonb);
+    raise exception 'a choice that a cost depends on was removed';
+  exception when sqlstate '22023' then null;
+  end;
+  assert (select count(*) from public.product_cost_line_conditions) = 3, 'a refused save changed the conditions';
+  assert exists (select 1 from public.product_variations where id = large), 'a refused save removed the variation';
+
   -- null leaves lines and batch size alone; only the batch size leaves the lines; a list replaces them.
   perform public.save_product_layers(org_a, cake, pg_temp.product('Cake'), null, null, null, null, null, null);
   assert (select count(*) from public.product_cost_lines where product_id = cake) = 3, 'null should leave the lines alone';
