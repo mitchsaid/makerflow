@@ -5,6 +5,7 @@ import { EXTRA_TEXT_DEFAULT, type ExtraFormRow } from "@/lib/products/extras";
 import type { OptionGroupFormRow } from "@/lib/products/options";
 import type { PriceBreakFormRow } from "@/lib/products/price-breaks";
 import type { StepFormRow } from "@/lib/products/steps";
+import { blankCostRow, type CostFormRow } from "@/lib/products/costs";
 
 /** What the product form holds while it is being filled in (plain module: pages use it too). */
 export type ProductFormValues = {
@@ -29,6 +30,9 @@ export type ProductFormValues = {
   priceBreaks: PriceBreakFormRow[];
   /** The steps it is made in, as the form holds them. */
   steps: StepFormRow[];
+  /** What goes into a batch, as the form holds it, and how many a batch makes (text; "1" when it makes one). */
+  costLines: CostFormRow[];
+  makes: string;
 };
 
 export const EMPTY_PRODUCT: ProductFormValues = {
@@ -45,6 +49,8 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   extras: [],
   priceBreaks: [],
   steps: [],
+  costLines: [],
+  makes: "1",
 };
 
 export function emptyOfKind(kind: ProductKind): ProductFormValues {
@@ -64,6 +70,24 @@ export function listHref(kind: ProductKind): string {
 
 export function valuesFromProduct(p: ProductSummary, style: NumberStyle): ProductFormValues {
   const groupOfValue = new Map(p.options.flatMap((g) => g.values.map((x) => [x.id, g.id] as const)));
+  // A saved condition points at its choice by id (a saved row's key is its id).
+  const conditionRows = (prefix: string, conditions: ProductSummary["steps"][number]["conditions"]) =>
+    conditions.map((c, ci) => ({
+      key: `${prefix}-c${ci}`,
+      kind: c.kind,
+      negate: c.negate,
+      ref:
+        c.kind !== "chosen"
+          ? ""
+          : c.variationId
+            ? `variation:${c.variationId}`
+            : c.optionValueId
+              ? `value:${groupOfValue.get(c.optionValueId) ?? ""}/${c.optionValueId}`
+              : c.extraId
+                ? `extra:${c.extraId}`
+                : "",
+      quantity: c.kind === "quantity" ? quantityToInput(c.quantityMilli, style) : "",
+    }));
   return {
     kind: p.kind,
     name: p.name,
@@ -104,24 +128,20 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       key: `saved-step-${i}`,
       name: s.name,
       logic: s.logic,
-      conditions: s.conditions.map((c, ci) => ({
-        key: `saved-step-${i}-c${ci}`,
-        kind: c.kind,
-        negate: c.negate,
-        // A saved row's key is its id, so a condition points at it by id.
-        ref:
-          c.kind !== "chosen"
-            ? ""
-            : c.variationId
-              ? `variation:${c.variationId}`
-              : c.optionValueId
-                ? `value:${groupOfValue.get(c.optionValueId) ?? ""}/${c.optionValueId}`
-                : c.extraId
-                  ? `extra:${c.extraId}`
-                  : "",
-        quantity: c.kind === "quantity" ? quantityToInput(c.quantityMilli, style) : "",
-      })),
+      conditions: conditionRows(`saved-step-${i}`, s.conditions),
     })),
+    costLines: p.costLines.map((l, i): CostFormRow => {
+      const base = { ...blankCostRow(`saved-cost-${i}`, l.kind), logic: l.logic, conditions: conditionRows(`saved-cost-${i}`, l.conditions) };
+      if (l.kind === "material") return { ...base, materialId: l.materialId, amount: quantityToInput(l.amountMilli, style), unit: l.unit };
+      if (l.kind === "time") {
+        // Whole hours read better as hours.
+        return l.minutes % 60 === 0
+          ? { ...base, time: quantityToInput((l.minutes / 60) * 1000, style), timeUnit: "hours" }
+          : { ...base, time: quantityToInput(l.minutes * 1000, style), timeUnit: "minutes" };
+      }
+      return { ...base, name: l.name, cost: moneyToInput(l.cents, style) };
+    }),
+    makes: quantityToInput(p.makesMilli, style),
     extras: p.extras.map((x) => ({
       key: x.id,
       id: x.id,

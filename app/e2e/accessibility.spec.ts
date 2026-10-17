@@ -723,5 +723,48 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("button", { name: /Reset to the product/ })).toBeVisible();
       await expectNoViolations(page, "job, changing one item's steps");
     });
+    test("costs on a product, the hourly rate, and the margin on a quote", async ({ page }) => {
+      test.setTimeout(240_000);
+      await signUpAndOnboard(page, `a11y-costs-${scheme}`, "Costs Axe Co");
+      await openBusinessProfile(page);
+      await expectNoViolations(page, "business profile, with the hourly rate");
+      await page.getByLabel("Price of an hour of your time").fill("120");
+      await page.getByRole("button", { name: "Save hourly rate" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+
+      await page.goto("/app/products/new");
+      await page.getByLabel("Name", { exact: true }).fill("Axe cost cake");
+      await page.getByLabel("Price", { exact: true }).fill("100");
+      
+      await expectNoViolations(page, "product, choosing the kind of cost");
+      for (const label of ["Add your time", "Add other cost"]) {
+        await page.getByRole("button", { name: label, exact: true }).focus();
+        await page.keyboard.press("Enter");
+      }
+      await page.getByLabel("How long it takes").fill("30");
+      await page.getByLabel("What is it", { exact: true }).fill("Box");
+      await page.getByLabel("What it costs", { exact: true }).fill("10");
+      await expectNoViolations(page, "product, with costs and the summary");
+      await page.getByRole("button", { name: /^Only for some items \(Other cost 1\)/ }).focus();
+      await page.keyboard.press("Enter");
+      await expectNoViolations(page, "product, a cost with a condition");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "product costs, with problems");
+      await page.getByRole("button", { name: "Remove condition 1 of Other cost 1" }).click();
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByTestId("product-added")).toBeVisible();
+
+      await page.goto("/app/quotes/new");
+      await page.getByRole("button", { name: "Add item" }).focus();
+      await page.keyboard.press("Enter");
+      await page.getByRole("dialog").getByRole("button", { name: /Axe cost cake/ }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Add to quote" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByTestId("margin-summary")).toBeVisible();
+      await expectNoViolations(page, "quote, the margin line");
+      await page.getByTestId("margin-panel").locator("summary").click();
+      await expectNoViolations(page, "quote, the margin breakdown");
+    });
   });
 }

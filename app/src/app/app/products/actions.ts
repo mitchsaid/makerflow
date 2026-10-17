@@ -14,6 +14,8 @@ import { extrasPayload } from "@/lib/products/extras";
 import { optionsPayload } from "@/lib/products/options";
 import { priceBreaksPayload } from "@/lib/products/price-breaks";
 import { stepsPayload } from "@/lib/products/steps";
+import { costsPayload } from "@/lib/products/costs";
+import { getMaterials } from "@/lib/materials/data";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProductSaveState =
@@ -45,6 +47,7 @@ function toPayload(p: ProductFields) {
     extras: p.extras === undefined ? null : extrasPayload(p.extras),
     priceBreaks: p.priceBreaks === undefined ? null : priceBreaksPayload(p.priceBreaks),
     steps: p.steps === undefined ? null : stepsPayload(p.steps),
+    costs: p.costs === undefined ? null : costsPayload(p.costs),
     variations:
       p.variations === undefined
         ? null
@@ -61,7 +64,9 @@ async function saveProduct(
   formData: FormData,
 ): Promise<{ ok: true; product: ProductSummary } | { ok: false; state: ProductSaveState }> {
   const { organisation } = await requireOrganisation();
-  const parsed = parseProductForm(formData);
+  // A cost line's unit must suit its material, so the materials are read only when the form carries cost lines.
+  const materials = formData.get("costLines") === null ? [] : (await getMaterials()).filter((m) => m.organisationId === organisation.id);
+  const parsed = parseProductForm(formData, new Map(materials.map((m) => [m.id, m.unit])));
   if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 
   const payload = toPayload(parsed.value);
@@ -75,6 +80,7 @@ async function saveProduct(
     p_extras: payload.extras,
     p_price_breaks: payload.priceBreaks,
     p_steps: payload.steps,
+    p_costs: payload.costs,
   });
   if (error?.code === "23505" && error.message.includes("extras_shared_name_unique")) {
     return {
@@ -84,6 +90,18 @@ async function saveProduct(
         errors: { extras: { list: "You already have a saved extra with that name. Pick it from your saved extras, or give this one its own name.", rows: {} } },
       },
     };
+  }
+  if (error?.code === "22023" && error.message.includes("cost depends on a choice")) {
+    return {
+      ok: false,
+      state: {
+        status: "error",
+        message: "A cost on this product depends on a choice you removed. Open the product's own page to change its costs first.",
+      },
+    };
+  }
+  if (error?.code === "23503" && error.message.includes("cost_lines")) {
+    return { ok: false, state: { status: "error", errors: { costs: { rows: {}, list: "A material in your costs could not be used. Choose it again." } } } };
   }
   if (error?.code === "23503") {
     return { ok: false, state: { status: "error", errors: { photo: "That photo could not be used. Choose it again." } } };

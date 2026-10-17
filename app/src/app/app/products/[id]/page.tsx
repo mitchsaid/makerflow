@@ -11,11 +11,13 @@ import { ProductForm } from "../product-form";
 import { listHref, valuesFromProduct } from "../product-values";
 import { ProductArchiveButton } from "./archive-button";
 import { PageHeader } from "@/components/page-header";
+import { getMaterials } from "@/lib/materials/data";
+import { forOrganisation } from "@/lib/scope";
 
 export default async function ProductPage({ params }: PageProps<"/app/products/[id]">) {
   const { id } = await params;
   // The product loads beside the workspace check, not after it.
-  const [product, { organisation, profile }] = await Promise.all([getProduct(id), requireOrganisation()]);
+  const [product, { organisation, profile }, materials] = await Promise.all([getProduct(id), requireOrganisation(), getMaterials()]);
   if (product.organisationId !== organisation.id) notFound();
   const locale = getLocalePack(profile.countryCode);
 
@@ -42,6 +44,7 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
         currencyCode={profile.currencyCode}
         numberStyle={locale.numberStyle}
+        costing={{ materials: forOrganisation(materials, organisation.id), hourlyRateCents: profile.labourRateCents, vat: vatSettingsFor(profile, locale) }}
       />
       <ProductArchiveButton id={product.id} archived={product.archived} kind={product.kind} />
     </main>

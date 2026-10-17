@@ -44,6 +44,24 @@ export function materialCostCents(
   material: Pick<Material, "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">,
   vatRateBp: number | null,
 ): Cents | null {
+  const fraction = materialCostFraction(neededMilli, neededUnit, material, vatRateBp);
+  if (!fraction) return null;
+  const { numerator, denominator } = fraction;
+  const cents = (numerator * BigInt(2) + denominator) / (denominator * BigInt(2));
+  // An amount beyond what money can hold is no cost at all: never a silently wrong number.
+  return cents > BigInt(MAX_CENTS) ? null : Number(cents);
+}
+
+/**
+ * The same cost as an exact fraction of a cent (not yet rounded), for work that adds up several costs and rounds
+ * once at the end (lib/costing). Null when the units are different kinds or the material has nothing bought.
+ */
+export function materialCostFraction(
+  neededMilli: QuantityMilli,
+  neededUnit: UnitCode,
+  material: Pick<Material, "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">,
+  vatRateBp: number | null,
+): { numerator: bigint; denominator: bigint } | null {
   if (!sameKind(neededUnit, material.unit)) return null;
   // Only an "included" price has VAT inside it to take out; a business that is not registered has none to remove.
   const stripVat = vatRateBp !== null && material.vatTreatment === "included";
@@ -51,9 +69,7 @@ export function materialCostCents(
   const numerator = toBaseMilli(neededMilli, neededUnit) * BigInt(material.priceCents) * (stripVat ? BigInt(10_000) : BigInt(1));
   const denominator = toBaseMilli(material.boughtQuantityMilli, material.unit) * (stripVat ? BigInt(10_000) + rate : BigInt(1));
   if (denominator === BigInt(0)) return null;
-  const cents = (numerator * BigInt(2) + denominator) / (denominator * BigInt(2));
-  // An amount beyond what money can hold is no cost at all: never a silently wrong number.
-  return cents > BigInt(MAX_CENTS) ? null : Number(cents);
+  return { numerator, denominator };
 }
 
 /** What one of the material's own unit costs (without VAT): "R15,00 per kg". Null if it cannot be worked out. */

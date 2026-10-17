@@ -136,6 +136,15 @@ function groupFor(status: VatStatus, amount: Cents, vat: VatSettings): VatGroup 
   };
 }
 
+/**
+ * What one line is worth WITHOUT VAT, for a margin (cost is without VAT too): the line's amount less its VAT. In the
+ * price-entry mode "inclusive" the VAT is taken out of the amount, rounded to the cent; otherwise the amount is net.
+ * (The document's own net is worked out for each VAT group, so the lines can differ from it by a cent.)
+ */
+export function lineNetCents(line: Pick<LineResult, "amountCents" | "vatStatus">, vat: VatSettings): Cents {
+  return groupFor(line.vatStatus, line.amountCents, vat).netCents;
+}
+
 const STATUS_ORDER: VatStatus[] = ["standard", "zero", "exempt"];
 
 export function calculateDocument(input: {

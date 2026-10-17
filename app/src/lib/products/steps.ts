@@ -52,17 +52,18 @@ export type StepConditionSummary =
 /** A saved step. */
 export type StepSummary = { name: string; logic: StepLogic; conditions: StepConditionSummary[] };
 
+/** What save_product_layers takes for a list of conditions (a step's, or a cost line's). */
+export function conditionsPayload(conditions: readonly ParsedStepCondition[]) {
+  return conditions.map((c) =>
+    c.kind === "quantity"
+      ? { kind: "quantity", negate: c.negate, quantityMilli: c.quantityMilli }
+      : { kind: "chosen", negate: c.negate, ref: c.ref },
+  );
+}
+
 /** What save_product_layers takes for the steps. */
 export function stepsPayload(steps: readonly ParsedStep[]) {
-  return steps.map((s) => ({
-    name: s.name,
-    logic: s.logic,
-    conditions: s.conditions.map((c) =>
-      c.kind === "quantity"
-        ? { kind: "quantity", negate: c.negate, quantityMilli: c.quantityMilli }
-        : { kind: "chosen", negate: c.negate, ref: c.ref },
-    ),
-  }));
+  return steps.map((s) => ({ name: s.name, logic: s.logic, conditions: conditionsPayload(s.conditions) }));
 }
 
 /** The keys of the rows on the form that a condition may point at, in the order they are saved. */
@@ -74,7 +75,7 @@ export type StepChoices = {
 
 export const NO_STEP_CHOICES: StepChoices = { variations: [], lists: [], extras: [] };
 
-function isCondition(value: unknown): value is StepConditionFormRow {
+export function isCondition(value: unknown): value is StepConditionFormRow {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -123,6 +124,37 @@ export function locateChoice(ref: string, choices: StepChoices): StepChoiceRef |
 }
 
 /**
+ * Checks the conditions on one step or cost line. `what` ("step", "cost") is used in the messages. Problems are at the
+ * condition (by its key); too many is a problem of the list.
+ */
+export function parseConditions(
+  rows: readonly StepConditionFormRow[],
+  choices: StepChoices,
+  what: "step" | "cost",
+): { conditions: ParsedStepCondition[]; errors?: Record<string, { ref?: string; quantity?: string }>; list?: string } {
+  const out: { conditions: ParsedStepCondition[]; errors?: Record<string, { ref?: string; quantity?: string }>; list?: string } = { conditions: [] };
+  if (rows.length > STEP_CONDITIONS_MAX) {
+    out.list = `A ${what === "step" ? "step" : "cost"} can have up to ${STEP_CONDITIONS_MAX} conditions.`;
+  }
+  const errors: Record<string, { ref?: string; quantity?: string }> = {};
+  for (const c of rows) {
+    if (c.kind === "quantity") {
+      const q = parseQuantity(c.quantity);
+      if (!q.ok) errors[c.key] = { quantity: c.quantity.trim() === "" ? "Enter the quantity, like 12." : q.error };
+      else out.conditions.push({ kind: "quantity", negate: c.negate, quantityMilli: q.value });
+    } else if (c.ref === "") {
+      errors[c.key] = { ref: `Choose what this ${what} depends on.` };
+    } else {
+      const ref = locateChoice(c.ref, choices);
+      if (!ref) errors[c.key] = { ref: "This depends on a choice that was removed. Choose another, or remove this condition." };
+      else out.conditions.push({ kind: "chosen", negate: c.negate, ref });
+    }
+  }
+  if (Object.keys(errors).length > 0) out.errors = errors;
+  return out;
+}
+
+/**
  * Checks the rows, saying how to fix each problem at its row. The result keeps the order the maker put them in.
  * `choices` are the rows of variations, lists and extras on the same form: a condition on one that has since been
  * removed is a problem at its row, never dropped quietly.
@@ -147,25 +179,10 @@ export function parseSteps(
     if (name === "") rowErrors.name = "Give the step a name, like “Bake”.";
     else if (name.length > STEP_NAME_MAX) rowErrors.name = `Keep the name to ${STEP_NAME_MAX} characters or fewer.`;
 
-    if (row.conditions.length > STEP_CONDITIONS_MAX) {
-      rowErrors.list = `A step can have up to ${STEP_CONDITIONS_MAX} conditions.`;
-    }
-    const conditions: ParsedStepCondition[] = [];
-    const conditionErrors: NonNullable<StepRowErrors["conditions"]> = {};
-    for (const c of row.conditions) {
-      if (c.kind === "quantity") {
-        const q = parseQuantity(c.quantity);
-        if (!q.ok) conditionErrors[c.key] = { quantity: c.quantity.trim() === "" ? "Enter the quantity, like 12." : q.error };
-        else conditions.push({ kind: "quantity", negate: c.negate, quantityMilli: q.value });
-      } else if (c.ref === "") {
-        conditionErrors[c.key] = { ref: "Choose what this step depends on." };
-      } else {
-        const ref = locateChoice(c.ref, choices);
-        if (!ref) conditionErrors[c.key] = { ref: "This depends on a choice that was removed. Choose another, or remove this condition." };
-        else conditions.push({ kind: "chosen", negate: c.negate, ref });
-      }
-    }
-    if (Object.keys(conditionErrors).length > 0) rowErrors.conditions = conditionErrors;
+    const checked = parseConditions(row.conditions, choices, "step");
+    if (checked.list) rowErrors.list = checked.list;
+    if (checked.errors) rowErrors.conditions = checked.errors;
+    const conditions = checked.conditions;
     if (rowErrors.name || rowErrors.list || rowErrors.conditions) errors.rows[row.key] = rowErrors;
     else steps.push({ name, logic: row.logic, conditions });
   }

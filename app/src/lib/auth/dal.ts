@@ -80,6 +80,7 @@ type ProfileRow = {
   vat_registered: boolean;
   vat_number: string | null;
   prices_include_vat: boolean;
+  labour_rate_cents: number | string | null;
   business_types: string[] | null;
   default_deposit_kind: "none" | "percent" | "fixed" | "ask";
   default_deposit_value: number | string;
@@ -124,7 +125,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
            default_sign_off, default_description, payment_instructions, business_types,
-           default_deposit_kind, default_deposit_value, default_discount_kind, default_discount_value, usual_fulfilment, logo_image_id
+           default_deposit_kind, default_deposit_value, default_discount_kind, default_discount_value, usual_fulfilment, logo_image_id, labour_rate_cents
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
@@ -178,6 +179,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       defaultDescription: p?.default_description ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
       logoImageId: p?.logo_image_id ?? null,
+      labourRateCents: p?.labour_rate_cents == null ? null : Number(p.labour_rate_cents),
     },
     bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
     dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),

@@ -8,9 +8,11 @@ import { ProductForm } from "../product-form";
 import { emptyOfKind, KIND_WORDS, listHref } from "../product-values";
 import type { ProductKind } from "@/lib/products";
 import { PageHeader } from "@/components/page-header";
+import { getMaterials } from "@/lib/materials/data";
+import { forOrganisation } from "@/lib/scope";
 
 export default async function NewProductPage({ searchParams }: PageProps<"/app/products/new">) {
-  const [{ profile }, params] = await Promise.all([requireOrganisation(), searchParams]);
+  const [{ organisation, profile }, params, materials] = await Promise.all([requireOrganisation(), searchParams, getMaterials()]);
   const kind: ProductKind = params.kind === "service" ? "service" : "product";
   const locale = getLocalePack(profile.countryCode);
 
@@ -30,6 +32,7 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
         currencyCode={profile.currencyCode}
         numberStyle={locale.numberStyle}
+        costing={{ materials: forOrganisation(materials, organisation.id), hourlyRateCents: profile.labourRateCents, vat: vatSettingsFor(profile, locale) }}
       />
     </main>
   );

@@ -2,7 +2,9 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { VatStatus } from "../money";
+import { isUnitCode } from "../materials/units";
 import type { ProductKind, ProductSummary } from "./index";
+import type { CostLineSummary } from "./costs";
 
 /**
  * Product reads. Row-level security limits every query to businesses the signed-in person
@@ -23,6 +25,32 @@ type Row = {
   photo_image_id: string | null;
   vat_status: VatStatus;
   variation_label: string | null;
+  makes_milli: number | string;
+  product_cost_lines:
+    | {
+        id: string;
+        sort_order: number;
+        kind: "material" | "time" | "other";
+        condition_logic: "all" | "any";
+        material_id: string | null;
+        amount_milli: number | string | null;
+        unit: string | null;
+        minutes: number | null;
+        name: string | null;
+        cents: number | string | null;
+        product_cost_line_conditions:
+          | {
+              sort_order: number;
+              kind: "chosen" | "quantity_at_least";
+              negate: boolean;
+              variation_id: string | null;
+              option_value_id: string | null;
+              extra_id: string | null;
+              quantity_milli: number | string | null;
+            }[]
+          | null;
+      }[]
+    | null;
   product_variations: { id: string; name: string; price_cents: number | string; usual: boolean; sort_order: number; image_id: string | null }[] | null;
   product_steps:
     | {
@@ -80,7 +108,7 @@ type Row = {
     | null;
 };
 
-const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label,\n  product_price_breaks ( variation_id, from_quantity_milli, percent_off_bp, amount_off_cents ),\n  product_steps ( name, sort_order, condition_logic,\n    product_step_conditions ( sort_order, kind, negate, variation_id, option_value_id, extra_id, quantity_milli ) ),\n  product_variations ( id, name, price_cents, usual, sort_order, image_id ),\n  product_option_groups ( id, name, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, image_id, product_option_value_prices ( variation_id, price_cents ) ) ),\n  product_extras ( sort_order,\n    extras ( id, name, price_cents, asks_for_wording, text_max, product_id, price_by_variation, extra_variation_prices ( variation_id, price_cents ), product_extras ( count ) ) )";
+const COLUMNS = "id, organisation_id, kind, name, description, unit_price_cents, unit, archived_at, photo_image_id, vat_status, variation_label, makes_milli,\n  product_cost_lines ( id, sort_order, kind, condition_logic, material_id, amount_milli, unit, minutes, name, cents,\n    product_cost_line_conditions ( sort_order, kind, negate, variation_id, option_value_id, extra_id, quantity_milli ) ),\n  product_price_breaks ( variation_id, from_quantity_milli, percent_off_bp, amount_off_cents ),\n  product_steps ( name, sort_order, condition_logic,\n    product_step_conditions ( sort_order, kind, negate, variation_id, option_value_id, extra_id, quantity_milli ) ),\n  product_variations ( id, name, price_cents, usual, sort_order, image_id ),\n  product_option_groups ( id, name, price_by_variation, sort_order,\n    product_option_values ( id, name, price_cents, usual, sort_order, image_id, product_option_value_prices ( variation_id, price_cents ) ) ),\n  product_extras ( sort_order,\n    extras ( id, name, price_cents, asks_for_wording, text_max, product_id, price_by_variation, extra_variation_prices ( variation_id, price_cents ), product_extras ( count ) ) )";
 
 function fromRow(row: Row): ProductSummary {
   return {
@@ -95,6 +123,28 @@ function fromRow(row: Row): ProductSummary {
     photoImageId: row.photo_image_id,
     vatStatus: row.vat_status,
     variationLabel: row.variation_label,
+    makesMilli: Number(row.makes_milli),
+    costLines: [...(row.product_cost_lines ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .flatMap((l): CostLineSummary[] => {
+        const common = {
+          id: l.id,
+          logic: l.condition_logic,
+          conditions: [...(l.product_cost_line_conditions ?? [])]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((c) =>
+              c.kind === "quantity_at_least"
+                ? { kind: "quantity" as const, negate: c.negate, quantityMilli: Number(c.quantity_milli) }
+                : { kind: "chosen" as const, negate: c.negate, variationId: c.variation_id, optionValueId: c.option_value_id, extraId: c.extra_id },
+            ),
+        };
+        if (l.kind === "material" && l.material_id && l.amount_milli !== null && l.unit !== null && isUnitCode(l.unit)) {
+          return [{ ...common, kind: "material" as const, materialId: l.material_id, amountMilli: Number(l.amount_milli), unit: l.unit }];
+        }
+        if (l.kind === "time" && l.minutes !== null) return [{ ...common, kind: "time" as const, minutes: l.minutes }];
+        if (l.kind === "other" && l.name !== null && l.cents !== null) return [{ ...common, kind: "other" as const, name: l.name, cents: Number(l.cents) }];
+        return [];
+      }),
     steps: [...(row.product_steps ?? [])]
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((x) => ({

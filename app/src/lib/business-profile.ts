@@ -41,10 +41,12 @@ export type BusinessProfile = {
   paymentInstructions: string | null;
   /** The logo (an id from lib/images), printed at the top of documents. Null for none. Set on the Business profile. */
   logoImageId: string | null;
+  /** What an hour of the maker's time is worth (cents, without VAT), or null when not set. Edited under What your time is worth. */
+  labourRateCents: number | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents">;
 
 export type FieldName =
   | "name"
