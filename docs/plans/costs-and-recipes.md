@@ -1,6 +1,6 @@
 # Plan: costs, process and stock for one product with variations
 
-**Paused after slice 1 (founder, 2026-10-11): quotes, invoices and job tracking come first** (`docs/plans/jobs-and-invoices.md`); this plan resumes after them.
+**Slice 1 is built. Resumed 2026-10-17 as `docs/plans/costing-and-margin.md`** (costs on the product and margin on a quote, reconciled with the steps and conditions built since; where the two differ, that plan wins). Stock (slices 5 and 6 below) stays here.
 
 Status: **proposal, updated 2026-10-11** after the founder's answers (VAT researched, batch size agreed, steps can depend on a choice, "recipe" becomes **process**). Nothing is built. Two small questions remain (end of this file). **Money, migrations and new tables: human review.** (The file keeps its first name, `costs-and-recipes`, so links keep working.)
 
