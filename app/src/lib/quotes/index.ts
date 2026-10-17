@@ -84,6 +84,8 @@ export type LineFormValues = {
    */
   listPrice?: string;
   quantityPriceText?: string;
+  /** What a one-off item costs the maker each (as typed), "" or absent for not said. Never shown to the customer. */
+  unitCost?: string;
 };
 
 /**
@@ -144,7 +146,7 @@ export type QuoteFormValues = {
 };
 
 export type LineErrors = Partial<
-  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue" | "variation" | "options", string>
+  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "unitCost" | "discountValue" | "variation" | "options", string>
 >;
 
 export type QuoteErrors = {
@@ -195,6 +197,8 @@ export type ParsedLine = {
   extrasFixedCents: Cents;
   /** The price before the quantity price that set this price each, and its words; null when no quantity price did. */
   quantityPrice: { listPriceCents: Cents; text: string } | null;
+  /** What a one-off item costs the maker each, or null/absent when not said. Only a one-off item has one. */
+  unitCostCents?: Cents | null;
 };
 
 export type ParsedLineOption = {
@@ -317,7 +321,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
       // Nor the variation: that means none.
       ["variationId", "variationLabel", "variationName"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
       // Nor the quantity price that set the price: that means none.
-      ["listPrice", "quantityPriceText"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
+      ["listPrice", "quantityPriceText", "unitCost"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
       // Nor the options: that means none.
       (l.options === undefined || (Array.isArray(l.options) && l.options.length <= MAX_LINE_OPTIONS && l.options.every(isLineOption)))
     );
@@ -461,6 +465,17 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   const discount = discountFrom(line.discountKind, line.discountValue);
   if (!discount.ok) errors.discountValue = discount.error;
 
+  // What a one-off item costs the maker each: optional, and only a one-off item has one.
+  let unitCostCents: Cents | null = null;
+  if (!fromProduct && (line.unitCost ?? "").trim() !== "") {
+    const cost = parseMoney(line.unitCost ?? "");
+    if (!cost.ok) errors.unitCost = cost.error;
+    // What it costs for the whole quantity must fit in money, like the price does.
+    else if (quantity.ok && (BigInt(cost.value) * BigInt(quantity.value)) / BigInt(1000) > BigInt(MAX_CENTS)) {
+      errors.unitCost = "That cost is too large for this quantity.";
+    } else unitCostCents = cost.value;
+  }
+
   // The options chosen: the item's own copy; only on an item from a product.
   let options: ParsedLineOption[] = [];
   if ((line.options ?? []).length > 0) {
@@ -514,6 +529,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       extrasPerItemCents: optionsPerItem(options),
       extrasFixedCents: optionsFixed(options),
       quantityPrice,
+      unitCostCents,
     },
   };
 }
@@ -795,6 +811,7 @@ export function toDatabasePayload(
       variation_id: l.variation?.id ?? null,
       variation_label: l.variation?.label ?? null,
       variation_name: l.variation?.name ?? null,
+      unit_cost_cents: l.unitCostCents ?? null,
       list_price_cents: l.quantityPrice?.listPriceCents ?? null,
       quantity_price_text: l.quantityPrice?.text ?? null,
       options: l.options.map((o) => ({

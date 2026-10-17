@@ -11,16 +11,30 @@ import type { LineMargin } from "@/lib/quotes/margin";
  * where to add them, and are left out of the figure (it says how many are counted). Without VAT, said once. It is
  * never part of the customer's quote.
  */
-export function MarginPanel({ items, currencyCode, numberStyle }: { items: LineMargin[]; currencyCode: string; numberStyle: NumberStyle }) {
+export function MarginPanel({
+  items,
+  currencyCode,
+  numberStyle,
+  note,
+  frozen = false,
+}: {
+  items: LineMargin[];
+  currencyCode: string;
+  numberStyle: NumberStyle;
+  /** Said under the breakdown: "Worked out when you sent this version" on a sent quote. */
+  note?: string;
+  /** A sent quote: nothing here can be edited, so no prompts to add costs. */
+  frozen?: boolean;
+}) {
   if (items.length === 0) return null;
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const total = quoteMargin(items.map((i) => i.margin ?? { revenueCents: 0, costCents: null, profitCents: null, marginBp: null, incomplete: false }));
   // Items with no costs are not counted at all, so the figure is for the costed ones.
   const costed = total.costedItems;
-  if (costed === 0) {
+  if (costed === 0 && !frozen) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="margin-panel">
-        Only you see this: add what a product costs to make to see your margin here.{" "}
+        Only you see this: add what a product costs to make, or what a one-off item costs you, to see your margin here.{" "}
         <Link href="/app/products" className="underline underline-offset-4">
           Go to your products
         </Link>
@@ -56,17 +70,20 @@ export function MarginPanel({ items, currencyCode, numberStyle }: { items: LineM
                 </dl>
               ) : (
                 <p className="text-muted-foreground">
-                  No costs yet.{" "}
-                  {i.productId && (
+                  {frozen ? "No costs were recorded for this item." : "No costs yet."}{" "}
+                  {frozen ? null : i.productId ? (
                     <Link href={`/app/products/${i.productId}`} className="underline underline-offset-4">
                       Add what it costs to make
                     </Link>
+                  ) : (
+                    "Say what it costs you on the item to see its margin."
                   )}
                 </p>
               )}
             </li>
           ))}
         </ul>
+        {note && <p className="text-muted-foreground">{note}</p>}
         <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
       </div>
     </details>

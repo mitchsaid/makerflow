@@ -765,6 +765,11 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quote, the margin line");
       await page.getByTestId("margin-panel").locator("summary").click();
       await expectNoViolations(page, "quote, the margin breakdown");
+      await page.getByRole("button", { name: "Add item" }).focus();
+      await page.keyboard.press("Enter");
+      await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
+      await page.getByRole("dialog").getByLabel("What it costs you").fill("30");
+      await expectNoViolations(page, "quote, a one-off item that says what it costs");
     });
   });
 }

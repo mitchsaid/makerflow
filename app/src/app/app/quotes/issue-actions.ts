@@ -10,7 +10,7 @@ import { getProducts } from "@/lib/products/data";
 import { isQuoteFormValues } from "@/lib/quotes";
 import { findStoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
-import { prepareQuote } from "@/lib/quotes/prepare";
+import { costingForSending, prepareQuote } from "@/lib/quotes/prepare";
 import type { SendProblem } from "@/lib/quotes/send-checks";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -105,6 +105,13 @@ export async function sendQuote(quoteId: string): Promise<SendResult> {
   if (stored.status !== "draft") return { status: "error", message: "This quote has already been sent." };
   if (problems.length > 0) return { status: "problems", problems };
 
+  // What it costs to make, worked out from the products and materials as they are now and frozen with the version.
+  // (A private nicety must never stop a quote going out: without it the version just has no margin recorded.)
+  const costing = await costingForSending(parsed, workspace).catch((error: unknown) => {
+    console.error("could not work out what the quote costs to make:", (error as Error).message);
+    return null;
+  });
+
   // The person's session has proved the draft is theirs to send. From here the server key acts.
   const admin = serverClient();
   if (!admin) return { status: "error", message: NOT_SET_UP };
@@ -118,6 +125,8 @@ export async function sendQuote(quoteId: string): Promise<SendResult> {
     p_net_cents: parsed.totals.netCents,
     p_vat_cents: parsed.totals.vatCents,
     p_gross_cents: parsed.totals.grossCents,
+    // The maker's private figures, kept beside the snapshot and never inside it.
+    p_costing: costing,
   });
   if (error) {
     if (error.code === "40001") {

@@ -45,6 +45,7 @@ export type StoredQuoteFields = {
     options?: LineOption[];
     listPriceCents?: number | null;
     quantityPriceText?: string | null;
+    unitCostCents?: number | null;
   }[];
 };
 
@@ -78,6 +79,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
       variationLabel: l.variationLabel ?? "",
       variationName: l.variationName ?? "",
       options: l.options ?? [],
+      ...(l.unitCostCents != null && !l.productId ? { unitCost: moneyToInput(l.unitCostCents, style) } : {}),
       ...(l.listPriceCents != null && l.quantityPriceText ? { listPrice: moneyToInput(l.listPriceCents, style), quantityPriceText: l.quantityPriceText } : {}),
     }));
   const fulfilmentLine = sorted.find((l) => l.kind === "delivery" || l.kind === "collection");

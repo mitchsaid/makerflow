@@ -622,6 +622,7 @@ function ConfigureView({
       ["quantity", "Quantity"],
       ["unit", "Unit"],
       ...(job ? [] : ([["unitPrice", priceLabel]] as const)),
+      ...(job || line.productId ? [] : ([["unitCost", "What it costs you"]] as const)),
       ["description", "Description"],
       ...(job ? [] : ([["discountValue", "Discount"]] as const)),
     ] as const
@@ -730,6 +731,19 @@ function ConfigureView({
             value={line.unitPrice}
             error={errors.unitPrice}
             onChange={set("unitPrice")}
+          />
+        )}
+        {!job && !line.productId && (
+          <TextField
+            id={id("unitCost")}
+            label={line.unit.trim() ? `What it costs you per ${line.unit.trim()}` : "What it costs you"}
+            hint="Optional, without VAT. Only you see this."
+            startText={symbol}
+            inputMode="decimal"
+            autoComplete="off"
+            value={line.unitCost ?? ""}
+            error={errors.unitCost}
+            onChange={set("unitCost")}
           />
         )}
         {!job && product && priceDiffers && reference !== undefined && (
