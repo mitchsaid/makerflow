@@ -11,7 +11,7 @@ One way to ask for each kind of thing. A screen that asks for an address, a quan
 | A date | `TextField type="date"` | |
 | A phone number, an email | `TextField type="tel"` / `type="email"` | |
 | A unit ("kg", "dozen") | `UnitField` | |
-| One of a few choices | `RadioGroup` rows; one of many: `SelectField` | |
+| One of a few choices | `ChoiceCards` (`components/choice-cards.tsx`): bordered rows with an optional line of help, for a question about the thing being edited ("Does it come in variations?", "How do you track it on a job?"); one of many: `SelectField` | |
 | A customer | `CustomerPicker` | |
 | An item on a quote or job | `LineSheet` | |
 | A picture | `ImageField` (one picture), `ChoiceImage` (a choice's picture) | |

@@ -6,8 +6,9 @@ async function addProductWithSteps(page: Page, name: string, price: string, step
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Price", { exact: true }).fill(price);
+  await page.getByRole("radio", { name: /^As steps/ }).click();
   for (const [i, step] of steps.entries()) {
-    await page.getByRole("button", { name: i === 0 ? "Add a step" : "Add another step" }).click();
+    if (i > 0) await page.getByRole("button", { name: "Add another step" }).click();
     await page.getByLabel(`Step ${i + 1}`, { exact: true }).fill(step);
   }
   await page.getByRole("button", { name: "Add product" }).click();
@@ -23,7 +24,12 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
   await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
   await page.getByLabel("Price", { exact: true }).fill("15");
 
-  await page.getByRole("button", { name: "Add a step" }).click();
+  // Tracked as a whole is the default: no steps are asked for until "As steps" is chosen.
+  await expect(page.getByRole("radio", { name: /^As a whole/ })).toBeChecked();
+  await expect(page.getByLabel(/^Step \d$/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Add (a|another) step$/ })).toHaveCount(0);
+  await page.getByRole("radio", { name: /^As steps/ }).click();
+  await expect(page.getByLabel("Step 1", { exact: true })).toBeVisible();
   await page.getByLabel("Step 1", { exact: true }).fill("Ice");
   await page.getByRole("button", { name: "Add another step" }).click();
   await page.getByLabel("Step 2", { exact: true }).fill("Bake");
@@ -60,6 +66,19 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
   await page.reload();
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(2);
   await expect(page.getByLabel("Step 2", { exact: true })).toHaveValue("Box");
+
+  // Switched back to tracking as a whole, the steps are hidden, kept if it is switched again before saving, and
+  // gone once saved.
+  await page.getByRole("radio", { name: /^As a whole/ }).click();
+  await expect(page.getByLabel(/^Step \d$/)).toHaveCount(0);
+  await page.getByRole("radio", { name: /^As steps/ }).click();
+  await expect(page.getByLabel(/^Step \d$/)).toHaveCount(2);
+  await page.getByRole("radio", { name: /^As a whole/ }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("radio", { name: /^As a whole/ })).toBeChecked();
+  await expect(page.getByLabel(/^Step \d$/)).toHaveCount(0);
 });
 
 test("steps come from the product into the job, each counted on its own, and the job starts on the first one", async ({ page }) => {

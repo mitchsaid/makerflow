@@ -21,7 +21,8 @@ async function addStep(
   conditions: { choice: string; not?: boolean; quantity?: string }[] = [],
   logic?: "all" | "any",
 ) {
-  await tap(page.getByRole("button", { name: n === 1 ? "Add a step" : "Add another step" }));
+  if (n === 1) await page.getByRole("radio", { name: /^As steps/ }).click();
+  else await tap(page.getByRole("button", { name: "Add another step" }));
   await page.getByLabel(`Step ${n}`, { exact: true }).fill(name);
   const row = stepRow(page, n);
   for (const [i, c] of conditions.entries()) {

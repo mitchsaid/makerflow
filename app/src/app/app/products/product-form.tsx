@@ -9,8 +9,6 @@ import type { VatStatus } from "@/lib/money";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/products";
 import { carryPrice } from "@/lib/products/variations";
 import Link from "next/link";
@@ -20,9 +18,11 @@ import { newVariationKey, PricedVariations } from "./variations-section";
 import { ListsSection } from "./lists-section";
 import { ExtrasSection } from "./extras-section";
 import { QuantityPricesSection } from "./quantity-prices-section";
-import { StepsSection } from "./steps-section";
+import { newStepKey, StepsSection } from "./steps-section";
+import type { StepFormRow } from "@/lib/products/steps";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 import { AddButton } from "@/components/add-button";
+import { ChoiceCards } from "@/components/choice-cards";
 import { FormErrorScope } from "@/components/form-errors";
 
 /**
@@ -140,6 +140,8 @@ export function ProductForm({
   }, [pending, uploadingAny]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
+  // Steps are tracked step by step only when the product has some (the usual is as a whole); the rows typed are kept when it is switched back.
+  const [trackedAsSteps, setTrackedAsSteps] = useState(initial.steps.length > 0);
   // After a save, new variations take the ids the database gave them, so saving again keeps them (and the
   // quote items that point at them) instead of replacing them.
   // The rows as they were sent, in order: the saved product lists its variations in the same order.
@@ -423,30 +425,16 @@ export function ProductForm({
       </Section>
 
       <Section title="Variations">
-        <FieldSet>
-          <FieldLegend variant="label" className="text-base">
-            Does this {KIND_WORDS[values.kind].one} come in any variations (e.g. {examples})?
-          </FieldLegend>
-          <RadioGroup value={hasVariations ? "each" : "one"} onValueChange={(v) => choosePricing(v === "each")} className="gap-2">
-            {(
-              [
-                ["one", "No"],
-                ["each", "Yes"],
-              ] as const
-            ).map(([value, title]) => (
-              <Field
-                key={value}
-                orientation="horizontal"
-                className="items-center rounded-xl border border-border px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
-              >
-                <RadioGroupItem id={fid(value === "one" ? "pricing-one" : "pricing-each")} value={value} />
-                <FieldLabel htmlFor={fid(value === "one" ? "pricing-one" : "pricing-each")} className="flex w-full flex-col items-start gap-0.5 text-base">
-                  <span>{title}</span>
-                </FieldLabel>
-              </Field>
-            ))}
-          </RadioGroup>
-        </FieldSet>
+        <ChoiceCards
+          legend={<>Does this {KIND_WORDS[values.kind].one} come in any variations (e.g. {examples})?</>}
+          value={hasVariations ? "each" : "one"}
+          onChange={(v) => choosePricing(v === "each")}
+          idFor={(v) => fid(v === "one" ? "pricing-one" : "pricing-each")}
+          choices={[
+            { value: "one", title: "No" },
+            { value: "each", title: "Yes" },
+          ]}
+        />
         {priced && (
           <PricedVariations
             label={values.variationLabel}
@@ -560,11 +548,16 @@ export function ProductForm({
       />
       <StepsSection
         title={values.kind === "service" ? "Steps" : "Production steps"}
-        description={
-          values.kind === "service"
-            ? "The steps of the service, in order. Jobs show them so you can track each one."
-            : "The steps to make it, in order. Jobs show them so you can track each one."
-        }
+        tracked={trackedAsSteps}
+        onTrackedChange={(tracked) => {
+          setEditedSinceSave(true);
+          setTrackedAsSteps(tracked);
+          // Steps start with one empty row to name; the ones typed before stay if the choice is changed back.
+          if (tracked && values.steps.length === 0) {
+            const row: StepFormRow = { key: newStepKey(), name: "", logic: "all", conditions: [] };
+            setValues((v) => ({ ...v, steps: [row] }));
+          }
+        }}
         rows={values.steps}
         errors={errors.steps}
         choices={stepChoices}
@@ -576,7 +569,7 @@ export function ProductForm({
         }}
       />
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
-      <input type="hidden" name="steps" value={JSON.stringify(values.steps)} />
+      <input type="hidden" name="steps" value={JSON.stringify(trackedAsSteps ? values.steps : [])} />
       <input type="hidden" name="priceBreaks" value={JSON.stringify(values.priceBreaks)} />
       <input
         type="hidden"
