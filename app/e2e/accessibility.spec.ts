@@ -559,6 +559,11 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("From (quantity)").fill("10");
       await page.getByLabel("Name", { exact: true }).fill("Axe quantity product");
       await page.getByLabel(/^Price/).fill("10");
+      await page.getByLabel("Take off").selectOption("amount");
+      await page.getByLabel("Amount off").fill("2");
+      await expect(page.getByTestId("quantity-price-final")).toHaveText(/8,00 each/);
+      await expectNoViolations(page, "product quantity prices, an amount off");
+      await page.getByLabel("Amount off").fill("10");
       await page.getByRole("button", { name: "Add product" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product quantity prices, with a problem");

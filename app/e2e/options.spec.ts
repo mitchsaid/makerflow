@@ -63,11 +63,14 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await page.getByLabel("Flavour: choice 1", { exact: true }).fill("Vanilla");
   await page.getByLabel("Flavour: choice 2", { exact: true }).fill("Red velvet");
   await page.getByLabel("Flavour: choice 2 adds", { exact: true }).fill("5");
+  // What it makes is written beside the amount: the product's price here is set by Standard and Other (R15 each).
+  await expect(page.getByTestId("added-price")).toHaveText(/^Standard R\s?20,00 · Other R\s?20,00$/);
   await page.getByLabel("Default flavour").selectOption({ label: "Vanilla" });
   await page.getByRole("button", { name: "Done Flavour" }).click();
 
   // Extras: sprinkles +R2, a gift box +R30, and a message on the cake that asks for wording (+R2).
   await addExtra(page, "Gold sprinkles", { price: "2" });
+  await expect(page.getByTestId("added-price").last()).toHaveText(/^Standard R\s?17,00 · Other R\s?17,00$/);
   await page.getByRole("button", { name: "Done Gold sprinkles" }).click();
   await addExtra(page, "Gift box", { price: "30" });
   await page.getByRole("button", { name: "Done Gift box" }).click();
@@ -256,6 +259,8 @@ test("an extra for one product can cost more on a bigger size, and follows the s
   await page.getByRole("checkbox", { name: "Price depends on the size" }).check();
   await page.getByLabel("Gold leaf adds for Small", { exact: true }).fill("50");
   await page.getByLabel("Gold leaf adds for Large", { exact: true }).fill("120");
+  // Each size's box says what it makes with that size's price.
+  await expect(page.getByTestId("added-price")).toHaveText([/^R\s?350,00 in total$/, /^R\s?720,00 in total$/]);
   await tap(page.getByRole("button", { name: "Add product" }));
   await expect(page.getByTestId("product-added")).toBeVisible();
 

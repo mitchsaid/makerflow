@@ -92,7 +92,14 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
         prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
       })),
     })),
-    priceBreaks: p.priceBreaks.map((b, i) => ({ key: `saved-${i}`, from: quantityToInput(b.fromMilli, style), percent: percentToInput(b.percentBp, style) })),
+    // A saved variation's key is its id.
+    priceBreaks: p.priceBreaks.map((b, i) => ({
+      key: `saved-${i}`,
+      variationKey: b.variationId ?? "",
+      from: quantityToInput(b.fromMilli, style),
+      kind: b.off.kind,
+      value: b.off.kind === "percent" ? percentToInput(b.off.bp, style) : moneyToInput(b.off.cents, style),
+    })),
     steps: p.steps.map((s, i) => ({
       key: `saved-step-${i}`,
       name: s.name,

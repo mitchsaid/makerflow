@@ -1,5 +1,8 @@
 "use client";
 
+import type { NumberStyle } from "@/lib/money";
+import { addedPriceNote, type PriceBase } from "@/lib/products/added-price";
+import { AddedPrice } from "./added-price";
 import { useEffect, useRef, useState } from "react";
 import { SelectField, TextField } from "@/components/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +33,9 @@ export function ListsSection({
   groups,
   errors,
   currencySymbol,
+  currencyCode,
+  numberStyle,
+  bases,
   variations,
   variationWord,
   firstNumber,
@@ -47,6 +53,10 @@ export function ListsSection({
   firstNumber: number;
   errors: OptionErrors | undefined;
   currencySymbol: string;
+  /** For the note beside an added amount: the prices it goes onto, and how to write money. */
+  currencyCode: string;
+  numberStyle: NumberStyle;
+  bases: PriceBase[];
   fid: (key: string) => string;
   /** A choice's picture is on its way (true) or has arrived (false), so the form can wait for it before saving. */
   onPendingChange: (pending: boolean) => void;
@@ -236,6 +246,7 @@ export function ListsSection({
                                           })
                                         }
                                       />
+                                      <AddedPrice note={addedPriceNote(v.prices?.[variation.key] ?? "", bases, currencyCode, numberStyle, variation.key)} />
                                     </div>
                                   ))}
                                 </div>
@@ -255,6 +266,7 @@ export function ListsSection({
                                       onChange={(price) => setGroup(g.key, { values: g.values.map((x) => (x.key === v.key ? { ...x, price } : x)) })}
                                     />
                                   </div>
+                                  <AddedPrice beside note={addedPriceNote(v.price, bases, currencyCode, numberStyle)} />
                                   {picture !== "" && removePicture}
                                 </div>
                               )}
