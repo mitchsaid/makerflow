@@ -57,7 +57,7 @@ declare
   h uuid := '00000000-0000-4000-8000-000000004192';   -- only owner of a shared business, and a business of their own
   k uuid := '00000000-0000-4000-8000-000000004193';   -- sends a quote in a business that stays
   org_a uuid; org_shared uuid; org_c uuid; org_two uuid; org_g uuid; org_g_shared uuid; org_h uuid; org_h_shared uuid; org_k uuid;
-  cust uuid; q uuid; q2 uuid; job uuid; prod uuid; img uuid := gen_random_uuid();
+  cust uuid; q uuid; q2 uuid; job uuid; prod uuid; flour uuid; img uuid := gen_random_uuid();
   stamp timestamptz;
   result jsonb;
   before_c integer;
@@ -75,7 +75,7 @@ begin
   org_a := public.ensure_organisation('A Co');
   insert into public.customers (organisation_id, name) values (org_a, 'A customer') returning id into cust;
   insert into public.products (organisation_id, kind, name, unit_price_cents) values (org_a, 'product', 'Cake', 50000) returning id into prod;
-  insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents) values (org_a, 'Flour', 'kg', 1000, 2500);
+  insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents) values (org_a, 'Flour', 'kg', 1000, 2500) returning id into flour;
   q := public.save_quote_draft(org_a, null, pg_temp.quote_json(cust), jsonb_build_array(pg_temp.line(0, 'Cake')));
   insert into public.prompt_dismissals (user_id, organisation_id, prompt_key) values (a, org_a, 'business_types');
   reset role;
@@ -91,6 +91,8 @@ begin
   update public.products set photo_image_id = img where id = prod;
   insert into public.product_variations (organisation_id, product_id, name, price_cents, image_id) values (org_a, prod, 'Large', 60000, img);
   update public.quote_lines set product_id = prod, kind = 'product' where organisation_id = org_a;
+  -- a cost line using a material
+  insert into public.product_cost_lines (organisation_id, product_id, kind, material_id, amount_milli, unit) values (org_a, prod, 'material', flour, 500, 'kg');
   perform public.create_job(org_a, a, cust, 'none', null, null, null,
     jsonb_build_array(jsonb_build_object('kind', 'product', 'name', 'Tray', 'quantityMilli', 1000, 'photoImageId', img)));
   assert (select count(*) from public.job_items where organisation_id = org_a and photo_image_id = img) = 1, 'no job item picture';
@@ -263,7 +265,7 @@ begin
        and confrelid::regclass::text <> 'organisations'
   ) = array[
     'business_profiles->images', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
-    'product_option_values->images', 'product_variations->images', 'products->images',
+    'product_cost_lines->materials', 'product_option_values->images', 'product_variations->images', 'products->images',
     'quote_lines->products', 'quote_versions->quotes', 'quotes->customers'
   ], 'a link between tables that does not cascade was added or removed: teach delete_account (and the seed and this list) about it';
 
