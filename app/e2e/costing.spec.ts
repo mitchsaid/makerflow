@@ -204,3 +204,55 @@ test("a draft quote shows the margin only to you, following the size, the quanti
   await expect(page.getByText(/Only you see this/)).toHaveCount(0);
   await expect(page.getByText(/73,67|No costs yet|costed items/)).toHaveCount(0);
 });
+
+test("a one-off item can say what it costs, and a sent quote keeps its margin when prices change later", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signUpAndOnboard(page, "cost-frozen", "Frozen Co");
+  await setHourlyRate(page, "120");
+
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cake");
+  await page.getByLabel("Price", { exact: true }).fill("150");
+  await addKind(page, "Your time");
+  await costRow(page, "Your time 1").getByLabel("How long it takes").fill("30");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toHaveText("Added Cake.");
+
+  await page.goto("/app/quotes/new");
+  await tap(page.getByRole("button", { name: "Add item" }));
+  await sheet(page).getByRole("button", { name: /Cake/ }).click();
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+
+  // A one-off item says what it costs you; the field is not on an item from a product.
+  await tap(page.getByRole("button", { name: "Add item" }));
+  await sheet(page).getByRole("button", { name: /One-off item/ }).click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Shelf");
+  await sheet(page).getByLabel("Quantity").fill("1");
+  await sheet(page).getByLabel(/^Price/).fill("100");
+  await sheet(page).getByLabel("What it costs you").fill("40");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+
+  // R150 − R60 and R100 − R40: R150 on R250.
+  await expect(page.getByTestId("margin-summary")).toHaveText(/^R\s?150,00 · 60%$/);
+  await addCustomerInSheet(page, "Sam Jacobs", { phone: "021 555 0000" });
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
+  await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
+  await expect(page.getByTestId("sent-banner")).toBeVisible();
+
+  // The sent quote shows the margin it was sent with, and says so.
+  const panel = page.getByTestId("margin-panel");
+  await expect(panel.getByTestId("margin-summary")).toHaveText(/^R\s?150,00 · 60%$/);
+  await panel.locator("summary").click();
+  await expect(panel).toContainText("Worked out when you sent this version");
+  await expect(page.getByTestId("margin-item")).toHaveCount(2);
+
+  // An hour of your time doubles in price: the sent quote does not move.
+  await setHourlyRate(page, "240");
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Quotes" }).click();
+  await page.getByRole("link", { name: /Sam Jacobs/ }).first().click();
+  await expect(page.getByTestId("margin-panel").getByTestId("margin-summary")).toHaveText(/^R\s?150,00 · 60%$/);
+});

@@ -11,7 +11,18 @@ import type { LineMargin } from "@/lib/quotes/margin";
  * where to add them, and are left out of the figure (it says how many are counted). Without VAT, said once. It is
  * never part of the customer's quote.
  */
-export function MarginPanel({ items, currencyCode, numberStyle }: { items: LineMargin[]; currencyCode: string; numberStyle: NumberStyle }) {
+export function MarginPanel({
+  items,
+  currencyCode,
+  numberStyle,
+  note,
+}: {
+  items: LineMargin[];
+  currencyCode: string;
+  numberStyle: NumberStyle;
+  /** Said under the breakdown: "Worked out when you sent this version" on a sent quote. */
+  note?: string;
+}) {
   if (items.length === 0) return null;
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const total = quoteMargin(items.map((i) => i.margin ?? { revenueCents: 0, costCents: null, profitCents: null, marginBp: null, incomplete: false }));
@@ -20,7 +31,7 @@ export function MarginPanel({ items, currencyCode, numberStyle }: { items: LineM
   if (costed === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="margin-panel">
-        Only you see this: add what a product costs to make to see your margin here.{" "}
+        Only you see this: add what a product costs to make, or what a one-off item costs you, to see your margin here.{" "}
         <Link href="/app/products" className="underline underline-offset-4">
           Go to your products
         </Link>
@@ -57,16 +68,19 @@ export function MarginPanel({ items, currencyCode, numberStyle }: { items: LineM
               ) : (
                 <p className="text-muted-foreground">
                   No costs yet.{" "}
-                  {i.productId && (
+                  {i.productId ? (
                     <Link href={`/app/products/${i.productId}`} className="underline underline-offset-4">
                       Add what it costs to make
                     </Link>
+                  ) : (
+                    "Say what it costs you on the item to see its margin."
                   )}
                 </p>
               )}
             </li>
           ))}
         </ul>
+        {note && <p className="text-muted-foreground">{note}</p>}
         <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
       </div>
     </details>

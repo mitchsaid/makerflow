@@ -84,6 +84,8 @@ export type LineFormValues = {
    */
   listPrice?: string;
   quantityPriceText?: string;
+  /** What a one-off item costs the maker each (as typed), "" or absent for not said. Never shown to the customer. */
+  unitCost?: string;
 };
 
 /**
@@ -144,7 +146,7 @@ export type QuoteFormValues = {
 };
 
 export type LineErrors = Partial<
-  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "discountValue" | "variation" | "options", string>
+  Record<"name" | "description" | "quantity" | "unit" | "unitPrice" | "unitCost" | "discountValue" | "variation" | "options", string>
 >;
 
 export type QuoteErrors = {
@@ -195,6 +197,8 @@ export type ParsedLine = {
   extrasFixedCents: Cents;
   /** The price before the quantity price that set this price each, and its words; null when no quantity price did. */
   quantityPrice: { listPriceCents: Cents; text: string } | null;
+  /** What a one-off item costs the maker each, or null/absent when not said. Only a one-off item has one. */
+  unitCostCents?: Cents | null;
 };
 
 export type ParsedLineOption = {
@@ -461,6 +465,14 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   const discount = discountFrom(line.discountKind, line.discountValue);
   if (!discount.ok) errors.discountValue = discount.error;
 
+  // What a one-off item costs the maker each: optional, and only a one-off item has one.
+  let unitCostCents: Cents | null = null;
+  if (!fromProduct && (line.unitCost ?? "").trim() !== "") {
+    const cost = parseMoney(line.unitCost ?? "");
+    if (cost.ok) unitCostCents = cost.value;
+    else errors.unitCost = cost.error;
+  }
+
   // The options chosen: the item's own copy; only on an item from a product.
   let options: ParsedLineOption[] = [];
   if ((line.options ?? []).length > 0) {
@@ -514,6 +526,7 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
       extrasPerItemCents: optionsPerItem(options),
       extrasFixedCents: optionsFixed(options),
       quantityPrice,
+      unitCostCents,
     },
   };
 }
@@ -795,6 +808,7 @@ export function toDatabasePayload(
       variation_id: l.variation?.id ?? null,
       variation_label: l.variation?.label ?? null,
       variation_name: l.variation?.name ?? null,
+      unit_cost_cents: l.unitCostCents ?? null,
       list_price_cents: l.quantityPrice?.listPriceCents ?? null,
       quantity_price_text: l.quantityPrice?.text ?? null,
       options: l.options.map((o) => ({

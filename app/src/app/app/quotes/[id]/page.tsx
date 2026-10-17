@@ -14,7 +14,9 @@ import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { formatMoment, todayIn } from "@/lib/quotes/dates";
-import { getStoredQuote, type StoredQuote } from "@/lib/quotes/data";
+import { getStoredQuote, getVersionCosting, type StoredQuote } from "@/lib/quotes/data";
+import { frozenMargins } from "@/lib/quotes/costing";
+import { MarginPanel } from "../margin-panel";
 import { themeFromStored } from "@/lib/quotes/themes";
 import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { toFormValues } from "@/lib/quotes/form-values";
@@ -126,6 +128,7 @@ export default async function QuotePage({
   const latestSent = quote.versions[0];
   const isLatest = shown.version === latestSent.version;
   const canRevise = isLatest && quote.status === "sent";
+  const margins = frozenMargins(await getVersionCosting(quote.id, shown.version));
   const outcome = currentOutcome(quote.status, quote.events);
   const answered = quote.status === "accepted" || quote.status === "declined";
   const nudgeJob = shouldNudgeCreateJob({
@@ -225,6 +228,23 @@ export default async function QuotePage({
         <QuoteDocumentView snapshot={shown.snapshot} />
       </section>
       <DesignSection theme={themeFromStored(shown.snapshot)} />
+      {margins && margins.length > 0 && (
+        <section className="space-y-2" aria-labelledby="margin-heading">
+          <h2 id="margin-heading" className="text-base font-semibold">
+            Your margin
+          </h2>
+          <Card>
+            <CardContent>
+              <MarginPanel
+                items={margins}
+                currencyCode={profile.currencyCode}
+                numberStyle={locale.numberStyle}
+                note="Worked out when you sent this version, from what your materials and time cost then."
+              />
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {canRevise && (
         <section className="space-y-3" aria-label="Coming soon">

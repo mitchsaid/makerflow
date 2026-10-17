@@ -1,6 +1,6 @@
 # Plan: what it costs to make, and the margin on a quote
 
-Status: **planned 2026-10-17** from the founder's order of work: *costing and margin first, to demo it on a quote, then thin invoices.* Three slices; every one changes the database (**money, migrations and new tables: human review**). **Slice A is built** (see "Built, slice A" at the end); B and C are not.
+Status: **planned 2026-10-17** from the founder's order of work: *costing and margin first, to demo it on a quote, then thin invoices.* Three slices; every one changes the database (**money, migrations and new tables: human review**). **Slice A is built** (see "Built, slice A" at the end); slice B is being built in two parts (B1: freezing and a one-off item's cost; B2: extras' costs); C is not.
 
 It finishes `docs/plans/costs-and-recipes.md` (materials are slice 1 there and are built). That plan was written before steps, conditions and quantity prices existed, so this one reconciles it: costs use the **same "only for some items" conditions** as steps (`docs/plans/quantity-prices-and-steps.md`, slice 4), and the cost is worked out on the **quote**, not only on the product. Where the two plans differ, this one wins; the older plan's reasons (VAT on costs, exact arithmetic, stock as a ledger) still stand and are not repeated.
 
@@ -110,3 +110,10 @@ A step's own minutes feeding the cost, size scaling, waste, price history of mat
 
 ### Prototype read, missed (found while building)
 - None beyond the table above. The prototype's per-line "rate" field and the stored rounded cost were dropped on purpose (rows 19 and 20).
+
+## Built, slice B1 (2026-10-17; needs human review: migration `20261113100000_quote_costing.sql`, money, a replaced server-only function)
+- **The costing is frozen with a sent version, in its own column, not in the snapshot** (a change from decision 7's wording, "a private section of the snapshot"): `quote_versions.costing` (jsonb, nullable, members only). The snapshot is what the customer's document is drawn from and, once there is an online-acceptance page, what a customer may be served; the maker's costs must never sit in it. `send_quote` takes it as `p_costing` (server-only, the old 9-argument signature is dropped). The immutability trigger already freezes it. It records the items (name, quantity, revenue, cost, whether the cost is a minimum, the parts it is made of with their labels) and what it was worked out with (hourly rate, VAT rate). A quote with no costed item records none.
+- **Worked out when sending, not on previews** (`costingForSending` in `lib/quotes/prepare.ts`: the products with their cost lines, and the materials only when a line uses one), using the same function as the draft's panel (`costItem` in `lib/quotes/margin.ts`), so a sent quote and its draft cannot disagree. A sent quote's page shows **Your margin** from the stored figures, with "Worked out when you sent this version…". An earlier version shows its own.
+- **A one-off item can say what it costs** ("What it costs you", optional, in the item sheet; not on an item from a product, and not on a job item): `quote_lines.unit_cost_cents`, carried by `save_quote_draft` (same signature, replaced) and dropped for an item from a product. The cost is each, times the quantity, rounded once.
+- **Jobs and invoices:** a job made from a quote does not copy the cost (nothing on a job shows it); the thin invoice reads it from the version's `costing`, which is where "the job and invoice carry the frozen figure" is kept. Nothing is lost by not copying it now.
+- Tests: `quote_costing.test.sql`; `lib/quotes/__tests__/costing.test.ts`; `e2e/costing.spec.ts` (the one-off cost, the freeze surviving a change of the hourly rate); an accessibility case for the one-off cost field.
