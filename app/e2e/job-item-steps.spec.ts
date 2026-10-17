@@ -79,9 +79,12 @@ test("one item's steps can be added to, taken off and reset, without touching th
   await tap(editor.getByRole("button", { name: "Done changing steps" }));
   await page.getByRole("button", { name: "One more Bake for Cupcakes" }).click();
   await expect(cupcakes.getByTestId("step-progress").first()).toContainText("Bake: 1 of 12");
-  // (the count is saved in the background: reload so the page has what the server has)
-  await page.reload();
-  await expect(cupcakes.getByTestId("step-progress").first()).toContainText("Bake: 1 of 12");
+  // (the count is saved in the background: reload until the page has what the server has, as a slow save can land after
+  // the first reload)
+  await expect(async () => {
+    await page.reload();
+    await expect(cupcakes.getByTestId("step-progress").first()).toContainText("Bake: 1 of 12", { timeout: 2000 });
+  }).toPass({ timeout: 30_000 });
   await tap(page.getByRole("button", { name: "Change steps for Cupcakes" }));
   await tap(editor.getByRole("button", { name: "Remove Bake from Cupcakes" }));
   const ask = editor.getByRole("alertdialog", { name: "Remove Bake?" });
