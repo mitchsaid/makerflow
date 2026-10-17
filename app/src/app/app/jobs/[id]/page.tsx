@@ -11,6 +11,7 @@ import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { ItemProgress } from "../item-progress";
 import { ItemSteps } from "../item-steps";
+import { StepsEditor } from "../steps-editor";
 import { JobNote } from "../job-note";
 import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
@@ -79,15 +80,18 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
                   </div>
                   {counting && item.steps.length > 0 && <ItemSteps jobId={job.id} item={item} numberStyle={locale.numberStyle} />}
                   {counting && item.steps.length === 0 && (
-                    <ItemProgress
-                      jobId={job.id}
-                      itemId={item.id}
-                      name={item.name}
-                      quantityMilli={item.quantityMilli}
-                      madeMilli={item.madeMilli}
-                      unit={item.unit}
-                      numberStyle={locale.numberStyle}
-                    />
+                    <>
+                      <ItemProgress
+                        jobId={job.id}
+                        itemId={item.id}
+                        name={item.name}
+                        quantityMilli={item.quantityMilli}
+                        madeMilli={item.madeMilli}
+                        unit={item.unit}
+                        numberStyle={locale.numberStyle}
+                      />
+                      {item.fromProduct && <StepsEditor jobId={job.id} itemId={item.id} name={item.name} steps={item.steps} stepsEdited={item.stepsEdited} />}
+                    </>
                   )}
                 </li>
               ))}

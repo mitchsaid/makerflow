@@ -1,4 +1,5 @@
 import { ItemProgress } from "./item-progress";
+import { StepsEditor } from "./steps-editor";
 import { quantityText } from "@/lib/quotes/units";
 import type { NumberStyle } from "@/lib/money";
 
@@ -19,6 +20,8 @@ export function ItemSteps({
     madeMilli: number;
     unit: string | null;
     steps: { id: string; name: string; doneMilli: number }[];
+    fromProduct: boolean;
+    stepsEdited: boolean;
   };
   numberStyle: NumberStyle;
 }) {
@@ -46,6 +49,7 @@ export function ItemSteps({
           </li>
         ))}
       </ol>
+      {item.fromProduct && <StepsEditor jobId={jobId} itemId={item.id} name={item.name} steps={item.steps} stepsEdited={item.stepsEdited} />}
     </div>
   );
 }
