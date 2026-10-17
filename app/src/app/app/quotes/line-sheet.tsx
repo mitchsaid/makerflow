@@ -35,6 +35,7 @@ import { extraAmount } from "@/lib/products/extras";
 import { optionsFixed, optionsPerItem, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
 import { ProductForm } from "../products/product-form";
+import { QuantityField } from "@/components/quantity-field";
 import { priceBreakText, referencePrice } from "@/lib/products/price-breaks";
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 import { AddButton } from "@/components/add-button";
@@ -698,18 +699,17 @@ function ConfigureView({
             ]}
           />
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <TextField
-            id={id("quantity")}
-            label="Quantity"
-            inputMode="decimal"
-            autoComplete="off"
-            value={line.quantity}
-            error={errors.quantity}
-            onChange={changeQuantity}
-          />
-          <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />
-        </div>
+        <QuantityField
+          id={id("quantity")}
+          label="Quantity"
+          stepper
+          numberStyle={numberStyle}
+          unit={line.unit.trim() || undefined}
+          value={line.quantity}
+          error={errors.quantity}
+          onChange={changeQuantity}
+        />
+        <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />
         {!job && (
           <TextField
             id={id("unitPrice")}
@@ -805,6 +805,7 @@ function ConfigureView({
             errors={optionErrors}
             money={money}
             showPrices={!job}
+            numberStyle={numberStyle}
             onChange={(options) => {
               setLine((l) => ({ ...l, options }));
               // A problem goes away once it is fixed.

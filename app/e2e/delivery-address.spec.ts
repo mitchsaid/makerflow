@@ -56,31 +56,37 @@ test("a delivery uses the customer's saved address, or another one, and it print
   const main = page.getByRole("radio", { name: /^Address on file/ });
   await expect(main).not.toBeChecked();
   await expect(page.getByRole("radio", { name: "A different address" })).not.toBeChecked();
-  await expect(page.getByLabel("Delivery address", { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("delivery-address-fields")).toHaveCount(0);
 
   // Use their main address instead.
   await main.check();
   await expect(main).toBeChecked();
   await expect(page.getByText(/12 Main Road/).first()).toBeVisible();
 
-  // A different address: an empty box, for this quote only.
+  // A different address: separate empty fields, the same as a customer's, for this quote only.
   await page.getByRole("radio", { name: "A different address" }).check();
-  const box = page.getByLabel("Delivery address", { exact: true });
-  await expect(box).toHaveValue("");
-  await box.fill("5 Elm Street\nParkhurst");
+  const fields = page.getByTestId("delivery-address-fields");
+  await expect(fields.getByLabel("Street address")).toHaveValue("");
+  await expect(fields.getByLabel("City or town")).toHaveValue("");
+  await expect(fields.getByLabel("Postal code")).toHaveValue("");
+  await fields.getByLabel("Street address").fill("5 Elm Street");
+  await fields.getByLabel("Suburb or building (optional)").fill("Parkhurst");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
 
-  // It was saved: reopening shows it as the typed address.
+  // It was saved: reopening shows it as the address on this quote (the parts it was typed in are not kept).
   await page.reload();
-  await expect(page.getByRole("radio", { name: "A different address" })).toBeChecked();
-  await expect(page.getByLabel("Delivery address", { exact: true })).toHaveValue("5 Elm Street\nParkhurst");
+  const thisQuote = page.getByRole("radio", { name: /Address on this quote/ });
+  await expect(thisQuote).toBeChecked();
+  await expect(page.getByTestId("delivery-address")).toContainText("5 Elm Street");
+  await expect(page.getByTestId("delivery-address")).toContainText("Parkhurst");
+  await expect(page.getByTestId("delivery-address-fields")).toHaveCount(0);
 
   // Collection hides it (the text stays on the draft but is not printed).
   await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
-  await expect(page.getByLabel("Delivery address", { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("delivery-address")).toHaveCount(0);
   await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
-  await expect(page.getByLabel("Delivery address", { exact: true })).toHaveValue("5 Elm Street\nParkhurst");
+  await expect(thisQuote).toBeChecked();
 
   // Send it: the address is on the frozen document.
   await startSend(page);
@@ -94,11 +100,11 @@ test("a delivery uses the customer's saved address, or another one, and it print
   // Quote again carries the address to the new draft.
   await page.getByRole("button", { name: "Quote again" }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0002 Draft$/, level: 1 })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "A different address" })).toBeChecked();
-  await expect(page.getByLabel("Delivery address", { exact: true })).toHaveValue("5 Elm Street\nParkhurst");
+  await expect(page.getByRole("radio", { name: /Address on this quote/ })).toBeChecked();
+  await expect(page.getByTestId("delivery-address")).toContainText("5 Elm Street");
 });
 
-test("a customer with nothing saved gets a plain box, a too-long address says how to fix it, and none is needed to send", async ({ page }) => {
+test("a customer with nothing saved gets the address fields, a too-long address says how to fix it, and none is needed to send", async ({ page }) => {
   await signUpAndOnboard(page, "del-typed", "Typed Co");
   await openBusinessProfile(page);
   await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
@@ -109,9 +115,9 @@ test("a customer with nothing saved gets a plain box, a too-long address says ho
   await addCustomer(page, "Sipho Dlamini");
   await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
 
-  // Nothing saved for this customer: just a box, and it can be left.
+  // Nothing saved for this customer: the address fields, and they can be left empty.
   await expect(page.getByRole("radio", { name: /on file/ })).toHaveCount(0);
-  const box = page.getByLabel("Deliver to (optional)");
+  const box = page.getByTestId("delivery-address-fields").getByLabel("Street address");
   await expect(box).toBeVisible();
   await expect(page.getByText(/Nothing is saved for this customer yet/)).toBeVisible();
 
@@ -145,10 +151,10 @@ test("changing the customer moves the saved address along, but never replaces on
 
   // An address typed for this quote stays when the customer changes.
   await page.getByRole("radio", { name: "A different address" }).check();
-  await page.getByLabel("Delivery address", { exact: true }).fill("5 Elm Street");
+  await page.getByTestId("delivery-address-fields").getByLabel("Street address").fill("5 Elm Street");
   await page.getByRole("button", { name: "Change customer" }).click();
   await addCustomer(page, "Carla Meyer");
-  await expect(page.getByLabel("Deliver to (optional)")).toHaveValue("5 Elm Street");
+  await expect(page.getByTestId("delivery-address-fields").getByLabel("Street address")).toHaveValue("5 Elm Street");
 
   // Changing the customer's saved address from the quote refreshes the choices (here: a customer
   // who had none gets one).
@@ -161,7 +167,7 @@ test("changing the customer moves the saved address along, but never replaces on
   await expect(page.getByText("Farm gate, R45")).toBeVisible();
   // What was typed for the quote is still there and still chosen.
   await expect(page.getByRole("radio", { name: "A different address" })).toBeChecked();
-  await expect(page.getByLabel("Delivery address", { exact: true })).toHaveValue("5 Elm Street");
+  await expect(page.getByTestId("delivery-address-fields").getByLabel("Street address")).toHaveValue("5 Elm Street");
 });
 
 test("one customer's saved address never ends up on another customer's quote", async ({ page }) => {
@@ -177,7 +183,7 @@ test("one customer's saved address never ends up on another customer's quote", a
   await addCustomer(page, "Sipho Dlamini");
   await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
   await expect(page.getByText("The gate at the back")).toHaveCount(0);
-  await expect(page.getByLabel("Deliver to (optional)")).toHaveValue("");
+  await expect(page.getByTestId("delivery-address-fields").getByLabel("Street address")).toHaveValue("");
 
   // Editing the chosen customer's address changes the quote's address with it.
   await page.getByRole("button", { name: /Edit details/ }).click();
@@ -196,7 +202,7 @@ test("one customer's saved address never ends up on another customer's quote", a
 
   // A too-long address typed and then hidden by choosing Collection does not block saving.
   await page.getByRole("radio", { name: "A different address" }).check();
-  await page.getByLabel("Delivery address", { exact: true }).fill("x".repeat(450));
+  await page.getByTestId("delivery-address-fields").getByLabel("Street address").fill("x".repeat(450));
   await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);

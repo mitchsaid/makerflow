@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { DeliveryAddress } from "@/components/delivery-address";
+import { Section, TextField } from "@/components/form-fields";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { SavedAddress } from "@/lib/customers";
-import { QUOTE_DELIVERY_ADDRESS_MAX, type Fulfilment } from "@/lib/quotes";
-import { addressWhenFulfilmentChanges, sameAddress } from "@/lib/quotes/delivery";
+import type { Fulfilment } from "@/lib/quotes";
+import { addressWhenFulfilmentChanges } from "@/lib/quotes/delivery";
 
 /**
  * "Delivery or collection". Choosing Delivery asks for the fee and where to: one of the addresses
- * the customer has on file (the first is picked for you), or a different address typed for this
- * quote. Nothing here is required: an address can be left for later.
+ * the customer has on file (the first is picked for you), or a different address entered for this
+ * quote in the same separate fields as everywhere else. Nothing here is required: an address can be left for later.
  */
 export function DeliverySection({
   fulfilment,
@@ -20,6 +20,7 @@ export function DeliverySection({
   onChange,
   saved,
   hasCustomer,
+  countryCode,
   feeLabel,
   symbol,
   errors,
@@ -31,29 +32,11 @@ export function DeliverySection({
   /** The chosen customer's addresses on file (none when there is no customer or nothing saved). */
   saved: SavedAddress[];
   hasCustomer: boolean;
+  countryCode: string;
   feeLabel: string;
   symbol: string;
   errors: { deliveryFee?: string; deliveryAddress?: string };
 }) {
-  // "A different address" was picked and nothing is typed yet.
-  const [otherPicked, setOtherPicked] = useState(false);
-
-  const savedIndex = saved.findIndex((a) => sameAddress(a.text, deliveryAddress));
-  const typed = deliveryAddress.trim() !== "";
-  const choice = savedIndex >= 0 ? `saved-${savedIndex}` : otherPicked || typed ? "other" : "";
-
-  function choose(value: string) {
-    if (value === "other") {
-      setOtherPicked(true);
-      // Start from a clean box rather than editing the customer's own address by accident.
-      if (savedIndex >= 0) onChange({ deliveryAddress: "" });
-      return;
-    }
-    setOtherPicked(false);
-    const picked = saved[Number(value.replace("saved-", ""))];
-    if (picked) onChange({ deliveryAddress: picked.text });
-  }
-
   function chooseFulfilment(next: Fulfilment) {
     // Delivery to a customer who has an address on file: use it unless something is already typed.
     onChange({ fulfilment: next, deliveryAddress: addressWhenFulfilmentChanges(next, deliveryAddress, saved) });
@@ -96,50 +79,15 @@ export function DeliverySection({
             onChange={(fee) => onChange({ deliveryFee: fee })}
           />
 
-          {saved.length > 0 ? (
-            <div className="space-y-1">
-              <p id="deliver-to-label" className="text-sm font-medium">
-                Deliver to
-              </p>
-              <RadioGroup aria-labelledby="deliver-to-label" value={choice} onValueChange={choose}>
-                {saved.map((address, i) => (
-                  <Field key={address.kind} orientation="horizontal" className="items-start py-2.5">
-                    <RadioGroupItem id={`deliver-to-saved-${i}`} value={`saved-${i}`} />
-                    <FieldLabel htmlFor={`deliver-to-saved-${i}`} className="block text-base">
-                      <span className="block font-medium">{address.label}</span>
-                      <span className="block whitespace-pre-line text-muted-foreground">{address.text}</span>
-                    </FieldLabel>
-                  </Field>
-                ))}
-                <Field orientation="horizontal" className="items-start py-2.5">
-                  <RadioGroupItem id="deliver-to-other" value="other" />
-                  <FieldLabel htmlFor="deliver-to-other" className="text-base">
-                    A different address
-                  </FieldLabel>
-                </Field>
-              </RadioGroup>
-            </div>
-          ) : null}
-
-          {(saved.length === 0 || choice === "other" || errors.deliveryAddress) && (
-            <TextAreaField
-              id="deliveryAddress"
-              label={saved.length === 0 ? "Deliver to (optional)" : "Delivery address"}
-              hint={
-                saved.length === 0
-                  ? hasCustomer
-                    ? "Nothing is saved for this customer yet. Type the address for this quote, or leave it for later."
-                    : "Type the address for this quote, or leave it for later."
-                  : "Used for this quote only."
-              }
-              rows={3}
-              maxLength={QUOTE_DELIVERY_ADDRESS_MAX + 100}
-              autoComplete="off"
-              value={deliveryAddress}
-              error={errors.deliveryAddress}
-              onChange={(text) => onChange({ deliveryAddress: text })}
-            />
-          )}
+          <DeliveryAddress
+            subject="quote"
+            value={deliveryAddress}
+            onChange={(text) => onChange({ deliveryAddress: text })}
+            saved={saved}
+            hasCustomer={hasCustomer}
+            countryCode={countryCode}
+            error={errors.deliveryAddress}
+          />
         </>
       )}
     </Section>

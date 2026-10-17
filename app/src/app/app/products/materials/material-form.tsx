@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { costPerUnitCents, type MaterialFieldErrors, type VatTreatment } from "@/lib/materials";
+import { QuantityField } from "@/components/quantity-field";
 import { isUnitCode, UNIT_CHOICES, UNITS } from "@/lib/materials/units";
 import { formatMoney, parseMoney, parseQuantity, type NumberStyle } from "@/lib/money";
 import type { MaterialSaveState } from "./actions";
@@ -122,12 +123,11 @@ export function MaterialForm({
           options={UNIT_CHOICES.flatMap((g) => g.units)}
           optionLabels={Object.fromEntries(UNIT_CHOICES.flatMap((g) => g.units).map((u) => [u, UNITS[u].label]))}
         />
-        <TextField
+        <QuantityField
           id="quantity"
           label="How much you bought"
           hint="In that unit, like 12,5 for 12,5 kg."
-          inputMode="decimal"
-          autoComplete="off"
+          unit={previewUnit || undefined}
           value={values.quantity}
           error={errors.quantity}
           onChange={set("quantity")}

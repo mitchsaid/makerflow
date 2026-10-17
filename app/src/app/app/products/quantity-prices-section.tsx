@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Trash2Icon } from "lucide-react";
 import { AddButton } from "@/components/add-button";
 import { Section, TextField } from "@/components/form-fields";
+import { QuantityField } from "@/components/quantity-field";
 import { Button } from "@/components/ui/button";
 import { PRICE_BREAKS_MAX, type PriceBreakErrors, type PriceBreakFormRow } from "@/lib/products/price-breaks";
 
@@ -49,11 +50,9 @@ export function QuantityPricesSection({
             const rowErrors = errors?.rows[row.key];
             return (
               <li key={row.key} className="grid grid-cols-[1fr_1fr_2.75rem] items-start gap-x-3 gap-y-1">
-                <TextField
+                <QuantityField
                   id={fid(`price-break-${row.key}-from`)}
                   label={unitWord ? `From (${unitWord})` : "From (quantity)"}
-                  inputMode="decimal"
-                  autoComplete="off"
                   placeholder="10"
                   value={row.from}
                   error={rowErrors?.from}
