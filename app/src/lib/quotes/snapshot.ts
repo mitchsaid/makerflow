@@ -179,8 +179,21 @@ export type QuoteSnapshot = {
    * Absent on versions sent before policies existed.
    */
   policies?: { title: string | null; body: string; /** Sent before policies lost their headings. */ kind?: string }[];
+  /**
+   * Present only when the document is an INVOICE (made from a quote's sent version; see lib/invoices). It carries the
+   * words that differ from a quote's, frozen with the document. The invoice's own number is `number`, the quote's is
+   * `quoteNumber`.
+   */
+  invoice?: {
+    dueDate: string;
+    quoteNumber: string;
+    billedToLabel: string;
+    dueLabel: string;
+    quoteLabel: string;
+  };
   wording: {
     title: string;
+    /** Empty on an invoice (it is one). */
     notATaxInvoice: string;
     /** "All prices include VAT at 15%." when prices include the tax, else null. */
     inclusiveStatement: string | null;
@@ -197,7 +210,7 @@ export type QuoteSnapshot = {
   };
 };
 
-type BusinessFacts = {
+export type BusinessFacts = {
   name: string;
   phone: string | null;
   email: string | null;
@@ -210,6 +223,25 @@ type BusinessFacts = {
   vatNumber: string | null;
   logoImageId?: string | null;
 };
+
+/** The business as a document prints it: its address as the country writes it, and the VAT number only when registered. */
+export function businessParty(business: BusinessFacts, locale: LocalePack): SnapshotParty {
+  return {
+    name: business.name,
+    contactPerson: null,
+    phone: business.phone,
+    email: business.email,
+    addressLines: locale.address.formatLines({
+      line1: business.addressLine1,
+      line2: business.addressLine2,
+      city: business.city,
+      region: business.region,
+      postalCode: business.postalCode,
+    }),
+    vatNumber: business.vatRegistered ? business.vatNumber : null,
+    companyRegistrationNumber: null,
+  };
+}
 
 export function customerParty(customer: Customer, locale: LocalePack): SnapshotParty {
   return {
@@ -312,21 +344,7 @@ export function buildQuoteSnapshot(input: {
     currencyCode: input.currencyCode,
     numberStyle: locale.numberStyle,
     dateLocale: locale.formatLocale,
-    business: {
-      name: business.name,
-      contactPerson: null,
-      phone: business.phone,
-      email: business.email,
-      addressLines: locale.address.formatLines({
-        line1: business.addressLine1,
-        line2: business.addressLine2,
-        city: business.city,
-        region: business.region,
-        postalCode: business.postalCode,
-      }),
-      vatNumber: business.vatRegistered ? business.vatNumber : null,
-      companyRegistrationNumber: null,
-    },
+    business: businessParty(business, locale),
     logoImageId: business.logoImageId ?? null,
     customer: input.customer ? customerParty(input.customer, locale) : null,
     vat: {

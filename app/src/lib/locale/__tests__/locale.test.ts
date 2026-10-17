@@ -68,6 +68,26 @@ describe("the South African pack", () => {
   });
 });
 
+describe("the ZA invoice wording and rules", () => {
+  const invoice = ZA_LOCALE.documents.invoice;
+
+  it("is a tax invoice only for a registered business", () => {
+    expect(invoice.title(true)).toBe("Tax invoice");
+    expect(invoice.title(false)).toBe("Invoice");
+  });
+
+  it("uses the threshold in the tax rules for a full tax invoice, and only for a registered business", () => {
+    const threshold = ZA_LOCALE.tax.fullInvoiceThresholdCents;
+    expect(invoice.needsCustomerAddress(threshold - 1, true)).toBe(false);
+    expect(invoice.needsCustomerAddress(threshold, true)).toBe(true);
+    expect(invoice.needsCustomerAddress(threshold * 10, false)).toBe(false);
+  });
+
+  it("is due in 14 days unless the maker says otherwise", () => {
+    expect(invoice.dueDays).toBe(14);
+  });
+});
+
 describe("vatSettingsFor", () => {
   it("builds the money module's VAT settings from the business and its country's rate", () => {
     expect(vatSettingsFor({ vatRegistered: false, pricesIncludeVat: true }, ZA_LOCALE)).toEqual({

@@ -65,6 +65,9 @@ async function applyOutcome(
         message: "This quote has changed since you opened it. Refresh the page to see where it stands.",
       };
     }
+    if (error.code === "55007") {
+      return { status: "error", message: "This quote has an invoice, so its answer can't change. A mistake on an invoice is fixed with a credit note." };
+    }
     if (error.code === "55006") {
       return { status: "error", message: "This quote has a job. Open the job and cancel it first (a finished job goes back to ready, then cancel) if you need to change the answer." };
     }

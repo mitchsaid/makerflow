@@ -114,7 +114,7 @@ export function QuoteDocument({
     objectFit: "cover" as const,
     borderRadius: theme.photoShape === "round" ? size / 2 : theme.photoShape === "rounded" ? Math.min(size / 6, 10) : 0,
   });
-  const numberText = s.version > 1 ? `${s.number} · version ${s.version}` : s.number;
+  const numberText = s.version > 1 && !s.invoice ? `${s.number} · version ${s.version}` : s.number;
   // Options and extras, as the theme shows their prices (folded in, or each on its own line).
   const extrasOf = (l: QuoteSnapshot["lines"][number]) =>
     extrasView(l, theme.extraPrices === "separate", money, quantityText(l.quantityMilli, null, s.numberStyle, " "));
@@ -218,7 +218,7 @@ export function QuoteDocument({
 
           <View style={styles.partiesRow}>
             <View style={styles.party}>
-              <Text style={styles.sectionLabel}>Prepared for</Text>
+              <Text style={styles.sectionLabel}>{s.invoice?.billedToLabel ?? "Prepared for"}</Text>
               {s.customer ? (
                 <>
                   <Text style={styles.partyName}>{s.customer.name}</Text>
@@ -247,16 +247,31 @@ export function QuoteDocument({
                 <Text style={styles.muted}>Date</Text>
                 <Text>{day(s.issueDate)}</Text>
               </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.muted}>Valid until</Text>
-                <Text>{day(s.validUntil)}</Text>
-              </View>
-              {s.neededBy ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.muted}>Needed by</Text>
-                  <Text>{day(s.neededBy)}</Text>
-                </View>
-              ) : null}
+              {s.invoice ? (
+                <>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.muted}>{s.invoice.dueLabel}</Text>
+                    <Text>{day(s.invoice.dueDate)}</Text>
+                  </View>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.muted}>{s.invoice.quoteLabel}</Text>
+                    <Text>{s.invoice.quoteNumber}</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.muted}>Valid until</Text>
+                    <Text>{day(s.validUntil)}</Text>
+                  </View>
+                  {s.neededBy ? (
+                    <View style={styles.metaRow}>
+                      <Text style={styles.muted}>Needed by</Text>
+                      <Text>{day(s.neededBy)}</Text>
+                    </View>
+                  ) : null}
+                </>
+              )}
             </View>
           </View>
 
@@ -535,7 +550,7 @@ export function QuoteDocument({
 
           <View style={styles.statement}>
             {s.wording.inclusiveStatement ? <Text>{s.wording.inclusiveStatement}</Text> : null}
-            <Text>{s.wording.notATaxInvoice}</Text>
+            {s.wording.notATaxInvoice ? <Text>{s.wording.notATaxInvoice}</Text> : null}
           </View>
         </View>
       </Page>

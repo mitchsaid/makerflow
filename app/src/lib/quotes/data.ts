@@ -170,6 +170,8 @@ type QuoteRow = {
   quote_versions: VersionRow[];
   quote_events: EventRow[];
   jobs: { id: string; number: number; status: string }[] | null;
+  /** One invoice at most (unique on the quote); PostgREST may give an object or a list of one. */
+  invoices: { id: string; number: string } | { id: string; number: string }[] | null;
 };
 
 /** A stored quote with its lines, as numbers. Turn it into form text with toFormValues(). */
@@ -246,6 +248,8 @@ export type StoredQuote = {
   canDiscardRevision: boolean;
   /** The job being made from this quote (not a cancelled one), if there is one. */
   job: { id: string; number: number; status: string } | null;
+  /** The invoice made from this quote, if there is one. */
+  invoice: { id: string; number: string } | null;
   /** The activity log, oldest first. */
   events: {
     id: string;
@@ -324,7 +328,8 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
        ),
        quote_versions ( version, sent_at, sent_via, snapshot ),
        quote_events ( id, kind, version, via, on_date, how, note, has_base, created_at ),
-       jobs ( id, number, status )`,
+       jobs ( id, number, status ),
+       invoices ( id, number )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -410,6 +415,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
       .sort((a, b) => b.version - a.version)
       .map((v) => ({ version: v.version, sentAt: v.sent_at, sentVia: v.sent_via, snapshot: v.snapshot })),
     job: (row.jobs ?? []).find((j) => j.status !== "cancelled") ?? null,
+    invoice: (Array.isArray(row.invoices) ? row.invoices[0] : row.invoices) ?? null,
     canDiscardRevision:
       row.status === "draft" &&
       row.version > 1 &&

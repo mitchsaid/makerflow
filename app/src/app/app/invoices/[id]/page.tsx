@@ -1,0 +1,139 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ComingSoonSection } from "@/components/coming-soon";
+import { PageHeader } from "@/components/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { requireOrganisation } from "@/lib/auth/dal";
+import { invoiceStatus } from "@/lib/invoices";
+import { getInvoice } from "@/lib/invoices/data";
+import { jobNumberText } from "@/lib/jobs";
+import { getLocalePack } from "@/lib/locale";
+import { formatMoney } from "@/lib/money";
+import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
+import { frozenMargins } from "@/lib/quotes/costing";
+import { themeFromStored } from "@/lib/quotes/themes";
+import { MarginPanel } from "../../quotes/margin-panel";
+import { PdfPreview } from "../../quotes/pdf-preview";
+import { QuoteDocumentView } from "../../quotes/quote-document-view";
+import { DesignSection } from "../../quotes/design-section";
+import { InvoiceStatusChip } from "../invoice-status-chip";
+import { ShareInvoice } from "../share-invoice";
+
+/** An issued invoice: read-only, drawn from its stored document. Nothing on this page changes it. */
+export default async function InvoicePage({ params }: PageProps<"/app/invoices/[id]">) {
+  const { id } = await params;
+  const [invoice, { organisation, profile }] = await Promise.all([getInvoice(id), requireOrganisation()]);
+  // Another business of the same person is not this workspace's invoice.
+  if (invoice.organisationId !== organisation.id) notFound();
+
+  const locale = getLocalePack(profile.countryCode);
+  const today = todayIn(locale.timeZone);
+  const money = (cents: number) => formatMoney(cents, invoice.currencyCode, locale.numberStyle);
+  const status = invoiceStatus({ grossCents: invoice.grossCents, paidCents: 0, dueDate: invoice.dueDate, today });
+  const margins = frozenMargins(invoice.costing);
+  const title = invoice.snapshot.wording.title;
+
+  return (
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
+      <PageHeader back={{ href: "/app/invoices", label: "Invoices" }}>
+        <h1 id="invoice-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
+          <span>
+            {title} {invoice.number}
+          </span>{" "}
+          <InvoiceStatusChip status={status} />
+        </h1>
+      </PageHeader>
+
+      <ShareInvoice invoiceId={invoice.id} number={invoice.number} />
+
+      <Card>
+        <CardContent className="space-y-2">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-base">
+            <dt className="text-muted-foreground">For</dt>
+            <dd className="font-medium">{invoice.customerName}</dd>
+            <dt className="text-muted-foreground">Total</dt>
+            <dd className="font-medium" data-testid="invoice-total">
+              {money(invoice.grossCents)}
+            </dd>
+            <dt className="text-muted-foreground">Owing</dt>
+            <dd data-testid="invoice-owing">{money(invoice.grossCents)}</dd>
+            <dt className="text-muted-foreground">Issued</dt>
+            <dd>{formatDay(invoice.issueDate, locale.formatLocale)}</dd>
+            <dt className="text-muted-foreground">Due</dt>
+            <dd>{formatDay(invoice.dueDate, locale.formatLocale)}</dd>
+          </dl>
+          <p className="text-sm text-muted-foreground">
+            Made from{" "}
+            {invoice.quote ? (
+              <Link href={`/app/quotes/${invoice.quote.id}`} className="font-medium underline">
+                quote {invoice.quote.number}
+              </Link>
+            ) : (
+              "its quote"
+            )}
+            {invoice.job && (
+              <>
+                {" "}
+                and{" "}
+                <Link href={`/app/jobs/${invoice.job.id}`} className="font-medium underline">
+                  job {jobNumberText(invoice.job.number)}
+                </Link>
+              </>
+            )}
+            . It can&apos;t be changed. If something is wrong, a credit note corrects it.
+          </p>
+        </CardContent>
+      </Card>
+
+      <section className="space-y-3" aria-label="Coming soon">
+        <ComingSoonSection title="Record a payment" description="Note what they have paid, and see what is still owing." />
+        <ComingSoonSection title="Credit note" description="Correct this invoice without changing it." />
+        <ComingSoonSection title="Email it to your customer" description="Send it from MakerFlow and see when it was sent." />
+      </section>
+
+      <PdfPreview url={`/app/invoices/${invoice.id}/pdf`} label={`${title} ${invoice.number}`} />
+      {/* The same document as text, for people who can't read the pictures of the pages. */}
+      <section className="sr-only" aria-label="The invoice as text">
+        <QuoteDocumentView snapshot={invoice.snapshot} />
+      </section>
+      <DesignSection theme={themeFromStored(invoice.snapshot)} />
+
+      {margins && margins.length > 0 && (
+        <section className="space-y-2" aria-labelledby="margin-heading">
+          <h2 id="margin-heading" className="text-base font-semibold">
+            Your margin
+          </h2>
+          <Card>
+            <CardContent>
+              <MarginPanel
+                items={margins}
+                currencyCode={invoice.currencyCode}
+                numberStyle={locale.numberStyle}
+                frozen
+                note="Worked out when you sent the quote, from what things cost then."
+              />
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      <section className="space-y-2" aria-labelledby="activity-heading">
+        <h2 id="activity-heading" className="text-base font-semibold">
+          Activity
+        </h2>
+        <Card>
+          <CardContent>
+            <ol className="space-y-2" data-testid="activity">
+              {invoice.events.map((e) => (
+                <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-x-4 text-base">
+                  <span>Issued as {invoice.number}</span>
+                  <span className="text-sm text-muted-foreground">{formatMoment(e.at, locale.formatLocale, locale.timeZone)}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+  );
+}

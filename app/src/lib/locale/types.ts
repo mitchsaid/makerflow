@@ -118,6 +118,19 @@ export type LocalePack = {
       dueOther(text: string): string;
     };
     quoteNotATaxInvoice: string;
+    /** An invoice's own words. A tax invoice is only for a business registered for the tax. */
+    invoice: {
+      /** "Tax invoice" for a registered business, else "Invoice": never "tax invoice" for one that is not. */
+      title(taxRegistered: boolean): string;
+      billedToLabel: string;
+      dueLabel: string;
+      /** Over the number of the quote the invoice was made from. */
+      quoteLabel: string;
+      /** The usual days between the invoice and its due day. */
+      dueDays: number;
+      /** Whether this invoice must carry the customer's address (a full tax invoice, not an abridged one). */
+      needsCustomerAddress(grossCents: Cents, taxRegistered: boolean): boolean;
+    };
     /**
      * What a new quote's description and sign-off start with when the business has not saved its own usual: a
      * suggestion that shows how the box is used. The maker changes or clears it freely.
