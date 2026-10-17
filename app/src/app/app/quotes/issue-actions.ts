@@ -106,7 +106,11 @@ export async function sendQuote(quoteId: string): Promise<SendResult> {
   if (problems.length > 0) return { status: "problems", problems };
 
   // What it costs to make, worked out from the products and materials as they are now and frozen with the version.
-  const costing = await costingForSending(parsed, workspace);
+  // (A private nicety must never stop a quote going out: without it the version just has no margin recorded.)
+  const costing = await costingForSending(parsed, workspace).catch((error: unknown) => {
+    console.error("could not work out what the quote costs to make:", (error as Error).message);
+    return null;
+  });
 
   // The person's session has proved the draft is theirs to send. From here the server key acts.
   const admin = serverClient();

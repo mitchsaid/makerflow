@@ -737,7 +737,7 @@ function ConfigureView({
           <TextField
             id={id("unitCost")}
             label={line.unit.trim() ? `What it costs you per ${line.unit.trim()}` : "What it costs you"}
-            hint="Optional. Only you see this; it shows your margin."
+            hint="Optional, without VAT. Only you see this."
             startText={symbol}
             inputMode="decimal"
             autoComplete="off"

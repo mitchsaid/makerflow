@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ProductSummary } from "../../products";
 import type { VatSettings } from "../../money";
 import { freezeCosting, frozenMargins } from "../costing";
-import { parseQuote, toDatabasePayload, type LineFormValues, type QuoteFormValues } from "../index";
+import { isQuoteFormValues, parseQuote, toDatabasePayload, type LineFormValues, type QuoteFormValues } from "../index";
 import { toFormValues } from "../form-values";
 import { ZA_LOCALE } from "../../locale/za";
 
@@ -169,5 +169,13 @@ describe("a one-off item's cost", () => {
     if (!bad.ok) expect(bad.errors.lines.a.unitCost).toBeDefined();
     const fromProduct = parsed(quote([line({ unitCost: "5" })]));
     expect(fromProduct.lines[0].unitCostCents).toBeNull();
+  });
+
+  it("refuses a cost that is more than money can hold for the quantity, and a stale payload that is not text", () => {
+    const big = parseQuote(quote([line({ kind: "custom", productId: "", quantity: "9000000", unitCost: "900000000" })]), NOT_REGISTERED);
+    expect(big.ok).toBe(false);
+    if (!big.ok) expect(big.errors.lines.a.unitCost).toMatch(/too large/);
+    expect(isQuoteFormValues(quote([{ ...line(), unitCost: 5 as unknown as string }]))).toBe(false);
+    expect(isQuoteFormValues(quote([line({ kind: "custom", productId: "", unitCost: "5" })]))).toBe(true);
   });
 });

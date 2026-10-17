@@ -16,19 +16,22 @@ export function MarginPanel({
   currencyCode,
   numberStyle,
   note,
+  frozen = false,
 }: {
   items: LineMargin[];
   currencyCode: string;
   numberStyle: NumberStyle;
   /** Said under the breakdown: "Worked out when you sent this version" on a sent quote. */
   note?: string;
+  /** A sent quote: nothing here can be edited, so no prompts to add costs. */
+  frozen?: boolean;
 }) {
   if (items.length === 0) return null;
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const total = quoteMargin(items.map((i) => i.margin ?? { revenueCents: 0, costCents: null, profitCents: null, marginBp: null, incomplete: false }));
   // Items with no costs are not counted at all, so the figure is for the costed ones.
   const costed = total.costedItems;
-  if (costed === 0) {
+  if (costed === 0 && !frozen) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="margin-panel">
         Only you see this: add what a product costs to make, or what a one-off item costs you, to see your margin here.{" "}
@@ -67,8 +70,8 @@ export function MarginPanel({
                 </dl>
               ) : (
                 <p className="text-muted-foreground">
-                  No costs yet.{" "}
-                  {i.productId ? (
+                  {frozen ? "No costs were recorded for this item." : "No costs yet."}{" "}
+                  {frozen ? null : i.productId ? (
                     <Link href={`/app/products/${i.productId}`} className="underline underline-offset-4">
                       Add what it costs to make
                     </Link>

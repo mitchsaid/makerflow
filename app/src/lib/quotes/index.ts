@@ -321,7 +321,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
       // Nor the variation: that means none.
       ["variationId", "variationLabel", "variationName"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
       // Nor the quantity price that set the price: that means none.
-      ["listPrice", "quantityPriceText"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
+      ["listPrice", "quantityPriceText", "unitCost"].every((key) => l[key] === undefined || typeof l[key] === "string") &&
       // Nor the options: that means none.
       (l.options === undefined || (Array.isArray(l.options) && l.options.length <= MAX_LINE_OPTIONS && l.options.every(isLineOption)))
     );
@@ -469,8 +469,11 @@ export function parseLine(line: LineFormValues): { ok: true; line: ParsedLine } 
   let unitCostCents: Cents | null = null;
   if (!fromProduct && (line.unitCost ?? "").trim() !== "") {
     const cost = parseMoney(line.unitCost ?? "");
-    if (cost.ok) unitCostCents = cost.value;
-    else errors.unitCost = cost.error;
+    if (!cost.ok) errors.unitCost = cost.error;
+    // What it costs for the whole quantity must fit in money, like the price does.
+    else if (quantity.ok && (BigInt(cost.value) * BigInt(quantity.value)) / BigInt(1000) > BigInt(MAX_CENTS)) {
+      errors.unitCost = "That cost is too large for this quantity.";
+    } else unitCostCents = cost.value;
   }
 
   // The options chosen: the item's own copy; only on an item from a product.

@@ -1,7 +1,7 @@
 import { itemCost, itemMargin, type CostLine, type CostSettings, type ItemMargin } from "../costing";
 import { costLinesOf } from "../products/costs";
 import type { ProductSummary } from "../products";
-import { lineNetCents, mulDivRound, parseMoney, parseQuantity, type Cents, type DocumentTotals, type QuantityMilli, type VatSettings } from "../money";
+import { lineNetCents, MAX_CENTS, parseMoney, parseQuantity, type Cents, type DocumentTotals, type QuantityMilli, type VatSettings } from "../money";
 import { chosenIdsOf } from "./chosen";
 import { isBlankLine, type LineFormValues, type ParsedLine, type QuoteFormValues } from "./index";
 
@@ -52,8 +52,11 @@ export function costItem(args: {
     };
   }
   if (!product && args.unitCostCents !== null) {
-    // Each, times how many (quantity is in thousandths), rounded once.
-    const cents = mulDivRound(args.unitCostCents, args.quantityMilli, 1000);
+    // Each, times how many (quantity is in thousandths), rounded once, in whole numbers. More than money can hold is no
+    // cost at all (the form refuses it), never a wrong number.
+    const exact = (BigInt(args.unitCostCents) * BigInt(args.quantityMilli) * BigInt(2) + BigInt(1000)) / BigInt(2000);
+    if (exact > BigInt(MAX_CENTS)) return { margin: null, parts: [] };
+    const cents = Number(exact);
     return { margin: itemMargin(args.revenueCents, { cents, hasCosts: true, incomplete: false }), parts: [{ label: "Cost you gave", cents }] };
   }
   return { margin: null, parts: [] };

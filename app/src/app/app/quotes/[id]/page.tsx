@@ -239,7 +239,8 @@ export default async function QuotePage({
                 items={margins}
                 currencyCode={profile.currencyCode}
                 numberStyle={locale.numberStyle}
-                note="Worked out when you sent this version, from what your materials and time cost then."
+                frozen
+                note="Worked out when you sent this version, from what things cost then."
               />
             </CardContent>
           </Card>
