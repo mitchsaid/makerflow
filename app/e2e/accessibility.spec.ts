@@ -673,7 +673,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/products/new");
       await page.getByLabel("Name", { exact: true }).fill("Axe steps cake");
       await page.getByLabel("Price", { exact: true }).fill("10");
-      await page.getByRole("button", { name: "Add a step" }).click();
+      await expectNoViolations(page, "product, steps tracked as a whole");
+      await page.getByRole("radio", { name: /^As steps/ }).click();
       await page.getByLabel("Step 1", { exact: true }).fill("Bake");
       await page.getByRole("button", { name: "Add another step" }).click();
       await expectNoViolations(page, "product steps");

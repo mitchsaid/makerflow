@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronDownIcon, ChevronUpIcon, Trash2Icon } from "lucide-react";
 import { AddButton } from "@/components/add-button";
+import { ChoiceCards } from "@/components/choice-cards";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { QuantityField } from "@/components/quantity-field";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,8 @@ const QUANTITY = "quantity";
  */
 export function StepsSection({
   title,
-  description,
+  tracked,
+  onTrackedChange,
   rows,
   errors,
   choices,
@@ -46,7 +48,9 @@ export function StepsSection({
   onChange,
 }: {
   title: string;
-  description: string;
+  /** True: counted step by step on a job. False (the usual): counted as a whole, and the steps below are not shown. */
+  tracked: boolean;
+  onTrackedChange: (tracked: boolean) => void;
   rows: StepFormRow[];
   errors: StepErrors | undefined;
   /** The variations, list choices and extras the product has, named. */
@@ -69,8 +73,17 @@ export function StepsSection({
 
   return (
     <Section title={title}>
-      <p className="-mt-2 text-base text-muted-foreground">{description}</p>
-      {rows.length > 0 && (
+      <ChoiceCards
+        legend="How do you track it on a job?"
+        value={tracked ? "steps" : "whole"}
+        onChange={(v) => onTrackedChange(v === "steps")}
+        idFor={(v) => fid(`tracked-${v}`)}
+        choices={[
+          { value: "whole", title: "As a whole", hint: "Count how many are made." },
+          { value: "steps", title: "As steps", hint: "Count how many have been through each step." },
+        ]}
+      />
+      {tracked && rows.length > 0 && (
         <ol className="space-y-3" aria-label={title}>
           {rows.map((row, i) => {
             const name = row.name.trim() || `step ${i + 1}`;
@@ -142,12 +155,12 @@ export function StepsSection({
           })}
         </ol>
       )}
-      {errors?.list && (
+      {tracked && errors?.list && (
         <p id={fid("steps-error")} tabIndex={-1} className="text-sm text-destructive">
           {errors.list}
         </p>
       )}
-      {rows.length < STEPS_MAX && (
+      {tracked && rows.length < STEPS_MAX && (
         <AddButton
           id={fid("add-step")}
           className="self-start"

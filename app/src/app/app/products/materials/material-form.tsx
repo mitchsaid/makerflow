@@ -4,8 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ChoiceCards } from "@/components/choice-cards";
 import { costPerUnitCents, type MaterialFieldErrors, type VatTreatment } from "@/lib/materials";
 import { QuantityField } from "@/components/quantity-field";
 import { isUnitCode, UNIT_CHOICES, UNITS } from "@/lib/materials/units";
@@ -144,30 +143,19 @@ export function MaterialForm({
           onChange={set("price")}
         />
         {vatRegistered && (
-          <FieldSet data-invalid={!!errors.vatTreatment}>
-            <FieldLegend variant="label" className="text-base">
-              Does that price include {taxName}?
-            </FieldLegend>
+          <ChoiceCards
+            legend={<>Does that price include {taxName}?</>}
+            value={values.vatTreatment}
+            onChange={set("vatTreatment")}
+            idFor={(v) => `vat-${v}`}
+            invalid={!!errors.vatTreatment}
+            choices={VAT_CHOICES.map((c) => ({ value: c.value, title: c.title(taxName), hint: c.description(taxName) }))}
+          >
             <input type="hidden" name="vatTreatment" value={values.vatTreatment} />
-            <RadioGroup value={values.vatTreatment} onValueChange={(v) => set("vatTreatment")(v as VatTreatment)} className="gap-2">
-              {VAT_CHOICES.map((c) => (
-                <Field
-                  key={c.value}
-                  orientation="horizontal"
-                  className="items-center rounded-xl border border-border px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
-                >
-                  <RadioGroupItem id={`vat-${c.value}`} value={c.value} />
-                  <FieldLabel htmlFor={`vat-${c.value}`} className="flex w-full flex-col items-start gap-0.5 text-base">
-                    <span>{c.title(taxName)}</span>
-                    <span className="text-sm font-normal text-muted-foreground">{c.description(taxName)}</span>
-                  </FieldLabel>
-                </Field>
-              ))}
-            </RadioGroup>
             <p className="text-sm text-muted-foreground" data-testid="vat-note">
               Costs and margins exclude {taxName}. We don&apos;t work out what you can claim back.
             </p>
-          </FieldSet>
+          </ChoiceCards>
         )}
         <p className="text-base" data-testid="cost-preview">
           {preview === null
