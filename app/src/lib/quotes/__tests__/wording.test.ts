@@ -3,6 +3,7 @@ import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
 import { isQuoteFormValues, parseLine, parseQuote, toDatabasePayload, type LineFormValues, type QuoteFormValues } from "../index";
 import { quantityText } from "../units";
+import { quantityPriceNote } from "../line-text";
 
 const NOT_REGISTERED: VatSettings = { registered: false };
 
@@ -190,5 +191,15 @@ describe("the bank details switch on a quote", () => {
     if (!parsed.ok) throw new Error("should parse");
     expect(parsed.quote.showBankDetails).toBe(false);
     expect(toDatabasePayload(parsed.quote, { countryCode: "ZA", currencyCode: "ZAR" }).quote.show_bank_details).toBe(false);
+  });
+});
+
+describe("quantityPriceNote", () => {
+  const money = (cents: number) => `R${(cents / 100).toFixed(2).replace(".", ",")}`;
+  it("says what the quantity price is and what the price usually is", () => {
+    expect(quantityPriceNote({ quantityPrice: { listPriceCents: 10_000, text: "10 or more: 10% off" } }, money)).toBe("Quantity price: 10 or more: 10% off (usually R100,00)");
+  });
+  it("says nothing for an item without one", () => {
+    expect(quantityPriceNote({}, money)).toBeNull();
   });
 });

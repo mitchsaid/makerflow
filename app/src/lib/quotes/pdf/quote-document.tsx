@@ -7,7 +7,7 @@ import { IMAGE_OPACITY, themeFromStored } from "../themes";
 import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 import { vatView } from "../vat-view";
-import { extrasView, itemName } from "../line-text";
+import { extrasView, itemName, quantityPriceNote } from "../line-text";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -123,6 +123,7 @@ export function QuoteDocument({
     return (
       <>
         {x.folded ? <Text style={styles.description}>{x.folded}</Text> : null}
+        {quantityPriceNote(l, money) ? <Text style={styles.description}>{quantityPriceNote(l, money)}</Text> : null}
         {x.priced.map((p, k) => (
           <View key={k} style={{ flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Text style={[styles.description, { flexShrink: 1 }]}>{p.label}</Text>

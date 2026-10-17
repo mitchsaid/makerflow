@@ -418,6 +418,26 @@ describe("pictures in the snapshot", () => {
     expect("chosenIds" in s.lines[2]).toBe(false);
   });
 
+  it("keeps the quantity price on an item only when the quote shows them (with the choices that add to each item in the price before)", () => {
+    const priced = line({
+      quantity: "12",
+      unitPrice: "90",
+      listPrice: "100",
+      quantityPriceText: "10 or more: 10% off",
+      variationId: "44444444-4444-4444-8444-444444444444",
+      variationLabel: "Size",
+      variationName: "Large",
+      options: [{ groupId: "55555555-5555-4555-8555-555555555555", group: "Flavour", kind: "one", valueId: "66666666-6666-4666-8666-666666666666", value: "Vanilla", text: "", amountCents: 500 }],
+    });
+    const off = snap({ lines: [priced, line({ key: "plain" })] });
+    expect("quantityPrice" in off.lines[0]).toBe(false);
+    const on = snap({ lines: [priced, line({ key: "plain" })], showQuantityPrices: true });
+    // 100,00 before + 5,00 the choice adds to each item, as the price each shows 90,00 + 5,00.
+    expect(on.lines[0].quantityPrice).toEqual({ listPriceCents: 10_500, text: "10 or more: 10% off" });
+    expect(on.lines[0].unitPriceCents).toBe(9_500);
+    expect("quantityPrice" in on.lines[1]).toBe(false);
+  });
+
   it("leaves photos out when the quote has them switched off", () => {
     expect(snap({ showPhotos: false }).lines.map((l) => l.photoImageId)).toEqual([null, null]);
   });

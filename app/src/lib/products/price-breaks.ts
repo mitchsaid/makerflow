@@ -209,6 +209,14 @@ export function priceBreakText(
   return `${quantityText(brk.fromMilli, unit, style, " ")} or more: ${offText} off`;
 }
 
+/** The price a product asks for one item before any quantity price: its variation's, or its own when it has none; undefined when a variation is needed and none is chosen. */
+export function listPriceOf(
+  product: { unitPriceCents: Cents; variations: readonly { id: string; priceCents: Cents }[] },
+  variationId: string | undefined,
+): Cents | undefined {
+  return product.variations.length > 0 ? product.variations.find((v) => v.id === variationId)?.priceCents : product.unitPriceCents;
+}
+
 /**
  * What a product asks for one item at this quantity: its variation's price (or its own when it has no variations),
  * less the quantity price that applies to that price. Undefined when the product has variations and none is chosen

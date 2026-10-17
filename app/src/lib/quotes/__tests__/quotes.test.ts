@@ -3,6 +3,7 @@ import type { VatSettings } from "../../money";
 import {
   isBlankLine,
   isQuoteFormValues,
+  parseLine,
   parseQuote,
   previewTotals,
   toDatabasePayload,
@@ -613,5 +614,39 @@ describe("options and extras on an item", () => {
       ZA_LOCALE.numberStyle,
     );
     expect(back.lines[0].options).toEqual([opt()]);
+  });
+});
+
+describe("the quantity price on an item", () => {
+  const item = (over: Record<string, unknown> = {}) => ({
+    key: "a",
+    kind: "product" as const,
+    productId: "22222222-2222-4222-8222-222222222222",
+    name: "Cupcakes",
+    description: "",
+    quantity: "12",
+    unit: "",
+    unitPrice: "90",
+    discountKind: "none" as const,
+    discountValue: "",
+    listPrice: "100",
+    quantityPriceText: "10 or more: 10% off",
+    ...over,
+  });
+
+  it("is kept with the price before it when both can be read, and goes to the database as cents and words", () => {
+    const r = parseLine(item());
+    expect(r.ok && r.line.quantityPrice).toEqual({ listPriceCents: 10_000, text: "10 or more: 10% off" });
+  });
+
+  it("is left out when it cannot be read, when the item was typed by hand, or when it is too long", () => {
+    for (const over of [{ listPrice: "" }, { listPrice: "lots" }, { quantityPriceText: "" }, { quantityPriceText: "x".repeat(201) }, { quantityPriceText: "a\u0000b" }, { productId: "", kind: "custom" as const }]) {
+      const r = parseLine(item(over));
+      expect(r.ok && r.line.quantityPrice).toBeNull();
+    }
+    // (an item with no such fields, as from an older app, has none)
+    const old = item();
+    delete (old as Partial<typeof old>).listPrice;
+    expect(parseLine(old as never).ok && (parseLine(old as never) as { line: { quantityPrice: unknown } }).line.quantityPrice).toBeNull();
   });
 });
