@@ -828,5 +828,47 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("invoice-count")).toHaveText("1 invoice");
       await expectNoViolations(page, "invoices, with one");
     });
+
+    test("payments on an invoice, and what is owed on Home", async ({ page }) => {
+      test.setTimeout(240_000);
+      await signUpAndOnboard(page, `a11y-payments-${scheme}`, "Payment Axe Co");
+      await sentQuote(page);
+      await openBusinessProfile(page);
+      await page.getByLabel("Street address").fill("12 Long Street");
+      await page.getByLabel("City or town").fill("Cape Town");
+      await page.getByRole("button", { name: "Save details" }).click();
+      await expect(page.getByText("Saved.")).toBeVisible();
+      await page.goto("/app/quotes");
+      await page.getByRole("link", { name: /QT-0001/ }).first().click();
+      await page.getByRole("button", { name: "They accepted" }).click();
+      await page.getByRole("dialog").getByLabel("How they told you").selectOption("whatsapp");
+      await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
+      await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
+      await page.getByRole("button", { name: "Create invoice" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
+      await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
+      await expectNoViolations(page, "an invoice with no payments");
+
+      await page.getByRole("button", { name: "Record a payment" }).click();
+      await expectNoViolations(page, "record a payment");
+      await page.getByRole("dialog").getByLabel("Amount received").fill("100000");
+      await page.getByRole("dialog").getByRole("button", { name: "Save payment" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "record a payment, with a problem");
+      await page.getByRole("dialog").getByLabel("Amount received").fill("300");
+      await page.getByRole("dialog").getByRole("button", { name: "Save payment" }).click();
+      await expect(page.getByTestId("payment")).toHaveCount(1);
+      await expectNoViolations(page, "an invoice with a payment");
+
+      await page.getByRole("button", { name: "Reverse this payment" }).click();
+      await expectNoViolations(page, "reverse a payment");
+      await page.getByRole("dialog").getByRole("button", { name: "Reverse payment" }).click();
+      await expect(page.getByTestId("payment-reversed")).toBeVisible();
+      await expectNoViolations(page, "an invoice with a reversed payment");
+
+      await page.goto("/app");
+      await expect(page.getByTestId("home-owing")).toBeVisible();
+      await expectNoViolations(page, "home, with money owed");
+    });
   });
 }

@@ -5,16 +5,18 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { invoiceStatus } from "@/lib/invoices";
+import { owingCentsOf, paidCentsOf, paymentRows } from "@/lib/invoices/payments";
 import { getInvoice } from "@/lib/invoices/data";
 import { jobNumberText } from "@/lib/jobs";
 import { getLocalePack } from "@/lib/locale";
-import { formatMoney } from "@/lib/money";
+import { currencySymbol, formatMoney } from "@/lib/money";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { frozenMargins } from "@/lib/quotes/costing";
 import { MarginPanel } from "../../quotes/margin-panel";
 import { PdfPreview } from "../../quotes/pdf-preview";
 import { QuoteDocumentView } from "../../quotes/quote-document-view";
 import { InvoiceStatusChip } from "../invoice-status-chip";
+import { PaymentsSection } from "../payments-section";
 import { ShareInvoice } from "../share-invoice";
 
 /** An issued invoice: read-only, drawn from its stored document. Nothing on this page changes it. */
@@ -27,7 +29,9 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
   const locale = getLocalePack(profile.countryCode);
   const today = todayIn(locale.timeZone);
   const money = (cents: number) => formatMoney(cents, invoice.currencyCode, locale.numberStyle);
-  const status = invoiceStatus({ grossCents: invoice.grossCents, paidCents: 0, dueDate: invoice.dueDate, today });
+  const paidCents = paidCentsOf(invoice.payments);
+  const owingCents = owingCentsOf(invoice.grossCents, paidCents);
+  const status = invoiceStatus({ grossCents: invoice.grossCents, paidCents, dueDate: invoice.dueDate, today });
   const margins = frozenMargins(invoice.costing);
   const title = invoice.snapshot.wording.title;
 
@@ -54,7 +58,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
               {money(invoice.grossCents)}
             </dd>
             <dt className="text-muted-foreground">Owing</dt>
-            <dd data-testid="invoice-owing">{money(invoice.grossCents)}</dd>
+            <dd data-testid="invoice-owing">{money(owingCents)}</dd>
             <dt className="text-muted-foreground">Issued</dt>
             <dd>{formatDay(invoice.issueDate, locale.formatLocale)}</dd>
             <dt className="text-muted-foreground">Due</dt>
@@ -83,8 +87,22 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
         </CardContent>
       </Card>
 
+      <PaymentsSection
+        invoiceId={invoice.id}
+        number={invoice.number}
+        currencyCode={invoice.currencyCode}
+        numberStyle={locale.numberStyle}
+        formatLocale={locale.formatLocale}
+        symbol={currencySymbol(invoice.currencyCode, locale.numberStyle)}
+        today={today}
+        grossCents={invoice.grossCents}
+        paidCents={paidCents}
+        rows={paymentRows(invoice.payments)}
+        methods={locale.payment.methods}
+        depositCents={invoice.depositCents}
+      />
+
       <section className="space-y-3" aria-label="Coming soon">
-        <ComingSoonSection title="Record a payment" description="Note what they have paid, and see what is still owing." />
         <ComingSoonSection title="Credit note" description="Correct this invoice without changing it." />
         <ComingSoonSection title="Email it to your customer" description="Send it from MakerFlow and see when it was sent." />
       </section>

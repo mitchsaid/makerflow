@@ -99,6 +99,8 @@ export type LocalePack = {
     otherWaysHint: string;
     /** What the payment reference line is called on a document: "Reference". */
     referenceLabel: string;
+    /** The ways a customer pays, in this country's words, for recording a payment. The keys are fixed (the database knows them). */
+    methods: Record<"eft" | "cash" | "card" | "other", string>;
     /** A short line saying which account this is, for a screen (never the whole account number). */
     bankSummary(details: Record<string, string>): string;
   };
@@ -126,6 +128,9 @@ export type LocalePack = {
       dueLabel: string;
       /** Over the number of the quote the invoice was made from. */
       quoteLabel: string;
+      /** Under the totals once something has been paid. */
+      paidLabel: string;
+      amountDueLabel: string;
       /** The usual days between the invoice and its due day. */
       dueDays: number;
       /** Whether this invoice must carry the customer's address (a full tax invoice, not an abridged one). */

@@ -261,7 +261,8 @@ begin
   ----------------------------------------------------------------------
   -- Links between a business's own tables that do NOT cascade stop a parent being deleted while a child exists.
   -- delete_account deletes children first for the ones below, and the business above has a row in each. A new one
-  -- must be added to the function (in order), to the seed above, and to this list.
+  -- must be added to the function (in order), to the seed above, and to this list. (The invoice tables are on it for
+  -- completeness only: a business that has invoices is never deleted, so delete_account never deletes their rows.)
   ----------------------------------------------------------------------
   assert (
     select array_agg(conrelid::regclass::text || '->' || confrelid::regclass::text order by conrelid::regclass::text, confrelid::regclass::text)
@@ -269,7 +270,7 @@ begin
      where contype = 'f' and connamespace = 'public'::regnamespace and confdeltype in ('a', 'r')
        and confrelid::regclass::text <> 'organisations'
   ) = array[
-    'business_profiles->images', 'extra_cost_lines->materials', 'invoice_events->invoices', 'invoices->customers', 'invoices->quotes', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
+    'business_profiles->images', 'extra_cost_lines->materials', 'invoice_events->invoices', 'invoice_payments->invoice_payments', 'invoice_payments->invoices', 'invoices->customers', 'invoices->quotes', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
     'product_cost_lines->materials', 'product_option_values->images', 'product_variations->images', 'products->images',
     'quote_lines->products', 'quote_versions->quotes', 'quotes->customers'
   ], 'a link between tables that does not cascade was added or removed: teach delete_account (and the seed and this list) about it';

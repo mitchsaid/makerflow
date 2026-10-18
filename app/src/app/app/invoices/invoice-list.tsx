@@ -23,14 +23,16 @@ export function InvoiceList({
   today,
   formatLocale,
   numberStyle,
+  initialFilter = "all",
 }: {
+  initialFilter?: InvoiceFilter;
   invoices: InvoiceSummary[];
   /** Today, as YYYY-MM-DD, in the business's time zone. */
   today: string;
   formatLocale: string;
   numberStyle: NumberStyle;
 }) {
-  const [filter, setFilter] = useState<InvoiceFilter>("all");
+  const [filter, setFilter] = useState<InvoiceFilter>(initialFilter);
   const [query, setQuery] = useState("");
 
   if (invoices.length === 0) {
@@ -47,7 +49,7 @@ export function InvoiceList({
     );
   }
 
-  const statusOf = (i: InvoiceSummary) => invoiceStatus({ grossCents: i.grossCents, paidCents: 0, dueDate: i.dueDate, today });
+  const statusOf = (i: InvoiceSummary) => invoiceStatus({ grossCents: i.grossCents, paidCents: i.paidCents, dueDate: i.dueDate, today });
   const counts: Record<InvoiceFilter, number> = {
     all: invoices.length,
     unpaid: invoices.filter((i) => statusOf(i) !== "paid").length,
@@ -105,7 +107,9 @@ export function InvoiceList({
                   <span className="shrink-0 text-sm font-medium text-muted-foreground">{i.number}</span>
                 </span>
                 <span className="mt-0.5 block text-sm text-muted-foreground">
-                  {formatMoney(i.grossCents, i.currencyCode, numberStyle)} · due {formatDay(i.dueDate, formatLocale)}
+                  {formatMoney(i.grossCents, i.currencyCode, numberStyle)}
+                  {i.paidCents > 0 && i.paidCents < i.grossCents ? ` · ${formatMoney(i.grossCents - i.paidCents, i.currencyCode, numberStyle)} owing` : ""} · due{" "}
+                  {formatDay(i.dueDate, formatLocale)}
                 </span>
                 <span className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                   <InvoiceStatusChip status={statusOf(i)} />

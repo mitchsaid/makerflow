@@ -7,6 +7,10 @@ import { getLocalePack } from "@/lib/locale";
 import { customerParty } from "@/lib/quotes/snapshot";
 import { invoiceProblems, parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
 import { buildInvoiceSnapshot } from "@/lib/invoices/snapshot";
+import { findInvoice } from "@/lib/invoices/data";
+import { owingCentsOf, paidCentsOf, parsePaymentForm, type PaymentFormErrors, type PaymentFormValues } from "@/lib/invoices/payments";
+import { formatMoney } from "@/lib/money";
+import { todayIn } from "@/lib/quotes/dates";
 import { findStoredQuote } from "@/lib/quotes/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -100,4 +104,91 @@ export async function issueInvoice(quoteId: string, values: InvoiceFormValues): 
   revalidatePath("/app/invoices");
   revalidatePath(`/app/quotes/${stored.id}`);
   redirect(`/app/invoices/${id}`);
+}
+
+export type PaymentResult =
+  | { status: "done" }
+  | { status: "invalid"; errors: PaymentFormErrors }
+  | { status: "error"; message: string };
+
+/** Records a payment on an invoice. It can't be changed after; a mistake is reversed. */
+export async function recordPayment(invoiceId: string, values: PaymentFormValues): Promise<PaymentResult> {
+  const { organisation, profile, user } = await requireOrganisation();
+  if (!UUID.test(invoiceId)) return { status: "error", message: "That invoice could not be found." };
+  // Read under the person's own session: it proves the invoice is theirs, and gives what is owing right now.
+  const invoice = await findInvoice(invoiceId);
+  if (!invoice || invoice.organisationId !== organisation.id) return { status: "error", message: "That invoice could not be found." };
+
+  const locale = getLocalePack(profile.countryCode);
+  const owingCents = owingCentsOf(invoice.grossCents, paidCentsOf(invoice.payments));
+  const parsed = parsePaymentForm(values, {
+    owingCents,
+    owingText: formatMoney(owingCents, invoice.currencyCode, locale.numberStyle),
+    today: todayIn(locale.timeZone),
+  });
+  if (!parsed.ok) return { status: "invalid", errors: parsed.errors };
+
+  const admin = serverClient();
+  if (!admin) return { status: "error", message: NOT_SET_UP };
+  const { error } = await admin.rpc("record_invoice_payment", {
+    p_org: organisation.id,
+    p_invoice_id: invoice.id,
+    p_actor: user.id,
+    p_amount_cents: parsed.amountCents,
+    p_paid_on: parsed.paidOn,
+    p_method: parsed.method,
+    p_note: parsed.note,
+  });
+  if (error?.code === "22003") {
+    return { status: "invalid", errors: { amount: "That is more than what is owing now. Refresh the page and check the payments." } };
+  }
+  if (error?.code === "P0002") return { status: "error", message: "That invoice could not be found." };
+  if (error) {
+    console.error("could not record the payment:", error.code, error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  revalidatePath(`/app/invoices/${invoice.id}`);
+  revalidatePath("/app/invoices");
+  revalidatePath("/app");
+  return { status: "done" };
+}
+
+/** Undoes a payment that was recorded by mistake, with a new entry. The payment stays in the list, marked reversed. */
+export async function reversePayment(invoiceId: string, paymentId: string): Promise<PaymentResult> {
+  const { organisation, profile, user } = await requireOrganisation();
+  if (!UUID.test(invoiceId) || !UUID.test(paymentId)) return { status: "error", message: "That payment could not be found." };
+  const invoice = await findInvoice(invoiceId);
+  if (!invoice || invoice.organisationId !== organisation.id || !invoice.payments.some((p) => p.id === paymentId)) {
+    return { status: "error", message: "That payment could not be found." };
+  }
+
+  const admin = serverClient();
+  if (!admin) return { status: "error", message: NOT_SET_UP };
+  const { error } = await admin.rpc("reverse_invoice_payment", {
+    p_org: organisation.id,
+    p_payment_id: paymentId,
+    p_actor: user.id,
+    p_on: todayIn(getLocalePack(profile.countryCode).timeZone),
+    p_note: null,
+  });
+  if (error?.code === "23505") return { status: "error", message: "This payment has already been reversed. Refresh the page." };
+  if (error?.code === "22023") return { status: "error", message: "That entry can't be reversed. Record the payment again instead." };
+  if (error) {
+    console.error("could not reverse the payment:", error.code, error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  revalidatePath(`/app/invoices/${invoice.id}`);
+  revalidatePath("/app/invoices");
+  revalidatePath("/app");
+  return { status: "done" };
+}
+
+/** The server's own database access, or null (logged) when this server has not been given its key. */
+function serverClient() {
+  try {
+    return createAdminClient();
+  } catch (error) {
+    console.error("the server key for invoices is missing:", (error as Error).message);
+    return null;
+  }
 }

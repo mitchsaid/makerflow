@@ -121,6 +121,8 @@ export type InvoiceSummary = {
   issueDate: string;
   dueDate: string;
   grossCents: number;
+  /** Paid so far: the payments less the reversals. */
+  paidCents: number;
   currencyCode: string;
 };
 
@@ -140,12 +142,11 @@ export function visibleInvoices(
   filter: InvoiceFilter,
   query: string,
   today: string,
-  paidCentsOf: (invoice: InvoiceSummary) => number = () => 0,
 ): InvoiceSummary[] {
   const needle = query.trim().toLowerCase();
   return invoices
     .filter((i) => {
-      const status = invoiceStatus({ grossCents: i.grossCents, paidCents: paidCentsOf(i), dueDate: i.dueDate, today });
+      const status = invoiceStatus({ grossCents: i.grossCents, paidCents: i.paidCents, dueDate: i.dueDate, today });
       if (filter === "paid" && status !== "paid") return false;
       if (filter === "overdue" && status !== "overdue") return false;
       // "Unpaid" means anything still owing, overdue included.
@@ -158,4 +159,24 @@ export function visibleInvoices(
 /** Invoice numbers in order: a longer number is a later one (INV-10000 after INV-9999), else by the letters and digits. */
 function compareNumbers(a: string, b: string): number {
   return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
+}
+
+export type OwedTotals = { count: number; owingCents: number; overdueCents: number };
+
+/**
+ * What customers owe: the invoices with something left to pay, the total owing, and how much of it is overdue.
+ * A business has one currency, so the amounts are added as they are.
+ */
+export function owedTotals(invoices: readonly InvoiceSummary[], today: string): OwedTotals {
+  let count = 0;
+  let owingCents = 0;
+  let overdueCents = 0;
+  for (const i of invoices) {
+    const owing = i.grossCents - i.paidCents;
+    if (owing <= 0) continue;
+    count += 1;
+    owingCents += owing;
+    if (i.dueDate < today) overdueCents += owing;
+  }
+  return { count, owingCents, overdueCents };
 }
