@@ -131,6 +131,8 @@ export type LocalePack = {
       /** Under the totals once something has been paid. */
       paidLabel: string;
       amountDueLabel: string;
+      /** The note on a payment recorded from the quote's deposit. */
+      depositNote: string;
       /** The usual days between the invoice and its due day. */
       dueDays: number;
       /** Whether this invoice must carry the customer's address (a full tax invoice, not an abridged one). */

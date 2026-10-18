@@ -80,7 +80,7 @@ test("the deposit is the first payment, the rest follows, and a mistake is rever
 
   // A wrong payment is reversed, not edited: it stays in the list, marked, and the amount is owing again.
   await expect(page.getByRole("button", { name: /^Edit|^Delete/ })).toHaveCount(0);
-  await page.getByTestId("payment").nth(1).getByRole("button", { name: "Reverse this payment" }).click();
+  await page.getByTestId("payment").nth(1).getByRole("button", { name: /^Reverse the .* payment of / }).click();
   await sheet(page).getByRole("button", { name: "Reverse payment" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("payment-reversed")).toHaveCount(1);

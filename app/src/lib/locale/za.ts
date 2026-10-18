@@ -344,6 +344,7 @@ export const ZA_LOCALE: LocalePack = {
       quoteLabel: "Quote",
       paidLabel: "Paid so far",
       amountDueLabel: "Amount due",
+      depositNote: "Deposit",
       dueDays: 14,
       needsCustomerAddress: (grossCents, taxRegistered) => taxRegistered && grossCents >= FULL_INVOICE_THRESHOLD_CENTS,
     },

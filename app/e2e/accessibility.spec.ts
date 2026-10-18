@@ -860,7 +860,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("payment")).toHaveCount(1);
       await expectNoViolations(page, "an invoice with a payment");
 
-      await page.getByRole("button", { name: "Reverse this payment" }).click();
+      await page.getByRole("button", { name: /^Reverse the .* payment of / }).click();
       await expectNoViolations(page, "reverse a payment");
       await page.getByRole("dialog").getByRole("button", { name: "Reverse payment" }).click();
       await expect(page.getByTestId("payment-reversed")).toBeVisible();

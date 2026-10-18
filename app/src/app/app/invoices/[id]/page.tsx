@@ -100,6 +100,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
         rows={paymentRows(invoice.payments)}
         methods={locale.payment.methods}
         depositCents={invoice.depositCents}
+        depositNote={locale.documents.invoice.depositNote}
       />
 
       <section className="space-y-3" aria-label="Coming soon">
@@ -107,7 +108,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
         <ComingSoonSection title="Email it to your customer" description="Send it from MakerFlow and see when it was sent." />
       </section>
 
-      <PdfPreview url={`/app/invoices/${invoice.id}/pdf`} label={`${title} ${invoice.number}`} />
+      <PdfPreview url={`/app/invoices/${invoice.id}/pdf?v=${invoice.payments.length}-${paidCents}`} label={`${title} ${invoice.number}`} />
       {/* The same document as text, for people who can't read the pictures of the pages. */}
       <section className="sr-only" aria-label="The invoice as text">
         <QuoteDocumentView snapshot={invoice.snapshot} />

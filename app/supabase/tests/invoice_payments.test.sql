@@ -151,7 +151,7 @@ begin
   -- The database itself refuses a reversal that points at another invoice's payment, or a second one for a payment.
   begin
     insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on, reverses_id)
-    values (org_b, inv_b, 5, current_date, p1);
+    values (org_b, inv_b, 40000, current_date, p1);
     raise exception 'a reversal of another invoice''s payment was inserted';
   exception when foreign_key_violation then null;
   end;
@@ -161,6 +161,38 @@ begin
     raise exception 'a second reversal was inserted';
   exception when unique_violation then null;
   end;
+
+  -- Even a direct insert (the server key) cannot break the money rules.
+  begin
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on, reverses_id)
+    values (org_a, inv, 74999, current_date, p1);
+    raise exception 'a reversal for a different amount was inserted';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on, reverses_id)
+    values (org_a, inv, 75000, current_date, r1);
+    raise exception 'a reversal of a reversal was inserted';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on) values (org_a, inv, 75001, current_date);
+    raise exception 'an overpayment was inserted directly';
+  exception when sqlstate '22003' then null;
+  end;
+
+  ----------------------------------------------------------------------
+  -- Home's totals: only what is still owing, and what of it is overdue; only the person's own business
+  ----------------------------------------------------------------------
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  made := public.invoice_owed_totals(org_a, date '2026-10-01');
+  assert made = '{"count": 1, "owingCents": 75000, "overdueCents": 0}'::jsonb, 'the totals owed are wrong: ' || made::text;
+  made := public.invoice_owed_totals(org_a, date '2026-12-01');
+  assert (made ->> 'overdueCents')::bigint = 75000, 'the overdue amount is wrong';
+  made := public.invoice_owed_totals(org_b, date '2026-10-01');
+  assert (made ->> 'count')::integer = 0, 'another business''s invoices were counted';
+  reset role;
 
   ----------------------------------------------------------------------
   -- Nobody writes directly, changes an entry or deletes one; only the server runs the functions

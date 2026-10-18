@@ -13,6 +13,8 @@
 --   takes the invoice's row lock, so two payments made at the same moment cannot together overpay it.
 -- * The invoice's status (unpaid, part paid, paid, overdue) is NOT stored; it is worked out from these entries and the
 --   due day.
+-- * The rules (a reversal undoes a payment of the same amount; the paid total never passes the invoice total) are also
+--   enforced by a trigger on every insert, so even code holding the server key cannot break them.
 -- * Written only through record_invoice_payment and reverse_invoice_payment, which only our server (the service role)
 --   can call, after it has checked with the person's own session that the invoice is theirs.
 
@@ -58,6 +60,45 @@ $$;
 
 revoke execute on function public.invoice_payments_immutable() from public, anon, authenticated;
 
+-- The money rules hold for every insert, not only through the two functions below: a reversal undoes a payment (not a
+-- reversal) for the same amount, and a payment cannot take the paid total past the invoice's total.
+create function public.invoice_payments_check()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  original public.invoice_payments%rowtype;
+  gross bigint;
+  paid bigint;
+begin
+  if new.reverses_id is not null then
+    select * into original from public.invoice_payments where id = new.reverses_id;
+    if original.reverses_id is not null then
+      raise exception 'a reversal cannot be reversed' using errcode = '22023';
+    end if;
+    if original.amount_cents <> new.amount_cents then
+      raise exception 'a reversal must be for the amount of the payment it undoes' using errcode = '22023';
+    end if;
+    return new;
+  end if;
+  select i.gross_cents into gross from public.invoices i where i.id = new.invoice_id;
+  select coalesce(sum(case when reverses_id is null then amount_cents else -amount_cents end), 0)
+    into paid from public.invoice_payments where invoice_id = new.invoice_id;
+  if new.amount_cents > gross - paid then
+    raise exception 'that is more than what is owing' using errcode = '22003';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.invoice_payments_check() from public, anon, authenticated;
+
+create trigger invoice_payments_check
+  before insert on public.invoice_payments
+  for each row execute function public.invoice_payments_check();
+
 create trigger invoice_payments_immutable
   before update or delete on public.invoice_payments
   for each row execute function public.invoice_payments_immutable();
@@ -78,6 +119,35 @@ create policy invoice_payments_select_members on public.invoice_payments for sel
 create policy session_required on public.invoice_payments
   as restrictive for all to authenticated
   using ((select public.session_is_active())) with check ((select public.session_is_active()));
+
+-- ---------------------------------------------------------------------------
+-- invoice_owed_totals: what customers owe a business, for Home: the invoices with something left to pay, the total owing
+-- and how much of it is overdue (due before p_today). SECURITY INVOKER: the signed-in person's own row-level
+-- security decides which invoices count, so it is only ever their business's.
+-- ---------------------------------------------------------------------------
+create function public.invoice_owed_totals(p_org uuid, p_today date)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'count', count(*),
+    'owingCents', coalesce(sum(owing), 0),
+    'overdueCents', coalesce(sum(owing) filter (where due_date < p_today), 0))
+  from (
+    select i.due_date,
+           i.gross_cents - coalesce((select sum(case when p.reverses_id is null then p.amount_cents else -p.amount_cents end)
+                                       from public.invoice_payments p where p.invoice_id = i.id), 0) as owing
+      from public.invoices i
+     where i.organisation_id = p_org
+  ) t
+  where owing > 0;
+$$;
+
+revoke execute on function public.invoice_owed_totals(uuid, date) from public, anon;
+grant execute on function public.invoice_owed_totals(uuid, date) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- record_invoice_payment. SERVER ONLY (service role).

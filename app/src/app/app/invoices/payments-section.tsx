@@ -33,6 +33,8 @@ type Props = {
   methods: Record<string, string>;
   /** What the quote asked for up front, if it asked. */
   depositCents: number | null;
+  /** What the deposit's note says ("Deposit"), in the country's words. */
+  depositNote: string;
 };
 
 /**
@@ -80,7 +82,13 @@ export function PaymentsSection(props: Props) {
                         Reversed on {formatDay(row.reversal.paidOn, formatLocale)}
                       </p>
                     ) : (
-                      <Button type="button" variant="outline" id={`reverse-${p.id}`} onClick={() => setReversing(row)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        id={`reverse-${p.id}`}
+                        aria-label={`Reverse the ${money(p.amountCents)} payment of ${formatDay(p.paidOn, formatLocale)}`}
+                        onClick={() => setReversing(row)}
+                      >
                         Reverse this payment
                       </Button>
                     )}
@@ -93,7 +101,7 @@ export function PaymentsSection(props: Props) {
           {owingCents > 0 && depositCents !== null && rows.length === 0 && (
             <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="deposit-offer">
               <p className="text-base">Your quote asked for a deposit of {money(depositCents)}.</p>
-              <Button type="button" onClick={() => setForm({ amount: Math.min(depositCents, owingCents), note: "Deposit" })}>
+              <Button type="button" onClick={() => setForm({ amount: Math.min(depositCents, owingCents), note: props.depositNote })}>
                 Record the deposit
               </Button>
             </div>
@@ -170,8 +178,12 @@ function PaymentForm({
         if (result.status === "done") {
           router.refresh();
           onDone();
-        } else if (result.status === "invalid") setErrors(result.errors);
-        else setMessage(result.message);
+        } else if (result.status === "invalid") {
+          // The server saw something the page didn't (a payment made meanwhile): show it at the field, and update the page.
+          setErrors(result.errors);
+          setTries((n) => n + 1);
+          router.refresh();
+        } else setMessage(result.message);
       } catch {
         setMessage(OFFLINE);
       }
@@ -190,7 +202,7 @@ function PaymentForm({
       <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
         <SheetTitle className="text-lg">Record a payment</SheetTitle>
         <SheetDescription className="text-base">
-          {number} · {money(owingCents)} owing
+          {number} · {money(owingCents)} owing. A payment can&apos;t be edited after; reverse it if it is wrong.
         </SheetDescription>
       </SheetHeader>
       <FormErrorScope epoch={tries}>
@@ -239,7 +251,6 @@ function PaymentForm({
             error={errors.note}
             onChange={(note) => setValues((v) => ({ ...v, note }))}
           />
-          <p className="text-sm text-muted-foreground">A payment can&apos;t be edited after. If it is wrong, reverse it and enter it again.</p>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
             {pending ? "Saving…" : "Save payment"}
           </Button>
@@ -291,10 +302,7 @@ function ReverseForm({
             <AlertDescription>{message}</AlertDescription>
           </Alert>
         )}
-        <p className="text-base">
-          The payment stays in the list, marked as reversed, and the amount goes back to owing. Use this if it was entered
-          by mistake or the money didn&apos;t arrive.
-        </p>
+        <p className="text-base">It stays in the list, marked reversed, and the amount is owing again.</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <Button type="button" size="lg" variant="destructive" disabled={pending} onClick={reverse}>
             {pending ? "Reversing…" : "Reverse payment"}

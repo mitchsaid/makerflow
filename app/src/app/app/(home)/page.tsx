@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getActiveJobDates } from "@/lib/jobs/data";
 import { jobDueCounts } from "@/lib/jobs";
-import { getInvoices } from "@/lib/invoices/data";
-import { owedTotals } from "@/lib/invoices";
+import { getOwedTotals } from "@/lib/invoices/data";
 import { getLocalePack } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
 import { todayIn } from "@/lib/quotes/dates";
@@ -13,11 +12,12 @@ import { forOrganisation } from "@/lib/scope";
 
 export default async function WorkspacePage() {
   // The jobs query runs beside the workspace check, not after it.
-  const [activeJobs, allInvoices, { organisation, profile }] = await Promise.all([getActiveJobDates(), getInvoices(), requireOrganisation()]);
+  // The jobs query runs beside the workspace check, not after it; what is owed needs the business, so it follows.
+  const [activeJobs, { organisation, profile }] = await Promise.all([getActiveJobDates(), requireOrganisation()]);
   const locale = getLocalePack(profile.countryCode);
   const today = todayIn(locale.timeZone);
+  const owed = await getOwedTotals(organisation.id, today);
   const counts = jobDueCounts(forOrganisation(activeJobs, organisation.id), today);
-  const owed = owedTotals(forOrganisation(allInvoices, organisation.id), today);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
