@@ -335,6 +335,23 @@ export const ZA_LOCALE: LocalePack = {
     },
     // A quotation is not a tax invoice (VAT 404 guide, 13.2).
     quoteNotATaxInvoice: "This quotation is not a tax invoice.",
+    // A credit note carries "credit note", the supplier's and recipient's details, the day, the amount and VAT by which
+    // the invoice changes, a brief explanation, and the invoice's number and day (VAT 404 guide, 13.8.3).
+    creditNote: {
+      title: (taxRegistered) => (taxRegistered ? "Tax credit note" : "Credit note"),
+      issuedToLabel: "Credit issued to",
+      invoiceLabel: "Invoice",
+      reasonLabel: "Reason",
+      reasons: {
+        returned: "Goods returned or defective",
+        cancelled: "Order cancelled or reduced",
+        price: "Price or billing correction",
+        discount: "Discount or rebate allowed",
+        damaged: "Damaged or short delivered",
+        other: "Something else",
+      },
+      totalLabel: "Total credited",
+    },
     // A full tax invoice (R5 000 and above) carries the recipient's name and address; below that it may be abridged
     // (docs/locales/za/vat-and-documents.md, answer 7). Only a registered vendor issues a tax invoice at all.
     invoice: {

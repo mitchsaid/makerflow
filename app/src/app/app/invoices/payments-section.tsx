@@ -33,6 +33,8 @@ type Props = {
   methods: Record<string, string>;
   /** What the quote asked for up front, if it asked. */
   depositCents: number | null;
+  /** Credit notes took off the whole invoice: nothing is owing, whatever was paid. */
+  fullyCredited?: boolean;
   /** What the deposit's note says ("Deposit"), in the country's words. */
   depositNote: string;
 };
@@ -98,7 +100,7 @@ export function PaymentsSection(props: Props) {
             </ul>
           )}
 
-          {owingCents > 0 && depositCents !== null && rows.length === 0 && (
+          {owingCents > 0 && !props.fullyCredited && depositCents !== null && rows.length === 0 && (
             <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="deposit-offer">
               <p className="text-base">Your quote asked for a deposit of {money(depositCents)}.</p>
               <Button type="button" onClick={() => setForm({ amount: Math.min(depositCents, owingCents), note: props.depositNote })}>
@@ -107,7 +109,11 @@ export function PaymentsSection(props: Props) {
             </div>
           )}
 
-          {owingCents > 0 ? (
+          {props.fullyCredited ? (
+            <p className="text-base font-medium" data-testid="nothing-owing">
+              Nothing is owing: this invoice is fully credited.
+            </p>
+          ) : owingCents > 0 ? (
             <AddButton id="record-payment" variant="default" size="lg" onClick={() => setForm({ amount: null, note: "" })}>
               Record a payment
             </AddButton>

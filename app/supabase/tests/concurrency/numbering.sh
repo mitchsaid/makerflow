@@ -12,8 +12,8 @@ org="$(psql_q -c "insert into public.organisations (name) values ('Concurrency t
 cleanup() { psql_q -c "delete from public.organisations where id = '$org'" >/dev/null || true; }
 trap cleanup EXIT
 
-for kind in quote invoice; do
-prefix="QT-"; [[ "$kind" == "invoice" ]] && prefix="INV-"
+for kind in quote invoice credit_note; do
+prefix="QT-"; [[ "$kind" == "invoice" ]] && prefix="INV-"; [[ "$kind" == "credit_note" ]] && prefix="CN-"
 work="$(mktemp -d)"
 for i in $(seq 1 "$parallel"); do
   ( psql_q -c "select public.issue_document_number('$org', '$kind')" > "$work/$i.out" 2> "$work/$i.err" ) &

@@ -4,6 +4,8 @@ import { createClient } from "../supabase/server";
 import type { QuoteSnapshot } from "../quotes/snapshot";
 import type { InvoiceSummary, OwedTotals } from "./index";
 import { isPaymentMethod, paidCentsOf, type PaymentEntry } from "./payments";
+import { isCreditReason, type CreditReason, type PriorCredit } from "../credit-notes";
+import type { VatGroup } from "../money";
 
 /**
  * Invoice reads. Row-level security limits every query to businesses the signed-in person belongs to; the pages keep
@@ -23,10 +25,11 @@ type SummaryRow = {
   gross_cents: number | string;
   currency_code: string;
   invoice_payments: { amount_cents: number | string; reverses_id: string | null }[];
+  credit_notes: { gross_cents: number | string }[];
 };
 
 const SUMMARY_COLUMNS =
-  "id, organisation_id, number, quote_id, customer_name, issue_date, due_date, gross_cents, currency_code, invoice_payments ( amount_cents, reverses_id )";
+  "id, organisation_id, number, quote_id, customer_name, issue_date, due_date, gross_cents, currency_code, invoice_payments ( amount_cents, reverses_id ), credit_notes ( gross_cents )";
 
 const summaryOf = (row: SummaryRow): InvoiceSummary => ({
   id: row.id,
@@ -38,6 +41,7 @@ const summaryOf = (row: SummaryRow): InvoiceSummary => ({
   dueDate: row.due_date,
   grossCents: Number(row.gross_cents),
   paidCents: paidCentsOf(row.invoice_payments.map((p) => ({ amountCents: Number(p.amount_cents), reversesId: p.reverses_id }))),
+  creditedCents: row.credit_notes.reduce((sum, c) => sum + Number(c.gross_cents), 0),
   currencyCode: row.currency_code,
 });
 
@@ -77,6 +81,8 @@ export type StoredInvoice = InvoiceSummary & {
   events: { id: string; kind: string; at: string }[];
   /** Every payment entry and reversal, oldest first. */
   payments: PaymentEntry[];
+  /** The credit notes issued on it, oldest first, with the items they took off. */
+  creditNotes: StoredCreditNote[];
   /** What the quote asked for up front, in cents, if it asked (the deposit, one tap from being recorded). */
   depositCents: number | null;
 };
@@ -86,6 +92,29 @@ type QuoteEmbed = {
   number: string;
   jobs: { id: string; number: number; status: string }[] | null;
   quote_versions: { version: number; deposit: { depositCents?: unknown } | null }[];
+};
+
+export type StoredCreditNote = {
+  id: string;
+  number: string;
+  issueDate: string;
+  reason: CreditReason;
+  grossCents: number;
+  /** The items it credited. */
+  lines: PriorCredit[];
+  /** Its VAT groups, for working the next note's VAT within what the invoice has left. */
+  groups: VatGroup[];
+};
+
+type CreditNoteRow = {
+  id: string;
+  number: string;
+  issue_date: string;
+  reason: string;
+  gross_cents: number | string;
+  created_at: string;
+  groups: VatGroup[] | null;
+  credit_note_lines: { line_index: number; quantity_milli: number | string; amount_cents: number | string }[];
 };
 
 type PaymentRow = {
@@ -107,6 +136,7 @@ type DetailRow = SummaryRow & {
   quotes: QuoteEmbed | QuoteEmbed[] | null;
   invoice_events: { id: string; kind: string; created_at: string }[];
   all_payments: PaymentRow[];
+  all_credit_notes: CreditNoteRow[];
 };
 
 /** One invoice with its history, or null when it isn't found. */
@@ -119,7 +149,8 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
       `${SUMMARY_COLUMNS}, quote_version, note, snapshot, costing, created_at,
        quotes ( id, number, jobs ( id, number, status ), quote_versions ( version, deposit:snapshot->deposit ) ),
        invoice_events ( id, kind, created_at ),
-       all_payments:invoice_payments ( id, amount_cents, paid_on, method, note, reverses_id, created_at )`,
+       all_payments:invoice_payments ( id, amount_cents, paid_on, method, note, reverses_id, created_at ),
+       all_credit_notes:credit_notes ( id, number, issue_date, reason, gross_cents, created_at, groups:snapshot->totals->groups, credit_note_lines!credit_note_lines_note_same_org ( line_index, quantity_milli, amount_cents ) )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -136,6 +167,17 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
     issuedAt: row.created_at,
     quote: quote ? { id: quote.id, number: quote.number } : null,
     job: (quote?.jobs ?? []).find((j) => j.status !== "cancelled") ?? null,
+    creditNotes: [...row.all_credit_notes]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((c) => ({
+        id: c.id,
+        number: c.number,
+        issueDate: c.issue_date,
+        reason: isCreditReason(c.reason) ? c.reason : "other",
+        grossCents: Number(c.gross_cents),
+        groups: Array.isArray(c.groups) ? c.groups : [],
+        lines: c.credit_note_lines.map((l) => ({ lineIndex: l.line_index, quantityMilli: Number(l.quantity_milli), amountCents: Number(l.amount_cents) })),
+      })),
     depositCents: depositOf(quote, row.quote_version),
     payments: [...row.all_payments]
       .sort((a, b) => a.created_at.localeCompare(b.created_at))

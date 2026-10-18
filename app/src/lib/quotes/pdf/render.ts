@@ -20,7 +20,7 @@ export async function renderQuotePdf(
     /** The picture behind the pages, if the theme names one. */
     background?: PdfImage | null;
     /** An invoice's payments to date, drawn under the totals. */
-    payments?: { paidCents: number; owingCents: number; labels: { paid: string; due: string } } | null;
+    payments?: { paidCents: number; creditedCents?: number; owingCents: number; labels: { paid: string; due: string; credited?: string } } | null;
   } = {},
 ): Promise<Buffer> {
   const theme = themeFromStored(snapshot);

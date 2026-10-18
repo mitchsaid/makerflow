@@ -22,7 +22,7 @@ const ITEMS: Item[] = [
   { href: "/app/quotes", label: "Quotes", match: (p) => p.startsWith("/app/quotes"), icon: QuotesIcon },
   { href: "/app/jobs", label: "Jobs", match: (p) => p.startsWith("/app/jobs"), icon: JobsIcon },
   { href: "/app/products", label: "Products", match: (p) => p.startsWith("/app/products"), icon: ProductsIcon },
-  { href: "/app/invoices", label: "Invoices", match: (p) => p.startsWith("/app/invoices"), icon: InvoicesIcon, only: "desktop" },
+  { href: "/app/invoices", label: "Invoices", match: (p) => p.startsWith("/app/invoices") || p.startsWith("/app/credit-notes"), icon: InvoicesIcon, only: "desktop" },
   { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon, only: "desktop" },
   { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
   { href: "/app/documents", label: "Quotes and invoices", match: (p) => p.startsWith("/app/documents"), icon: DocumentsIcon, only: "desktop" },
@@ -33,6 +33,7 @@ const ITEMS: Item[] = [
     match: (p) =>
       p.startsWith("/app/more") ||
       p.startsWith("/app/invoices") ||
+      p.startsWith("/app/credit-notes") ||
       p.startsWith("/app/customers") ||
       p.startsWith("/app/business") ||
       p.startsWith("/app/documents") ||

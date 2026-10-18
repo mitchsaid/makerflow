@@ -49,12 +49,13 @@ export function InvoiceList({
     );
   }
 
-  const statusOf = (i: InvoiceSummary) => invoiceStatus({ grossCents: i.grossCents, paidCents: i.paidCents, dueDate: i.dueDate, today });
+  const statusOf = (i: InvoiceSummary) => invoiceStatus({ grossCents: i.grossCents, paidCents: i.paidCents, creditedCents: i.creditedCents, dueDate: i.dueDate, today });
   const counts: Record<InvoiceFilter, number> = {
     all: invoices.length,
-    unpaid: invoices.filter((i) => statusOf(i) !== "paid").length,
+    unpaid: invoices.filter((i) => statusOf(i) !== "paid" && statusOf(i) !== "credited").length,
     overdue: invoices.filter((i) => statusOf(i) === "overdue").length,
     paid: invoices.filter((i) => statusOf(i) === "paid").length,
+    credited: invoices.filter((i) => i.creditedCents > 0).length,
   };
   const visible = visibleInvoices(invoices, filter, query, today);
 
@@ -108,7 +109,11 @@ export function InvoiceList({
                 </span>
                 <span className="mt-0.5 block text-sm text-muted-foreground">
                   {formatMoney(i.grossCents, i.currencyCode, numberStyle)}
-                  {i.paidCents > 0 && i.paidCents < i.grossCents ? ` · ${formatMoney(i.grossCents - i.paidCents, i.currencyCode, numberStyle)} owing` : ""} · due{" "}
+                  {i.creditedCents > 0 ? ` · ${formatMoney(i.creditedCents, i.currencyCode, numberStyle)} credited` : ""}
+                  {(i.paidCents > 0 || i.creditedCents > 0) && i.grossCents - i.creditedCents - i.paidCents > 0
+                    ? ` · ${formatMoney(i.grossCents - i.creditedCents - i.paidCents, i.currencyCode, numberStyle)} owing`
+                    : ""}{" "}
+                  · due{" "}
                   {formatDay(i.dueDate, formatLocale)}
                 </span>
                 <span className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">

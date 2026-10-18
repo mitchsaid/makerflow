@@ -6,7 +6,7 @@ import { Section, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { formatDocumentNumber, parseNumbering, type NumberingErrors } from "@/lib/quotes/numbering";
-import { saveInvoiceNumbering, saveQuoteNumbering, type NumberingState } from "./numbering-actions";
+import { saveCreditNoteNumbering, saveInvoiceNumbering, saveQuoteNumbering, type NumberingState } from "./numbering-actions";
 import { FormErrorScope } from "@/components/form-errors";
 
 /**
@@ -32,17 +32,28 @@ export function QuoteNumberingForm({
   embedded,
 }: {
   /** Quotes (the default) or invoices: each business has one run of numbers for each. */
-  docType?: "quote" | "invoice";
+  docType?: "quote" | "invoice" | "credit_note";
   initialPrefix: string;
   initialNext: number;
   minDigits: number;
   lastIssued: number | null;
   embedded?: EmbeddedNumberingForm;
 }) {
-  const noun = docType;
-  // Both forms can be on one page: their fields differ in id and in name.
-  const ids = docType === "invoice" ? { prefix: "invoiceNumberPrefix", next: "invoiceNextNumber" } : { prefix: "numberPrefix", next: "nextNumber" };
-  const labels = docType === "invoice" ? { prefix: "Invoice prefix", next: "Invoice next number" } : { prefix: "Prefix", next: "Next number" };
+  const noun = docType === "credit_note" ? "credit note" : docType;
+  // The forms can be on one page together: their fields differ in id and in name.
+  const ids =
+    docType === "invoice"
+      ? { prefix: "invoiceNumberPrefix", next: "invoiceNextNumber" }
+      : docType === "credit_note"
+        ? { prefix: "creditNoteNumberPrefix", next: "creditNoteNextNumber" }
+        : { prefix: "numberPrefix", next: "nextNumber" };
+  const labels =
+    docType === "invoice"
+      ? { prefix: "Invoice prefix", next: "Invoice next number" }
+      : docType === "credit_note"
+        ? { prefix: "Credit note prefix", next: "Credit note next number" }
+        : { prefix: "Prefix", next: "Next number" };
+  const save = docType === "invoice" ? saveInvoiceNumbering : docType === "credit_note" ? saveCreditNoteNumbering : saveQuoteNumbering;
   const [prefix, setPrefix] = useState(initialPrefix);
   const [next, setNext] = useState(String(initialNext));
   const [state, setState] = useState<NumberingState>({ status: "idle" });
@@ -74,7 +85,7 @@ export function QuoteNumberingForm({
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        const result = await (docType === "invoice" ? saveInvoiceNumbering : saveQuoteNumbering)({ prefix, nextNumber: next });
+        const result = await save({ prefix, nextNumber: next });
         setState(result);
         if (result.status === "saved" && embedded) embedded.onDone({ prefix: prefix.trim(), nextNumber: Number(next.trim()) });
       } catch {
@@ -90,11 +101,13 @@ export function QuoteNumberingForm({
   return (
     <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <Fields embedded={!!embedded} title={docType === "invoice" ? "Invoice numbers" : "Quote numbers"}>
+      <Fields embedded={!!embedded} title={docType === "invoice" ? "Invoice numbers" : docType === "credit_note" ? "Credit note numbers" : "Quote numbers"}>
         <p className="text-base text-muted-foreground">
           {docType === "invoice"
             ? "Each invoice gets the next number when it is issued, with none skipped. To carry on from another system, set the next number."
-            : "Each quote is numbered when first saved. To carry on from another system, set the next number."}
+            : docType === "credit_note"
+              ? "Each credit note gets the next number when it is issued, with none skipped. To carry on from another system, set the next number."
+              : "Each quote is numbered when first saved. To carry on from another system, set the next number."}
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {state.status === "error" && state.message && (
@@ -127,7 +140,7 @@ export function QuoteNumberingForm({
             setNext(v);
           }}
         />
-        <p className="text-base" aria-live="polite" data-testid={docType === "invoice" ? "invoice-number-preview" : "number-preview"}>
+        <p className="text-base" aria-live="polite" data-testid={docType === "invoice" ? "invoice-number-preview" : docType === "credit_note" ? "credit-note-number-preview" : "number-preview"}>
           {previewText ? (
             <>
               Your next {noun} will be <strong>{previewText}</strong>.

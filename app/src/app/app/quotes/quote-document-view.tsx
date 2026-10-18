@@ -36,11 +36,20 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
         </div>
 
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
-          <dt className="text-muted-foreground">{s.invoice ? s.wording.title : "Quote"}</dt>
-          <dd className="font-medium">{s.version > 1 && !s.invoice ? `${s.number} · version ${s.version}` : s.number}</dd>
+          <dt className="text-muted-foreground">{s.invoice || s.creditNote ? s.wording.title : "Quote"}</dt>
+          <dd className="font-medium">{s.version > 1 && !s.invoice && !s.creditNote ? `${s.number} · version ${s.version}` : s.number}</dd>
           <dt className="text-muted-foreground">Date</dt>
           <dd>{day(s.issueDate)}</dd>
-          {s.invoice ? (
+          {s.creditNote ? (
+            <>
+              <dt className="text-muted-foreground">{s.creditNote.invoiceLabel}</dt>
+              <dd>
+                {s.creditNote.invoiceNumber} · {day(s.creditNote.invoiceDate)}
+              </dd>
+              <dt className="text-muted-foreground">{s.creditNote.reasonLabel}</dt>
+              <dd>{s.creditNote.reason}</dd>
+            </>
+          ) : s.invoice ? (
             <>
               <dt className="text-muted-foreground">{s.invoice.dueLabel}</dt>
               <dd>{day(s.invoice.dueDate)}</dd>
@@ -63,7 +72,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
 
         {s.customer && (
           <div className="space-y-0.5">
-            <p className="text-xs font-medium uppercase text-muted-foreground">{s.invoice?.billedToLabel ?? "Prepared for"}</p>
+            <p className="text-xs font-medium uppercase text-muted-foreground">{s.creditNote?.issuedToLabel ?? s.invoice?.billedToLabel ?? "Prepared for"}</p>
             <p className="text-base font-medium">{s.customer.name}</p>
             <PartyLines party={s.customer} />
             {s.customer.vatNumber && (
@@ -146,7 +155,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           )}
           {exclusive && <Row label={`${s.vat.taxName}${vat.showRate ? rate : ""}`} value={money(s.totals.vatCents)} />}
           <Row
-            label={s.vat.registered ? `Total including ${s.vat.taxName}` : "Total"}
+            label={s.creditNote ? s.creditNote.totalLabel : s.vat.registered ? `Total including ${s.vat.taxName}` : "Total"}
             value={money(s.totals.grossCents)}
             strong
           />

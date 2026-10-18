@@ -87,15 +87,25 @@ export function invoiceProblems(input: {
   return problems;
 }
 
-export type InvoiceStatus = "unpaid" | "part_paid" | "paid" | "overdue";
+export type InvoiceStatus = "unpaid" | "part_paid" | "paid" | "overdue" | "credited";
 
 /**
  * Where an invoice stands, worked out (never stored): paid when nothing is owing, overdue when something is owing and
  * the due day has passed, part paid when some of it is paid, else unpaid. Payments arrive in the next slice: until
  * then `paidCents` is zero.
  */
-export function invoiceStatus(input: { grossCents: Cents; paidCents: Cents; dueDate: string; today: string }): InvoiceStatus {
-  const owing = input.grossCents - input.paidCents;
+export function invoiceStatus(input: {
+  grossCents: Cents;
+  /** What credit notes have taken off (none when absent). */
+  creditedCents?: Cents;
+  paidCents: Cents;
+  dueDate: string;
+  today: string;
+}): InvoiceStatus {
+  const credited = input.creditedCents ?? 0;
+  // Everything credited: nothing is owed and the invoice is cancelled out, whatever was paid (a refund may be due).
+  if (input.grossCents > 0 && credited >= input.grossCents) return "credited";
+  const owing = input.grossCents - credited - input.paidCents;
   if (owing <= 0) return "paid";
   if (input.dueDate < input.today) return "overdue";
   return input.paidCents > 0 ? "part_paid" : "unpaid";
@@ -106,6 +116,7 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   part_paid: "Part paid",
   paid: "Paid",
   overdue: "Overdue",
+  credited: "Credited",
 };
 
 export type InvoiceStatusTone = "neutral" | "good" | "warning";
@@ -123,15 +134,18 @@ export type InvoiceSummary = {
   grossCents: number;
   /** Paid so far: the payments less the reversals. */
   paidCents: number;
+  /** What credit notes have taken off the invoice. */
+  creditedCents: number;
   currencyCode: string;
 };
 
-export type InvoiceFilter = "all" | "unpaid" | "overdue" | "paid";
+export type InvoiceFilter = "all" | "unpaid" | "overdue" | "paid" | "credited";
 export const INVOICE_FILTERS: readonly { key: InvoiceFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "unpaid", label: "Unpaid" },
   { key: "overdue", label: "Overdue" },
   { key: "paid", label: "Paid" },
+  { key: "credited", label: "Credited" },
 ];
 export const parseInvoiceFilter = (value: unknown): InvoiceFilter | null =>
   INVOICE_FILTERS.some((f) => f.key === value) ? (value as InvoiceFilter) : null;
@@ -146,15 +160,19 @@ export function visibleInvoices(
   const needle = query.trim().toLowerCase();
   return invoices
     .filter((i) => {
-      const status = invoiceStatus({ grossCents: i.grossCents, paidCents: i.paidCents, dueDate: i.dueDate, today });
+      const status = invoiceStatus({ grossCents: i.grossCents, creditedCents: i.creditedCents, paidCents: i.paidCents, dueDate: i.dueDate, today });
+      if (filter === "credited") return i.creditedCents > 0 && (needle === "" || matches(i, needle));
       if (filter === "paid" && status !== "paid") return false;
       if (filter === "overdue" && status !== "overdue") return false;
       // "Unpaid" means anything still owing, overdue included.
-      if (filter === "unpaid" && status === "paid") return false;
-      return needle === "" || i.number.toLowerCase().includes(needle) || i.customerName.toLowerCase().includes(needle);
+      if (filter === "unpaid" && (status === "paid" || status === "credited")) return false;
+      return needle === "" || matches(i, needle);
     })
     .sort((a, b) => (a.issueDate === b.issueDate ? compareNumbers(b.number, a.number) : b.issueDate.localeCompare(a.issueDate)));
 }
+
+const matches = (i: InvoiceSummary, needle: string): boolean =>
+  i.number.toLowerCase().includes(needle) || i.customerName.toLowerCase().includes(needle);
 
 /** Invoice numbers in order: a longer number is a later one (INV-10000 after INV-9999), else by the letters and digits. */
 function compareNumbers(a: string, b: string): number {
@@ -172,7 +190,7 @@ export function owedTotals(invoices: readonly InvoiceSummary[], today: string): 
   let owingCents = 0;
   let overdueCents = 0;
   for (const i of invoices) {
-    const owing = i.grossCents - i.paidCents;
+    const owing = i.grossCents - i.creditedCents - i.paidCents;
     if (owing <= 0) continue;
     count += 1;
     owingCents += owing;

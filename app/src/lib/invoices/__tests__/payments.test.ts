@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { owingCentsOf, paidCentsOf, parsePaymentForm, paymentRows, type PaymentEntry } from "../payments";
+import { owingCentsOf, paidCentsOf, parsePaymentForm, paymentRows, refundDueCentsOf, type PaymentEntry } from "../payments";
 
 const entry = (over: Partial<PaymentEntry>): PaymentEntry => ({
   id: "p",
@@ -27,6 +27,14 @@ describe("what has been paid", () => {
     expect(owingCentsOf(115_000, 40_000)).toBe(75_000);
     expect(owingCentsOf(115_000, 115_000)).toBe(0);
     expect(owingCentsOf(100, 500)).toBe(0);
+    expect(owingCentsOf(115_000, 40_000, 30_000)).toBe(45_000);
+  });
+
+  it("says what the customer is owed back when they paid more than the invoice now comes to", () => {
+    expect(refundDueCentsOf(115_000, 115_000, 30_000)).toBe(30_000);
+    expect(refundDueCentsOf(115_000, 80_000, 30_000)).toBe(0);
+    expect(refundDueCentsOf(115_000, 50_000, 115_000)).toBe(50_000);
+    expect(refundDueCentsOf(115_000, 0, 115_000)).toBe(0);
   });
 });
 
