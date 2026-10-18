@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getRenditions } from "@/lib/images/data";
 import { findInvoice } from "@/lib/invoices/data";
+import { owingCentsOf, paidCentsOf } from "@/lib/invoices/payments";
+import { getLocalePack } from "@/lib/locale";
 import { renderQuotePdf } from "@/lib/quotes/pdf/render";
 import { themeFromStored } from "@/lib/quotes/themes";
 
@@ -32,7 +34,14 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
 
   let pdf: Buffer;
   try {
-    pdf = await renderQuotePdf(snapshot, { images: photos, logo, background });
+    const paidCents = paidCentsOf(invoice.payments);
+    const words = getLocalePack(workspace.profile.countryCode).documents.invoice;
+    pdf = await renderQuotePdf(snapshot, {
+      images: photos,
+      logo,
+      background,
+      payments: { paidCents, owingCents: owingCentsOf(invoice.grossCents, paidCents), labels: { paid: words.paidLabel, due: words.amountDueLabel } },
+    });
   } catch (error) {
     console.error("could not draw the invoice PDF:", error);
     return new Response("The PDF could not be made. Try again in a moment.", { status: 500 });

@@ -11,6 +11,7 @@ import { buildQuoteSnapshot, type BusinessFacts } from "../../quotes/snapshot";
 import { renderQuotePdf } from "../../quotes/pdf/render";
 import {
   defaultInvoiceForm,
+  owedTotals,
   invoiceProblems,
   invoiceStatus,
   parseInvoiceForm,
@@ -266,6 +267,7 @@ describe("the invoices list", () => {
     issueDate: "2026-10-01",
     dueDate: "2026-10-15",
     grossCents: 1000,
+    paidCents: 0,
     currencyCode: "ZAR",
     ...over,
   });
@@ -286,8 +288,35 @@ describe("the invoices list", () => {
     expect(visibleInvoices(list, "overdue", "", "2026-10-20").map((i) => i.id)).toEqual(["a"]);
     expect(visibleInvoices(list, "unpaid", "", "2026-10-20")).toHaveLength(3);
     expect(visibleInvoices(list, "paid", "", "2026-10-20")).toHaveLength(0);
-    expect(visibleInvoices(list, "paid", "", "2026-10-20", (i) => (i.id === "b" ? i.grossCents : 0)).map((i) => i.id)).toEqual(["b"]);
+    const withPayment = list.map((i) => (i.id === "b" ? { ...i, paidCents: i.grossCents } : i));
+    expect(visibleInvoices(withPayment, "paid", "", "2026-10-20").map((i) => i.id)).toEqual(["b"]);
+    expect(visibleInvoices(withPayment, "unpaid", "", "2026-10-20").map((i) => i.id)).toEqual(["c", "a"]);
+    // Part paid is still owing, and overdue once the day has passed.
+    const part = list.map((i) => (i.id === "a" ? { ...i, paidCents: 400 } : i));
+    expect(visibleInvoices(part, "overdue", "", "2026-10-20").map((i) => i.id)).toEqual(["a"]);
     expect(visibleInvoices(list, "all", " pieter ", "2026-10-20").map((i) => i.id)).toEqual(["b"]);
     expect(visibleInvoices(list, "all", "0003", "2026-10-20").map((i) => i.id)).toEqual(["c"]);
+  });
+});
+
+describe("what is owed", () => {
+  const inv = (grossCents: number, paidCents: number, dueDate: string): InvoiceSummary => ({
+    id: String(Math.random()),
+    organisationId: "o",
+    number: "INV-1",
+    quoteId: "q",
+    customerName: "x",
+    issueDate: "2026-10-01",
+    dueDate,
+    grossCents,
+    paidCents,
+    currencyCode: "ZAR",
+  });
+  it("adds up what is left to pay, and what of it is overdue; paid invoices count for nothing", () => {
+    const list = [inv(10_000, 0, "2026-10-10"), inv(20_000, 5_000, "2026-11-01"), inv(30_000, 30_000, "2026-10-01"), inv(5_000, 1_000, "2026-10-19")];
+    expect(owedTotals(list, "2026-10-20")).toEqual({ count: 3, owingCents: 10_000 + 15_000 + 4_000, overdueCents: 10_000 + 4_000 });
+    expect(owedTotals([], "2026-10-20")).toEqual({ count: 0, owingCents: 0, overdueCents: 0 });
+    // Due today is not yet overdue.
+    expect(owedTotals([inv(100, 0, "2026-10-20")], "2026-10-20").overdueCents).toBe(0);
   });
 });

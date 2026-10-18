@@ -2,7 +2,8 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { QuoteSnapshot } from "../quotes/snapshot";
-import type { InvoiceSummary } from "./index";
+import type { InvoiceSummary, OwedTotals } from "./index";
+import { isPaymentMethod, paidCentsOf, type PaymentEntry } from "./payments";
 
 /**
  * Invoice reads. Row-level security limits every query to businesses the signed-in person belongs to; the pages keep
@@ -21,9 +22,11 @@ type SummaryRow = {
   due_date: string;
   gross_cents: number | string;
   currency_code: string;
+  invoice_payments: { amount_cents: number | string; reverses_id: string | null }[];
 };
 
-const SUMMARY_COLUMNS = "id, organisation_id, number, quote_id, customer_name, issue_date, due_date, gross_cents, currency_code";
+const SUMMARY_COLUMNS =
+  "id, organisation_id, number, quote_id, customer_name, issue_date, due_date, gross_cents, currency_code, invoice_payments ( amount_cents, reverses_id )";
 
 const summaryOf = (row: SummaryRow): InvoiceSummary => ({
   id: row.id,
@@ -34,6 +37,7 @@ const summaryOf = (row: SummaryRow): InvoiceSummary => ({
   issueDate: row.issue_date,
   dueDate: row.due_date,
   grossCents: Number(row.gross_cents),
+  paidCents: paidCentsOf(row.invoice_payments.map((p) => ({ amountCents: Number(p.amount_cents), reversesId: p.reverses_id }))),
   currencyCode: row.currency_code,
 });
 
@@ -50,6 +54,15 @@ export async function getInvoices(): Promise<InvoiceSummary[]> {
   return (data as unknown as SummaryRow[]).map(summaryOf);
 }
 
+/** What customers owe this business, worked out in the database from the invoices and their payments. */
+export async function getOwedTotals(organisationId: string, today: string): Promise<OwedTotals> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("invoice_owed_totals", { p_org: organisationId, p_today: today });
+  if (error) throw new Error(`Could not load what is owed: ${error.message}`);
+  const t = (data ?? {}) as { count?: unknown; owingCents?: unknown; overdueCents?: unknown };
+  return { count: Number(t.count ?? 0), owingCents: Number(t.owingCents ?? 0), overdueCents: Number(t.overdueCents ?? 0) };
+}
+
 export type StoredInvoice = InvoiceSummary & {
   quoteVersion: number;
   note: string | null;
@@ -62,9 +75,28 @@ export type StoredInvoice = InvoiceSummary & {
   /** The job made from the same quote, if any. */
   job: { id: string; number: number } | null;
   events: { id: string; kind: string; at: string }[];
+  /** Every payment entry and reversal, oldest first. */
+  payments: PaymentEntry[];
+  /** What the quote asked for up front, in cents, if it asked (the deposit, one tap from being recorded). */
+  depositCents: number | null;
 };
 
-type QuoteEmbed = { id: string; number: string; jobs: { id: string; number: number; status: string }[] | null };
+type QuoteEmbed = {
+  id: string;
+  number: string;
+  jobs: { id: string; number: number; status: string }[] | null;
+  quote_versions: { version: number; deposit: { depositCents?: unknown } | null }[];
+};
+
+type PaymentRow = {
+  id: string;
+  amount_cents: number | string;
+  paid_on: string;
+  method: string | null;
+  note: string | null;
+  reverses_id: string | null;
+  created_at: string;
+};
 
 type DetailRow = SummaryRow & {
   quote_version: number;
@@ -74,6 +106,7 @@ type DetailRow = SummaryRow & {
   created_at: string;
   quotes: QuoteEmbed | QuoteEmbed[] | null;
   invoice_events: { id: string; kind: string; created_at: string }[];
+  all_payments: PaymentRow[];
 };
 
 /** One invoice with its history, or null when it isn't found. */
@@ -84,8 +117,9 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
     .from("invoices")
     .select(
       `${SUMMARY_COLUMNS}, quote_version, note, snapshot, costing, created_at,
-       quotes ( id, number, jobs ( id, number, status ) ),
-       invoice_events ( id, kind, created_at )`,
+       quotes ( id, number, jobs ( id, number, status ), quote_versions ( version, deposit:snapshot->deposit ) ),
+       invoice_events ( id, kind, created_at ),
+       all_payments:invoice_payments ( id, amount_cents, paid_on, method, note, reverses_id, created_at )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -102,10 +136,28 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
     issuedAt: row.created_at,
     quote: quote ? { id: quote.id, number: quote.number } : null,
     job: (quote?.jobs ?? []).find((j) => j.status !== "cancelled") ?? null,
+    depositCents: depositOf(quote, row.quote_version),
+    payments: [...row.all_payments]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((p) => ({
+        id: p.id,
+        amountCents: Number(p.amount_cents),
+        paidOn: p.paid_on,
+        method: isPaymentMethod(p.method) ? p.method : null,
+        note: p.note,
+        reversesId: p.reverses_id,
+        createdAt: p.created_at,
+      })),
     events: [...row.invoice_events]
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((e) => ({ id: e.id, kind: e.kind, at: e.created_at })),
   };
+}
+
+/** The deposit the quote version asked for, if it asked for one. */
+function depositOf(quote: QuoteEmbed | null, version: number): number | null {
+  const cents = Number(quote?.quote_versions.find((v) => v.version === version)?.deposit?.depositCents);
+  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
 }
 
 export async function getInvoice(id: string): Promise<StoredInvoice> {

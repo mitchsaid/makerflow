@@ -78,6 +78,7 @@ export function QuoteDocument({
   images,
   logo,
   background,
+  payments,
 }: {
   snapshot: QuoteSnapshot;
   /** The product photos named in the snapshot (small copies), by image id. A missing one is left out. */
@@ -86,6 +87,11 @@ export function QuoteDocument({
   logo?: PdfImage | null;
   /** The picture behind every page, if the theme has one and it could be loaded. */
   background?: PdfImage | null;
+  /**
+   * An invoice with payments on it: what has been paid and what is still owing, drawn under the totals. These are not
+   * part of the issued document (which never changes); the PDF is drawn from the document and the payments to date.
+   */
+  payments?: { paidCents: number; owingCents: number; labels: { paid: string; due: string } } | null;
 }) {
   const theme = themeFromStored(s);
   const styles = makeStyles(theme);
@@ -461,6 +467,19 @@ export function QuoteDocument({
               </View>
             ))}
           </View>
+
+          {payments && payments.paidCents > 0 ? (
+            <View style={styles.totals} wrap={false}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>{payments.labels.paid}</Text>
+                <Text>-{money(payments.paidCents)}</Text>
+              </View>
+              <View style={styles.grandRow}>
+                <Text>{payments.labels.due}</Text>
+                <Text>{money(payments.owingCents)}</Text>
+              </View>
+            </View>
+          ) : null}
 
           {s.deposit ? (
             <View style={styles.depositBlock} wrap={false}>

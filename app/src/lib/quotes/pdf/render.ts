@@ -19,12 +19,14 @@ export async function renderQuotePdf(
     logo?: PdfImage | null;
     /** The picture behind the pages, if the theme names one. */
     background?: PdfImage | null;
+    /** An invoice's payments to date, drawn under the totals. */
+    payments?: { paidCents: number; owingCents: number; labels: { paid: string; due: string } } | null;
   } = {},
 ): Promise<Buffer> {
   const theme = themeFromStored(snapshot);
   await ensureFonts([theme.headingFont, theme.bodyFont]);
   // QuoteDocument is a plain function that returns the <Document>, which is what renderToBuffer wants.
   // Text the font cannot draw (emoji, mostly) is dropped for the PDF only; the snapshot keeps it.
-  const document = QuoteDocument({ snapshot: forPdf(snapshot), images: options.images, logo: options.logo, background: options.background });
+  const document = QuoteDocument({ snapshot: forPdf(snapshot), images: options.images, logo: options.logo, background: options.background, payments: options.payments });
   return renderToBuffer(document as ReactElement<DocumentProps>);
 }
