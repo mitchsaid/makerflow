@@ -44,6 +44,8 @@ declare
   cust uuid;
   q uuid;
   q_b uuid;
+  q_c uuid;
+  inv_c uuid;
   inv uuid;
   inv_b uuid;
   made jsonb;
@@ -59,6 +61,8 @@ begin
   org_a := public.ensure_organisation('A Co');
   insert into public.customers (organisation_id, name) values (org_a, 'Thandi') returning id into cust;
   q := public.save_quote_draft(org_a, null, pg_temp.quote_json(cust), jsonb_build_array(
+    jsonb_build_object('sort_order', 0, 'kind', 'custom', 'name', 'Shelf', 'quantity_milli', 1000, 'unit_price_cents', 100000)));
+  q_c := public.save_quote_draft(org_a, null, pg_temp.quote_json(cust), jsonb_build_array(
     jsonb_build_object('sort_order', 0, 'kind', 'custom', 'name', 'Shelf', 'quantity_milli', 1000, 'unit_price_cents', 100000)));
   reset role;
   perform pg_temp.as_user(b);
@@ -76,6 +80,12 @@ begin
   insert into public.invoices (organisation_id, number, quote_id, quote_version, customer_name, issue_date, due_date, currency_code, net_cents, vat_cents, gross_cents, snapshot)
   values (org_b, 'INV-9102', q_b, 1, 'Other', d - 5, d + 9, 'ZAR', 1000, 0, 1000, jsonb_build_object('lines', jsonb_build_array(jsonb_build_object('name', 'x'))))
   returning id into inv_b;
+
+  -- A third invoice whose document says what its amounts add up to: the last credit must take exactly the rest of its total.
+  insert into public.invoices (organisation_id, number, quote_id, quote_version, customer_name, issue_date, due_date, currency_code, net_cents, vat_cents, gross_cents, snapshot)
+  values (org_a, 'INV-9103', q_c, 1, 'Thandi', d - 5, d + 9, 'ZAR', 870, 130, 1000,
+          jsonb_build_object('lines', jsonb_build_array(jsonb_build_object('name', 'Shelf')), 'totals', jsonb_build_object('subtotalCents', 1000)))
+  returning id into inv_c;
 
   snap := pg_temp.cn_snap('INV-9101', d - 5, d, 50000, 43478, 6522);
 
@@ -161,6 +171,18 @@ begin
   assert (select last_issued_number from public.document_sequences where organisation_id = org_a and doc_type = 'credit_note') is null,
     'a refused credit note used up a number';
 
+  -- Taking the last of an invoice's amounts must take exactly the rest of its total (the VAT was worked out on a stale view).
+  set local role service_role;
+  begin
+    perform public.issue_credit_note(org_a, inv_c, a, d, 'other', 'x', jsonb_build_array(pg_temp.line(0, 0, 1000, 0, 1000)),
+      pg_temp.cn_snap('INV-9103', d - 5, d, 1000, 870, 129));
+    raise exception 'the last credit took less than the rest of the invoice total';
+  exception when sqlstate '40001' then null;
+  end;
+  reset role;
+  assert (select last_issued_number from public.document_sequences where organisation_id = org_a and doc_type = 'credit_note') is null,
+    'a refused last credit used up a number';
+
   ----------------------------------------------------------------------
   -- Issuing: the next number, the lines, the document
   ----------------------------------------------------------------------
@@ -212,6 +234,26 @@ begin
   assert (select last_issued_number from public.document_sequences where organisation_id = org_a and doc_type = 'credit_note') = 2,
     'refused credit notes used up numbers';
 
+  -- Even a direct insert (the server key) cannot pass the invoice's total or an item's limits.
+  begin
+    insert into public.credit_notes (organisation_id, number, invoice_id, invoice_number, customer_name, issue_date, reason, explanation, currency_code, net_cents, vat_cents, gross_cents, snapshot)
+    values (org_a, 'CN-DIRECT', inv, 'INV-9101', 'X', d, 'other', 'x', 'ZAR', 35001, 0, 35001, '{}'::jsonb);
+    raise exception 'a credit note passing the invoice total was inserted directly';
+  exception when sqlstate '22003' then null;
+  end;
+  begin
+    insert into public.credit_note_lines (organisation_id, credit_note_id, invoice_id, line_index, quantity_milli, amount_cents, line_limit_quantity_milli, line_limit_amount_cents)
+    values (org_a, cn1, inv, 0, 1000, 1, 2000, 80000);
+    raise exception 'a credit line passing the item''s quantity was inserted directly';
+  exception when sqlstate '22003' then null;
+  end;
+  begin
+    insert into public.credit_note_lines (organisation_id, credit_note_id, invoice_id, line_index, quantity_milli, amount_cents, line_limit_quantity_milli, line_limit_amount_cents)
+    values (org_a, cn1, inv, 0, 0, 1, 9999, 80000);
+    raise exception 'a credit line with other limits was inserted directly';
+  exception when sqlstate '22023' then null;
+  end;
+
   ----------------------------------------------------------------------
   -- What is owing takes the credit off: payments and Home's totals
   ----------------------------------------------------------------------
@@ -232,7 +274,8 @@ begin
   perform pg_temp.as_user(a);
   set local role authenticated;
   made := public.invoice_owed_totals(org_a, d - 100);
-  assert (made ->> 'count')::integer = 1 and (made ->> 'owingCents')::bigint = 15000, 'Home''s owing ignores the credit: ' || made::text;
+  -- (The third invoice, R10 untouched, is owing too.)
+  assert (made ->> 'count')::integer = 2 and (made ->> 'owingCents')::bigint = 16000, 'Home''s owing ignores the credit: ' || made::text;
   reset role;
 
   ----------------------------------------------------------------------

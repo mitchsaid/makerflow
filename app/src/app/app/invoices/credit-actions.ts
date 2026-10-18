@@ -34,8 +34,31 @@ export type IssueCreditNoteResult =
 
 /** Issues the credit note and opens it. Returns only when something stopped it. */
 export async function issueCreditNote(invoiceId: string, values: CreditFormValues): Promise<IssueCreditNoteResult> {
-  const { organisation, profile, user } = await requireOrganisation();
   if (!UUID.test(invoiceId)) return { status: "error", message: "That invoice could not be found." };
+  // Another credit note issued at the same moment changes what is left (and the VAT this one takes): read again, once.
+  const first = await attempt(invoiceId, values);
+  if (first.status === "retry") {
+    const second = await attempt(invoiceId, values);
+    if (second.status === "retry") {
+      return { status: "invalid", errors: { lines: "That is more than is left to credit. Refresh the page to see what is left." } };
+    }
+    return finish(second);
+  }
+  return finish(first);
+}
+
+type Attempt = IssueCreditNoteResult | { status: "retry" } | { status: "done"; id: string; invoiceId: string };
+
+function finish(result: Exclude<Attempt, { status: "retry" }>): IssueCreditNoteResult {
+  if (result.status !== "done") return result;
+  revalidatePath(`/app/invoices/${result.invoiceId}`);
+  revalidatePath("/app/invoices");
+  revalidatePath("/app");
+  redirect(`/app/credit-notes/${result.id}`);
+}
+
+async function attempt(invoiceId: string, values: CreditFormValues): Promise<Attempt> {
+  const { organisation, profile, user } = await requireOrganisation();
 
   // Read under the person's own session: it proves the invoice is theirs, and gives what the earlier notes took off.
   const invoice = await findInvoice(invoiceId);
@@ -98,9 +121,7 @@ export async function issueCreditNote(invoiceId: string, values: CreditFormValue
     }),
     p_snapshot: snapshot,
   });
-  if (error?.code === "22003") {
-    return { status: "invalid", errors: { lines: "That is more than is left to credit. Refresh the page to see what is left." } };
-  }
+  if (error?.code === "22003" || error?.code === "40001") return { status: "retry" };
   if (error?.code === "P0002") return { status: "error", message: "That invoice could not be found." };
   if (error?.code === "22023") {
     return { status: "error", message: "This credit note could not be made: check the day and the items, then try again." };
@@ -110,9 +131,5 @@ export async function issueCreditNote(invoiceId: string, values: CreditFormValue
     console.error("could not issue the credit note:", error?.code, error?.message);
     return { status: "error", message: GENERIC_ERROR };
   }
-
-  revalidatePath(`/app/invoices/${invoice.id}`);
-  revalidatePath("/app/invoices");
-  revalidatePath("/app");
-  redirect(`/app/credit-notes/${id}`);
+  return { status: "done", id, invoiceId: invoice.id };
 }

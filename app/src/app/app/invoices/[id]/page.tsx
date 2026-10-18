@@ -128,6 +128,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
         notes={invoice.creditNotes.map((c) => ({ id: c.id, number: c.number, issueDate: c.issueDate, reason: c.reason, grossCents: c.grossCents }))}
         items={remainingItems(creditItemsOf(invoice.snapshot), invoice.creditNotes.flatMap((c) => c.lines))}
         vat={vat.registered && vat.entry && vat.rateBp !== null ? { registered: true, entry: vat.entry, standardRateBp: vat.rateBp } : { registered: false }}
+        taxName={vat.taxName}
         invoiceGroups={invoice.snapshot.totals.groups}
         priorGroups={invoice.creditNotes.flatMap((c) => c.groups)}
         creditedCents={creditedCents}

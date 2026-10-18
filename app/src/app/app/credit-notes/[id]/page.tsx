@@ -44,7 +44,7 @@ export default async function CreditNotePage({ params }: PageProps<"/app/credit-
             </dd>
             {vat && (
               <>
-                <dt className="text-muted-foreground">Includes VAT</dt>
+                <dt className="text-muted-foreground">Includes {note.snapshot.vat.taxName}</dt>
                 <dd>{money(note.snapshot.totals.vatCents)}</dd>
               </>
             )}

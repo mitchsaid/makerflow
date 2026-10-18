@@ -100,6 +100,64 @@ create trigger credit_note_lines_no_truncate
   before truncate on public.credit_note_lines
   for each statement execute function public.invoices_no_truncate();
 
+-- The credit rules hold for every insert, not only through issue_credit_note: the total credited never passes the
+-- invoice's total, and an item's running quantity and amount stay within its limits, which never change between notes.
+create function public.credit_notes_check()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  inv public.invoices%rowtype;
+  credited bigint;
+begin
+  select * into inv from public.invoices where id = new.invoice_id and organisation_id = new.organisation_id for update;
+  if not found then
+    raise exception 'invoice not found' using errcode = 'P0002';
+  end if;
+  select coalesce(sum(gross_cents), 0) into credited from public.credit_notes where invoice_id = inv.id;
+  if new.gross_cents > inv.gross_cents - credited then
+    raise exception 'that is more than is left to credit on the invoice' using errcode = '22003';
+  end if;
+  return new;
+end;
+$$;
+
+create function public.credit_note_lines_check()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  prior record;
+begin
+  select coalesce(sum(quantity_milli), 0) as q, coalesce(sum(amount_cents), 0) as a,
+         min(line_limit_quantity_milli) as min_lq, max(line_limit_quantity_milli) as max_lq,
+         min(line_limit_amount_cents) as min_la, max(line_limit_amount_cents) as max_la, count(*) as n
+    into prior from public.credit_note_lines where invoice_id = new.invoice_id and line_index = new.line_index;
+  if prior.n > 0 and (prior.min_lq <> new.line_limit_quantity_milli or prior.max_lq <> new.line_limit_quantity_milli
+                      or prior.min_la <> new.line_limit_amount_cents or prior.max_la <> new.line_limit_amount_cents) then
+    raise exception 'what an item allows cannot change between credit notes' using errcode = '22023';
+  end if;
+  if prior.q + new.quantity_milli > new.line_limit_quantity_milli or prior.a + new.amount_cents > new.line_limit_amount_cents then
+    raise exception 'that is more than is left to credit on the item' using errcode = '22003';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.credit_notes_check() from public, anon, authenticated;
+revoke execute on function public.credit_note_lines_check() from public, anon, authenticated;
+
+create trigger credit_notes_check
+  before insert on public.credit_notes
+  for each row execute function public.credit_notes_check();
+create trigger credit_note_lines_check
+  before insert on public.credit_note_lines
+  for each row execute function public.credit_note_lines_check();
+
 -- Members read. Nobody writes directly: no insert, update or delete grant.
 revoke all on public.credit_notes, public.credit_note_lines from anon, authenticated;
 grant select on public.credit_notes, public.credit_note_lines to authenticated;
@@ -130,7 +188,8 @@ create policy session_required on public.credit_note_lines
 --
 -- Errors: P0002 the invoice is not found; 22023 the reason, explanation, day, lines or document do not fit, or an item's
 -- limits differ from earlier credit notes'; 22003 an item or the invoice would be credited for more than it allows;
--- 23514 the money does not add up.
+-- 23514 the money does not add up; 40001 another credit note was issued meanwhile and this one's VAT must be worked out
+-- again (the server reads the invoice again and retries).
 -- Returns the new credit note's id and number.
 -- ---------------------------------------------------------------------------
 create function public.issue_credit_note(
@@ -160,6 +219,7 @@ declare
   line_count integer;
   amounts bigint := 0;
   credited bigint;
+  credited_subtotal bigint;
   net bigint;
   vat bigint;
   gross bigint;
@@ -225,9 +285,16 @@ begin
     raise exception 'the credit note money does not add up' using errcode = '23514';
   end if;
 
-  select coalesce(sum(gross_cents), 0) into credited from public.credit_notes where invoice_id = inv.id;
+  select coalesce(sum(gross_cents), 0), coalesce(sum((snapshot -> 'totals' ->> 'subtotalCents')::bigint), 0)
+    into credited, credited_subtotal from public.credit_notes where invoice_id = inv.id;
   if gross > inv.gross_cents - credited then
     raise exception 'that is more than is left to credit on the invoice' using errcode = '22003';
+  end if;
+  -- Crediting the last of the invoice's amounts must credit exactly the rest of its total: the VAT of this note was worked
+  -- out from the credit notes the server could see, and another one may have been issued since. 40001: read again and retry.
+  if credited_subtotal + amounts = (inv.snapshot -> 'totals' ->> 'subtotalCents')::bigint
+     and credited + gross <> inv.gross_cents then
+    raise exception 'the invoice changed while this credit note was being made' using errcode = '40001';
   end if;
 
   if (p_snapshot #>> '{creditNote,invoiceNumber}') is distinct from inv.number
@@ -348,6 +415,55 @@ begin
 
   return jsonb_build_object('id', pid, 'paidCents', paid + p_amount_cents,
                             'owingCents', inv.gross_cents - credited - paid - p_amount_cents);
+end;
+$$;
+
+-- reverse_invoice_payment returns what is owing now: the same function as before (20261116100000_invoice_payments.sql),
+-- with the credit taken off the figure it returns.
+create or replace function public.reverse_invoice_payment(
+  p_org uuid,
+  p_payment_id uuid,
+  p_actor uuid,
+  p_on date,
+  p_note text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  pay public.invoice_payments%rowtype;
+  inv public.invoices%rowtype;
+  credited bigint;
+  paid bigint;
+  rid uuid;
+begin
+  if p_on is null or p_on > current_date + 2 then
+    raise exception 'a reversal cannot be dated in the future' using errcode = '22023';
+  end if;
+
+  select * into pay from public.invoice_payments where id = p_payment_id and organisation_id = p_org;
+  if not found then
+    raise exception 'payment not found' using errcode = 'P0002';
+  end if;
+  select * into inv from public.invoices where id = pay.invoice_id and organisation_id = p_org for update;
+
+  if pay.reverses_id is not null then
+    raise exception 'a reversal cannot be reversed; record the payment again' using errcode = '22023';
+  end if;
+  if exists (select 1 from public.invoice_payments where reverses_id = pay.id) then
+    raise exception 'this payment has already been reversed' using errcode = '23505';
+  end if;
+
+  insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on, method, note, reverses_id, created_by)
+  values (p_org, pay.invoice_id, pay.amount_cents, p_on, pay.method, nullif(btrim(p_note), ''), pay.id, p_actor)
+  returning id into rid;
+
+  select coalesce(sum(gross_cents), 0) into credited from public.credit_notes where invoice_id = inv.id;
+  select coalesce(sum(case when reverses_id is null then amount_cents else -amount_cents end), 0)
+    into paid from public.invoice_payments where invoice_id = inv.id;
+  return jsonb_build_object('id', rid, 'paidCents', paid, 'owingCents', inv.gross_cents - credited - paid);
 end;
 $$;
 

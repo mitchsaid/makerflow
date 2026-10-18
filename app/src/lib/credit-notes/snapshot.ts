@@ -47,7 +47,8 @@ export function buildCreditNoteSnapshot(input: {
     return {
       kind: invoice.lines[credit.index].kind,
       name: item.name,
-      description: null,
+      description: invoice.lines[credit.index].description ?? null,
+      ...(invoice.lines[credit.index].variation ? { variation: invoice.lines[credit.index].variation } : {}),
       quantityMilli,
       unit: credit.quantityMilli > 0 ? item.unit : null,
       unitPriceCents: mulDivRound(credit.amountCents, 1000, quantityMilli),

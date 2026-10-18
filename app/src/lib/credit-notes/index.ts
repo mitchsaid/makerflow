@@ -90,6 +90,9 @@ export function defaultCreditAmount(item: CreditRemaining, quantityMilli: Quanti
   return Math.min(item.amountLeftCents, mulDivRound(item.amountLeftCents, quantityMilli, item.quantityLeftMilli));
 }
 
+/** Zero, however it is written: "0", "0,0", "0.00", "00". An empty box is not a zero. */
+export const isZeroQuantityText = (text: string): boolean => /^\s*0[0\s.,]*$/.test(text);
+
 export type CreditLineForm = { index: number; selected: boolean; quantity: string; amount: string };
 export type CreditFormValues = { reason: string; issueDate: string; explanation: string; lines: CreditLineForm[] };
 export type CreditLineErrors = { quantity?: string; amount?: string };
@@ -141,9 +144,12 @@ export function parseCreditForm(
     let quantityMilli = 0;
     let amountCents = 0;
 
-    if (String(form.quantity ?? "").trim() === "0" || String(form.quantity ?? "").trim() === "") {
-      // Nothing returned: a price change. (An empty box is not a guess at zero.)
-      if (String(form.quantity ?? "").trim() === "") e.quantity = "Enter how many, or 0 if it is only a price change.";
+    const quantityText = String(form.quantity ?? "");
+    if (quantityText.trim() === "") {
+      // An empty box is not a guess at zero.
+      e.quantity = "Enter how many, or 0 if it is only a price change.";
+    } else if (isZeroQuantityText(quantityText)) {
+      // Nothing returned: a price change.
     } else {
       const q = parseQuantity(form.quantity);
       if (!q.ok) e.quantity = q.error;

@@ -20,6 +20,7 @@ import {
   CREDIT_REASONS,
   creditTotals,
   defaultCreditAmount,
+  isZeroQuantityText,
   parseCreditForm,
   type CreditFormErrors,
   type CreditFormValues,
@@ -47,6 +48,8 @@ type Props = {
   notes: CreditNoteSummary[];
   items: CreditRemaining[];
   vat: VatSettings;
+  /** "VAT", in the country's word, from the invoice's own document. */
+  taxName: string;
   invoiceGroups: VatGroup[];
   priorGroups: VatGroup[];
   creditedCents: number;
@@ -140,6 +143,7 @@ function CreditForm({
   reasons,
   items,
   vat,
+  taxName,
   invoiceGroups,
   priorGroups,
   onBusyChange,
@@ -175,7 +179,7 @@ function CreditForm({
   }
 
   function changeQuantity(item: CreditRemaining, text: string) {
-    const q = text.trim() === "0" ? { ok: true as const, value: 0 } : parseQuantity(text);
+    const q = isZeroQuantityText(text) ? { ok: true as const, value: 0 } : parseQuantity(text);
     const change: Partial<CreditLineForm> = { quantity: text };
     if (q.ok && !typedAmount[item.index] && q.value <= item.quantityLeftMilli) {
       change.amount = moneyToInput(defaultCreditAmount(item, q.value), numberStyle);
@@ -236,7 +240,7 @@ function CreditForm({
   const summary: FormProblem[] = [
     ...(errors.reason ? [{ fieldId: "credit-reason", label: "Why", message: errors.reason }] : []),
     ...(errors.issueDate ? [{ fieldId: "credit-date", label: "Day", message: errors.issueDate }] : []),
-    ...(errors.lines ? [{ fieldId: `credit-line-${items[0]?.index ?? 0}`, label: "Items", message: errors.lines }] : []),
+    ...(errors.lines ? [{ fieldId: `credit-line-${(items.find((i) => i.amountLeftCents > 0) ?? items[0])?.index ?? 0}`, label: "Items", message: errors.lines }] : []),
     ...Object.entries(errors.byLine ?? {}).flatMap(([index, e]) => [
       ...(e.quantity ? [{ fieldId: `credit-line-${index}-quantity`, label: `${items.find((i) => i.index === Number(index))?.name ?? "Item"}: how many`, message: e.quantity }] : []),
       ...(e.amount ? [{ fieldId: `credit-line-${index}-amount`, label: `${items.find((i) => i.index === Number(index))?.name ?? "Item"}: amount`, message: e.amount }] : []),
@@ -368,7 +372,7 @@ function CreditForm({
             </div>
             {totals && vat.registered && (
               <div className="flex justify-between gap-4 text-sm">
-                <dt className="text-muted-foreground">Includes VAT</dt>
+                <dt className="text-muted-foreground">Includes {taxName}</dt>
                 <dd>{money(totals.vatCents)}</dd>
               </div>
             )}

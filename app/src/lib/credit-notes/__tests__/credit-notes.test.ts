@@ -6,6 +6,7 @@ import {
   creditItemsOf,
   creditTotals,
   defaultCreditAmount,
+  isZeroQuantityText,
   parseCreditForm,
   remainingItems,
   type CreditFormValues,
@@ -85,6 +86,16 @@ describe("the credit note form", () => {
       explanation: "Two came back cracked",
       lines: [{ index: 0, quantityMilli: 2000, amountCents: 4000 }],
     });
+  });
+
+  it("reads zero however it is written, and still refuses an empty box", () => {
+    for (const zero of ["0", "0,0", "0.00", "00", " 0 "]) {
+      const r = parseCreditForm({ ...good, lines: [{ index: 1, selected: true, quantity: zero, amount: "10" }] }, context);
+      expect(r, zero).toMatchObject({ ok: true, lines: [{ index: 1, quantityMilli: 0, amountCents: 1000 }] });
+    }
+    expect(isZeroQuantityText("")).toBe(false);
+    expect(isZeroQuantityText("0,5")).toBe(false);
+    expect(isZeroQuantityText("10")).toBe(false);
   });
 
   it("allows a price change with no goods back (0), but not an empty box", () => {
