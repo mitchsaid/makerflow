@@ -84,5 +84,10 @@ export function parsePaymentForm(
   return { ok: true, amountCents, paidOn, method: method === "" ? null : (method as PaymentMethod), note: note === "" ? null : note };
 }
 
-/** What is owing, never below nothing. */
-export const owingCentsOf = (grossCents: Cents, paidCents: Cents): Cents => Math.max(0, grossCents - paidCents);
+/** What is owing: the total less what credit notes took off and what has been paid, never below nothing. */
+export const owingCentsOf = (grossCents: Cents, paidCents: Cents, creditedCents: Cents = 0): Cents =>
+  Math.max(0, grossCents - creditedCents - paidCents);
+
+/** What the customer is owed back: paid more than the invoice now comes to (after credit notes). */
+export const refundDueCentsOf = (grossCents: Cents, paidCents: Cents, creditedCents: Cents = 0): Cents =>
+  Math.max(0, paidCents - Math.max(0, grossCents - creditedCents));

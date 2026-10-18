@@ -2,7 +2,7 @@
 -- table with an organisation_id ends up empty for them, with a row in every link that does not cascade); keeps
 -- businesses that have other people; refuses the only owner of a shared business and changes nothing then (including
 -- the person's own businesses); two owners leaving at the same moment never strand a business; refuses to delete a
--- business that has issued invoices; and reminds us to keep credit notes when they exist. Plain SQL, one transaction, rolled back.
+-- business that has issued invoices (which includes every business with credit notes). Plain SQL, one transaction, rolled back.
 
 begin;
 
@@ -270,7 +270,7 @@ begin
      where contype = 'f' and connamespace = 'public'::regnamespace and confdeltype in ('a', 'r')
        and confrelid::regclass::text <> 'organisations'
   ) = array[
-    'business_profiles->images', 'extra_cost_lines->materials', 'invoice_events->invoices', 'invoice_payments->invoice_payments', 'invoice_payments->invoices', 'invoices->customers', 'invoices->quotes', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
+    'business_profiles->images', 'credit_note_lines->credit_notes', 'credit_note_lines->credit_notes', 'credit_notes->invoices', 'extra_cost_lines->materials', 'invoice_events->invoices', 'invoice_payments->invoice_payments', 'invoice_payments->invoices', 'invoices->customers', 'invoices->quotes', 'job_items->images', 'job_items->products', 'jobs->customers', 'jobs->quotes',
     'product_cost_lines->materials', 'product_option_values->images', 'product_variations->images', 'products->images',
     'quote_lines->products', 'quote_versions->quotes', 'quotes->customers'
   ], 'a link between tables that does not cascade was added or removed: teach delete_account (and the seed and this list) about it';
@@ -306,9 +306,11 @@ begin
   assert result -> 'organisations' = '[]'::jsonb, 'a business with invoices and another owner was deleted';
   assert exists (select 1 from public.invoices where organisation_id = org_m), 'the invoice went with the person who left';
   assert not exists (select 1 from public.memberships where user_id = m), 'the person is still in the business';
-  -- Credit notes are a later slice: when their table exists, delete_account has to keep them too.
-  assert to_regclass('public.credit_notes') is null,
-    'a credit notes table now exists: make delete_account keep issued credit notes, then update this test';
+  -- Credit notes exist only for an invoice of the same business, so a business with credit notes has invoices and is
+  -- never deleted either (and the credit note tables cannot be emptied by anything else).
+  assert not exists (
+    select 1 from public.credit_notes c where not exists (select 1 from public.invoices i where i.id = c.invoice_id)
+  ), 'a credit note without an invoice';
 
   raise notice 'delete account tests passed';
 end

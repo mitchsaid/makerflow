@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
+import { issuedInvoice } from "./invoice-helpers";
 import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
@@ -869,6 +870,30 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app");
       await expect(page.getByTestId("home-owing")).toBeVisible();
       await expectNoViolations(page, "home, with money owed");
+    });
+
+    test("credit notes: the sheet, the invoice, the credit note and the numbering", async ({ page }) => {
+      test.setTimeout(300_000);
+      await issuedInvoice(page, `a11y-credit-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
+      await expectNoViolations(page, "an invoice with no credit notes");
+      await page.getByRole("button", { name: "Issue a credit note" }).click();
+      await expectNoViolations(page, "issue a credit note");
+      await page.getByRole("dialog").getByRole("button", { name: "Issue credit note" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "issue a credit note, with problems");
+      await page.getByRole("dialog").getByRole("checkbox", { name: /Cupcakes/ }).click();
+      await expectNoViolations(page, "issue a credit note, an item ticked");
+      await page.getByRole("dialog").getByLabel("Why", { exact: true }).selectOption({ label: "Goods returned or defective" });
+      await page.getByRole("dialog").getByLabel("Why it is being credited").fill("Two came back cracked");
+      await page.getByRole("dialog").getByLabel("How many").fill("2");
+      await page.getByRole("dialog").getByRole("button", { name: "Issue credit note" }).click();
+      await expect(page.getByRole("heading", { name: /^Credit note CN-0001/, level: 1 })).toBeVisible();
+      await expectNoViolations(page, "a credit note");
+      await page.getByRole("link", { name: "invoice INV-0001", exact: true }).click();
+      await expect(page.getByTestId("credit-notes")).toBeVisible();
+      await expectNoViolations(page, "an invoice with a credit note");
+      await openDocuments(page);
+      await expectNoViolations(page, "quotes and invoices, with the three numberings");
     });
   });
 }

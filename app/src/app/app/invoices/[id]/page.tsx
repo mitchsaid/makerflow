@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { invoiceStatus } from "@/lib/invoices";
-import { owingCentsOf, paidCentsOf, paymentRows } from "@/lib/invoices/payments";
+import { creditItemsOf, remainingItems } from "@/lib/credit-notes";
+import { owingCentsOf, paidCentsOf, paymentRows, refundDueCentsOf } from "@/lib/invoices/payments";
 import { getInvoice } from "@/lib/invoices/data";
 import { jobNumberText } from "@/lib/jobs";
 import { getLocalePack } from "@/lib/locale";
@@ -16,6 +17,7 @@ import { MarginPanel } from "../../quotes/margin-panel";
 import { PdfPreview } from "../../quotes/pdf-preview";
 import { QuoteDocumentView } from "../../quotes/quote-document-view";
 import { InvoiceStatusChip } from "../invoice-status-chip";
+import { CreditNotesSection } from "../credit-notes-section";
 import { PaymentsSection } from "../payments-section";
 import { ShareInvoice } from "../share-invoice";
 
@@ -30,8 +32,11 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
   const today = todayIn(locale.timeZone);
   const money = (cents: number) => formatMoney(cents, invoice.currencyCode, locale.numberStyle);
   const paidCents = paidCentsOf(invoice.payments);
-  const owingCents = owingCentsOf(invoice.grossCents, paidCents);
-  const status = invoiceStatus({ grossCents: invoice.grossCents, paidCents, dueDate: invoice.dueDate, today });
+  const creditedCents = invoice.creditNotes.reduce((sum, c) => sum + c.grossCents, 0);
+  const owingCents = owingCentsOf(invoice.grossCents, paidCents, creditedCents);
+  const refundDueCents = refundDueCentsOf(invoice.grossCents, paidCents, creditedCents);
+  const status = invoiceStatus({ grossCents: invoice.grossCents, creditedCents, paidCents, dueDate: invoice.dueDate, today });
+  const vat = invoice.snapshot.vat;
   const margins = frozenMargins(invoice.costing);
   const title = invoice.snapshot.wording.title;
 
@@ -57,6 +62,12 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
             <dd className="font-medium" data-testid="invoice-total">
               {money(invoice.grossCents)}
             </dd>
+            {creditedCents > 0 && (
+              <>
+                <dt className="text-muted-foreground">Credited</dt>
+                <dd data-testid="invoice-credited">{money(creditedCents)}</dd>
+              </>
+            )}
             <dt className="text-muted-foreground">Owing</dt>
             <dd data-testid="invoice-owing">{money(owingCents)}</dd>
             <dt className="text-muted-foreground">Issued</dt>
@@ -95,20 +106,41 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
         formatLocale={locale.formatLocale}
         symbol={currencySymbol(invoice.currencyCode, locale.numberStyle)}
         today={today}
-        grossCents={invoice.grossCents}
+        grossCents={invoice.grossCents - creditedCents}
         paidCents={paidCents}
         rows={paymentRows(invoice.payments)}
         methods={locale.payment.methods}
         depositCents={invoice.depositCents}
         depositNote={locale.documents.invoice.depositNote}
+        fullyCredited={status === "credited"}
+      />
+
+      <CreditNotesSection
+        invoiceId={invoice.id}
+        number={invoice.number}
+        currencyCode={invoice.currencyCode}
+        numberStyle={locale.numberStyle}
+        formatLocale={locale.formatLocale}
+        symbol={currencySymbol(invoice.currencyCode, locale.numberStyle)}
+        today={today}
+        invoiceDate={invoice.issueDate}
+        reasons={locale.documents.creditNote.reasons}
+        notes={invoice.creditNotes.map((c) => ({ id: c.id, number: c.number, issueDate: c.issueDate, reason: c.reason, grossCents: c.grossCents }))}
+        items={remainingItems(creditItemsOf(invoice.snapshot), invoice.creditNotes.flatMap((c) => c.lines))}
+        vat={vat.registered && vat.entry && vat.rateBp !== null ? { registered: true, entry: vat.entry, standardRateBp: vat.rateBp } : { registered: false }}
+        taxName={vat.taxName}
+        invoiceGroups={invoice.snapshot.totals.groups}
+        priorGroups={invoice.creditNotes.flatMap((c) => c.groups)}
+        creditedCents={creditedCents}
+        totalCents={invoice.grossCents}
+        refundDueCents={refundDueCents}
       />
 
       <section className="space-y-3" aria-label="Coming soon">
-        <ComingSoonSection title="Credit note" description="Correct this invoice without changing it." />
         <ComingSoonSection title="Email it to your customer" description="Send it from MakerFlow and see when it was sent." />
       </section>
 
-      <PdfPreview url={`/app/invoices/${invoice.id}/pdf?v=${invoice.payments.length}-${paidCents}`} label={`${title} ${invoice.number}`} />
+      <PdfPreview url={`/app/invoices/${invoice.id}/pdf?v=${invoice.payments.length}-${paidCents}-${creditedCents}`} label={`${title} ${invoice.number}`} />
       {/* The same document as text, for people who can't read the pictures of the pages. */}
       <section className="sr-only" aria-label="The invoice as text">
         <QuoteDocumentView snapshot={invoice.snapshot} />

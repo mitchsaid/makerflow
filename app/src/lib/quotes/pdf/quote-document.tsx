@@ -91,7 +91,7 @@ export function QuoteDocument({
    * An invoice with payments on it: what has been paid and what is still owing, drawn under the totals. These are not
    * part of the issued document (which never changes); the PDF is drawn from the document and the payments to date.
    */
-  payments?: { paidCents: number; owingCents: number; labels: { paid: string; due: string } } | null;
+  payments?: { paidCents: number; creditedCents?: number; owingCents: number; labels: { paid: string; due: string; credited?: string } } | null;
 }) {
   const theme = themeFromStored(s);
   const styles = makeStyles(theme);
@@ -120,7 +120,7 @@ export function QuoteDocument({
     objectFit: "cover" as const,
     borderRadius: theme.photoShape === "round" ? size / 2 : theme.photoShape === "rounded" ? Math.min(size / 6, 10) : 0,
   });
-  const numberText = s.version > 1 && !s.invoice ? `${s.number} · version ${s.version}` : s.number;
+  const numberText = s.version > 1 && !s.invoice && !s.creditNote ? `${s.number} · version ${s.version}` : s.number;
   // Options and extras, as the theme shows their prices (folded in, or each on its own line).
   const extrasOf = (l: QuoteSnapshot["lines"][number]) =>
     extrasView(l, theme.extraPrices === "separate", money, quantityText(l.quantityMilli, null, s.numberStyle, " "));
@@ -224,7 +224,7 @@ export function QuoteDocument({
 
           <View style={styles.partiesRow}>
             <View style={styles.party}>
-              <Text style={styles.sectionLabel}>{s.invoice?.billedToLabel ?? "Prepared for"}</Text>
+              <Text style={styles.sectionLabel}>{s.creditNote?.issuedToLabel ?? s.invoice?.billedToLabel ?? "Prepared for"}</Text>
               {s.customer ? (
                 <>
                   <Text style={styles.partyName}>{s.customer.name}</Text>
@@ -253,7 +253,20 @@ export function QuoteDocument({
                 <Text style={styles.muted}>Date</Text>
                 <Text>{day(s.issueDate)}</Text>
               </View>
-              {s.invoice ? (
+              {s.creditNote ? (
+                <>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.muted}>{s.creditNote.invoiceLabel}</Text>
+                    <Text>
+                      {s.creditNote.invoiceNumber} · {day(s.creditNote.invoiceDate)}
+                    </Text>
+                  </View>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.muted}>{s.creditNote.reasonLabel}</Text>
+                    <Text>{s.creditNote.reason}</Text>
+                  </View>
+                </>
+              ) : s.invoice ? (
                 <>
                   <View style={styles.metaRow}>
                     <Text style={styles.muted}>{s.invoice.dueLabel}</Text>
@@ -444,7 +457,7 @@ export function QuoteDocument({
               </>
             ) : null}
             <View style={styles.grandRow}>
-              <Text>{s.vat.registered ? `Total including ${s.vat.taxName}` : "Total"}</Text>
+              <Text>{s.creditNote ? s.creditNote.totalLabel : s.vat.registered ? `Total including ${s.vat.taxName}` : "Total"}</Text>
               <Text>{money(s.totals.grossCents)}</Text>
             </View>
             {inclusive ? (
@@ -468,12 +481,20 @@ export function QuoteDocument({
             ))}
           </View>
 
-          {payments && payments.paidCents > 0 ? (
+          {payments && (payments.paidCents > 0 || (payments.creditedCents ?? 0) > 0) ? (
             <View style={styles.totals} wrap={false}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>{payments.labels.paid}</Text>
-                <Text>-{money(payments.paidCents)}</Text>
-              </View>
+              {(payments.creditedCents ?? 0) > 0 ? (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{payments.labels.credited ?? "Credit notes"}</Text>
+                  <Text>-{money(payments.creditedCents ?? 0)}</Text>
+                </View>
+              ) : null}
+              {payments.paidCents > 0 ? (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{payments.labels.paid}</Text>
+                  <Text>-{money(payments.paidCents)}</Text>
+                </View>
+              ) : null}
               <View style={styles.grandRow}>
                 <Text>{payments.labels.due}</Text>
                 <Text>{money(payments.owingCents)}</Text>

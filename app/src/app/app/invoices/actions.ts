@@ -120,7 +120,7 @@ export async function recordPayment(invoiceId: string, values: PaymentFormValues
   if (!invoice || invoice.organisationId !== organisation.id) return { status: "error", message: "That invoice could not be found." };
 
   const locale = getLocalePack(profile.countryCode);
-  const owingCents = owingCentsOf(invoice.grossCents, paidCentsOf(invoice.payments));
+  const owingCents = owingCentsOf(invoice.grossCents, paidCentsOf(invoice.payments), invoice.creditNotes.reduce((sum, c) => sum + c.grossCents, 0));
   const parsed = parsePaymentForm(values, {
     owingCents,
     owingText: formatMoney(owingCents, invoice.currencyCode, locale.numberStyle),

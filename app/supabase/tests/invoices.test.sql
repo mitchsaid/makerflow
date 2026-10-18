@@ -141,14 +141,14 @@ begin
     'a refused issue used up a number';
 
   ----------------------------------------------------------------------
-  -- An owner can start the run from another system; it can never go back, and credit notes stay refused
+  -- An owner can start the run from another system; it can never go back, and unknown document types are refused
   ----------------------------------------------------------------------
   perform pg_temp.as_user(a);
   set local role authenticated;
   perform public.set_document_numbering(org_a, 'invoice', 'FAC/', 100);
   begin
-    perform public.set_document_numbering(org_a, 'credit_note', 'CN-', 5);
-    raise exception 'credit note numbering was changed';
+    perform public.set_document_numbering(org_a, 'receipt', 'R-', 5);
+    raise exception 'numbering of an unknown document type was changed';
   exception when sqlstate '22023' then null;
   end;
   reset role;

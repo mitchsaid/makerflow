@@ -80,7 +80,7 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
   expect((await pdf.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
   await expect(page.getByRole("button", { name: /Delete|Edit|Change/ })).toHaveCount(0);
-  await expect(page.getByTestId("coming-soon").filter({ hasText: "Credit note" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Issue a credit note" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Record a payment" })).toBeVisible();
 
   // The text version of the document is there for screen readers, with the invoice's own words.

@@ -351,9 +351,9 @@ begin
   exception when invalid_parameter_value then null;
   end;
   begin
-    -- Invoice numbering can be set (invoices.test.sql); credit notes still cannot.
-    perform public.set_document_numbering(org_a, 'credit_note', 'C-', 1);
-    raise exception 'FAIL: credit note numbering was changed';
+    -- Invoice and credit note numbering can be set (invoices.test.sql, credit_notes.test.sql); other types cannot.
+    perform public.set_document_numbering(org_a, 'receipt', 'R-', 1);
+    raise exception 'FAIL: numbering of an unknown document type was changed';
   exception when invalid_parameter_value then null;
   end;
   begin

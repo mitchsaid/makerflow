@@ -5,8 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { sharePdf, useCanSharePdf } from "../quotes/share-pdf";
 
-/** Share or download the invoice's PDF. Nothing here changes the invoice. */
-export function ShareInvoice({ invoiceId, number }: { invoiceId: string; number: string }) {
+/** Share or download a document's PDF (an invoice or a credit note). Nothing here changes the document. */
+export function ShareDocument({ url, number, title }: { url: string; number: string; title: string }) {
   const canShare = useCanSharePdf();
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -14,7 +14,7 @@ export function ShareInvoice({ invoiceId, number }: { invoiceId: string; number:
   async function share() {
     setMessage(null);
     setBusy(true);
-    const outcome = await sharePdf(`/app/invoices/${invoiceId}/pdf`, `${number.replace(/[^A-Za-z0-9._-]/g, "_")}.pdf`, `Invoice ${number}`);
+    const outcome = await sharePdf(url, `${number.replace(/[^A-Za-z0-9._-]/g, "_")}.pdf`, `${title} ${number}`);
     setBusy(false);
     if (outcome === "failed") setMessage("Couldn't get the PDF. Check your connection and try again.");
   }
@@ -31,4 +31,9 @@ export function ShareInvoice({ invoiceId, number }: { invoiceId: string; number:
       </Button>
     </div>
   );
+}
+
+/** The invoice's own: the same, for its PDF. */
+export function ShareInvoice({ invoiceId, number }: { invoiceId: string; number: string }) {
+  return <ShareDocument url={`/app/invoices/${invoiceId}/pdf`} number={number} title="Invoice" />;
 }

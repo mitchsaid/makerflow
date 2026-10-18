@@ -90,7 +90,7 @@ Every table: `organisation_id`, same-business composite keys, row-level security
 **I1. Create and issue an invoice** (the thin invoice): "Create invoice" from an accepted quote (and its job), the issuing function and migration, the snapshot builder, the PDF with the invoice's wording and the quote's themes, the invoice page, the Invoices list, numbering settings for invoices, Home link, `delete_account` rework, tests. *Usable: an accepted quote becomes a numbered tax invoice, as a PDF, that never changes.*
 **I2. Payments:** record a payment (and the deposit in one tap), reverse one, the derived status, what is owing, Overdue, Home's Owing/Overdue, the document's "paid so far / total due", tests.
 **I3 (later).** The prompt on a finished job; a direct invoice with no quote through the item sheet; the "adjust before issuing" draft.
-**I4 (later).** Credit notes.
+**I4.** Credit notes: built, see `docs/plans/credit-notes.md`.
 
 ## Tests
 SQL: isolation and session-required for every table; numbering gapless under 30 concurrent issues and after a failed issue; the invoice cannot be updated or deleted by anyone (member, owner, admin, definer path); one invoice per quote; only an accepted quote with a sent version; the totals check; costing copied; `issue_invoice` server-only; payments append-only, no overpayment, reversal. Unit: the snapshot builder, the derived status (every case, the due-date boundary), the invoice wording by VAT registration, the required particulars. Browser: accept a quote, create the invoice, see the number, the PDF text, the margin, that nothing edits it, a second invoice refused, record payments and watch the status (I2). Accessibility: the sheet, the invoice page, the list.

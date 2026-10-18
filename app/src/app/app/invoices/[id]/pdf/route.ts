@@ -35,12 +35,19 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
   let pdf: Buffer;
   try {
     const paidCents = paidCentsOf(invoice.payments);
-    const words = getLocalePack(workspace.profile.countryCode).documents.invoice;
+    const creditedCents = invoice.creditNotes.reduce((sum, c) => sum + c.grossCents, 0);
+    const locale = getLocalePack(workspace.profile.countryCode);
+    const words = locale.documents.invoice;
     pdf = await renderQuotePdf(snapshot, {
       images: photos,
       logo,
       background,
-      payments: { paidCents, owingCents: owingCentsOf(invoice.grossCents, paidCents), labels: { paid: words.paidLabel, due: words.amountDueLabel } },
+      payments: {
+        paidCents,
+        creditedCents,
+        owingCents: owingCentsOf(invoice.grossCents, paidCents, creditedCents),
+        labels: { paid: words.paidLabel, due: words.amountDueLabel, credited: locale.documents.creditNote.totalLabel },
+      },
     });
   } catch (error) {
     console.error("could not draw the invoice PDF:", error);

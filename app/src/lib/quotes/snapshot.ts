@@ -191,6 +191,21 @@ export type QuoteSnapshot = {
     dueLabel: string;
     quoteLabel: string;
   };
+  /**
+   * Present only when the document is a CREDIT NOTE (lib/credit-notes). The lines are the items credited (with the
+   * amount credited as their total) and the totals are the credit's own.
+   */
+  creditNote?: {
+    invoiceNumber: string;
+    /** The invoice's day, YYYY-MM-DD. */
+    invoiceDate: string;
+    reason: string;
+    explanation: string;
+    issuedToLabel: string;
+    invoiceLabel: string;
+    reasonLabel: string;
+    totalLabel: string;
+  };
   wording: {
     title: string;
     /** Empty on an invoice (it is one). */

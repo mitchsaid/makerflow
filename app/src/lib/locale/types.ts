@@ -120,6 +120,19 @@ export type LocalePack = {
       dueOther(text: string): string;
     };
     quoteNotATaxInvoice: string;
+    /** A credit note: how an issued invoice is corrected (an invoice itself never changes). */
+    creditNote: {
+      /** "Tax credit note" for a registered business, else "Credit note". */
+      title(taxRegistered: boolean): string;
+      issuedToLabel: string;
+      /** Over the invoice the note corrects ("Invoice"), with its number and day. */
+      invoiceLabel: string;
+      reasonLabel: string;
+      /** The reasons a credit note can give, in this country's words. The keys are fixed (the database knows them). */
+      reasons: Record<"returned" | "cancelled" | "price" | "discount" | "damaged" | "other", string>;
+      /** Over the total ("Total credited"). */
+      totalLabel: string;
+    };
     /** An invoice's own words. A tax invoice is only for a business registered for the tax. */
     invoice: {
       /** "Tax invoice" for a registered business, else "Invoice": never "tax invoice" for one that is not. */

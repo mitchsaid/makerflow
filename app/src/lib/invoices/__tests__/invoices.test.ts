@@ -248,6 +248,13 @@ describe("the status of an invoice is worked out", () => {
     expect(invoiceStatus({ ...base, paidCents: 0, today: "2026-11-03" })).toBe("unpaid");
     expect(invoiceStatus({ ...base, paidCents: 0, today: "2026-11-04" })).toBe("overdue");
   });
+  it("is credited once credit notes take off everything, whatever was paid; otherwise it follows what is still owed", () => {
+    expect(invoiceStatus({ ...base, creditedCents: 100_000, paidCents: 0, today: "2026-10-20" })).toBe("credited");
+    expect(invoiceStatus({ ...base, creditedCents: 100_000, paidCents: 30_000, today: "2026-12-01" })).toBe("credited");
+    expect(invoiceStatus({ ...base, creditedCents: 40_000, paidCents: 60_000, today: "2026-12-01" })).toBe("paid");
+    expect(invoiceStatus({ ...base, creditedCents: 40_000, paidCents: 0, today: "2026-12-01" })).toBe("overdue");
+    expect(invoiceStatus({ ...base, creditedCents: 40_000, paidCents: 10_000, today: "2026-10-20" })).toBe("part_paid");
+  });
   it("is part paid while something is owing and the day has not passed, paid when nothing is", () => {
     expect(invoiceStatus({ ...base, paidCents: 40_000, today: "2026-10-20" })).toBe("part_paid");
     expect(invoiceStatus({ ...base, paidCents: 40_000, today: "2026-12-01" })).toBe("overdue");
@@ -268,6 +275,7 @@ describe("the invoices list", () => {
     dueDate: "2026-10-15",
     grossCents: 1000,
     paidCents: 0,
+    creditedCents: 0,
     currencyCode: "ZAR",
     ...over,
   });
@@ -283,6 +291,12 @@ describe("the invoices list", () => {
   it("puts INV-10000 after INV-9999", () => {
     const long = [inv({ id: "x", number: "INV-9999" }), inv({ id: "y", number: "INV-10000" })];
     expect(visibleInvoices(long, "all", "", "2026-10-20").map((i) => i.id)).toEqual(["y", "x"]);
+  });
+  it("lists the credited ones under Credited, and not as unpaid", () => {
+    const withCredit = list.map((i) => (i.id === "b" ? { ...i, creditedCents: i.grossCents } : i));
+    expect(visibleInvoices(withCredit, "credited", "", "2026-10-20").map((i) => i.id)).toEqual(["b"]);
+    expect(visibleInvoices(withCredit, "unpaid", "", "2026-10-20").map((i) => i.id)).toEqual(["c", "a"]);
+    expect(visibleInvoices(withCredit, "credited", "nobody", "2026-10-20")).toEqual([]);
   });
   it("filters by what is owing and overdue, and searches by number or customer", () => {
     expect(visibleInvoices(list, "overdue", "", "2026-10-20").map((i) => i.id)).toEqual(["a"]);
@@ -310,6 +324,7 @@ describe("what is owed", () => {
     dueDate,
     grossCents,
     paidCents,
+    creditedCents: 0,
     currencyCode: "ZAR",
   });
   it("adds up what is left to pay, and what of it is overdue; paid invoices count for nothing", () => {
@@ -318,5 +333,7 @@ describe("what is owed", () => {
     expect(owedTotals([], "2026-10-20")).toEqual({ count: 0, owingCents: 0, overdueCents: 0 });
     // Due today is not yet overdue.
     expect(owedTotals([inv(100, 0, "2026-10-20")], "2026-10-20").overdueCents).toBe(0);
+    // Credit notes take off what is owed.
+    expect(owedTotals([{ ...inv(10_000, 0, "2026-10-10"), creditedCents: 4_000 }, { ...inv(5_000, 0, "2026-10-10"), creditedCents: 5_000 }], "2026-10-20")).toEqual({ count: 1, owingCents: 6_000, overdueCents: 6_000 });
   });
 });

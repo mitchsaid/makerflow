@@ -29,7 +29,10 @@ export const getQuoteSequences = (): Promise<QuoteSequence[]> => getSequences("q
 /** The same for invoices (the one gapless run of a business's invoice numbers). */
 export const getInvoiceSequences = (): Promise<QuoteSequence[]> => getSequences("invoice");
 
-async function getSequences(docType: "quote" | "invoice"): Promise<QuoteSequence[]> {
+/** And for credit notes. */
+export const getCreditNoteSequences = (): Promise<QuoteSequence[]> => getSequences("credit_note");
+
+async function getSequences(docType: "quote" | "invoice" | "credit_note"): Promise<QuoteSequence[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("document_sequences")

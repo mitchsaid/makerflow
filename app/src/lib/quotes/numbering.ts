@@ -8,6 +8,7 @@ export const NUMBER_PREFIX_MAX = 12;
 export const NUMBER_MAX = 999_999_999;
 export const DEFAULT_QUOTE_PREFIX = "QT-";
 export const DEFAULT_INVOICE_PREFIX = "INV-";
+export const DEFAULT_CREDIT_NOTE_PREFIX = "CN-";
 export const DEFAULT_MIN_DIGITS = 4;
 
 const PREFIX_PATTERN = /^[A-Za-z0-9._/-]{0,12}$/;
