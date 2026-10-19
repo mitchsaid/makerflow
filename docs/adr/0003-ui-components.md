@@ -40,3 +40,6 @@ Also in this pass: section and card titles are larger and bolder (`text-lg font-
 
 ## Addendum 2026-10-16: helper text is short and sits under the title
 Founder: "too lengthy… concise and to the point", and "helper text should generally be under the title, not under the field (errors go under, as they do)." So: a field's helper text is one short line (at most 80 characters when written as a `hint`; a unit test checks), placed directly under its label by `TextField`, `TextAreaField`, `SelectField` and `ImageField`. Problems still appear under the field. A checkbox's explanation sits under the checkbox. Longer explanations belong in the page's prose or a "coming soon" section, not under a title. Empty states are a title and one line.
+
+## Sheets are dialogs on a computer screen (founder, 2026-10-19)
+`components/ui/sheet.tsx`: under 768 px a sheet comes in from its edge (bottom for a short confirmation, right for a form), as on a phone. From 768 px up **every sheet opens as a dialog in the middle of the page** (at most 42 rem wide for a form, 32 rem for a short confirmation, at most 85% of the screen tall, scrolling inside, page dimmed behind): "all crucial work was happening on the edge of the screen". The `side` a screen asks for only matters on a phone; a screen does not choose its own desktop layout. `e2e/desktop-dialogs.spec.ts` checks both.

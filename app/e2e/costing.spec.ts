@@ -33,6 +33,73 @@ async function addKind(page: Page, kind: "A material" | "Your time" | "Another c
   await tap(page.getByRole("button", { name: label, exact: true }));
 }
 
+test("a material can be added from a cost line without leaving the product", async ({ page }) => {
+  test.setTimeout(180_000);
+  await signUpAndOnboard(page, "cost-new-material", "New Material Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
+  await page.getByLabel("Price", { exact: true }).fill("500");
+
+  // No materials yet: the line offers to add one right there, not a link away from the form.
+  await addKind(page, "A material");
+  let row = costRow(page, "Material 1");
+  await expect(row.getByText("You have no materials yet.")).toBeVisible();
+  await expect(row.getByRole("link", { name: "Add a material" })).toHaveCount(0);
+  await tap(row.getByRole("button", { name: "Add a new material" }));
+  const dialog = page.getByRole("dialog", { name: "Add a material" });
+  await expect(dialog).toBeVisible();
+
+  // Problems are shown in the dialog, and nothing is lost.
+  await dialog.getByRole("button", { name: "Add material" }).click();
+  await expect(dialog.getByTestId("form-summary")).toBeVisible();
+  await dialog.getByLabel("Name", { exact: true }).fill("Cake flour");
+  await dialog.getByLabel("Unit", { exact: true }).selectOption("kg");
+  await dialog.getByLabel("How much you bought").fill("12,5");
+  await dialog.getByLabel("What you paid for it").fill("187,50");
+  await expect(dialog.getByTestId("cost-preview")).toContainText(/R\s?15,00/);
+  await dialog.getByRole("button", { name: "Add material" }).click();
+  await expect(dialog).toHaveCount(0);
+
+  // The new material is chosen for the line, in its own unit, and the product's own fields are as they were.
+  await expect(row.getByLabel("Material", { exact: true })).toHaveValue(/.+/);
+  await expect(row.getByLabel("Material", { exact: true }).locator("option:checked")).toHaveText("Cake flour");
+  await expect(row.getByLabel("Unit", { exact: true })).toHaveValue("kg");
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Wedding cake");
+  await row.getByLabel("How much goes in").fill("2");
+  await expect(page.getByTestId("cost-summary")).toContainText(/R\s?30,00/);
+
+  // With materials, a second line can pick one or add another; the first line keeps its own.
+  await addKind(page, "A material");
+  row = costRow(page, "Material 2");
+  await expect(row.getByLabel("Material", { exact: true }).locator("option")).toHaveText(["Choose…", "Cake flour"]);
+  await tap(row.getByRole("button", { name: "Add a new material" }));
+  await dialog.getByLabel("Name", { exact: true }).fill("Silver wire");
+  await dialog.getByLabel("Unit", { exact: true }).selectOption("m");
+  await dialog.getByLabel("How much you bought").fill("10");
+  await dialog.getByLabel("What you paid for it").fill("100");
+  await dialog.getByRole("button", { name: "Add material" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(row.getByLabel("Material", { exact: true }).locator("option:checked")).toHaveText("Silver wire");
+  await expect(costRow(page, "Material 1").getByLabel("Material", { exact: true }).locator("option:checked")).toHaveText("Cake flour");
+
+  // A name already used is refused in the dialog.
+  await addKind(page, "A material");
+  await tap(costRow(page, "Material 3").getByRole("button", { name: "Add a new material" }));
+  await dialog.getByLabel("Name", { exact: true }).fill("Cake flour");
+  await dialog.getByLabel("Unit", { exact: true }).selectOption("kg");
+  await dialog.getByLabel("How much you bought").fill("1");
+  await dialog.getByLabel("What you paid for it").fill("10");
+  await dialog.getByRole("button", { name: "Add material" }).click();
+  await expect(dialog.getByText(/already have a material with that name/).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+
+  // Both materials are really saved: they are on the Materials page, and the product keeps them.
+  await page.goto("/app/products/materials");
+  await expect(page.getByText("Cake flour").first()).toBeVisible();
+  await expect(page.getByText("Silver wire").first()).toBeVisible();
+});
+
 test("what it costs to make is set on a product, worked out for each size, and kept", async ({ page }) => {
   test.setTimeout(240_000);
   await signUpAndOnboard(page, "cost-product", "Costing Co");
@@ -63,6 +130,8 @@ test("what it costs to make is set on a product, worked out for each size, and k
   await row.getByLabel("Unit", { exact: true }).selectOption("g");
   await addKind(page, "Your time");
   row = costRow(page, "Your time 1");
+  // Minutes or hours, each once: always one of them chosen, no empty choice.
+  await expect(row.getByLabel("In", { exact: true }).locator("option")).toHaveText(["Minutes", "Hours"]);
   await row.getByLabel("How long it takes").fill("30");
   await addKind(page, "Another cost");
   row = costRow(page, "Other cost 1");
@@ -102,9 +171,9 @@ test("a cost line says how to fix it, and nothing typed is lost", async ({ page 
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Soap");
   await page.getByLabel("Price", { exact: true }).fill("40");
-  // With no materials, a material line says where to add one.
+  // With no materials, a material line offers to add one right there.
   await addKind(page, "A material");
-  await expect(costRow(page, "Material 1").getByRole("link", { name: "Add a material" })).toBeVisible();
+  await expect(costRow(page, "Material 1").getByRole("button", { name: "Add a new material" })).toBeVisible();
   await addKind(page, "Your time");
   // With no hourly rate, time says where to set it.
   await expect(costRow(page, "Your time 1").getByRole("link", { name: /Set what an hour of your time is worth/ })).toBeVisible();

@@ -786,6 +786,23 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quote, a one-off item that says what it costs");
     });
 
+    test("adding a material from a cost line", async ({ page }) => {
+      test.setTimeout(180_000);
+      await signUpAndOnboard(page, `a11y-new-material-${scheme}`, "Material Axe Co");
+      await page.goto("/app/products/new");
+      await page.getByLabel("Name", { exact: true }).fill("Axe soap");
+      await page.getByRole("button", { name: "Add a material", exact: true }).focus();
+      await page.keyboard.press("Enter");
+      await expectNoViolations(page, "a material line, with no materials yet");
+      await page.getByRole("button", { name: "Add a new material" }).focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("dialog", { name: "Add a material" })).toBeVisible();
+      await expectNoViolations(page, "add a material, from a cost line");
+      await page.getByRole("dialog").getByRole("button", { name: "Add material" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "add a material, with problems");
+    });
+
     test("creating an invoice, the invoice page and the list", async ({ page }) => {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-invoices-${scheme}`, "Invoice Axe Co");

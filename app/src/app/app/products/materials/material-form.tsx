@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { costPerUnitCents, type MaterialFieldErrors, type VatTreatment } from "@
 import { QuantityField } from "@/components/quantity-field";
 import { isUnitCode, UNIT_CHOICES, UNITS } from "@/lib/materials/units";
 import { formatMoney, parseMoney, parseQuantity, type NumberStyle } from "@/lib/money";
-import type { MaterialSaveState } from "./actions";
+import type { AddedMaterial, MaterialSaveState } from "./actions";
 import { FormErrorScope } from "@/components/form-errors";
 
 export type MaterialFormValues = {
@@ -45,6 +45,8 @@ export function MaterialForm({
   currencyCode,
   numberStyle,
   currencySymbol,
+  idPrefix = "",
+  onSaved,
 }: {
   action: Action;
   initial: MaterialFormValues;
@@ -55,22 +57,36 @@ export function MaterialForm({
   currencyCode: string;
   numberStyle: NumberStyle;
   currencySymbol: string;
+  /** In front of every field id, for when the form shares a page with other fields (the field names stay the same). */
+  idPrefix?: string;
+  /** Set when the form is shown over another screen: told once, with the material, when it has been added. */
+  onSaved?: (material: AddedMaterial) => void;
 }) {
+  const fid = (key: string) => `${idPrefix}${key}`;
   const vatRegistered = vatRateBp !== null;
   const [state, formAction, pending] = useActionState(action, { status: "idle" } as MaterialSaveState);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<MaterialFormValues>(initial);
   const set = <K extends keyof MaterialFormValues>(key: K) => (value: MaterialFormValues[K]) => setValues((v) => ({ ...v, [key]: value }));
 
+  // Hand the result to whoever opened the form, once per result.
+  const handled = useRef<MaterialSaveState | null>(null);
+  useEffect(() => {
+    if (state.status === "saved" && state.material && onSaved && handled.current !== state) {
+      handled.current = state;
+      onSaved(state.material);
+    }
+  });
+
   const errors: MaterialFieldErrors = state.status === "error" ? (state.errors ?? {}) : {};
   const problems: FormProblem[] = (
     [
-      ["name", "Name", errors.name],
-      ["unit", "Unit", errors.unit],
-      ["quantity", "How much you bought", errors.quantity],
-      ["price", "What you paid", errors.price],
-      ["vat-included", `Does the price include ${taxName}`, errors.vatTreatment],
-      ["supplier", "Supplier", errors.supplier],
+      [fid("name"), "Name", errors.name],
+      [fid("unit"), "Unit", errors.unit],
+      [fid("quantity"), "How much you bought", errors.quantity],
+      [fid("price"), "What you paid", errors.price],
+      [fid("vat-included"), `Does the price include ${taxName}`, errors.vatTreatment],
+      [fid("supplier"), "Supplier", errors.supplier],
     ] as const
   ).flatMap(([id, label, message]) => (message ? [{ fieldId: id, label, message }] : []));
 
@@ -98,9 +114,10 @@ export function MaterialForm({
     <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="The material">
-        <TextField id="name" label="Name" hint="Like “Cake flour” or “Silver wire”." autoComplete="off" maxLength={120} value={values.name} error={errors.name} onChange={set("name")} />
+        <TextField id={fid("name")} name="name" label="Name" hint="Like “Cake flour” or “Silver wire”." autoComplete="off" maxLength={120} value={values.name} error={errors.name} onChange={set("name")} />
         <TextField
-          id="supplier"
+          id={fid("supplier")}
+          name="supplier"
           label="Supplier (optional)"
           autoComplete="off"
           maxLength={120}
@@ -112,7 +129,8 @@ export function MaterialForm({
 
       <Section title="What you bought">
         <SelectField
-          id="unit"
+          id={fid("unit")}
+          name="unit"
           label="Unit"
           hint="What you measure it in when you use it."
           value={values.unit}
@@ -123,7 +141,8 @@ export function MaterialForm({
           optionLabels={Object.fromEntries(UNIT_CHOICES.flatMap((g) => g.units).map((u) => [u, UNITS[u].label]))}
         />
         <QuantityField
-          id="quantity"
+          id={fid("quantity")}
+          name="quantity"
           label="How much you bought"
           hint="In that unit, like 12,5 for 12,5 kg."
           unit={previewUnit || undefined}
@@ -132,7 +151,8 @@ export function MaterialForm({
           onChange={set("quantity")}
         />
         <TextField
-          id="price"
+          id={fid("price")}
+          name="price"
           label="What you paid for it"
           hint="The whole price for that much."
           startText={currencySymbol}
@@ -147,7 +167,7 @@ export function MaterialForm({
             legend={<>Does that price include {taxName}?</>}
             value={values.vatTreatment}
             onChange={set("vatTreatment")}
-            idFor={(v) => `vat-${v}`}
+            idFor={(v) => fid(`vat-${v}`)}
             invalid={!!errors.vatTreatment}
             choices={VAT_CHOICES.map((c) => ({ value: c.value, title: c.title(taxName), hint: c.description(taxName) }))}
           >
@@ -170,7 +190,7 @@ export function MaterialForm({
           {state.message}
         </p>
       )}
-      {state.status === "saved" && !pending && (
+      {state.status === "saved" && !pending && !onSaved && (
         <p role="status" className="text-sm font-medium">
           Saved.
         </p>

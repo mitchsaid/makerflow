@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { EXTRAS_MAX, usedOnWords, type ExtraErrors, type ExtraFormRow } from "@/lib/products/extras";
 import { listSharedExtras, type SharedExtraChoice } from "./extras-actions";
 import { AddButton } from "@/components/add-button";
+import type { AddMaterialConfig } from "./add-material";
 import { CostLineEditor, type MaterialOption } from "./costs-section";
 import type { CostErrors } from "@/lib/products/costs";
 
@@ -55,7 +56,7 @@ export function ExtrasSection({
   bases: PriceBase[];
   fid: (key: string) => string;
   /** What an extra's own cost lines need. Absent in a sheet over a quote: the lines are not shown there. */
-  costing?: { materials: MaterialOption[]; hourlyRateSet: boolean };
+  costing?: { materials: MaterialOption[]; hourlyRateSet: boolean; addMaterial?: AddMaterialConfig };
   /** Problems with an extra's cost lines, by the extra's row key. */
   costErrors?: NonNullable<CostErrors["extras"]>;
   /** "Costs R12,50 each." for an extra, or null while it cannot be worked out. */
@@ -297,6 +298,7 @@ export function ExtrasSection({
                           errors={costProblems}
                           choices={null}
                           materials={costing.materials}
+                          addMaterial={costing.addMaterial}
                           hourlyRateSet={costing.hourlyRateSet}
                           currencySymbol={currencySymbol}
                           fid={fid}

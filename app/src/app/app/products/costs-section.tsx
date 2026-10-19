@@ -12,6 +12,7 @@ import type { Material } from "@/lib/materials";
 import { UNIT_CHOICES, UNITS, type UnitCode } from "@/lib/materials/units";
 import { blankCostRow, COST_LINES_MAX, type CostErrors, type CostFormRow, type CostKind, type CostRowErrors } from "@/lib/products/costs";
 import type { CostSummary } from "@/lib/products/cost-summary";
+import { AddMaterial, type AddMaterialConfig } from "./add-material";
 import { ConditionsEditor, type ChoiceOption } from "./conditions-editor";
 
 let keyCounter = 0;
@@ -36,6 +37,7 @@ export function CostLineEditor({
   errors,
   choices,
   materials,
+  addMaterial,
   hourlyRateSet,
   unit,
   currencySymbol,
@@ -53,6 +55,8 @@ export function CostLineEditor({
   /** What a line can depend on, or null when lines have no conditions. */
   choices: ChoiceOption[] | null;
   materials: MaterialOption[];
+  /** Lets the maker add a material from a line, without leaving the form. */
+  addMaterial?: AddMaterialConfig;
   hourlyRateSet: boolean;
   unit?: string;
   currencySymbol: string;
@@ -103,29 +107,40 @@ export function CostLineEditor({
                 {row.kind === "material" && (
                   <>
                     {materials.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        You have no materials yet.{" "}
-                        <Link href="/app/products/materials/new" className="underline underline-offset-4">
-                          Add a material
-                        </Link>{" "}
-                        first, then come back.
-                      </p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">You have no materials yet.</p>
+                        {addMaterial ? (
+                          <AddMaterial config={addMaterial} id={idOf(row.key, "first")} onChosen={(m) => setRow(row.key, { materialId: m.id, unit: m.unit })} variant="default" />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            <Link href="/app/products/materials/new" className="underline underline-offset-4">
+                              Add a material
+                            </Link>{" "}
+                            first, then come back.
+                          </p>
+                        )}
+                      </div>
                     ) : (
-                      <SelectField
-                        id={idOf(row.key, "first")}
-                        label="Material"
-                        placeholder="Choose…"
-                        value={row.materialId}
-                        options={usable(row.materialId).map((m) => m.id)}
-                        optionLabels={Object.fromEntries(materials.map((m) => [m.id, m.archived ? `${m.name} (archived)` : m.name]))}
-                        error={e?.materialId}
-                        onChange={(materialId) => {
-                          // The unit starts as the material's own; one that no longer suits it is cleared.
-                          const next = unitOf(materialId);
-                          const keep = next !== null && row.unit !== "" && unitsLike(next).includes(row.unit as UnitCode);
-                          setRow(row.key, { materialId, unit: keep ? row.unit : (next ?? "") });
-                        }}
-                      />
+                      <div className="space-y-2">
+                        <SelectField
+                          id={idOf(row.key, "first")}
+                          label="Material"
+                          placeholder="Choose…"
+                          value={row.materialId}
+                          options={usable(row.materialId).map((m) => m.id)}
+                          optionLabels={Object.fromEntries(materials.map((m) => [m.id, m.archived ? `${m.name} (archived)` : m.name]))}
+                          error={e?.materialId}
+                          onChange={(materialId) => {
+                            // The unit starts as the material's own; one that no longer suits it is cleared.
+                            const next = unitOf(materialId);
+                            const keep = next !== null && row.unit !== "" && unitsLike(next).includes(row.unit as UnitCode);
+                            setRow(row.key, { materialId, unit: keep ? row.unit : (next ?? "") });
+                          }}
+                        />
+                        {addMaterial && (
+                          <AddMaterial config={addMaterial} id={idOf(row.key, "add-material")} onChosen={(m) => setRow(row.key, { materialId: m.id, unit: m.unit })} />
+                        )}
+                      </div>
                     )}
                     <div className="grid grid-cols-[1fr_auto] items-end gap-2">
                       <QuantityField id={idOf(row.key, "amount")} label="How much goes in" value={row.amount} error={e?.amount} onChange={(amount) => setRow(row.key, { amount })} />
@@ -152,7 +167,6 @@ export function CostLineEditor({
                         <SelectField
                           id={idOf(row.key, "timeUnit")}
                           label="In"
-                          placeholder="Minutes"
                           value={row.timeUnit}
                           options={["minutes", "hours"]}
                           optionLabels={{ minutes: "Minutes", hours: "Hours" }}
@@ -250,6 +264,7 @@ export function CostsSection({
   errors,
   choices,
   materials,
+  addMaterial,
   hourlyRateSet,
   summary,
   unit,
@@ -268,6 +283,8 @@ export function CostsSection({
   /** The variations, list choices and extras the product has, named: what a line can depend on. */
   choices: ChoiceOption[];
   materials: MaterialOption[];
+  /** Lets the maker add a material from a line, without leaving the form. */
+  addMaterial?: AddMaterialConfig;
   /** Whether the Business profile says what an hour of the maker's time is worth. */
   hourlyRateSet: boolean;
   summary: CostSummary;
@@ -290,6 +307,7 @@ export function CostsSection({
         errors={errors}
         choices={choices}
         materials={materials}
+        addMaterial={addMaterial}
         hourlyRateSet={hourlyRateSet}
         unit={unit}
         currencySymbol={currencySymbol}
