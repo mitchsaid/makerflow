@@ -65,7 +65,7 @@ export type PdfImage = { contentType: string; bytes: Uint8Array };
  * What react-pdf wants for a picture it is given as bytes: the bytes themselves on the server, a data
  * address in the browser (which has no Buffer).
  */
-const pdfSource = (image: PdfImage) => {
+export const pdfSource = (image: PdfImage) => {
   const format = image.contentType === "image/png" ? ("png" as const) : ("jpg" as const);
   if (typeof Buffer !== "undefined" && Buffer.isBuffer(image.bytes)) return { data: image.bytes, format };
   let binary = "";

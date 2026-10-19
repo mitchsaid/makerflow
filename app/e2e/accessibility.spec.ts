@@ -912,5 +912,20 @@ for (const scheme of ["light", "dark"] as const) {
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices, with the three numberings");
     });
+
+    test("customer statement: the link, entries and a period", async ({ page }) => {
+      test.setTimeout(300_000);
+      await issuedInvoice(page, `a11y-statement-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
+      await openMore(page);
+      await page.getByRole("link", { name: /^Customers/ }).click();
+      await page.getByRole("link", { name: /Thandi Nkosi/ }).first().click();
+      await expectNoViolations(page, "a customer, with the statement link");
+      await page.getByRole("link", { name: "Statement of account" }).click();
+      await expect(page.getByTestId("statement-balance")).toBeVisible();
+      await expectNoViolations(page, "a statement");
+      await page.getByRole("link", { name: "This month", exact: true }).click();
+      await expect(page).toHaveURL(/period=this_month/);
+      await expectNoViolations(page, "a statement, this month");
+    });
   });
 }
