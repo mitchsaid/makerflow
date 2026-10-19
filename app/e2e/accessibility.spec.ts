@@ -913,10 +913,11 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quotes and invoices, with the three numberings");
     });
 
-    test("customer statement: with entries, with a period, and with nothing owing", async ({ page }) => {
+    test("customer statement: the link, entries and a period", async ({ page }) => {
       test.setTimeout(300_000);
       await issuedInvoice(page, `a11y-statement-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
-      await page.getByRole("link", { name: "Customers", exact: true }).first().click();
+      await openMore(page);
+      await page.getByRole("link", { name: /^Customers/ }).click();
       await page.getByRole("link", { name: /Thandi Nkosi/ }).first().click();
       await expectNoViolations(page, "a customer, with the statement link");
       await page.getByRole("link", { name: "Statement of account" }).click();
