@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { parseMaterialForm, type MaterialFieldErrors, type MaterialFields } from "@/lib/materials";
+import { parseMaterialForm, type Material, type MaterialFieldErrors, type MaterialFields } from "@/lib/materials";
 import { createClient } from "@/lib/supabase/server";
+
+/** A material just added from another screen (a cost line), as that screen's list of materials holds them. */
+export type AddedMaterial = Pick<Material, "id" | "name" | "unit" | "archived" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">;
 
 export type MaterialSaveState =
   | { status: "idle" }
-  | { status: "saved" }
+  | { status: "saved"; material?: AddedMaterial }
   | { status: "error"; message?: string; errors?: MaterialFieldErrors };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -27,11 +30,11 @@ function toRow(m: MaterialFields) {
   };
 }
 
-/** Adds a material, then shows the list. Any member of the business can. */
-export async function createMaterial(_previous: MaterialSaveState, formData: FormData): Promise<MaterialSaveState> {
+/** Adds the material from the form, or says what is wrong. The one place a material is inserted. */
+async function insertMaterial(formData: FormData): Promise<{ ok: true; id: string; fields: MaterialFields } | { ok: false; state: MaterialSaveState }> {
   const { organisation, profile } = await requireOrganisation();
   const parsed = parseMaterialForm(formData, { vatRegistered: profile.vatRegistered });
-  if (!parsed.ok) return { status: "error", errors: parsed.errors };
+  if (!parsed.ok) return { ok: false, state: { status: "error", errors: parsed.errors } };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -39,14 +42,37 @@ export async function createMaterial(_previous: MaterialSaveState, formData: For
     .insert({ organisation_id: organisation.id, ...toRow(parsed.value) })
     .select("id")
     .single();
-  if (error?.code === "23505") return { status: "error", errors: { name: TAKEN } };
-  if (error?.code === "54000") return { status: "error", message: "You have reached the limit of 2000 materials. Archive some you no longer use to make room." };
+  if (error?.code === "23505") return { ok: false, state: { status: "error", errors: { name: TAKEN } } };
+  if (error?.code === "54000") {
+    return { ok: false, state: { status: "error", message: "You have reached the limit of 2000 materials. Archive some you no longer use to make room." } };
+  }
   if (error || !data) {
     console.error("could not add material:", error?.code, error?.message);
-    return { status: "error", message: GENERIC_ERROR };
+    return { ok: false, state: { status: "error", message: GENERIC_ERROR } };
   }
   revalidatePath(LIST);
-  redirect(`${LIST}?added=${data.id}`);
+  return { ok: true, id: data.id, fields: parsed.value };
+}
+
+/** Adds a material, then shows the list. Any member of the business can. */
+export async function createMaterial(_previous: MaterialSaveState, formData: FormData): Promise<MaterialSaveState> {
+  const made = await insertMaterial(formData);
+  if (!made.ok) return made.state;
+  redirect(`${LIST}?added=${made.id}`);
+}
+
+/**
+ * Adds a material from where it is needed (a cost line on a product), and hands it back instead of leaving the screen:
+ * what the maker has typed there is kept, and the new material is chosen for the line.
+ */
+export async function createMaterialHere(_previous: MaterialSaveState, formData: FormData): Promise<MaterialSaveState> {
+  const made = await insertMaterial(formData);
+  if (!made.ok) return made.state;
+  const m = made.fields;
+  return {
+    status: "saved",
+    material: { id: made.id, name: m.name, unit: m.unit, archived: false, boughtQuantityMilli: m.boughtQuantityMilli, priceCents: m.priceCents, vatTreatment: m.vatTreatment },
+  };
 }
 
 /** Saves changes to a material. */

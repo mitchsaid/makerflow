@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
         currencyCode={profile.currencyCode}
         numberStyle={locale.numberStyle}
-        costing={{ materials: forOrganisation(materials, organisation.id), hourlyRateCents: profile.labourRateCents, vat: vatSettingsFor(profile, locale) }}
+        costing={{ materials: forOrganisation(materials, organisation.id), hourlyRateCents: profile.labourRateCents, vat: vatSettingsFor(profile, locale), taxName: locale.tax.name }}
       />
       <ProductArchiveButton id={product.id} archived={product.archived} kind={product.kind} />
     </main>

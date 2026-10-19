@@ -32,7 +32,7 @@ export default async function NewProductPage({ searchParams }: PageProps<"/app/p
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
         currencyCode={profile.currencyCode}
         numberStyle={locale.numberStyle}
-        costing={{ materials: forOrganisation(materials, organisation.id), hourlyRateCents: profile.labourRateCents, vat: vatSettingsFor(profile, locale) }}
+        costing={{ materials: forOrganisation(materials, organisation.id), hourlyRateCents: profile.labourRateCents, vat: vatSettingsFor(profile, locale), taxName: locale.tax.name }}
       />
     </main>
   );

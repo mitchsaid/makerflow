@@ -9,6 +9,7 @@ import type { Cents, NumberStyle, VatSettings, VatStatus } from "@/lib/money";
 import type { CostRowErrors } from "@/lib/products/costs";
 import { extraCostOf, summariseCosts } from "@/lib/products/cost-summary";
 import { formatMoney } from "@/lib/money";
+import type { AddMaterialConfig } from "./add-material";
 import { CostsSection, type MaterialOption } from "./costs-section";
 import { ImageField } from "@/components/image-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -115,8 +116,24 @@ export function ProductForm({
     /** What an hour of the maker's time is worth, or null when it is not set in the business profile. */
     hourlyRateCents: Cents | null;
     vat: VatSettings;
+    /** The country's word for the tax ("VAT"), for the new material form. */
+    taxName: string;
   };
 }) {
+  // Materials added from a cost line while the form is open (it is not reloaded, so what is typed stays).
+  const [addedMaterials, setAddedMaterials] = useState<MaterialOption[]>([]);
+  // (Once the page has been refreshed with the new material in it, the one added here is not listed twice.)
+  const costingMaterials = costing ? [...costing.materials, ...addedMaterials.filter((a) => !costing.materials.some((m) => m.id === a.id))] : [];
+  const addMaterial: AddMaterialConfig | undefined = costing
+    ? {
+        vatRateBp: costing.vat.registered ? costing.vat.standardRateBp : null,
+        taxName: costing.taxName,
+        currencyCode,
+        numberStyle,
+        currencySymbol,
+        onAdded: (material) => setAddedMaterials((list) => (list.some((m) => m.id === material.id) ? list : [...list, material])),
+      }
+    : undefined;
   const [state, formAction, pending] = useActionState(embedded ? guarded(action) : action, initialState);
   // Hand the result to whoever opened the sheet, once per result.
   const embeddedRef = useRef(embedded);
@@ -620,14 +637,14 @@ export function ProductForm({
       </Section>
 
       <ExtrasSection
-        costing={costing ? { materials: costing.materials, hourlyRateSet: costing.hourlyRateCents !== null } : undefined}
+        costing={costing ? { materials: costingMaterials, hourlyRateSet: costing.hourlyRateCents !== null, addMaterial } : undefined}
         costErrors={errors.extraCosts?.byExtra}
         costNote={(x) => {
           if (!costing) return null;
           const cost = extraCostOf({
             rows: x.costLines ?? [],
-            settings: { materials: new Map(costing.materials.map((m) => [m.id, m])), hourlyRateCents: costing.hourlyRateCents, vatRateBp: costing.vat.registered ? costing.vat.standardRateBp : null },
-            materialUnits: new Map(costing.materials.map((m) => [m.id, m.unit])),
+            settings: { materials: new Map(costingMaterials.map((m) => [m.id, m])), hourlyRateCents: costing.hourlyRateCents, vatRateBp: costing.vat.registered ? costing.vat.standardRateBp : null },
+            materialUnits: new Map(costingMaterials.map((m) => [m.id, m.unit])),
           });
           return cost ? `Costs ${formatMoney(cost.cents, currencyCode, numberStyle)}${cost.incomplete ? " or more" : ""} each.` : null;
         }}
@@ -696,7 +713,8 @@ export function ProductForm({
             makes={values.makes}
             errors={errors.costs}
             choices={stepChoices}
-            materials={costing.materials}
+            materials={costingMaterials}
+            addMaterial={addMaterial}
             hourlyRateSet={costing.hourlyRateCents !== null}
             summary={summariseCosts({
               rows: values.costLines,
@@ -706,11 +724,11 @@ export function ProductForm({
               vatStatus: values.vatStatus,
               vat: costing.vat,
               settings: {
-                materials: new Map(costing.materials.map((m) => [m.id, m])),
+                materials: new Map(costingMaterials.map((m) => [m.id, m])),
                 hourlyRateCents: costing.hourlyRateCents,
                 vatRateBp: costing.vat.registered ? costing.vat.standardRateBp : null,
               },
-              materialUnits: new Map(costing.materials.map((m) => [m.id, m.unit])),
+              materialUnits: new Map(costingMaterials.map((m) => [m.id, m.unit])),
             })}
             unit={values.unit.trim() || undefined}
             numberStyle={numberStyle}
