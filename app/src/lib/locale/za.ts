@@ -335,6 +335,18 @@ export const ZA_LOCALE: LocalePack = {
     },
     // A quotation is not a tax invoice (VAT 404 guide, 13.2).
     quoteNotATaxInvoice: "This quotation is not a tax invoice.",
+    statement: {
+      title: "Statement of account",
+      broughtForward: "Brought forward",
+      invoiced: "Invoiced",
+      credited: "Credited",
+      paid: "Paid",
+      balance: "Balance",
+      creditOnAccount: "Credit on account",
+      ageingTitle: "What is owing, by age",
+      ageingBuckets: ["Current (0 to 30 days)", "31 to 60 days", "61 to 90 days", "Over 90 days"],
+      howToPay: "How to pay",
+    },
     // A credit note carries "credit note", the supplier's and recipient's details, the day, the amount and VAT by which
     // the invoice changes, a brief explanation, and the invoice's number and day (VAT 404 guide, 13.8.3).
     creditNote: {

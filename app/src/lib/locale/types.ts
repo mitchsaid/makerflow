@@ -120,6 +120,19 @@ export type LocalePack = {
       dueOther(text: string): string;
     };
     quoteNotATaxInvoice: string;
+    /** A customer's statement of account (a view of their invoices, payments and credit notes). */
+    statement: {
+      title: string;
+      broughtForward: string;
+      invoiced: string;
+      credited: string;
+      paid: string;
+      balance: string;
+      creditOnAccount: string;
+      ageingTitle: string;
+      ageingBuckets: readonly [string, string, string, string];
+      howToPay: string;
+    };
     /** A credit note: how an issued invoice is corrected (an invoice itself never changes). */
     creditNote: {
       /** "Tax credit note" for a registered business, else "Credit note". */

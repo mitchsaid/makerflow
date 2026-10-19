@@ -6,7 +6,9 @@ import { updateCustomer } from "../actions";
 import { CustomerForm } from "../customer-form";
 import { valuesFromCustomer } from "../customer-values";
 import { ArchiveButton } from "./archive-button";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function CustomerPage({ params }: PageProps<"/app/customers/[id]">) {
   const { id } = await params;
@@ -39,6 +41,10 @@ export default async function CustomerPage({ params }: PageProps<"/app/customers
         initial={valuesFromCustomer(customer)}
         countryCode={profile.countryCode}
       />
+
+      <Link href={`/app/customers/${customer.id}/statement`} className={buttonVariants({ variant: "outline", size: "lg" })}>
+        Statement of account
+      </Link>
 
       <ArchiveButton id={customer.id} archived={customer.archived} />
     </main>
