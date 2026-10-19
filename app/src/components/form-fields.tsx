@@ -175,7 +175,8 @@ export function SelectField({
   hint?: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  /** The empty first choice ("Choose one"). Leave it out when one of the options is always chosen (minutes or hours). */
+  placeholder?: string;
   options: readonly string[];
   /** What to show for an option, when it should read differently from its value. */
   optionLabels?: Record<string, string>;
@@ -202,7 +203,7 @@ export function SelectField({
         aria-invalid={!!error}
         aria-describedby={[hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined}
       >
-        <NativeSelectOption value="">{placeholder}</NativeSelectOption>
+        {placeholder !== undefined && <NativeSelectOption value="">{placeholder}</NativeSelectOption>}
         {options.map((option) => (
           <NativeSelectOption key={option} value={option}>
             {optionLabels?.[option] ?? option}

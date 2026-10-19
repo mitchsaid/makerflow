@@ -152,7 +152,6 @@ export function CostLineEditor({
                         <SelectField
                           id={idOf(row.key, "timeUnit")}
                           label="In"
-                          placeholder="Minutes"
                           value={row.timeUnit}
                           options={["minutes", "hours"]}
                           optionLabels={{ minutes: "Minutes", hours: "Hours" }}

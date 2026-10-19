@@ -63,6 +63,8 @@ test("what it costs to make is set on a product, worked out for each size, and k
   await row.getByLabel("Unit", { exact: true }).selectOption("g");
   await addKind(page, "Your time");
   row = costRow(page, "Your time 1");
+  // Minutes or hours, each once: always one of them chosen, no empty choice.
+  await expect(row.getByLabel("In", { exact: true }).locator("option")).toHaveText(["Minutes", "Hours"]);
   await row.getByLabel("How long it takes").fill("30");
   await addKind(page, "Another cost");
   row = costRow(page, "Other cost 1");
