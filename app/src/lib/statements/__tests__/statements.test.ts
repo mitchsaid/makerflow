@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PaymentEntry } from "../../invoices/payments";
-import { buildStatement, parsePeriod, periodStart, type StatementInvoice } from "../index";
+import { ageingAmounts, buildStatement, parsePeriod, periodStart, type StatementInvoice } from "../index";
 
 const pay = (id: string, amountCents: number, paidOn: string, reversesId: string | null = null): PaymentEntry => ({
   id,
@@ -118,23 +118,28 @@ describe("only what is owing", () => {
 });
 
 describe("ageing", () => {
-  const owing = (id: string, issueDate: string, grossCents: number) => invoice({ id, number: `INV-${id}`, issueDate, grossCents });
+  // Issued long ago on purpose: it is the due day that counts, not the issue date.
+  const owing = (id: string, dueDate: string, grossCents: number) => invoice({ id, number: `INV-${id}`, issueDate: "2026-06-01", dueDate, grossCents });
 
-  it("sorts what is owing by how long ago each invoice was issued, with the day boundaries", () => {
+  it("sorts what is owing by how many days past its due day each invoice is, with the day boundaries", () => {
     const s = buildStatement({
       invoices: [
-        owing("1", "2026-09-20", 100), // 30 days: current
-        owing("2", "2026-09-19", 200), // 31 days
-        owing("3", "2026-08-21", 400), // 60 days
-        owing("4", "2026-08-20", 800), // 61 days
-        owing("5", "2026-07-22", 1600), // 90 days
-        owing("6", "2026-07-21", 3200), // 91 days
+        owing("1", "2026-11-03", 50), // not due yet
+        owing("2", "2026-10-20", 100), // due today: not overdue
+        owing("3", "2026-10-19", 200), // 1 day overdue
+        owing("4", "2026-09-20", 400), // 30 days
+        owing("5", "2026-09-19", 800), // 31 days
+        owing("6", "2026-08-21", 1600), // 60 days
+        owing("7", "2026-08-20", 3200), // 61 days
+        owing("8", "2026-07-22", 6400), // 90 days
+        owing("9", "2026-07-21", 12800), // 91 days
       ],
       today: TODAY,
       period: "all",
       onlyOwing: false,
     });
-    expect(s.ageing).toEqual({ currentCents: 100, days31Cents: 600, days61Cents: 2400, days91Cents: 3200, totalCents: 6300 });
+    expect(s.ageing).toEqual({ notDueCents: 150, days1Cents: 600, days31Cents: 2400, days61Cents: 9600, days91Cents: 12800, totalCents: 25550 });
+    expect(ageingAmounts(s.ageing)).toEqual([150, 600, 2400, 9600, 12800]);
   });
 
   it("counts what is left after payments and credit notes, and leaves out what is settled", () => {

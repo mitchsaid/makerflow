@@ -5,7 +5,7 @@ import { formatDay } from "../../quotes/dates";
 import { PDF_FONT } from "../../quotes/pdf/fonts";
 import { pdfSource, type PdfImage } from "../../quotes/pdf/quote-document";
 import type { SnapshotParty } from "../../quotes/snapshot";
-import { PERIOD_LABELS, type Period, type Statement } from "../index";
+import { ageingAmounts, PERIOD_LABELS, type Period, type Statement } from "../index";
 
 /** Everything a statement is drawn from; the document itself never reads the database. */
 export type StatementDocumentData = {
@@ -30,7 +30,7 @@ export type StatementDocumentData = {
     balance: string;
     creditOnAccount: string;
     ageingTitle: string;
-    ageingBuckets: readonly [string, string, string, string];
+    ageingBuckets: readonly [string, string, string, string, string];
     howToPay: string;
   };
 };
@@ -169,7 +169,7 @@ export function StatementDocument({ data, logo }: { data: StatementDocumentData;
           <View style={styles.section} wrap={false}>
             <Text style={styles.label}>{words.ageingTitle}</Text>
             <View style={styles.boxes}>
-              {[s.ageing.currentCents, s.ageing.days31Cents, s.ageing.days61Cents, s.ageing.days91Cents].map((cents, i) => (
+              {ageingAmounts(s.ageing).map((cents, i) => (
                 <View key={i} style={styles.box}>
                   <Text style={styles.small}>{words.ageingBuckets[i]}</Text>
                   <Text style={styles.boxValue}>{money(cents)}</Text>

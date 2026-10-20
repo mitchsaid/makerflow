@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { loadStatement } from "@/lib/statements/load";
-import { PERIODS, PERIOD_LABELS } from "@/lib/statements";
+import { ageingAmounts, PERIODS, PERIOD_LABELS } from "@/lib/statements";
 import { formatMoney } from "@/lib/money";
 import { formatDay } from "@/lib/quotes/dates";
 import { PdfPreview } from "../../../quotes/pdf-preview";
@@ -106,7 +106,7 @@ export default async function StatementPage({ params, searchParams }: PageProps<
               <Card>
                 <CardContent>
                   <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-base" data-testid="statement-ageing">
-                    {[s.ageing.currentCents, s.ageing.days31Cents, s.ageing.days61Cents, s.ageing.days91Cents].map((cents, i) => (
+                    {ageingAmounts(s.ageing).map((cents, i) => (
                       <div key={i} className="contents">
                         <dt className="text-muted-foreground">{words.ageingBuckets[i]}</dt>
                         <dd>{money(cents)}</dd>
