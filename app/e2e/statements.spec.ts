@@ -41,6 +41,8 @@ test("a customer's statement shows what was invoiced, credited and paid, and wha
   // The balance is what the invoice, the credit note and the payment leave.
   await expect(page.getByTestId("statement-balance")).toHaveText(rand("1 000"));
   await expect(page.getByTestId("statement-summary")).toContainText(rand("2 500"));
+  // A new invoice is not yet due: ageing counts days past the due day.
+  await expect(page.getByTestId("statement-ageing")).toContainText("Not yet due");
   await expect(page.getByTestId("statement-ageing")).toContainText(rand("1 000"));
 
   // The same statement as text: one row each, in date order, each leading to its document.

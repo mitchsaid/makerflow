@@ -65,7 +65,11 @@ export type StatementEntry = {
   balanceCents: Cents;
 };
 
-export type Ageing = { currentCents: Cents; days31Cents: Cents; days61Cents: Cents; days91Cents: Cents; totalCents: Cents };
+/** What is owing, by how many days past its due day each invoice is (nothing is overdue on the due day itself). */
+export type Ageing = { notDueCents: Cents; days1Cents: Cents; days31Cents: Cents; days61Cents: Cents; days91Cents: Cents; totalCents: Cents };
+
+/** The five buckets in order, oldest last: the amounts the labels in the locale pack go with. */
+export const ageingAmounts = (a: Ageing): [Cents, Cents, Cents, Cents, Cents] => [a.notDueCents, a.days1Cents, a.days31Cents, a.days61Cents, a.days91Cents];
 
 export type Statement = {
   /** What was owing before the period began (zero for all time). */
@@ -144,8 +148,8 @@ export function buildStatement(input: {
     };
   });
 
-  // Ageing: what each invoice still has owing, by how long ago it was issued.
-  const ageing: Ageing = { currentCents: 0, days31Cents: 0, days61Cents: 0, days91Cents: 0, totalCents: 0 };
+  // Ageing: what each invoice still has owing, by how many days past its due day it is.
+  const ageing: Ageing = { notDueCents: 0, days1Cents: 0, days31Cents: 0, days61Cents: 0, days91Cents: 0, totalCents: 0 };
   let creditOnAccountCents = 0;
   let openInvoices = 0;
   for (const i of invoices) {
@@ -153,10 +157,11 @@ export function buildStatement(input: {
     if (owing < 0) creditOnAccountCents += -owing;
     if (owing <= 0) continue;
     openInvoices += 1;
-    const age = daysBetween(i.issueDate, today);
-    if (age <= 30) ageing.currentCents += owing;
-    else if (age <= 60) ageing.days31Cents += owing;
-    else if (age <= 90) ageing.days61Cents += owing;
+    const overdue = daysBetween(i.dueDate, today);
+    if (overdue <= 0) ageing.notDueCents += owing;
+    else if (overdue <= 30) ageing.days1Cents += owing;
+    else if (overdue <= 60) ageing.days31Cents += owing;
+    else if (overdue <= 90) ageing.days61Cents += owing;
     else ageing.days91Cents += owing;
     ageing.totalCents += owing;
   }

@@ -344,7 +344,7 @@ export const ZA_LOCALE: LocalePack = {
       balance: "Balance",
       creditOnAccount: "Credit on account",
       ageingTitle: "What is owing, by age",
-      ageingBuckets: ["Current (0 to 30 days)", "31 to 60 days", "61 to 90 days", "Over 90 days"],
+      ageingBuckets: ["Not yet due", "1 to 30 days overdue", "31 to 60 days overdue", "61 to 90 days overdue", "Over 90 days overdue"],
       howToPay: "How to pay",
     },
     // A credit note carries "credit note", the supplier's and recipient's details, the day, the amount and VAT by which

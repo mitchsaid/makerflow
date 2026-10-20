@@ -130,7 +130,7 @@ export type LocalePack = {
       balance: string;
       creditOnAccount: string;
       ageingTitle: string;
-      ageingBuckets: readonly [string, string, string, string];
+      ageingBuckets: readonly [string, string, string, string, string];
       howToPay: string;
     };
     /** A credit note: how an issued invoice is corrected (an invoice itself never changes). */
