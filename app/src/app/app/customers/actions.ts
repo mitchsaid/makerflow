@@ -186,6 +186,7 @@ export async function updateCustomer(
   }
 
   revalidatePath("/app/customers");
+  revalidatePath(`/app/customers/${id}`);
   return { status: "saved", option: optionFor(id, parsed.value, getLocalePack(profile.countryCode)) };
 }
 
@@ -215,6 +216,7 @@ export async function setCustomerArchived(
   }
 
   revalidatePath("/app/customers");
+  revalidatePath(`/app/customers/${id}`);
   if (archived) redirect("/app/customers");
   return { status: "idle" };
 }

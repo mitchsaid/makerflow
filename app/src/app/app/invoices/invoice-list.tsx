@@ -13,9 +13,8 @@ import {
   type InvoiceFilter,
   type InvoiceSummary,
 } from "@/lib/invoices";
-import { formatMoney, type NumberStyle } from "@/lib/money";
-import { formatDay } from "@/lib/quotes/dates";
-import { InvoiceStatusChip } from "./invoice-status-chip";
+import type { NumberStyle } from "@/lib/money";
+import { InvoiceRow } from "./invoice-row";
 
 /** The invoices list: newest first, search as you type, a few filters. The whole list is loaded once. */
 export function InvoiceList({
@@ -98,29 +97,7 @@ export function InvoiceList({
       ) : (
         <ul className="space-y-2">
           {visible.map((i) => (
-            <li key={i.id} className="rounded-xl bg-card ring-1 ring-foreground/10">
-              <Link
-                href={`/app/invoices/${i.id}`}
-                className="block rounded-xl px-4 py-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="truncate text-base font-medium">{i.customerName}</span>
-                  <span className="shrink-0 text-sm font-medium text-muted-foreground">{i.number}</span>
-                </span>
-                <span className="mt-0.5 block text-sm text-muted-foreground">
-                  {formatMoney(i.grossCents, i.currencyCode, numberStyle)}
-                  {i.creditedCents > 0 ? ` · ${formatMoney(i.creditedCents, i.currencyCode, numberStyle)} credited` : ""}
-                  {(i.paidCents > 0 || i.creditedCents > 0) && i.grossCents - i.creditedCents - i.paidCents > 0
-                    ? ` · ${formatMoney(i.grossCents - i.creditedCents - i.paidCents, i.currencyCode, numberStyle)} owing`
-                    : ""}{" "}
-                  · due{" "}
-                  {formatDay(i.dueDate, formatLocale)}
-                </span>
-                <span className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-                  <InvoiceStatusChip status={statusOf(i)} />
-                </span>
-              </Link>
-            </li>
+            <InvoiceRow key={i.id} invoice={i} today={today} formatLocale={formatLocale} numberStyle={numberStyle} />
           ))}
         </ul>
       )}

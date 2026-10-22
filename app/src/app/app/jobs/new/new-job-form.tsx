@@ -38,6 +38,7 @@ const OFFLINE = "Couldn't reach the server, so the job may not have been made. C
  */
 export function NewJobForm({
   customers: initialCustomers,
+  initialCustomerId = "",
   products: initialProducts,
   countryCode,
   numberStyle,
@@ -48,6 +49,8 @@ export function NewJobForm({
   businessTypes,
 }: {
   customers: CustomerOption[];
+  /** The customer chosen when the form opens (from a customer's page). */
+  initialCustomerId?: string;
   products: ProductSummary[];
   countryCode: string;
   numberStyle: NumberStyle;
@@ -61,7 +64,7 @@ export function NewJobForm({
   const [customers, setCustomers] = useState(initialCustomers);
   const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
   const [values, setValues] = useState<NewJobValues>({
-    customerId: "",
+    customerId: initialCustomerId,
     fulfilment: "none",
     deliveryAddress: "",
     neededBy: "",

@@ -112,28 +112,19 @@ export async function getCustomersWithAddresses(): Promise<CustomerSummaryWithAd
   }));
 }
 
-type FullRow = SummaryRow & AddressRow & {
+export type FullRow = SummaryRow & AddressRow & {
   vat_number: string | null;
   company_registration_number: string | null;
   notes: string | null;
 };
 
-/** One customer with every detail, or null for a bad id or one that is not visible to this person. */
-export async function findCustomer(id: string): Promise<Customer | null> {
-  if (!UUID.test(id)) return null;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("customers")
-    .select(
-      `id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
+/** Every column a customer's own page needs. */
+export const CUSTOMER_FULL_COLUMNS = `id, organisation_id, name, kind, contact_person, phone, email, city, archived_at,
        address_line1, address_line2, region, postal_code, ${DELIVERY_COLUMNS},
-       vat_number, company_registration_number, notes`,
-    )
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw new Error(`Could not load the customer: ${error.message}`);
-  if (!data) return null;
-  const row = data as FullRow;
+       vat_number, company_registration_number, notes`;
+
+/** A customer row, in the shape the app uses. */
+export function customerOfRow(row: FullRow): Customer {
   return {
     id: row.id,
     organisationId: row.organisation_id,
@@ -153,6 +144,16 @@ export async function findCustomer(id: string): Promise<Customer | null> {
     notes: row.notes,
     archived: row.archived_at !== null,
   };
+}
+
+/** One customer with every detail, or null for a bad id or one that is not visible to this person. */
+export async function findCustomer(id: string): Promise<Customer | null> {
+  if (!UUID.test(id)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("customers").select(CUSTOMER_FULL_COLUMNS).eq("id", id).maybeSingle();
+  if (error) throw new Error(`Could not load the customer: ${error.message}`);
+  if (!data) return null;
+  return customerOfRow(data as FullRow);
 }
 
 /** One customer with every detail. Shows the "not found" page for a bad or foreign id. */

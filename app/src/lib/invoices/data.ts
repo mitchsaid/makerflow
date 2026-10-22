@@ -14,7 +14,7 @@ import type { VatGroup } from "../money";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type SummaryRow = {
+export type InvoiceSummaryRow = {
   id: string;
   organisation_id: string;
   number: string;
@@ -28,10 +28,10 @@ type SummaryRow = {
   credit_notes: { gross_cents: number | string }[];
 };
 
-const SUMMARY_COLUMNS =
+export const INVOICE_SUMMARY_COLUMNS =
   "id, organisation_id, number, quote_id, customer_name, issue_date, due_date, gross_cents, currency_code, invoice_payments ( amount_cents, reverses_id ), credit_notes ( gross_cents )";
 
-const summaryOf = (row: SummaryRow): InvoiceSummary => ({
+export const invoiceSummaryOf = (row: InvoiceSummaryRow): InvoiceSummary => ({
   id: row.id,
   organisationId: row.organisation_id,
   number: row.number,
@@ -50,12 +50,12 @@ export async function getInvoices(): Promise<InvoiceSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("invoices")
-    .select(SUMMARY_COLUMNS)
+    .select(INVOICE_SUMMARY_COLUMNS)
     .order("issue_date", { ascending: false })
     .order("number", { ascending: false })
     .limit(500);
   if (error) throw new Error(`Could not load invoices: ${error.message}`);
-  return (data as unknown as SummaryRow[]).map(summaryOf);
+  return (data as unknown as InvoiceSummaryRow[]).map(invoiceSummaryOf);
 }
 
 /** What customers owe this business, worked out in the database from the invoices and their payments. */
@@ -127,7 +127,7 @@ type PaymentRow = {
   created_at: string;
 };
 
-type DetailRow = SummaryRow & {
+type DetailRow = InvoiceSummaryRow & {
   quote_version: number;
   note: string | null;
   snapshot: QuoteSnapshot;
@@ -146,7 +146,7 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      `${SUMMARY_COLUMNS}, quote_version, note, snapshot, costing, created_at,
+      `${INVOICE_SUMMARY_COLUMNS}, quote_version, note, snapshot, costing, created_at,
        quotes ( id, number, jobs ( id, number, status ), quote_versions ( version, deposit:snapshot->deposit ) ),
        invoice_events ( id, kind, created_at ),
        all_payments:invoice_payments ( id, amount_cents, paid_on, method, note, reverses_id, created_at ),
@@ -159,7 +159,7 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
   const row = data as unknown as DetailRow;
   const quote = Array.isArray(row.quotes) ? (row.quotes[0] ?? null) : row.quotes;
   return {
-    ...summaryOf(row),
+    ...invoiceSummaryOf(row),
     quoteVersion: row.quote_version,
     note: row.note,
     snapshot: row.snapshot,

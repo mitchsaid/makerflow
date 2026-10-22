@@ -8,6 +8,12 @@ async function openCustomers(page: Page) {
   await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
 }
 
+/** A customer's page opens on their quotes; the form is in Details. */
+async function openDetails(page: Page) {
+  await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Details" }).click();
+  await expect(page.getByRole("button", { name: /Save changes|Archive customer|Restore customer/ }).first()).toBeVisible();
+}
+
 /** Adds a customer from the list's "Add" screen, with whatever fields are given. */
 async function addCustomer(page: Page, name: string, phone?: string) {
   await page.goto("/app/customers/new");
@@ -94,6 +100,8 @@ test("a business customer keeps its details, and they persist after editing", as
   await expect(page.getByRole("link", { name: /Cape Cakes/ })).toContainText("Business");
   await page.getByRole("link", { name: /Cape Cakes/ }).click();
   await expect(page.getByRole("heading", { name: "Cape Cakes", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 }).getByText("Business", { exact: true })).toBeVisible();
+  await openDetails(page);
   await expect(page.getByLabel("Contact person")).toHaveValue("Sam Jacobs");
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
   const saved = page.getByRole("group", { name: "Address", exact: true });
@@ -172,6 +180,7 @@ test("search, archive and restore", async ({ page }) => {
 
   // Archive hides from the list; it can be shown and restored.
   await page.getByRole("link", { name: /Carla Smit/ }).click();
+  await openDetails(page);
   await page.getByRole("button", { name: "Archive customer" }).click();
   await expect(page).toHaveURL(/\/app\/customers$/);
   await expect(page.getByRole("link", { name: /Carla Smit/ })).toHaveCount(0);
@@ -181,6 +190,7 @@ test("search, archive and restore", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Carla Smit/ })).toContainText("Archived");
   await page.getByRole("link", { name: /Carla Smit/ }).click();
   await expect(page.getByTestId("archived-notice")).toBeVisible();
+  await openDetails(page);
   await page.getByRole("button", { name: "Restore customer" }).click();
   await expect(page.getByTestId("archived-notice")).toHaveCount(0);
 
@@ -234,6 +244,7 @@ test("a separate delivery address must be filled in, and ticking 'same as above'
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByTestId("customer-added")).toBeVisible();
   await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
+  await openDetails(page);
   const saved = page.getByRole("group", { name: "Delivery" });
   await expect(saved.getByRole("checkbox", { name: "Same as the address above" })).not.toBeChecked();
   await expect(saved.getByLabel("Street address")).toHaveValue("4 Dock Road");

@@ -7,15 +7,19 @@ import { customerOptions } from "../../quotes/builder-data";
 import { NewJobForm } from "./new-job-form";
 import { PageHeader } from "@/components/page-header";
 
-export default async function NewJobPage() {
+export default async function NewJobPage({ searchParams }: PageProps<"/app/jobs/new">) {
   // The customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, { organisation, profile }] = await Promise.all([
+  const [allCustomers, allProducts, { organisation, profile }, query] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
     requireOrganisation(),
+    searchParams,
   ]);
   const locale = getLocalePack(profile.countryCode);
   const customers = forOrganisation(allCustomers, organisation.id);
+  // "New job" on a customer's page arrives with that customer chosen (only one of this business's, not archived).
+  const wanted = typeof query.customer === "string" ? query.customer : "";
+  const startCustomerId = customers.some((c) => c.id === wanted && !c.archived) ? wanted : "";
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -27,6 +31,7 @@ export default async function NewJobPage() {
       </PageHeader>
       <NewJobForm
         customers={customerOptions(customers, locale)}
+        initialCustomerId={startCustomerId}
         products={forOrganisation(allProducts, organisation.id)}
         countryCode={profile.countryCode}
         numberStyle={locale.numberStyle}

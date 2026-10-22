@@ -221,6 +221,8 @@ test("the chosen customer can be configured from the quote, and the customer is 
   const row = page.getByRole("link", { name: /Cape Cakes/ });
   await expect(row).toContainText("Business");
   await row.click();
+  // A customer's page opens on their quotes; the form is in Details.
+  await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Details" }).click();
   await expect(page.getByLabel("Contact person")).toHaveValue("Sam Jacobs");
   await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("021 555 0000");
 });

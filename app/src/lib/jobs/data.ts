@@ -10,8 +10,8 @@ import { isActiveJob, isJobStatus, JOB_STATUSES, type JobDetail, type JobFulfilm
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type ItemRow = { name: string; quantity_milli: number | string; made_milli: number | string; unit: string | null; sort_order: number };
-type SummaryRow = {
+export type ItemRow = { name: string; quantity_milli: number | string; made_milli: number | string; unit: string | null; sort_order: number };
+export type JobSummaryRow = {
   id: string;
   organisation_id: string;
   number: number;
@@ -25,7 +25,8 @@ type SummaryRow = {
 
 const status = (value: string): JobStatus => (isJobStatus(value) ? value : "not_started");
 
-function summary(row: SummaryRow): JobSummary {
+/** A job row as a list shows it. */
+export function summary(row: JobSummaryRow): JobSummary {
   return {
     id: row.id,
     organisationId: row.organisation_id,
@@ -41,16 +42,19 @@ function summary(row: SummaryRow): JobSummary {
   };
 }
 
+/** The columns of a job in a list, with its items' names. */
+export const JOB_SUMMARY_COLUMNS = "id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, job_items ( name, quantity_milli, made_milli, unit, sort_order )";
+
 /** Every job of the business, with its items' names. One query. */
 export async function getJobs(): Promise<JobSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("jobs")
-    .select("id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, job_items ( name, quantity_milli, made_milli, unit, sort_order )")
+    .select(JOB_SUMMARY_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw new Error(`Could not load jobs: ${error.message}`);
-  return (data as unknown as SummaryRow[]).map(summary);
+  return (data as unknown as JobSummaryRow[]).map(summary);
 }
 
 /**
@@ -72,7 +76,7 @@ export async function getActiveJobDates(): Promise<{ status: JobStatus; neededBy
   }));
 }
 
-type DetailRow = SummaryRow & {
+type DetailRow = JobSummaryRow & {
   quote_id: string | null;
   quote_version: number | null;
   delivery_address: string | null;
