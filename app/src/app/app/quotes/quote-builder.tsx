@@ -140,7 +140,7 @@ export function QuoteBuilder({
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;
   /** What costs are worked out with (the materials and the hourly rate), for the private margin on the draft. */
-  costing: { materials: Pick<Material, "id" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null };
+  costing: { materials: Pick<Material, "id" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null; targetMarginBp: number | null };
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
   header?: React.ReactNode;
   /** What goes between the form and the bar, such as Delete draft. */
@@ -636,6 +636,7 @@ export function QuoteBuilder({
           currencyCode={currencyCode}
           priceLabel={priceLabel}
           vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
+          pricing={{ targetBp: costing.targetMarginBp, vat }}
           businessTypes={businessTypes}
           newKey={newKey}
           onView={openSheet}
@@ -909,7 +910,7 @@ export function QuoteBuilder({
             />
           )}
         </dl>
-        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} />
+        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} />
       </Section>
 
       {state.status === "error" && state.message && (

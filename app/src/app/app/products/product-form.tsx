@@ -116,6 +116,8 @@ export function ProductForm({
     /** What an hour of the maker's time is worth, or null when it is not set in the business profile. */
     hourlyRateCents: Cents | null;
     vat: VatSettings;
+    /** The margin the business aims for (basis points), or null when it has not said. */
+    targetMarginBp: number | null;
     /** The country's word for the tax ("VAT"), for the new material form. */
     taxName: string;
   };
@@ -716,6 +718,7 @@ export function ProductForm({
             materials={costingMaterials}
             addMaterial={addMaterial}
             hourlyRateSet={costing.hourlyRateCents !== null}
+            targetBp={costing.targetMarginBp}
             summary={summariseCosts({
               rows: values.costLines,
               makes: values.makes,

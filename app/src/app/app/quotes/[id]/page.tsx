@@ -96,7 +96,7 @@ export default async function QuotePage({
           initial={toFormValues(quote, locale.numberStyle)}
           customers={customerOptions(customers, locale)}
           products={forOrganisation(allProducts, organisation.id)}
-          costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents }}
+          costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents, targetMarginBp: profile.targetMarginBp }}
           vat={vatSettingsFor(profile, locale)}
           currencyCode={profile.currencyCode}
           countryCode={profile.countryCode}
@@ -275,6 +275,7 @@ export default async function QuotePage({
                 currencyCode={profile.currencyCode}
                 numberStyle={locale.numberStyle}
                 frozen
+                targetBp={profile.targetMarginBp}
                 note="Worked out when you sent this version, from what things cost then."
               />
             </CardContent>

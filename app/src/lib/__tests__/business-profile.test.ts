@@ -148,6 +148,7 @@ const emptyProfile: BusinessProfile = {
       usualFulfilment: null,
       logoImageId: null,
       labourRateCents: null,
+    targetMarginBp: null,
 };
 
 describe("what is missing before documents (South African rules, via the locale pack)", () => {

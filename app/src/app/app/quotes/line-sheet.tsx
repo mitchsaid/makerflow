@@ -17,6 +17,7 @@ import {
 import {
   currencySymbol,
   formatMoney,
+  formatPercent,
   moneyToInput,
   parseMoney,
   parseQuantity,
@@ -25,7 +26,8 @@ import {
 import { UnitField } from "@/components/unit-field";
 import { PhotoThumb } from "@/components/photo-thumb";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
-import type { VatStatus } from "@/lib/money";
+import type { VatSettings, VatStatus } from "@/lib/money";
+import { priceForMarginCents, priceToEnterCents } from "@/lib/costing/target";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
@@ -101,6 +103,7 @@ export function LineSheet({
   currencyCode,
   priceLabel,
   vatChoices,
+  pricing,
   businessTypes,
   newKey,
   onView,
@@ -124,6 +127,8 @@ export function LineSheet({
   priceLabel: string;
   /** How VAT can treat an item, in the country's words; null when the business is not VAT registered. */
   vatChoices: VatChoice[] | null;
+  /** The margin the business aims for and how it enters prices, for the "charge R…" hint on a one-off item's cost. */
+  pricing?: { targetBp: number | null; vat: VatSettings };
   /** What the business makes, to suggest names for a new product's variations. */
   businessTypes: BusinessType[] | null;
   /** A fresh key for a line that is about to be added. */
@@ -226,6 +231,7 @@ export function LineSheet({
               product={products.find((p) => p.id === view.line.productId)}
               priceLabel={priceLabel}
               vatChoices={vatChoices}
+              pricing={pricing}
               currencySymbol={symbol}
               numberStyle={numberStyle}
               money={money}
@@ -482,6 +488,7 @@ function ConfigureView({
   product,
   priceLabel,
   vatChoices,
+  pricing,
   currencySymbol: symbol,
   numberStyle,
   money,
@@ -497,6 +504,7 @@ function ConfigureView({
   product: ProductSummary | undefined;
   priceLabel: string;
   vatChoices: VatChoice[] | null;
+  pricing?: { targetBp: number | null; vat: VatSettings };
   currencySymbol: string;
   numberStyle: NumberStyle;
   money: (cents: number) => string;
@@ -523,6 +531,17 @@ function ConfigureView({
     removeQuestion.current?.querySelector("button")?.focus({ preventScroll: true });
   }, [confirmingRemove]);
   const id = (field: string) => `line-sheet-${field}`;
+  // A one-off item that says what it costs: what to charge, the way prices are typed, for the margin the business aims for.
+  const typedCost = !job && !line.productId && (line.unitCost ?? "").trim() !== "" ? parseMoney(line.unitCost ?? "") : null;
+  const targetNet = typedCost?.ok && pricing?.targetBp != null ? priceForMarginCents(typedCost.value, pricing.targetBp) : null;
+  const targetPrice =
+    targetNet !== null && pricing
+      ? priceToEnterCents(targetNet, pricing.vat, vatStatusOf(line.vatStatus ?? ""))
+      : null;
+  const currentPrice = (() => {
+    const typed = parseMoney(line.unitPrice);
+    return typed.ok ? typed.value : null;
+  })();
   // The error scope is below this component, so it reports up: edits made by buttons (not the shared fields) count too.
   const [scope, setScope] = useState<ErrorScopeHandle | null>(null);
   const set = <K extends keyof LineFormValues>(key: K) => (value: LineFormValues[K]) => {
@@ -746,6 +765,17 @@ function ConfigureView({
             onChange={set("unitCost")}
           />
         )}
+        {!job && !line.productId && targetPrice !== null && targetPrice !== currentPrice && (
+          <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="target-price-hint">
+            <span className="text-muted-foreground">
+              For your {formatPercent(pricing?.targetBp ?? 0, numberStyle)} target, charge {money(targetPrice)}
+              {line.unit.trim() ? ` per ${line.unit.trim()}` : " each"}.
+            </span>
+            <Button type="button" variant="link" className="h-auto p-0" onClick={() => set("unitPrice")(moneyToInput(targetPrice, numberStyle))}>
+              Use {money(targetPrice)}
+            </Button>
+          </div>
+        )}
         {!job && product && priceDiffers && reference !== undefined && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="product-price-hint">
             <span className="text-muted-foreground">
@@ -892,3 +922,5 @@ function ConfigureView({
     </FormErrorScope>
   );
 }
+
+const vatStatusOf = (value: string): VatStatus => (value === "zero" || value === "exempt" ? value : "standard");
