@@ -16,6 +16,7 @@ import {
   type OutcomeKind,
 } from "@/lib/quotes/outcome";
 import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_NUDGE_VALUE } from "@/lib/jobs";
+import { createJob } from "../jobs/actions";
 import { quoteAgain } from "./actions";
 import { recordOutcome, reopenQuote } from "./outcome-actions";
 import { FormErrorScope } from "@/components/form-errors";
@@ -91,6 +92,7 @@ function OutcomeForm({
   number,
   today,
   askToCreateJob,
+  thenCreateJob = false,
   onDone,
 }: {
   kind: OutcomeKind;
@@ -98,6 +100,8 @@ function OutcomeForm({
   number: string;
   today: string;
   askToCreateJob: boolean;
+  /** "Turn into a job": after the acceptance is recorded, the job is made too and opened. */
+  thenCreateJob?: boolean;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -116,6 +120,16 @@ function OutcomeForm({
       try {
         const result = await recordOutcome(quoteId, kind, values);
         setTries((n) => n + 1);
+        if (result.status === "done" && thenCreateJob) {
+          // The answer is saved. Making the job ends by opening it (a redirect); if it cannot be made the quote is
+          // accepted all the same, and says so, with its own Create a job button.
+          const made = await createJob(quoteId);
+          if (made.status === "error") {
+            router.refresh();
+            setMessage(`Their answer is saved, but the job could not be made: ${made.message} You can create it from the quote.`);
+          }
+          return;
+        }
         if (result.status === "done") {
           // An acceptance may offer a job: the address asks the quote page for that card.
           if (kind === "accepted" && askToCreateJob) router.replace(`/app/quotes/${quoteId}?${CREATE_JOB_NUDGE_PARAM}=${CREATE_JOB_NUDGE_VALUE}`);
@@ -125,7 +139,10 @@ function OutcomeForm({
         }
         setErrors(result.errors ?? {});
         setMessage(result.message ?? null);
-      } catch {
+      } catch (error) {
+        // Making the job ends by opening it: that is a redirect, not a failure.
+        const digest = (error as { digest?: unknown } | null)?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
         setMessage(OFFLINE);
       }
     });
@@ -140,7 +157,7 @@ function OutcomeForm({
   return (
     <>
       <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
-        <SheetTitle className="text-lg">{TITLES[kind]}</SheetTitle>
+        <SheetTitle className="text-lg">{thenCreateJob ? "Turn into a job" : TITLES[kind]}</SheetTitle>
         <SheetDescription className="text-base">Quote {number}</SheetDescription>
       </SheetHeader>
       <FormErrorScope epoch={tries}>
@@ -190,7 +207,7 @@ function OutcomeForm({
           onChange={(note) => setValues((v) => ({ ...v, note }))}
         />
         <Button type="submit" size="lg" className="w-full" variant={answer ? "default" : "destructive"} disabled={pending}>
-          {pending ? "Saving…" : answer ? "Save answer" : "Withdraw quote"}
+          {pending ? "Saving…" : thenCreateJob ? "Save answer and create job" : answer ? "Save answer" : "Withdraw quote"}
         </Button>
       </form>
       </FormErrorScope>
@@ -268,5 +285,26 @@ export function QuoteAgainButton({ quoteId }: { quoteId: string }) {
         A new draft for the same customer, with the same items and wording. It gets a new number.
       </p>
     </div>
+  );
+}
+
+/**
+ * Right after Mark as sent: "Already a yes?" The customer's acceptance is recorded the usual way (the same sheet, with
+ * the day and how they told you), and the job is made and opened in one go.
+ */
+export function TurnIntoJob({ quoteId, number, today }: { quoteId: string; number: string; today: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button type="button" size="lg" variant="default" id="turn-into-job" onClick={() => setOpen(true)}>
+        Turn into a job
+      </Button>
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && setOpen(false)}>
+        <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => document.getElementById("turn-into-job") ?? true}>
+          {/* Mounted only while open, so every opening starts with an empty form. */}
+          {open && <OutcomeForm kind="accepted" quoteId={quoteId} number={number} today={today} askToCreateJob={false} thenCreateJob onDone={() => setOpen(false)} />}
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
