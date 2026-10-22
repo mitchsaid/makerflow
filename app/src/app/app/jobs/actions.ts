@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { CREATE_JOB_PROMPT, isJobStatus } from "@/lib/jobs";
+import { CREATE_JOB_PROMPT, INVOICE_JOB_PROMPT, isJobStatus } from "@/lib/jobs";
 import type { LineFormValues } from "@/lib/quotes";
 import { parseJobLine, parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
 import { jobItemPhoto } from "@/lib/jobs/photos";
@@ -394,6 +394,24 @@ export async function dismissCreateJobPrompt(): Promise<JobActionResult> {
     user_id: user.id,
     organisation_id: organisation.id,
     prompt_key: CREATE_JOB_PROMPT,
+  });
+  // Already dismissed (a second tab): that is what was asked for.
+  if (error && error.code !== "23505") {
+    console.error("could not dismiss prompt:", error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  revalidatePath("/app", "layout");
+  return { status: "done" };
+}
+
+/** "Don't ask me again" on the card that offers to invoice a finished job. Remembered for this person in this business. */
+export async function dismissInvoiceJobPrompt(): Promise<JobActionResult> {
+  const { organisation, user } = await requireOrganisation();
+  const supabase = await createClient();
+  const { error } = await supabase.from("prompt_dismissals").insert({
+    user_id: user.id,
+    organisation_id: organisation.id,
+    prompt_key: INVOICE_JOB_PROMPT,
   });
   // Already dismissed (a second tab): that is what was asked for.
   if (error && error.code !== "23505") {

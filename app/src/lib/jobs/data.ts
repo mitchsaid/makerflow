@@ -85,7 +85,7 @@ type DetailRow = JobSummaryRow & {
   customer_phone: string | null;
   customer_email: string | null;
   note: string | null;
-  quotes: { number: string } | { number: string }[] | null;
+  quotes: { number: string; invoices: { id: string; number: string } | { id: string; number: string }[] | null } | { number: string; invoices: { id: string; number: string } | { id: string; number: string }[] | null }[] | null;
   job_items:
     | (ItemRow & {
         id: string;
@@ -105,7 +105,7 @@ type DetailRow = JobSummaryRow & {
 
 const COLUMNS = `id, organisation_id, number, status, fulfilment, needed_by, customer_name, created_at, quote_id, quote_version,
   delivery_address, customer_id, customer_contact_person, customer_phone, customer_email, note,
-  quotes ( number ),
+  quotes ( number, invoices!invoices_quote_same_org ( id, number ) ),
   job_items ( id, name, description, quantity_milli, made_milli, added_later, unit, sort_order, variation_label, variation_name, options, photo_image_id, product_id, steps_edited,
     job_item_steps ( id, name, sort_order, done_milli ) ),
   job_events ( kind, from_status, to_status, detail, created_at )`;
@@ -135,6 +135,7 @@ function detail(row: DetailRow): JobDetail {
     quoteId: row.quote_id,
     quoteNumber: quote?.number ?? "",
     quoteVersion: row.quote_version,
+    invoice: Array.isArray(quote?.invoices) ? (quote.invoices[0] ?? null) : (quote?.invoices ?? null),
     deliveryAddress: row.delivery_address,
     customerId: row.customer_id,
     customerContactPerson: row.customer_contact_person,

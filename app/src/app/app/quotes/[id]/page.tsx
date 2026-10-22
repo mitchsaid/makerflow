@@ -226,6 +226,7 @@ export default async function QuotePage({
           ) : (
             <CreateInvoice
               quoteId={quote.id}
+              defaultOpen={query.next === "invoice"}
               documentTitle={locale.documents.invoice.title(shown.snapshot.vat.registered)}
               customerName={shown.snapshot.customer?.name ?? ""}
               totalText={formatMoney(shown.snapshot.totals.grossCents, shown.snapshot.currencyCode, shown.snapshot.numberStyle)}

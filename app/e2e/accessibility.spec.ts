@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
-import { issuedInvoice } from "./invoice-helpers";
+import { acceptedQuote, issuedInvoice } from "./invoice-helpers";
 import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
@@ -911,6 +911,19 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "an invoice with a credit note");
       await openDocuments(page);
       await expectNoViolations(page, "quotes and invoices, with the three numberings");
+    });
+
+    test("a finished job: the invoice card and the plain button", async ({ page }) => {
+      test.setTimeout(300_000);
+      await acceptedQuote(page, `a11y-job-invoice-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
+      await page.getByRole("button", { name: "Create a job" }).click();
+      await page.getByRole("button", { name: "Start making" }).click();
+      await page.getByRole("button", { name: "Mark ready", exact: true }).click();
+      await page.getByRole("button", { name: "Mark done", exact: true }).click();
+      await expect(page.getByTestId("invoice-job-nudge")).toBeVisible();
+      await expectNoViolations(page, "a finished job, with the invoice card");
+      await page.getByTestId("invoice-job-nudge").getByRole("button", { name: "Not now" }).click();
+      await expectNoViolations(page, "a finished job, the plain invoice button");
     });
 
     test("a customer's page: each section, with and without history", async ({ page }) => {

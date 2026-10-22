@@ -179,6 +179,8 @@ export type JobDetail = JobSummary & {
   quoteId: string | null;
   quoteNumber: string;
   quoteVersion: number | null;
+  /** The invoice made from the job's quote, if there is one (a quote has at most one). */
+  invoice: { id: string; number: string } | null;
   deliveryAddress: string | null;
   customerId: string | null;
   customerContactPerson: string | null;
@@ -283,3 +285,17 @@ export const shouldNudgeCreateJob = (o: {
   !o.hasJob &&
   o.nudgeParam === CREATE_JOB_NUDGE_VALUE &&
   !o.dismissedPrompts.includes(CREATE_JOB_PROMPT);
+
+/** The friendly "Invoice it?" card on a finished job (remembered in prompt_dismissals when dismissed for good). */
+export const INVOICE_JOB_PROMPT = "invoice-finished-job";
+
+/**
+ * Offer to invoice a finished job: it is done, it was made from a quote (a job made by hand has nothing to invoice
+ * from yet), that quote has no invoice, and this person has not said "Don't ask me again".
+ */
+export const shouldNudgeInvoiceJob = (o: {
+  status: string;
+  hasQuote: boolean;
+  hasInvoice: boolean;
+  dismissedPrompts: readonly string[];
+}): boolean => o.status === "done" && o.hasQuote && !o.hasInvoice && !o.dismissedPrompts.includes(INVOICE_JOB_PROMPT);
