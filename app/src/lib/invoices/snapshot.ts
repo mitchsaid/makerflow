@@ -23,6 +23,8 @@ export function buildInvoiceSnapshot(input: {
   customer: Customer | null;
   /** The business's saved bank details. Printed only when the quote had them on. */
   bank: BankDetails | null;
+  /** The quote's number on the invoice; null for an invoice made without a quote. Defaults to the version's own number. */
+  quoteNumber?: string | null;
 }): { snapshot: QuoteSnapshot; referenceLabel: string | null } {
   const { version, locale } = input;
   const words = locale.documents.invoice;
@@ -51,7 +53,7 @@ export function buildInvoiceSnapshot(input: {
       bankDetails: lines,
       invoice: {
         dueDate: input.dueDate,
-        quoteNumber: version.number,
+        quoteNumber: input.quoteNumber === undefined ? version.number : input.quoteNumber,
         billedToLabel: words.billedToLabel,
         dueLabel: words.dueLabel,
         quoteLabel: words.quoteLabel,

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ComingSoonSection } from "@/components/coming-soon";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { AddLink } from "@/components/add-button";
@@ -15,6 +14,7 @@ import { ItemSteps } from "../item-steps";
 import { StepsEditor } from "../steps-editor";
 import { InvoiceJobCard } from "../invoice-job-card";
 import { JobNote } from "../job-note";
+import { StartInvoiceButton } from "../start-invoice-button";
 import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
 import { JobSteps } from "../job-steps";
@@ -60,10 +60,10 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
           <InvoiceJobCard quoteId={job.quoteId} quoteNumber={job.quoteNumber} offer={nudgeInvoice} />
         ) : (
           <section className="space-y-2" aria-labelledby="invoice-heading">
-            <h2 id="invoice-heading" className="sr-only">
+            <h2 id="invoice-heading" className="text-base font-semibold">
               Invoice
             </h2>
-            <ComingSoonSection title="Invoice this job" description="Invoices without a quote are coming." />
+            <StartInvoiceButton jobId={job.id} />
           </section>
         )
       )}

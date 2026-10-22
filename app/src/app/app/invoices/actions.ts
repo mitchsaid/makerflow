@@ -13,6 +13,7 @@ import { formatMoney } from "@/lib/money";
 import { todayIn } from "@/lib/quotes/dates";
 import { findStoredQuote } from "@/lib/quotes/data";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Issuing an invoice from an accepted quote. Like sending a quote, it runs ONLY here, on the server: the database
@@ -100,6 +101,9 @@ export async function issueInvoice(quoteId: string, values: InvoiceFormValues): 
     console.error("could not issue the invoice:", error?.code, error?.message);
     return { status: "error", message: GENERIC_ERROR };
   }
+
+  // An invoice draft that was adjusting this quote has nothing left to do (best effort: it could not be issued now).
+  await (await createClient()).from("invoice_drafts").delete().eq("quote_id", stored.id).eq("organisation_id", organisation.id);
 
   revalidatePath("/app/invoices");
   revalidatePath(`/app/quotes/${stored.id}`);

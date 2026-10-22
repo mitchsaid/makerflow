@@ -52,43 +52,7 @@ export async function prepareQuote(
   const ownCustomer = customer && customer.organisationId === organisation.id ? customer : null;
 
   // The photos of the products on the quote, as they are now (frozen into the snapshot when it is sent).
-  const productIds = [...new Set(parsed.quote.lines.flatMap((l) => (l.productId ? [l.productId] : [])))];
-  const productPhotos = new Map<string, string>();
-  const choicePhotos = new Map<string, string>();
-  if (productIds.length > 0 && parsed.quote.showPhotos !== false) {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select("id, photo_image_id")
-      .eq("organisation_id", organisation.id)
-      .in("id", productIds);
-    // Never carry on without the photos: a quote sent now would be frozen without them for good.
-    if (error) throw new Error(`Could not load the products' photos: ${error.message}`);
-    for (const row of (data ?? []) as { id: string; photo_image_id: string | null }[]) {
-      if (row.photo_image_id) productPhotos.set(row.id, row.photo_image_id);
-    }
-    // The pictures of the choices on the quote's items (a line shows its variation's or choice's own picture).
-    const choiceIds = [
-      ...new Set(
-        parsed.quote.lines.flatMap((l) => [
-          ...(l.variation?.id ? [l.variation.id] : []),
-          ...l.options.flatMap((o) => (o.kind === "one" && o.valueId ? [o.valueId] : [])),
-        ]),
-      ),
-    ];
-    if (choiceIds.length > 0) {
-      const [variations, values] = await Promise.all([
-        supabase.from("product_variations").select("id, image_id").eq("organisation_id", organisation.id).in("id", choiceIds),
-        supabase.from("product_option_values").select("id, image_id").eq("organisation_id", organisation.id).in("id", choiceIds),
-      ]);
-      // Never carry on without them either: a quote sent now would be frozen with the wrong picture for good.
-      if (variations.error) throw new Error(`Could not load the variations' pictures: ${variations.error.message}`);
-      if (values.error) throw new Error(`Could not load the choices' pictures: ${values.error.message}`);
-      for (const row of [...(variations.data ?? []), ...(values.data ?? [])] as { id: string; image_id: string | null }[]) {
-        if (row.image_id) choicePhotos.set(row.id, row.image_id);
-      }
-    }
-  }
+  const { productPhotos, choicePhotos } = await photosFor(parsed.quote, organisation.id);
 
   // The theme: the quote's own pick, else Classic (the themes are read once per request, shared with the page).
   const saved = await getThemes();
@@ -160,4 +124,51 @@ export async function costingForSending(parsed: ParsedQuote, workspace: Workspac
     materialNames: new Map(materials.map((m) => [m.id, m.name])),
   });
   return costing;
+}
+
+/**
+ * The pictures a document shows, as they are now: each product's photo (product id to image id) and each chosen
+ * variation's or choice's own picture. Never carries on without them: a document made now would be frozen without them
+ * for good.
+ */
+export async function photosFor(
+  quote: ParsedQuote,
+  organisationId: string,
+): Promise<{ productPhotos: Map<string, string>; choicePhotos: Map<string, string> }> {
+  const productIds = [...new Set(quote.lines.flatMap((l) => (l.productId ? [l.productId] : [])))];
+  const productPhotos = new Map<string, string>();
+  const choicePhotos = new Map<string, string>();
+  if (productIds.length > 0 && quote.showPhotos !== false) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, photo_image_id")
+      .eq("organisation_id", organisationId)
+      .in("id", productIds);
+    if (error) throw new Error(`Could not load the products' photos: ${error.message}`);
+    for (const row of (data ?? []) as { id: string; photo_image_id: string | null }[]) {
+      if (row.photo_image_id) productPhotos.set(row.id, row.photo_image_id);
+    }
+    // The pictures of the choices on the quote's items (a line shows its variation's or choice's own picture).
+    const choiceIds = [
+      ...new Set(
+        quote.lines.flatMap((l) => [
+          ...(l.variation?.id ? [l.variation.id] : []),
+          ...l.options.flatMap((o) => (o.kind === "one" && o.valueId ? [o.valueId] : [])),
+        ]),
+      ),
+    ];
+    if (choiceIds.length > 0) {
+      const [variations, values] = await Promise.all([
+        supabase.from("product_variations").select("id, image_id").eq("organisation_id", organisationId).in("id", choiceIds),
+        supabase.from("product_option_values").select("id, image_id").eq("organisation_id", organisationId).in("id", choiceIds),
+      ]);
+      if (variations.error) throw new Error(`Could not load the variations' pictures: ${variations.error.message}`);
+      if (values.error) throw new Error(`Could not load the choices' pictures: ${values.error.message}`);
+      for (const row of [...(variations.data ?? []), ...(values.data ?? [])] as { id: string; image_id: string | null }[]) {
+        if (row.image_id) choicePhotos.set(row.id, row.image_id);
+      }
+    }
+  }
+  return { productPhotos, choicePhotos };
 }

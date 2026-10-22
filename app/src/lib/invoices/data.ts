@@ -18,7 +18,7 @@ export type InvoiceSummaryRow = {
   id: string;
   organisation_id: string;
   number: string;
-  quote_id: string;
+  quote_id: string | null;
   customer_name: string;
   issue_date: string;
   due_date: string;
@@ -68,7 +68,10 @@ export async function getOwedTotals(organisationId: string, today: string): Prom
 }
 
 export type StoredInvoice = InvoiceSummary & {
-  quoteVersion: number;
+  /** Null for an invoice made without a quote. */
+  quoteVersion: number | null;
+  /** Made from a quote's draft rather than as the quote was agreed. */
+  adjusted: boolean;
   note: string | null;
   snapshot: QuoteSnapshot;
   /** The quote's frozen costing, copied to the invoice. Private. */
@@ -128,7 +131,8 @@ type PaymentRow = {
 };
 
 type DetailRow = InvoiceSummaryRow & {
-  quote_version: number;
+  quote_version: number | null;
+  adjusted: boolean;
   note: string | null;
   snapshot: QuoteSnapshot;
   costing: unknown;
@@ -146,7 +150,7 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      `${INVOICE_SUMMARY_COLUMNS}, quote_version, note, snapshot, costing, created_at,
+      `${INVOICE_SUMMARY_COLUMNS}, quote_version, adjusted, note, snapshot, costing, created_at,
        quotes ( id, number, jobs ( id, number, status ), quote_versions ( version, deposit:snapshot->deposit ) ),
        invoice_events ( id, kind, created_at ),
        all_payments:invoice_payments ( id, amount_cents, paid_on, method, note, reverses_id, created_at ),
@@ -161,6 +165,7 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
   return {
     ...invoiceSummaryOf(row),
     quoteVersion: row.quote_version,
+    adjusted: row.adjusted,
     note: row.note,
     snapshot: row.snapshot,
     costing: row.costing,
@@ -178,7 +183,7 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
         groups: Array.isArray(c.groups) ? c.groups : [],
         lines: c.credit_note_lines.map((l) => ({ lineIndex: l.line_index, quantityMilli: Number(l.quantity_milli), amountCents: Number(l.amount_cents) })),
       })),
-    depositCents: depositOf(quote, row.quote_version),
+    depositCents: row.quote_version === null ? null : depositOf(quote, row.quote_version),
     payments: [...row.all_payments]
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((p) => ({

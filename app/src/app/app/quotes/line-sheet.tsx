@@ -96,6 +96,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
 
 export function LineSheet({
   mode = "quote",
+  document: documentWord = "quote",
   open,
   view,
   products,
@@ -118,6 +119,8 @@ export function LineSheet({
    * price, discount or VAT: just what to make (the product, its variation and choices, the quantity and details).
    */
   mode?: "quote" | "job";
+  /** What the items are on, for the words: a "quote" (the default) or an "invoice". */
+  document?: "quote" | "invoice";
   open: boolean;
   view: LineSheetView | null;
   products: ProductSummary[];
@@ -147,7 +150,7 @@ export function LineSheet({
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const symbol = currencySymbol(currencyCode, numberStyle);
   const job = mode === "job";
-  const subject = job ? "job" : "quote";
+  const subject = job ? "job" : documentWord;
 
   const title =
     view?.kind === "pick"
@@ -169,14 +172,14 @@ export function LineSheet({
       : view?.kind === "configure"
         ? job
           ? "Set the quantity and details for this job."
-          : "Set the quantity and price for this quote. Your quote is kept as it is."
+          : `Set the quantity and price for this ${subject}. Your ${subject} is kept as it is.`
         : view?.kind === "product" && view.mode === "edit"
           ? job
             ? `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}.`
             : `Changes are saved to the ${KIND_WORDS[view.product?.kind ?? "product"].one}. Lines already on quotes keep their own price.`
           : job
             ? "A name and a price are enough to start. It is saved to your products and added to this job."
-            : "A name and a price are enough to start. Your quote is kept as it is.";
+            : `A name and a price are enough to start. Your ${subject} is kept as it is.`;
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && !saving && onClose()}>
@@ -228,6 +231,7 @@ export function LineSheet({
               line={view.line}
               isNew={view.isNew}
               job={job}
+              subject={subject}
               product={products.find((p) => p.id === view.line.productId)}
               priceLabel={priceLabel}
               vatChoices={vatChoices}
@@ -485,6 +489,7 @@ function ConfigureView({
   line: initialLine,
   isNew,
   job,
+  subject,
   product,
   priceLabel,
   vatChoices,
@@ -501,6 +506,8 @@ function ConfigureView({
   isNew: boolean;
   /** An item for a job: no price, discount or VAT. */
   job: boolean;
+  /** "quote", "invoice" or "job", for the words. */
+  subject: string;
   product: ProductSummary | undefined;
   priceLabel: string;
   vatChoices: VatChoice[] | null;
@@ -798,7 +805,7 @@ function ConfigureView({
         <TextAreaField
           id={id("description")}
           label="Description (optional)"
-          hint={job ? "Size, colour, wording: anything you need at the bench." : "Shown on the quote under the name."}
+          hint={job ? "Size, colour, wording: anything you need at the bench." : `Shown on the ${subject} under the name.`}
           maxLength={1000}
           value={line.description}
           error={errors.description}
@@ -888,7 +895,7 @@ function ConfigureView({
             </Button>
           ) : (
             <div ref={removeQuestion} className="space-y-3 rounded-xl border border-destructive/50 p-3 scroll-mb-28" role="alertdialog" aria-label="Remove this item?">
-              <p className="text-base">Take {line.name.trim() || "this item"} off the {job ? "job" : "quote"}?</p>
+              <p className="text-base">Take {line.name.trim() || "this item"} off the {subject}?</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="destructive" onClick={onRemove}>
                   Yes, remove it
@@ -912,7 +919,7 @@ function ConfigureView({
 
       <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-border bg-popover px-4 py-3 sm:flex-row">
         <Button type="submit" className="w-full sm:w-auto">
-          {isNew ? (job ? "Add to job" : "Add to quote") : "Save item"}
+          {isNew ? `Add to ${subject}` : "Save item"}
         </Button>
         <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onBack}>
           {isNew ? "Back" : "Cancel"}

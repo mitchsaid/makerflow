@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { INVOICE_NOTE_MAX, parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
-import { ComingSoonSection } from "@/components/coming-soon";
 import { issueInvoice } from "./actions";
+import { startInvoiceFromQuote } from "./draft-actions";
 
 const OFFLINE = "Couldn't reach the server. Open the quote to see if it went through before trying again.";
 
@@ -108,6 +108,25 @@ function InvoiceForm({
   const [message, setMessage] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
   const [pending, startTransition] = useTransition();
+  const [adjusting, startAdjusting] = useTransition();
+
+  /** Starts a draft from the quote to change before issuing. Ends by opening the draft (a redirect). */
+  function adjust() {
+    setMessage(null);
+    onBusyChange(true);
+    startAdjusting(async () => {
+      try {
+        const result = await startInvoiceFromQuote(quoteId);
+        onBusyChange(false);
+        setMessage(result.message);
+      } catch (error) {
+        const digest = (error as { digest?: unknown } | null)?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
+        onBusyChange(false);
+        setMessage(OFFLINE);
+      }
+    });
+  }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -209,7 +228,12 @@ function InvoiceForm({
             error={errors.note}
             onChange={(note) => setValues((v) => ({ ...v, note }))}
           />
-          <ComingSoonSection title="Adjust before issuing" description="Change items or prices on the invoice." />
+          <div className="space-y-1">
+            <Button type="button" variant="outline" size="lg" className="w-full" disabled={pending || adjusting} onClick={adjust}>
+              {adjusting ? "Starting the draft…" : "Adjust before issuing"}
+            </Button>
+            <p className="text-sm text-muted-foreground">Change items or prices first, as a draft. The quote stays as it was agreed.</p>
+          </div>
           <p className="text-sm text-muted-foreground">
             It gets the next invoice number and can&apos;t be changed after that. A mistake is fixed with a credit note.
           </p>

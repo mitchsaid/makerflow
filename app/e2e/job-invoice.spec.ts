@@ -65,7 +65,7 @@ test("Not now closes the card for the visit, Don't ask me again for good, and th
   await expect(page.getByRole("link", { name: "Create invoice" })).toBeVisible();
 });
 
-test("a finished job made by hand has no quote to invoice, and says so", async ({ page }) => {
+test("a finished job made by hand has no quote, and offers to start an invoice instead", async ({ page }) => {
   test.setTimeout(240_000);
   await acceptedQuote(page, "job-invoice-hand", { name: "Cupcakes", quantity: "1", price: "100" });
   // A second job, made by hand for the same customer, with a one-off item.
@@ -85,5 +85,5 @@ test("a finished job made by hand has no quote to invoice, and says so", async (
   await page.getByRole("button", { name: "Mark done", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Done$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("invoice-job-nudge")).toHaveCount(0);
-  await expect(page.getByTestId("coming-soon").filter({ hasText: "Invoice this job" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start an invoice" })).toBeVisible();
 });
