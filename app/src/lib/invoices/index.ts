@@ -127,7 +127,8 @@ export type InvoiceSummary = {
   id: string;
   organisationId: string;
   number: string;
-  quoteId: string;
+  /** The quote it was made from, or null for an invoice made without one. */
+  quoteId: string | null;
   customerName: string;
   issueDate: string;
   dueDate: string;
@@ -139,13 +140,15 @@ export type InvoiceSummary = {
   currencyCode: string;
 };
 
-export type InvoiceFilter = "all" | "unpaid" | "overdue" | "paid" | "credited";
+export type InvoiceFilter = "all" | "unpaid" | "overdue" | "paid" | "credited" | "drafts";
 export const INVOICE_FILTERS: readonly { key: InvoiceFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "unpaid", label: "Unpaid" },
   { key: "overdue", label: "Overdue" },
   { key: "paid", label: "Paid" },
   { key: "credited", label: "Credited" },
+  // Not issued yet: these are drafts, not invoices, and are listed by the list itself (visibleInvoices has none).
+  { key: "drafts", label: "Drafts" },
 ];
 export const parseInvoiceFilter = (value: unknown): InvoiceFilter | null =>
   INVOICE_FILTERS.some((f) => f.key === value) ? (value as InvoiceFilter) : null;
@@ -158,6 +161,7 @@ export function visibleInvoices(
   today: string,
 ): InvoiceSummary[] {
   const needle = query.trim().toLowerCase();
+  if (filter === "drafts") return [];
   return invoices
     .filter((i) => {
       const status = invoiceStatus({ grossCents: i.grossCents, creditedCents: i.creditedCents, paidCents: i.paidCents, dueDate: i.dueDate, today });

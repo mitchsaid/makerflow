@@ -53,8 +53,12 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
             <>
               <dt className="text-muted-foreground">{s.invoice.dueLabel}</dt>
               <dd>{day(s.invoice.dueDate)}</dd>
-              <dt className="text-muted-foreground">{s.invoice.quoteLabel}</dt>
-              <dd>{s.invoice.quoteNumber}</dd>
+              {s.invoice.quoteNumber && (
+                <>
+                  <dt className="text-muted-foreground">{s.invoice.quoteLabel}</dt>
+                  <dd>{s.invoice.quoteNumber}</dd>
+                </>
+              )}
             </>
           ) : (
             <>

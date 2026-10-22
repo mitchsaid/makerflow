@@ -3,6 +3,16 @@ import { expect, type Page } from "@playwright/test";
 import { openBusinessProfile, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, openQuotes, sheet, startSend } from "./quote-helpers";
 
+/** A new business with the address an invoice must show. Ends on the Business profile. */
+export async function businessWithAddress(page: Page, label: string, name: string) {
+  await signUpAndOnboard(page, label, name);
+  await openBusinessProfile(page);
+  await page.getByLabel("Street address").fill("12 Long Street");
+  await page.getByLabel("City or town").fill("Cape Town");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+}
+
 /**
  * A new business (with the address an invoice needs) and an accepted quote QT-0001 for one item (quantity x price),
  * optionally asking a deposit first. Ends on the accepted quote's page.
@@ -12,12 +22,7 @@ export async function acceptedQuote(
   label: string,
   item: { name: string; quantity: string; price: string; depositPercent?: string },
 ) {
-  await signUpAndOnboard(page, label, "Credit Co");
-  await openBusinessProfile(page);
-  await page.getByLabel("Street address").fill("12 Long Street");
-  await page.getByLabel("City or town").fill("Cape Town");
-  await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByText("Saved.")).toBeVisible();
+  await businessWithAddress(page, label, "Credit Co");
 
   await openQuotes(page);
   await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();

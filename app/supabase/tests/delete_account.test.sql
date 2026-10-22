@@ -104,6 +104,9 @@ begin
   assert (select count(*) from public.quote_lines where organisation_id = org_a and product_id is not null) >= 1, 'no quote line points at a product';
   assert pg_temp.rows_of(org_a) > 10, 'the test business has too little in it to prove anything';
   assert (select count(*) from public.quote_versions where organisation_id = org_a) = 1, 'no sent quote version';
+  -- An invoice draft (private working state) goes with the business.
+  insert into public.invoice_drafts (organisation_id, customer_id, form) values (org_a, cust, '{"lines": []}'::jsonb);
+  assert (select count(*) from public.invoice_drafts where organisation_id = org_a) = 1, 'no invoice draft';
 
   ----------------------------------------------------------------------
   -- Server only
@@ -168,6 +171,7 @@ begin
   assert result -> 'pictures' = jsonb_build_array(jsonb_build_object('organisationId', org_a, 'id', img)), 'the picture was not reported';
   assert pg_temp.rows_of(org_a) = 0, 'the business left rows behind in some table';
   assert not exists (select 1 from public.quote_versions where organisation_id = org_a), 'a sent quote version was left';
+  assert not exists (select 1 from public.invoice_drafts where organisation_id = org_a), 'an invoice draft was left';
   assert not exists (select 1 from public.jobs where organisation_id = org_a), 'a job was left';
   delete from auth.users where id = a;
   assert not exists (select 1 from public.prompt_dismissals where user_id = a), 'the dismissals stayed';

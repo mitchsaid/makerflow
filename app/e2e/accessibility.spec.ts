@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
-import { acceptedQuote, issuedInvoice } from "./invoice-helpers";
+import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
 import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
@@ -954,6 +954,41 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Save answer and create job" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "turn into a job, with a problem");
+    });
+
+    test("an invoice with no quote: the form, its problems, the confirmation, and the drafts list", async ({ page }) => {
+      test.setTimeout(300_000);
+      await businessWithAddress(page, `a11y-invoice-draft-${scheme}`, "Invoice Draft Axe Co");
+      await page.goto("/app/invoices");
+      await expectNoViolations(page, "invoices, empty with the way to a new one");
+      await page.getByRole("link", { name: "New invoice" }).click();
+      await expect(page.getByRole("heading", { name: "New invoice", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "a new invoice");
+      await page.locator("#issue-invoice").click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "a new invoice, with problems");
+      await addCustomerInSheet(page, "Thandi Nkosi");
+      await page.getByRole("button", { name: "Add item" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
+      await expectNoViolations(page, "a new invoice, the item sheet");
+      await page.getByRole("dialog").getByLabel("Name", { exact: true }).fill("Shelf");
+      await page.getByRole("dialog").getByLabel("Quantity").fill("2");
+      await page.getByRole("dialog").getByLabel(/^Price/).fill("100");
+      await page.getByRole("dialog").getByRole("button", { name: "Add to invoice" }).click();
+      await page.getByRole("button", { name: "Add a discount" }).click();
+      await page.getByLabel("Discount (%)").fill("10");
+      await expectNoViolations(page, "a new invoice, with an item and a discount");
+      await page.locator("#issue-invoice").click();
+      await expect(page.getByRole("dialog", { name: "Issue this invoice?" })).toBeVisible();
+      await expectNoViolations(page, "the issue confirmation");
+      await page.getByRole("dialog").getByRole("button", { name: "Keep editing" }).click();
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByText("Draft saved.")).toBeVisible();
+      await expectNoViolations(page, "an invoice draft");
+      await page.goto("/app/invoices");
+      await page.getByRole("button", { name: /^Drafts \(1\)/ }).click();
+      await expect(page.getByTestId("invoice-draft-row")).toBeVisible();
+      await expectNoViolations(page, "invoices, with a draft");
     });
 
     test("a finished job: the invoice card and the plain button", async ({ page }) => {

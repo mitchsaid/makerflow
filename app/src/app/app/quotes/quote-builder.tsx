@@ -10,20 +10,16 @@ import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
 import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
 import { Checkbox } from "@/components/ui/checkbox";
-import { imageUrl } from "@/lib/images";
 import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
 import { TermsSection } from "./terms-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   formatMoney,
   currencySymbol,
   formatPercent,
-  parseMoney,
-  parseQuantity,
   type NumberStyle,
   type VatSettings,
 } from "@/lib/money";
@@ -35,7 +31,6 @@ import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import {
   isBlankLine,
-  optionsPerItem,
   previewTotals,
   QUOTE_SIGN_OFF_MAX,
   type DiscountKind,
@@ -44,6 +39,8 @@ import {
   type QuoteFormValues,
 } from "@/lib/quotes";
 import { lineMargins } from "@/lib/quotes/margin";
+import { DiscountFields } from "./discount-fields";
+import { LineRow } from "./line-row";
 import { MarginPanel } from "./margin-panel";
 import { MISSING_CUSTOMER, MISSING_ITEMS } from "@/lib/quotes/send-checks";
 import { saveQuoteDraft, type SaveQuoteState } from "./actions";
@@ -667,36 +664,17 @@ export function QuoteBuilder({
 
       {showDiscount ? (
         <Section title="Discount">
-          <Field>
-            <FieldLabel htmlFor="discountKind">Discount on the whole quote</FieldLabel>
-            <NativeSelect
-              id="discountKind"
-              value={values.discountKind}
-              onChange={(e) => {
-                scope?.markEdited("discountValue");
-                update({
-                  discountKind: e.target.value as DiscountKind,
-                  discountValue: e.target.value === "none" ? "" : values.discountValue,
-                });
-              }}
-            >
-              <NativeSelectOption value="none">No discount</NativeSelectOption>
-              <NativeSelectOption value="percent">A percentage</NativeSelectOption>
-              <NativeSelectOption value="fixed">An amount</NativeSelectOption>
-            </NativeSelect>
-          </Field>
-          {values.discountKind !== "none" && (
-            <TextField
-              id="discountValue"
-              label={values.discountKind === "percent" ? "Discount (%)" : "Discount amount"}
-              startText={values.discountKind === "fixed" ? symbol : undefined}
-              inputMode="decimal"
-              autoComplete="off"
-              value={values.discountValue}
-              error={f.discountValue}
-              onChange={(discountValue) => update({ discountValue })}
-            />
-          )}
+          <DiscountFields
+            kind={values.discountKind}
+            value={values.discountValue}
+            symbol={symbol}
+            error={f.discountValue}
+            onKindChange={(discountKind) => {
+              scope?.markEdited("discountValue");
+              update({ discountKind, discountValue: discountKind === "none" ? "" : values.discountValue });
+            }}
+            onValueChange={(discountValue) => update({ discountValue })}
+          />
           <UsualButtons
             what="discount"
             valueKey={`${values.discountKind}:${values.discountValue}`}
@@ -990,75 +968,3 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 /** More than this many items and the list shows only the first few until "Show all" is pressed. */
 const COLLAPSE_OVER = 6;
 const COLLAPSED_SHOWS = 5;
-
-/** One line on the quote as a compact row: what it is, how many at what price, its total. Tap to edit (remove is in the sheet). */
-function LineRow({
-  line,
-  number,
-  error,
-  money,
-  lineTotal,
-  photoId,
-  vatLabel,
-  onEdit,
-}: {
-  line: LineFormValues;
-  /** The VAT treatment's name when it is not the standard one. */
-  vatLabel: string | null;
-  number: number;
-  /** The product's photo, shown small when the quote shows photos. */
-  photoId: string | null;
-  error?: string;
-  money: (cents: number) => string;
-  lineTotal: number | null;
-  onEdit: () => void;
-}) {
-  const quantity = parseQuantity(line.quantity);
-  const price = parseMoney(line.unitPrice);
-  const name = line.name.trim() || `Item ${number}`;
-  return (
-    <li data-testid="quote-line">
-      <Button
-        id={`line-${line.key}-edit`}
-        type="button"
-        variant="outline"
-        aria-describedby={error ? `line-${line.key}-error` : undefined}
-        onClick={onEdit}
-        className="h-auto min-h-14 w-full justify-between gap-3 px-3 py-2 text-left font-normal"
-      >
-        <span className="flex min-w-0 items-center gap-3">
-          {photoId && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl(photoId, "thumb")}
-              alt=""
-              loading="lazy"
-              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10"
-            />
-          )}
-          <span className="min-w-0">
-            <span className="block truncate text-base font-medium">
-              <span className="sr-only">Edit </span>
-              {name}
-            </span>
-            <span className="block truncate text-sm text-muted-foreground">
-              {quantity.ok ? (line.unit.trim() ? `${line.quantity} ${line.unit.trim()}` : line.quantity) : "?"} ×{" "}
-              {price.ok ? money(price.value + optionsPerItem(line.options ?? [])) : "?"}
-              {line.variationName && ` · ${line.variationName}`}
-              {(line.options?.length ?? 0) > 0 && ` · ${line.options!.length} ${line.options!.length === 1 ? "option" : "options"}`}
-              {line.discountKind !== "none" && " · discount"}
-              {vatLabel && ` · ${vatLabel}`}
-              {!line.productId && " · one-off item"}
-            </span>
-          </span>
-        </span>
-        <span className="shrink-0 text-base font-medium">{lineTotal !== null ? money(lineTotal) : "–"}</span>
-      </Button>
-      {error && (
-        <p className="px-1 pt-1 text-sm text-destructive" id={`line-${line.key}-error`}>
-          {error}
-        </p>
-      )}
-    </li>
-  );
-}

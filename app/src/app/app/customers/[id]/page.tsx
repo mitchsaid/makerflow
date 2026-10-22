@@ -134,6 +134,9 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
 
       {section === "invoices" && (
         <section className="space-y-3" aria-label="Invoices">
+          <AddLink href={`/app/invoices/new?customer=${customer.id}`} variant="outline">
+            New invoice
+          </AddLink>
           {invoices.length === 0 ? (
             <Empty title="No invoices yet" line="Open an accepted quote and choose Create invoice." />
           ) : (

@@ -272,10 +272,12 @@ export function QuoteDocument({
                     <Text style={styles.muted}>{s.invoice.dueLabel}</Text>
                     <Text>{day(s.invoice.dueDate)}</Text>
                   </View>
-                  <View style={styles.metaRow}>
-                    <Text style={styles.muted}>{s.invoice.quoteLabel}</Text>
-                    <Text>{s.invoice.quoteNumber}</Text>
-                  </View>
+                  {s.invoice.quoteNumber ? (
+                    <View style={styles.metaRow}>
+                      <Text style={styles.muted}>{s.invoice.quoteLabel}</Text>
+                      <Text>{s.invoice.quoteNumber}</Text>
+                    </View>
+                  ) : null}
                 </>
               ) : (
                 <>

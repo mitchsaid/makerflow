@@ -75,14 +75,17 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
             <dt className="text-muted-foreground">Due</dt>
             <dd>{formatDay(invoice.dueDate, locale.formatLocale)}</dd>
           </dl>
-          <p className="text-sm text-muted-foreground">
-            Made from{" "}
+          <p className="text-sm text-muted-foreground" data-testid="invoice-origin">
             {invoice.quote ? (
-              <Link href={`/app/quotes/${invoice.quote.id}`} className="font-medium underline">
-                quote {invoice.quote.number}
-              </Link>
+              <>
+                Made from{" "}
+                <Link href={`/app/quotes/${invoice.quote.id}`} className="font-medium underline">
+                  quote {invoice.quote.number}
+                </Link>
+                {invoice.adjusted && ", and changed before it was issued"}
+              </>
             ) : (
-              "its quote"
+              "Made without a quote"
             )}
             {invoice.job && (
               <>

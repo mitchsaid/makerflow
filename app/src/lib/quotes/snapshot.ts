@@ -186,7 +186,8 @@ export type QuoteSnapshot = {
    */
   invoice?: {
     dueDate: string;
-    quoteNumber: string;
+    /** The quote it was made from; null for an invoice made without one. */
+    quoteNumber: string | null;
     billedToLabel: string;
     dueLabel: string;
     quoteLabel: string;
