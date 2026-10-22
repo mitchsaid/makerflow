@@ -110,3 +110,24 @@ export function draftRowsOf(drafts: readonly StoredInvoiceDraft[], vat: VatSetti
     };
   });
 }
+
+/**
+ * Whether an invoice made from a quote's draft differs from the quote as it was agreed: any item's name, details,
+ * quantity, price or total, or the totals. Anything that differs counts (so an invoice is never described as the
+ * agreed quote when it is not); an exact match does not.
+ */
+export function differsFromQuote(
+  invoice: { lines: readonly unknown[]; totals: unknown; quoteDiscount?: unknown },
+  quoted: { lines: readonly unknown[]; totals: unknown; quoteDiscount?: unknown },
+): boolean {
+  const key = (s: typeof invoice) =>
+    JSON.stringify({
+      lines: s.lines.map((l) => {
+        const x = l as Record<string, unknown>;
+        return [x.kind, x.name, x.description ?? null, x.quantityMilli, x.unit ?? null, x.unitPriceCents, x.discount ?? null, x.lineTotalCents, x.vatStatus ?? null];
+      }),
+      totals: s.totals,
+      discount: s.quoteDiscount ?? null,
+    });
+  return key(invoice) !== key(quoted);
+}

@@ -109,6 +109,7 @@ test("what an invoice still needs is said, the draft is kept meanwhile, and it c
   await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
   await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
   await expect(page.getByTestId("form-summary")).toContainText("Before you can issue it");
+  await expect(sheet(page)).toHaveCount(0);
   // The draft was kept all the same, so nothing typed is lost.
   await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
   const draftUrl = page.url();

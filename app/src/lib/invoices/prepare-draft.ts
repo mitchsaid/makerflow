@@ -5,7 +5,7 @@ import { getLocalePack, vatSettingsFor } from "../locale";
 import { customerParty } from "../quotes/snapshot";
 import { photosFor } from "../quotes/prepare";
 import { getThemes } from "../quotes/theme-data";
-import { chooseTheme, resolveTheme } from "../quotes/themes";
+import { chooseTheme, isStarterKey, resolveTheme } from "../quotes/themes";
 import { buildQuoteSnapshot, type QuoteSnapshot } from "../quotes/snapshot";
 import { parseInvoiceDraft, type InvoiceDraftErrors, type InvoiceDraftForm } from "./draft";
 import { invoiceProblems, type InvoiceProblem } from "./index";
@@ -30,8 +30,8 @@ export type PreparedInvoiceDraft = {
 export async function prepareInvoiceDraft(
   form: InvoiceDraftForm,
   workspace: Workspace,
-  /** The number of the quote the draft adjusts, when there is one. */
-  quoteNumber: string | null,
+  /** The quote the draft adjusts, when there is one: its number, and the design it uses (the invoice keeps it). */
+  quote: { number: string; theme: { id: string | null; starter: string | null } | null } | null,
 ): Promise<{ ok: true; value: PreparedInvoiceDraft } | { ok: false; errors: InvoiceDraftErrors }> {
   const { organisation, profile } = workspace;
   const locale = getLocalePack(profile.countryCode);
@@ -47,7 +47,7 @@ export async function prepareInvoiceDraft(
   }
 
   const { productPhotos, choicePhotos } = await photosFor(parsed.quote, organisation.id);
-  const chosen = chooseTheme({ id: null, starter: null }, await getThemes());
+  const chosen = chooseTheme({ id: quote?.theme?.id ?? null, starter: isStarterKey(quote?.theme?.starter) ? quote.theme.starter : null }, await getThemes());
   const business = { name: organisation.name, ...profile };
   const asQuote = buildQuoteSnapshot({
     quote: parsed.quote,
@@ -73,7 +73,7 @@ export async function prepareInvoiceDraft(
     business,
     customer,
     bank: workspace.bankDetails,
-    quoteNumber,
+    quoteNumber: quote?.number ?? null,
   });
   const problems = invoiceProblems({
     business: profile,

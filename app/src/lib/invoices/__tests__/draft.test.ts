@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LineFormValues } from "../../quotes";
 import type { VatSettings } from "../../money";
-import { blankInvoiceForm, isInvoiceDraftForm, parseInvoiceDraft, quoteValuesOf, type InvoiceDraftForm } from "../draft";
+import { blankInvoiceForm, differsFromQuote, isInvoiceDraftForm, parseInvoiceDraft, quoteValuesOf, type InvoiceDraftForm } from "../draft";
 
 const NOT_REGISTERED: VatSettings = { registered: false };
 const INCLUSIVE: VatSettings = { registered: true, entry: "inclusive", standardRateBp: 1500 };
@@ -133,5 +133,25 @@ describe("parseInvoiceDraft", () => {
   it("refuses a note that is too long", () => {
     const r = parseInvoiceDraft(form({ notes: "x".repeat(2001) }), NOT_REGISTERED);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("differsFromQuote", () => {
+  const agreed = {
+    lines: [{ kind: "custom", name: "Cake", description: null, quantityMilli: 1000, unit: null, unitPriceCents: 50000, discount: null, lineTotalCents: 50000, vatStatus: "standard" }],
+    totals: { netCents: 43478, vatCents: 6522, grossCents: 50000 },
+    quoteDiscount: null,
+  };
+  it("is false for the quote exactly as it was agreed, even with extras the invoice does not look at", () => {
+    expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], photoImageId: "x" }] }, agreed)).toBe(false);
+    expect(differsFromQuote(agreed, structuredClone(agreed))).toBe(false);
+  });
+  it("is true for any change an invoice could carry: quantity, price, name, an extra item, a discount, the totals", () => {
+    expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], quantityMilli: 2000 }] }, agreed)).toBe(true);
+    expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], unitPriceCents: 40000, lineTotalCents: 40000 }] }, agreed)).toBe(true);
+    expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], name: "Cake!" }] }, agreed)).toBe(true);
+    expect(differsFromQuote({ ...agreed, lines: [...agreed.lines, agreed.lines[0]] }, agreed)).toBe(true);
+    expect(differsFromQuote({ ...agreed, quoteDiscount: { kind: "percent", basisPoints: 1000 } }, agreed)).toBe(true);
+    expect(differsFromQuote({ ...agreed, totals: { ...agreed.totals, grossCents: 49999 } }, agreed)).toBe(true);
   });
 });

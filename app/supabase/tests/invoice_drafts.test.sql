@@ -51,7 +51,9 @@ declare
   cust uuid;
   q uuid;
   q_draft uuid;
+  q_same uuid;
   stamp timestamptz;
+  stamp_q timestamptz;
   num text;
   d1 uuid;
   d2 uuid;
@@ -91,19 +93,30 @@ begin
   set local role authenticated;
   insert into public.invoice_drafts (organisation_id, customer_id, form, created_by)
     values (org_a, cust, '{"lines": []}'::jsonb, a) returning id into d1;
-  insert into public.invoice_drafts (organisation_id, quote_id, customer_id, form, created_by)
-    values (org_a, q, cust, '{"lines": []}'::jsonb, a) returning id into dq;
+  insert into public.invoice_drafts (organisation_id, quote_id, quote_version, customer_id, form, created_by)
+    values (org_a, q, 1, cust, '{"lines": []}'::jsonb, a) returning id into dq;
   -- One draft per quote.
   begin
-    insert into public.invoice_drafts (organisation_id, quote_id, form) values (org_a, q, '{}'::jsonb);
+    insert into public.invoice_drafts (organisation_id, quote_id, quote_version, form) values (org_a, q, 1, '{}'::jsonb);
     raise exception 'a second draft for the same quote was made';
   exception when unique_violation then null;
   end;
   -- A quote that is only a draft, or does not exist, cannot be adjusted.
   begin
-    insert into public.invoice_drafts (organisation_id, quote_id, form) values (org_a, q_draft, '{}'::jsonb);
+    insert into public.invoice_drafts (organisation_id, quote_id, quote_version, form) values (org_a, q_draft, 1, '{}'::jsonb);
     raise exception 'a draft was linked to a quote that is not accepted';
   exception when insufficient_privilege then null;
+  end;
+  -- A quote link and the version it started from come together.
+  begin
+    insert into public.invoice_drafts (organisation_id, quote_id, form) values (org_a, q, '{}'::jsonb);
+    raise exception 'a draft had a quote and no version';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.invoice_drafts (organisation_id, quote_version, form) values (org_a, 1, '{}'::jsonb);
+    raise exception 'a draft had a version and no quote';
+  exception when check_violation then null;
   end;
   -- The form is an object, and not an enormous one.
   begin
@@ -129,6 +142,11 @@ begin
   begin
     update public.invoice_drafts set quote_id = null where id = dq;
     raise exception 'a draft was moved off its quote';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.invoice_drafts set quote_version = 5 where id = dq;
+    raise exception 'a draft''s quote version was changed';
   exception when insufficient_privilege then null;
   end;
   begin
@@ -172,7 +190,7 @@ begin
   perform pg_temp.as_user(a);
   set local role authenticated;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, now(), date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, now(), date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
     raise exception 'a member called the server-only function';
   exception when insufficient_privilege then null;
   end;
@@ -184,45 +202,50 @@ begin
   select updated_at into stamp from public.invoice_drafts where id = d1;
   set local role service_role;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp - interval '1 second', date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp - interval '1 second', date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
     raise exception 'a draft that changed was issued';
   exception when sqlstate '40001' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_b, d1, a, stamp, date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
+    perform public.issue_invoice_from_draft(org_b, d1, a, cust, true, stamp, date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
     raise exception 'another business''s draft was issued';
   exception when sqlstate 'P0002' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-20', date '2026-10-19', null, pg_temp.draft_doc(date '2026-10-20', date '2026-10-19'));
+    perform public.issue_invoice_from_draft(org_a, d1, a, gen_random_uuid(), true, stamp, date '2026-10-20', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
+    raise exception 'a document made for another customer was issued';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-20', date '2026-10-19', null, pg_temp.draft_doc(date '2026-10-20', date '2026-10-19'));
     raise exception 'a due day before the invoice day was accepted';
   exception when sqlstate '22023' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-21', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-21', date '2026-11-03', null, pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'));
     raise exception 'dates that differ from the document were accepted';
   exception when sqlstate '22023' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-20', date '2026-11-03', null,
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-20', date '2026-11-03', null,
       jsonb_set(pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'), '{customer}', '{}'::jsonb));
     raise exception 'an invoice with no customer was issued';
   exception when sqlstate '22023' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-20', date '2026-11-03', null,
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-20', date '2026-11-03', null,
       jsonb_set(pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'), '{lines}', '[]'::jsonb));
     raise exception 'an invoice with no items was issued';
   exception when sqlstate '22023' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-20', date '2026-11-03', null,
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-20', date '2026-11-03', null,
       jsonb_set(pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'), '{currencyCode}', '"USD"'));
     raise exception 'an invoice in another currency was issued';
   exception when sqlstate '22023' then null;
   end;
   begin
-    perform public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-20', date '2026-11-03', null,
+    perform public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-20', date '2026-11-03', null,
       jsonb_set(pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'), '{totals,vatCents}', '14999'));
     raise exception 'money that does not add up was issued';
   exception when sqlstate '23514' then null;
@@ -233,11 +256,25 @@ begin
     'a refused issue used up a number';
   assert (select count(*) from public.invoice_drafts where id = d1) = 1, 'a refused issue removed the draft';
 
+  -- A draft that started from an older version of its quote is refused (the quote was reopened and sent again).
+  update public.invoice_drafts set quote_version = 2 where id = dq;
+  select updated_at into stamp_q from public.invoice_drafts where id = dq;
+  set local role service_role;
+  begin
+    perform public.issue_invoice_from_draft(org_a, dq, a, cust, true, stamp_q, date '2026-10-21', date '2026-11-04', null, pg_temp.draft_doc(date '2026-10-21', date '2026-11-04'));
+    raise exception 'a draft from an older version of its quote was issued';
+  exception when sqlstate 'P0002' then null;
+  end;
+  reset role;
+  update public.invoice_drafts set quote_version = 1 where id = dq;
+  assert (select last_issued_number from public.document_sequences where organisation_id = org_a and doc_type = 'invoice') is null,
+    'a refused issue used up a number';
+
   ----------------------------------------------------------------------
   -- An invoice with no quote: numbered, the draft gone, no quote and no costing, not adjusted
   ----------------------------------------------------------------------
   set local role service_role;
-  made := public.issue_invoice_from_draft(org_a, d1, a, stamp, date '2026-10-20', date '2026-11-03', '  Thanks!  ',
+  made := public.issue_invoice_from_draft(org_a, d1, a, cust, true, stamp, date '2026-10-20', date '2026-11-03', '  Thanks!  ',
     pg_temp.draft_doc(date '2026-10-20', date '2026-11-03'), 'Payment reference');
   reset role;
   assert (select count(*) from public.invoice_drafts where id = d1) = 0, 'the draft was kept after it was issued';
@@ -266,7 +303,7 @@ begin
   ----------------------------------------------------------------------
   select updated_at into stamp from public.invoice_drafts where id = dq;
   set local role service_role;
-  made2 := public.issue_invoice_from_draft(org_a, dq, a, stamp, date '2026-10-21', date '2026-11-04', null,
+  made2 := public.issue_invoice_from_draft(org_a, dq, a, cust, true, stamp, date '2026-10-21', date '2026-11-04', null,
     pg_temp.draft_doc(date '2026-10-21', date '2026-11-04'));
   reset role;
   assert (select quote_id = q and quote_version = 1 and adjusted and costing is null from public.invoices where id = (made2 ->> 'id')::uuid), 'the adjusted invoice is not as expected';
@@ -274,18 +311,41 @@ begin
     'the numbers are not one after the other';
   assert (select count(*) from public.invoice_drafts where id = dq) = 0, 'the adjusted draft was kept';
 
+  -- Not changed from the quote as agreed: the server says so, and the invoice is not marked adjusted.
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  q_same := public.save_quote_draft(org_a, null, pg_temp.quote_json(cust), jsonb_build_array(
+    jsonb_build_object('sort_order', 0, 'kind', 'custom', 'name', 'Shelf', 'quantity_milli', 1000, 'unit_price_cents', 100000)));
+  reset role;
+  set local role service_role;
+  select updated_at, number into stamp, num from public.quotes where id = q_same;
+  perform public.send_quote(org_a, q_same, a, 'marked', stamp, pg_temp.snap(num, 1), 1, 1, 1);
+  perform public.record_quote_outcome(org_a, q_same, a, 'accepted', date '2026-10-05', 'phone', null);
+  reset role;
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  insert into public.invoice_drafts (organisation_id, quote_id, quote_version, customer_id, form, created_by)
+    values (org_a, q_same, 1, cust, '{}'::jsonb, a) returning id into d3;
+  reset role;
+  select updated_at into stamp from public.invoice_drafts where id = d3;
+  set local role service_role;
+  made2 := public.issue_invoice_from_draft(org_a, d3, a, cust, false, stamp, date '2026-10-21', date '2026-11-04', null, pg_temp.draft_doc(date '2026-10-21', date '2026-11-04'));
+  reset role;
+  assert (select quote_id = q_same and adjusted = false from public.invoices where id = (made2 ->> 'id')::uuid), 'an unchanged invoice was marked adjusted';
+  before_n := before_n + 1;
+
   -- The quote is invoiced: the strict way refuses it, and so does a new draft being issued.
   perform pg_temp.as_user(a);
   set local role authenticated;
   begin
-    insert into public.invoice_drafts (organisation_id, quote_id, form) values (org_a, q, '{}'::jsonb) returning id into d2;
+    insert into public.invoice_drafts (organisation_id, quote_id, quote_version, customer_id, form) values (org_a, q, 1, cust, '{}'::jsonb) returning id into d2;
     -- (Allowed to be saved: the quote is still accepted. Issuing is what refuses.)
   end;
   reset role;
   select updated_at into stamp from public.invoice_drafts where id = d2;
   set local role service_role;
   begin
-    perform public.issue_invoice_from_draft(org_a, d2, a, stamp, date '2026-10-22', date '2026-11-05', null, pg_temp.draft_doc(date '2026-10-22', date '2026-11-05'));
+    perform public.issue_invoice_from_draft(org_a, d2, a, cust, true, stamp, date '2026-10-22', date '2026-11-05', null, pg_temp.draft_doc(date '2026-10-22', date '2026-11-05'));
     raise exception 'a second invoice was issued for a quote';
   exception when sqlstate '23505' then null;
   end;
@@ -314,6 +374,13 @@ begin
   -- At most 100 drafts a business
   ----------------------------------------------------------------------
   delete from public.invoice_drafts where organisation_id = org_a;
+  -- Even in one statement of 150 rows, the cap holds.
+  begin
+    insert into public.invoice_drafts (organisation_id, form) select org_a, '{}'::jsonb from generate_series(1, 150);
+    raise exception 'a statement made more than 100 drafts';
+  exception when sqlstate '54000' then null;
+  end;
+  assert (select count(*) from public.invoice_drafts where organisation_id = org_a) = 0, 'a refused bulk insert left drafts';
   insert into public.invoice_drafts (organisation_id, form) select org_a, '{}'::jsonb from generate_series(1, 100);
   begin
     insert into public.invoice_drafts (organisation_id, form) values (org_a, '{}'::jsonb);

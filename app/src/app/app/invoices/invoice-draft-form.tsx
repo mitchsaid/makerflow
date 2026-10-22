@@ -191,7 +191,21 @@ export function InvoiceDraftForm({
     setMessage(null);
     startTransition(async () => {
       try {
-        const result = await issueInvoiceDraft(draftId, values);
+        // An invoice that has not been kept yet is kept first, so that trying again after a lost reply asks about the
+        // same draft and cannot issue a second invoice.
+        let id = draftId;
+        if (id === null) {
+          const kept = await saveInvoiceDraft(null, values, { stay: true });
+          if (kept.status === "error") {
+            setConfirming(false);
+            setMessage(kept.message);
+            setTried((n) => n + 1);
+            return;
+          }
+          id = kept.draftId;
+          adopt(id);
+        }
+        const result = await issueInvoiceDraft(id, values);
         setConfirming(false);
         setTried((n) => n + 1);
         if (result.status === "invalid") {

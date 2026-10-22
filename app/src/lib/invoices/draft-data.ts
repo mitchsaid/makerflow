@@ -14,13 +14,16 @@ type Row = {
   id: string;
   organisation_id: string;
   quote_id: string | null;
+  quote_version: number | null;
   customer_id: string | null;
   form: unknown;
   created_at: string;
   updated_at: string;
   customers: { name: string } | { name: string }[] | null;
-  quotes: { number: string } | { number: string }[] | null;
+  quotes: QuoteEmbed | QuoteEmbed[] | null;
 };
+
+type QuoteEmbed = { number: string; theme_id: string | null; theme_starter: string | null };
 
 export type InvoiceDraftSummary = {
   id: string;
@@ -35,11 +38,15 @@ export type InvoiceDraftSummary = {
 export type StoredInvoiceDraft = InvoiceDraftSummary & {
   /** The number of the quote it adjusts, if any. */
   quoteNumber: string | null;
+  /** The version of that quote it started from. */
+  quoteVersion: number | null;
+  /** The design the quote uses, which an invoice made from it keeps. */
+  quoteTheme: { id: string | null; starter: string | null } | null;
   /** Read when the draft was read: issuing checks nothing has changed since. */
   stamp: string;
 };
 
-const COLUMNS = "id, organisation_id, quote_id, customer_id, form, created_at, updated_at, customers ( name ), quotes ( number )";
+const COLUMNS = "id, organisation_id, quote_id, quote_version, customer_id, form, created_at, updated_at, customers ( name ), quotes ( number, theme_id, theme_starter )";
 
 const one = <T,>(value: T | T[] | null): T | null => (Array.isArray(value) ? (value[0] ?? null) : value);
 
@@ -52,6 +59,11 @@ function summaryOf(row: Row): StoredInvoiceDraft {
     form: isInvoiceDraftForm(row.form) ? row.form : null,
     updatedAt: row.updated_at,
     quoteNumber: one(row.quotes)?.number ?? null,
+    quoteVersion: row.quote_version,
+    quoteTheme: (() => {
+      const q = one(row.quotes);
+      return q ? { id: q.theme_id, starter: q.theme_starter } : null;
+    })(),
     stamp: row.updated_at,
   };
 }
