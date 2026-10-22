@@ -913,6 +913,19 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quotes and invoices, with the three numberings");
     });
 
+    test("right after Mark as sent: the offer to turn the quote into a job", async ({ page }) => {
+      test.setTimeout(240_000);
+      await signUpAndOnboard(page, `a11y-turn-job-${scheme}`, "Turn Axe Co");
+      await sentQuote(page);
+      await expect(page.getByTestId("turn-into-job")).toBeVisible();
+      await expectNoViolations(page, "a sent quote, with the offer to turn it into a job");
+      await page.getByTestId("turn-into-job").getByRole("button", { name: "Turn into a job" }).click();
+      await expectNoViolations(page, "turn into a job, the sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Save answer and create job" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "turn into a job, with a problem");
+    });
+
     test("a finished job: the invoice card and the plain button", async ({ page }) => {
       test.setTimeout(300_000);
       await acceptedQuote(page, `a11y-job-invoice-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });

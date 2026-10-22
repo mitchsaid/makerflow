@@ -29,7 +29,7 @@ import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
 import { DesignSection } from "../design-section";
 import { PdfPreview } from "../pdf-preview";
-import { ChangeAnswerButton, OutcomeButtons, QuoteAgainButton } from "../quote-outcome";
+import { ChangeAnswerButton, OutcomeButtons, QuoteAgainButton, TurnIntoJob } from "../quote-outcome";
 import { QuoteDocumentView } from "../quote-document-view";
 import { SentQuoteActions } from "../sent-quote-actions";
 import { StatusChip } from "../status-chip";
@@ -149,7 +149,15 @@ export default async function QuotePage({
 
       {query.sent === "marked" && (
         <Alert data-testid="sent-banner">
-          <AlertDescription>{quote.number} is marked as sent and locked.</AlertDescription>
+          <AlertDescription className="space-y-3">
+            <span className="block">{quote.number} is marked as sent and locked.</span>
+            {canRevise && !quote.job && !dismissedPrompts.includes(CREATE_JOB_PROMPT) && (
+              <span className="block space-y-2" data-testid="turn-into-job">
+                <span className="block font-medium">Already a yes? Record it and start the job.</span>
+                <TurnIntoJob quoteId={quote.id} number={quote.number} today={today} />
+              </span>
+            )}
+          </AlertDescription>
         </Alert>
       )}
       {outcome && isLatest && (
