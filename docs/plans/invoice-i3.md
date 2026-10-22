@@ -14,6 +14,14 @@ Three slices, each its own pull request:
 ## Prototype read
 The prototype has **no prompt on a finished job**: it makes an invoice automatically when a quote is accepted (`recordQuoteAccepted` calls `convertQuoteToInvoice`) and a job's Done does nothing to invoices. Read in full 2026-10-17 (`Invoices.tsx`, `useAppState.ts`; see `invoices-and-payments.md`, "Prototype read"); the Jobs screen was read in full for `jobs-and-invoices.md`. The founder chose a prompt, not an automatic invoice (an invoice is a tax document; 2026-10-11). I3b and I3c's read is in `invoices-and-payments.md` ("Direct invoice with no quote", "Edit an invoice"); they get their own table when planned.
 
+
+| The prototype does | MakerFlow: kept, changed, later, or dropped | Why |
+| --- | --- | --- |
+| Accepting a quote creates the invoice automatically and moves the job to Not Started | **Changed (I3a):** nothing is automatic; a finished job offers to invoice, and the maker chooses | An invoice is a tax document; founder, 2026-10-11 |
+| Marking a job Done changes nothing about invoices | **Added:** the prompt on a Done job, and the invoice shown on the job | The founder asked for it |
+| Direct invoice with no quote (and a job made behind it) | **Later (I3b)**, with no job made behind the maker's back | `invoices-and-payments.md` |
+| Edit an invoice at any time | **Later (I3c):** an editable draft before issuing; an issued invoice never changes | Issued documents are immutable |
+
 ## I3a: what the maker sees
 - A job that is **Done**, was made from a quote, and has no invoice yet shows a card at the top: **"Invoice QT-0001?"**, "The job is done. Turn the quote into an invoice." with **Create invoice**, **Not now** and **Don't ask me again**.
   - **Create invoice** opens the quote with the same Create invoice sheet already open (the quote's own sheet: nothing is copied).
