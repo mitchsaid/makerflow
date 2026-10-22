@@ -8,6 +8,7 @@ import { Section, SelectField, TextField } from "@/components/form-fields";
 import { QuantityField } from "@/components/quantity-field";
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
+import { priceForMarginCents, targetStanding } from "@/lib/costing/target";
 import type { Material } from "@/lib/materials";
 import { UNIT_CHOICES, UNITS, type UnitCode } from "@/lib/materials/units";
 import { blankCostRow, COST_LINES_MAX, type CostErrors, type CostFormRow, type CostKind, type CostRowErrors } from "@/lib/products/costs";
@@ -266,6 +267,7 @@ export function CostsSection({
   materials,
   addMaterial,
   hourlyRateSet,
+  targetBp,
   summary,
   unit,
   numberStyle,
@@ -287,6 +289,8 @@ export function CostsSection({
   addMaterial?: AddMaterialConfig;
   /** Whether the Business profile says what an hour of the maker's time is worth. */
   hourlyRateSet: boolean;
+  /** The margin the business aims for (basis points), or null: nothing is judged against it. */
+  targetBp: number | null;
   summary: CostSummary;
   /** What the product is counted in ("dozen"), written after a quantity. */
   unit?: string;
@@ -325,19 +329,21 @@ export function CostsSection({
           onChange={onMakesChange}
         />
       )}
-      <CostSummaryView summary={summary} numberStyle={numberStyle} currencyCode={currencyCode} hasRows={rows.length > 0} vatRegistered={vatRegistered} />
+      <CostSummaryView summary={summary} targetBp={targetBp} numberStyle={numberStyle} currencyCode={currencyCode} hasRows={rows.length > 0} vatRegistered={vatRegistered} />
     </Section>
   );
 }
 
 function CostSummaryView({
   summary,
+  targetBp,
   numberStyle,
   currencyCode,
   hasRows,
   vatRegistered,
 }: {
   summary: CostSummary;
+  targetBp: number | null;
   numberStyle: NumberStyle;
   currencyCode: string;
   hasRows: boolean;
@@ -358,6 +364,7 @@ function CostSummaryView({
             {m.incomplete ? " or more" : ""} to make one. Sells for {money(m.revenueCents)}
             {vatRegistered ? " without VAT" : ""}.{" "}
             {m.marginBp === null ? "" : `Margin ${formatPercent(m.marginBp, numberStyle)}.`}
+            {targetBp !== null && <TargetNote marginBp={m.marginBp} costCents={m.costCents} incomplete={m.incomplete} targetBp={targetBp} money={money} numberStyle={numberStyle} vatRegistered={vatRegistered} />}
           </p>
         );
       })}
@@ -366,5 +373,42 @@ function CostSummaryView({
       )}
       <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
     </div>
+  );
+}
+
+/**
+ * Where a margin stands against the target the business aims for, in words (never colour alone), and, below it, what to
+ * charge to reach it (without VAT, the way the summary states the price).
+ */
+function TargetNote({
+  marginBp,
+  costCents,
+  incomplete,
+  targetBp,
+  money,
+  numberStyle,
+  vatRegistered,
+}: {
+  marginBp: number | null;
+  costCents: number | null;
+  incomplete: boolean;
+  targetBp: number;
+  money: (cents: number) => string;
+  numberStyle: NumberStyle;
+  vatRegistered: boolean;
+}) {
+  const standing = targetStanding(marginBp, targetBp);
+  if (standing === null) return null;
+  const target = formatPercent(targetBp, numberStyle);
+  if (standing === "meets") {
+    return <span className="text-emerald-700 dark:text-emerald-400" data-testid="target-note"> Meets your {target} target.</span>;
+  }
+  const price = costCents === null ? null : priceForMarginCents(costCents, targetBp);
+  return (
+    <span className="text-amber-800 dark:text-amber-300" data-testid="target-note">
+      {" "}
+      Below your {target} target
+      {price === null ? "." : `: for ${target}, charge ${incomplete ? "at least " : ""}${money(price)}${vatRegistered ? " without VAT" : ""}.`}
+    </span>
   );
 }

@@ -39,7 +39,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <QuoteBuilder
         quoteId={null}
-        costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents }}
+        costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents, targetMarginBp: profile.targetMarginBp }}
         header={
           // A new quote has its X to cancel; there is no page above it to go back to.
           <div className="space-y-1 pt-2">

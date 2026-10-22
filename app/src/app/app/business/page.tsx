@@ -11,7 +11,8 @@ import { BankDetailsForm } from "./bank-details-form";
 import { BusinessTypesForm } from "./business-types-form";
 import { LogoForm } from "./logo-form";
 import { LabourRateForm } from "./labour-rate-form";
-import { currencySymbol, moneyToInput } from "@/lib/money";
+import { TargetMarginForm } from "./target-margin-form";
+import { currencySymbol, moneyToInput, percentToInput } from "@/lib/money";
 import { BusinessProfileForm, type FormValues } from "./business-profile-form";
 
 export default async function BusinessProfilePage() {
@@ -56,6 +57,10 @@ export default async function BusinessProfilePage() {
           initial={profile.labourRateCents === null ? "" : moneyToInput(profile.labourRateCents, locale.numberStyle)}
           currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
         />
+      )}
+
+      {canEditBusinessProfile(role) && (
+        <TargetMarginForm initial={profile.targetMarginBp === null ? "" : percentToInput(profile.targetMarginBp, locale.numberStyle)} />
       )}
 
       {canEditBusinessProfile(role) && <BusinessTypesForm initial={[...(profile.businessTypes ?? [])]} />}

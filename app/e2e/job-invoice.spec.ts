@@ -55,8 +55,11 @@ test("Not now closes the card for the visit, Don't ask me again for good, and th
   await expect(page.getByRole("link", { name: "Create invoice" })).toHaveCount(1);
 
   // Don't ask me again: gone for good, but the job still has its Create invoice.
+  // The card closes at once and the choice is saved in the background: wait for the save before leaving the page.
+  const saved = page.waitForResponse((r) => r.request().method() === "POST" && r.url() === jobUrl);
   await page.getByTestId("invoice-job-nudge").getByRole("button", { name: "Don't ask me again" }).click();
   await expect(page.getByTestId("invoice-job-nudge")).toHaveCount(0);
+  await saved;
   await page.goto(jobUrl);
   await expect(page.getByTestId("invoice-job-nudge")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Create invoice" })).toBeVisible();

@@ -158,6 +158,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
                 currencyCode={invoice.currencyCode}
                 numberStyle={locale.numberStyle}
                 frozen
+                targetBp={profile.targetMarginBp}
                 note="Worked out when you sent the quote, from what things cost then."
               />
             </CardContent>

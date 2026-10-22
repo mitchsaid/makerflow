@@ -1,6 +1,6 @@
 # Plan: what it costs to make, and the margin on a quote
 
-Status: **planned 2026-10-17** from the founder's order of work: *costing and margin first, to demo it on a quote, then thin invoices.* Three slices; every one changes the database (**money, migrations and new tables: human review**). **Slice A is built** (see "Built, slice A" at the end); slice B is built in two parts (B1: freezing and a one-off item's cost; B2: extras' costs); C is not.
+Status: **planned 2026-10-17** from the founder's order of work: *costing and margin first, to demo it on a quote, then thin invoices.* Three slices; every one changes the database (**money, migrations and new tables: human review**). **Slice A is built** (see "Built, slice A" at the end); slice B is built in two parts (B1: freezing and a one-off item's cost; B2: extras' costs); **slice C is built** (2026-10-22, `costing-slice-c.md`).
 
 It finishes `docs/plans/costs-and-recipes.md` (materials are slice 1 there and are built). That plan was written before steps, conditions and quantity prices existed, so this one reconciles it: costs use the **same "only for some items" conditions** as steps (`docs/plans/quantity-prices-and-steps.md`, slice 4), and the cost is worked out on the **quote**, not only on the product. Where the two plans differ, this one wins; the older plan's reasons (VAT on costs, exact arithmetic, stock as a ledger) still stand and are not repeated.
 

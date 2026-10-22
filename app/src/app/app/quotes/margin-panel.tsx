@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
 import { quoteMargin } from "@/lib/costing";
+import { priceForMarginCents, targetStanding } from "@/lib/costing/target";
 import type { LineMargin } from "@/lib/quotes/margin";
 
 /**
@@ -16,6 +17,7 @@ export function MarginPanel({
   currencyCode,
   numberStyle,
   note,
+  targetBp = null,
   frozen = false,
 }: {
   items: LineMargin[];
@@ -23,6 +25,8 @@ export function MarginPanel({
   numberStyle: NumberStyle;
   /** Said under the breakdown: "Worked out when you sent this version" on a sent quote. */
   note?: string;
+  /** The margin the business aims for (basis points); null when it has not said, and nothing is judged. */
+  targetBp?: number | null;
   /** A sent quote: nothing here can be edited, so no prompts to add costs. */
   frozen?: boolean;
 }) {
@@ -42,6 +46,8 @@ export function MarginPanel({
     );
   }
   const partial = costed < items.length;
+  const target = targetBp === null ? null : formatPercent(targetBp, numberStyle);
+  const standing = targetStanding(total.marginBp, targetBp);
   return (
     <details className="group text-sm" data-testid="margin-panel">
       <summary className="flex min-h-11 cursor-pointer list-none items-center text-muted-foreground [&::-webkit-details-marker]:hidden">
@@ -49,6 +55,12 @@ export function MarginPanel({
           Only you see this: margin <span className="font-medium text-foreground" data-testid="margin-summary">{money(total.profitCents)}{total.marginBp === null ? "" : ` · ${formatPercent(total.marginBp, numberStyle)}`}</span>
           {total.incomplete ? " or less" : ""}
           {partial ? ` (costed items only, ${costed} of ${items.length})` : ""}
+          {standing && (
+            <span className={standing === "meets" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-800 dark:text-amber-300"} data-testid="margin-standing">
+              {" "}
+              · {standing === "meets" ? "meets" : "below"} your {target} target
+            </span>
+          )}
         </span>
       </summary>
       <div className="space-y-3 pb-2">
@@ -57,6 +69,7 @@ export function MarginPanel({
             <li key={i.key} className="rounded-lg border border-border px-3 py-2" data-testid="margin-item">
               <p className="font-medium">{i.name}</p>
               {i.margin && i.margin.costCents !== null ? (
+                <>
                 <dl className="grid grid-cols-[1fr_auto] gap-x-3 text-muted-foreground">
                   <dt>Sells for</dt>
                   <dd className="text-right">{money(i.margin.revenueCents)}</dd>
@@ -68,6 +81,16 @@ export function MarginPanel({
                     {i.margin.marginBp === null ? "" : ` · ${formatPercent(i.margin.marginBp, numberStyle)}`}
                   </dd>
                 </dl>
+                {targetBp !== null && targetStanding(i.margin.marginBp, targetBp) === "below" && (
+                  <p className="text-amber-800 dark:text-amber-300" data-testid="margin-item-hint">
+                    Below your {target} target.
+                    {(() => {
+                      const price = priceForMarginCents(i.margin.costCents, targetBp);
+                      return price === null ? "" : ` For ${target}, sell it for ${money(price)}, without VAT.`;
+                    })()}
+                  </p>
+                )}
+                </>
               ) : (
                 <p className="text-muted-foreground">
                   {frozen ? "No costs were recorded for this item." : "No costs yet."}{" "}
@@ -84,6 +107,7 @@ export function MarginPanel({
           ))}
         </ul>
         {note && <p className="text-muted-foreground">{note}</p>}
+        {frozen && targetBp !== null && <p className="text-muted-foreground">Compared with the margin you aim for now.</p>}
         <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
       </div>
     </details>

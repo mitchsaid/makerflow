@@ -43,10 +43,12 @@ export type BusinessProfile = {
   logoImageId: string | null;
   /** What an hour of the maker's time is worth (cents, without VAT), or null when not set. Edited under What your time is worth. */
   labourRateCents: number | null;
+  /** The margin the business aims for, in basis points (100 to 9900), or null when not set. Edited under The margin you aim for. */
+  targetMarginBp: number | null;
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents" | "targetMarginBp">;
 
 export type FieldName =
   | "name"

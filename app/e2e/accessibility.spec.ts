@@ -913,6 +913,36 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quotes and invoices, with the three numberings");
     });
 
+    test("the margin you aim for: the profile form and a product's summary", async ({ page }) => {
+      test.setTimeout(300_000);
+      await signUpAndOnboard(page, `a11y-target-${scheme}`, "Target Axe Co");
+      await openBusinessProfile(page);
+      await page.getByLabel("Price of an hour of your time").fill("120");
+      await page.getByRole("button", { name: "Save hourly rate" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+      await page.getByLabel("Margin you aim for (%)").fill("150");
+      await page.getByRole("button", { name: "Save margin" }).click();
+      await expect(page.getByText("Enter a margin from 1 to 99 percent, like 40.")).toBeVisible();
+      await expectNoViolations(page, "the margin you aim for, with an error");
+      await page.getByLabel("Margin you aim for (%)").fill("70");
+      await page.getByRole("button", { name: "Save margin" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
+      await expectNoViolations(page, "the margin you aim for, saved");
+
+      await page.goto("/app/products/new");
+      await page.getByLabel("Name", { exact: true }).fill("Cake");
+      await page.getByLabel("Price", { exact: true }).fill("150");
+      const addTime = page.getByRole("button", { name: "Add your time", exact: true });
+      await addTime.focus();
+      await addTime.press("Enter");
+      await page.getByRole("list", { name: "What it costs to make" }).getByLabel("How long it takes").fill("30");
+      await expect(page.getByTestId("target-note")).toContainText("Below your 70% target");
+      await expectNoViolations(page, "a product, below the target");
+      await page.getByLabel("Price", { exact: true }).fill("200");
+      await expect(page.getByTestId("target-note")).toContainText("Meets your 70% target");
+      await expectNoViolations(page, "a product, meeting the target");
+    });
+
     test("right after Mark as sent: the offer to turn the quote into a job", async ({ page }) => {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-turn-job-${scheme}`, "Turn Axe Co");
