@@ -3,12 +3,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getLocalePack } from "@/lib/locale";
-import { formatMoney } from "@/lib/money";
-import { formatDay, todayIn } from "@/lib/quotes/dates";
+import { todayIn } from "@/lib/quotes/dates";
 import { getQuotes } from "@/lib/quotes/data";
 import { quoteStatusKey, STATUS_FILTERS, type QuoteStatusKey } from "@/lib/quotes/status";
 import { forOrganisation } from "@/lib/scope";
-import { StatusChip } from "./status-chip";
+import { QuoteRow } from "./quote-row";
 
 export default async function QuotesPage({ searchParams }: PageProps<"/app/quotes">) {
   // The quotes query runs beside the workspace check, not after it.
@@ -82,32 +81,7 @@ export default async function QuotesPage({ searchParams }: PageProps<"/app/quote
           )}
           <ul className="space-y-2">
             {shown.map((q) => (
-              <li key={q.id}>
-                <Link
-                  href={`/app/quotes/${q.id}`}
-                  className="block rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-base font-medium">
-                      {q.customerName ?? "No customer yet"}
-                    </span>
-                    <span className="shrink-0 text-base font-medium">
-                      {formatMoney(q.grossCents, q.currencyCode, locale.numberStyle)}
-                    </span>
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="shrink-0 font-medium">
-                      {q.number}
-                      {q.version > 1 ? ` · v${q.version}` : ""}
-                    </span>
-                    <StatusChip status={q.status} version={q.version} validUntil={q.validUntil} today={today} />
-                    <span className="truncate">
-                      {formatDay(q.issueDate, locale.formatLocale)} · valid until{" "}
-                      {formatDay(q.validUntil, locale.formatLocale)}
-                    </span>
-                  </span>
-                </Link>
-              </li>
+              <QuoteRow key={q.id} quote={q} today={today} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
             ))}
           </ul>
         </>

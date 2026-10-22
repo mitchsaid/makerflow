@@ -46,32 +46,38 @@ type SummaryRow = {
   customers: { name: string } | { name: string }[] | null;
 };
 
+/** The columns of a quote in a list (the customer's name comes from the embedded customer). */
+export const QUOTE_SUMMARY_COLUMNS = "id, organisation_id, number, version, status, issue_date, valid_until, gross_cents, currency_code, updated_at";
+
+export type QuoteSummaryColumns = Omit<SummaryRow, "customers">;
+
+/** A quote row as a list shows it. */
+export const quoteSummaryOf = (row: QuoteSummaryColumns, customerName: string | null): QuoteSummary => ({
+  id: row.id,
+  organisationId: row.organisation_id,
+  number: row.number,
+  version: row.version,
+  status: row.status,
+  customerName,
+  issueDate: row.issue_date,
+  validUntil: row.valid_until,
+  grossCents: Number(row.gross_cents),
+  currencyCode: row.currency_code,
+  updatedAt: row.updated_at,
+});
+
 /** Every quote of the business, newest changes first. One query. */
 export async function getQuotes(): Promise<QuoteSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select(
-      "id, organisation_id, number, version, status, issue_date, valid_until, gross_cents, currency_code, updated_at, customers(name)",
-    )
+    .select(`${QUOTE_SUMMARY_COLUMNS}, customers(name)`)
     .order("updated_at", { ascending: false })
     .limit(500);
   if (error) throw new Error(`Could not load quotes: ${error.message}`);
   return (data as unknown as SummaryRow[]).map((row) => {
     const customer = Array.isArray(row.customers) ? row.customers[0] : row.customers;
-    return {
-      id: row.id,
-      organisationId: row.organisation_id,
-      number: row.number,
-      version: row.version,
-      status: row.status,
-      customerName: customer?.name ?? null,
-      issueDate: row.issue_date,
-      validUntil: row.valid_until,
-      grossCents: Number(row.gross_cents),
-      currencyCode: row.currency_code,
-      updatedAt: row.updated_at,
-    };
+    return quoteSummaryOf(row, customer?.name ?? null);
   });
 }
 

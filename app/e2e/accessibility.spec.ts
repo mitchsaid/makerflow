@@ -913,6 +913,25 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "quotes and invoices, with the three numberings");
     });
 
+    test("a customer's page: each section, with and without history", async ({ page }) => {
+      test.setTimeout(300_000);
+      await issuedInvoice(page, `a11y-customer-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
+      await openMore(page);
+      await page.getByRole("link", { name: /^Customers/ }).click();
+      await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
+      await expect(page.getByTestId("customer-owing")).toBeVisible();
+      await expectNoViolations(page, "a customer, quotes");
+      await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Jobs" }).click();
+      await expect(page.getByText("No jobs yet")).toBeVisible();
+      await expectNoViolations(page, "a customer, jobs (none)");
+      await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Invoices" }).click();
+      await expect(page.getByRole("link", { name: /INV-0001/ })).toBeVisible();
+      await expectNoViolations(page, "a customer, invoices");
+      await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Details" }).click();
+      await expect(page.getByRole("button", { name: "Save changes" })).toBeVisible();
+      await expectNoViolations(page, "a customer, details");
+    });
+
     test("customer statement: the link, entries and a period", async ({ page }) => {
       test.setTimeout(300_000);
       await issuedInvoice(page, `a11y-statement-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });

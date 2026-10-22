@@ -14,20 +14,24 @@ import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
 
-export default async function NewQuotePage() {
+export default async function NewQuotePage({ searchParams }: PageProps<"/app/quotes/new">) {
   // Customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails }] = await Promise.all([
+  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails }, query] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
     getMaterials(),
     getPolicies(),
     getQuoteSequences(),
     requireOrganisation(),
+    searchParams,
   ]);
   const sequence = sequenceFor(sequences, organisation.id);
   const policyLibrary = forOrganisation(allPolicies, organisation.id);
   const locale = getLocalePack(profile.countryCode);
   const customers = forOrganisation(allCustomers, organisation.id);
+  // "New quote" on a customer's page arrives with that customer chosen (only one of this business's, not archived).
+  const wanted = typeof query.customer === "string" ? query.customer : "";
+  const startCustomerId = customers.some((c) => c.id === wanted && !c.archived) ? wanted : "";
   const today = todayIn(locale.timeZone);
   const usuals = usualsFromProfile(profile, locale.numberStyle);
 
@@ -43,7 +47,7 @@ export default async function NewQuotePage() {
           </div>
         }
         initial={{
-          customerId: "",
+          customerId: startCustomerId,
           issueDate: today,
           validUntil: addDays(today, DEFAULT_VALID_DAYS),
           neededBy: "",
