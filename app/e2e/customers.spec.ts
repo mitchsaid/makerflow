@@ -100,7 +100,7 @@ test("a business customer keeps its details, and they persist after editing", as
   await expect(page.getByRole("link", { name: /Cape Cakes/ })).toContainText("Business");
   await page.getByRole("link", { name: /Cape Cakes/ }).click();
   await expect(page.getByRole("heading", { name: "Cape Cakes", level: 1 })).toBeVisible();
-  await expect(page.getByText("Business", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 }).getByText("Business", { exact: true })).toBeVisible();
   await openDetails(page);
   await expect(page.getByLabel("Contact person")).toHaveValue("Sam Jacobs");
   await expect(page.getByLabel("VAT number")).toHaveValue("4123456789");
