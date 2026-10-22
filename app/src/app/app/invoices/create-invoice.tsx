@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormErrorScope } from "@/components/form-errors";
@@ -25,8 +26,11 @@ export function CreateInvoice({
   defaults,
   problems,
   customerId,
+  defaultOpen = false,
 }: {
   quoteId: string;
+  /** Open when the page does: the card on a finished job sends the maker here with the sheet ready. */
+  defaultOpen?: boolean;
   /** "Tax invoice" or "Invoice", in the country's words. */
   documentTitle: string;
   customerName: string;
@@ -36,7 +40,8 @@ export function CreateInvoice({
   problems: InvoiceProblem[];
   customerId: string | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [open, setOpen] = useState(defaultOpen);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -45,7 +50,15 @@ export function CreateInvoice({
         Create invoice
       </AddButton>
       <p className="text-sm text-muted-foreground">Turn this accepted quote into a numbered {documentTitle.toLowerCase()}.</p>
-      <Sheet open={open} onOpenChange={(isOpen) => !busy && setOpen(isOpen)}>
+      <Sheet
+        open={open}
+        onOpenChange={(isOpen) => {
+          if (busy) return;
+          setOpen(isOpen);
+          // Take the request to open it out of the address, so a reload does not open it again.
+          if (!isOpen && defaultOpen) router.replace(`/app/quotes/${quoteId}`, { scroll: false });
+        }}
+      >
         <SheetContent
           side="right"
           className="h-dvh gap-0 overflow-y-auto"

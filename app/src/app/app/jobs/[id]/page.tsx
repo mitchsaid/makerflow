@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ComingSoonSection } from "@/components/coming-soon";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { AddLink } from "@/components/add-button";
-import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
+import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
 import { PhotoThumb } from "@/components/photo-thumb";
@@ -12,6 +13,7 @@ import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
 import { ItemProgress } from "../item-progress";
 import { ItemSteps } from "../item-steps";
 import { StepsEditor } from "../steps-editor";
+import { InvoiceJobCard } from "../invoice-job-card";
 import { JobNote } from "../job-note";
 import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
@@ -21,7 +23,7 @@ import { PageHeader } from "@/components/page-header";
 export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   const { id } = await params;
   // The job loads beside the workspace check, not after it.
-  const [job, { organisation, profile }] = await Promise.all([getJob(id), requireOrganisation()]);
+  const [job, { organisation, profile, dismissedPrompts }] = await Promise.all([getJob(id), requireOrganisation()]);
   // Another business of the same person is not this workspace's job.
   if (job.organisationId !== organisation.id) notFound();
 
@@ -30,15 +32,41 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   const overdue = isOverdueJob(job, today);
   const counting = takesCounts(job.status);
   const progress = jobProgress(job.fullItems);
+  const nudgeInvoice = shouldNudgeInvoiceJob({ status: job.status, hasQuote: !!job.quoteId, hasInvoice: !!job.invoice, dismissedPrompts });
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/jobs", label: "Jobs" }}>
-        <h1 className="flex flex-wrap items-center gap-3 text-xl font-semibold">
+        <h1 id="job-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
           <span>Job {jobNumberText(job.number)}</span>
           <JobStatusChip status={job.status} fulfilment={job.fulfilment} />
         </h1>
       </PageHeader>
+
+      {job.status === "done" && (
+        job.invoice ? (
+          <section className="space-y-2" aria-labelledby="invoice-heading">
+            <h2 id="invoice-heading" className="text-base font-semibold">
+              Invoice
+            </h2>
+            <p className="text-base">
+              Invoiced:{" "}
+              <Link href={`/app/invoices/${job.invoice.id}`} className="inline-flex min-h-11 items-center font-medium underline">
+                {job.invoice.number}
+              </Link>
+            </p>
+          </section>
+        ) : job.quoteId ? (
+          <InvoiceJobCard quoteId={job.quoteId} quoteNumber={job.quoteNumber} offer={nudgeInvoice} />
+        ) : (
+          <section className="space-y-2" aria-labelledby="invoice-heading">
+            <h2 id="invoice-heading" className="sr-only">
+              Invoice
+            </h2>
+            <ComingSoonSection title="Invoice this job" description="Invoices without a quote are coming." />
+          </section>
+        )
+      )}
 
       <section className="space-y-3" aria-labelledby="next-heading">
         <h2 id="next-heading" className="text-base font-semibold">

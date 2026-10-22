@@ -20,6 +20,7 @@ import {
   isDueThisWeekJob,
   parseJobFilter,
   shouldNudgeCreateJob,
+  shouldNudgeInvoiceJob,
   type JobFulfilment,
   type JobSummary,
 } from "../index";
@@ -258,5 +259,22 @@ describe("the Create a job card after an acceptance", () => {
   it("is gone for good once this person said not to ask again", () => {
     expect(shouldNudgeCreateJob({ ...base, dismissedPrompts: ["logo", "create-job"] })).toBe(false);
     expect(shouldNudgeCreateJob({ ...base, dismissedPrompts: ["logo"] })).toBe(true);
+  });
+});
+
+describe("the Invoice it card on a finished job", () => {
+  const base = { status: "done", hasQuote: true, hasInvoice: false, dismissedPrompts: [] as string[] };
+  it("shows on a done job made from a quote that has no invoice", () => {
+    expect(shouldNudgeInvoiceJob(base)).toBe(true);
+  });
+  it("stays away until the job is done, and when there is nothing to invoice from or it is already invoiced", () => {
+    expect(shouldNudgeInvoiceJob({ ...base, status: "ready" })).toBe(false);
+    expect(shouldNudgeInvoiceJob({ ...base, status: "cancelled" })).toBe(false);
+    expect(shouldNudgeInvoiceJob({ ...base, hasQuote: false })).toBe(false);
+    expect(shouldNudgeInvoiceJob({ ...base, hasInvoice: true })).toBe(false);
+  });
+  it("is gone for good once this person said not to ask again, and the job prompt's answer is a different one", () => {
+    expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["invoice-finished-job"] })).toBe(false);
+    expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["create-job", "logo"] })).toBe(true);
   });
 });

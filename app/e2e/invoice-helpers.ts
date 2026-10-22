@@ -4,10 +4,10 @@ import { openBusinessProfile, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, openQuotes, sheet, startSend } from "./quote-helpers";
 
 /**
- * A new business with an issued invoice INV-0001 for one item (quantity x price), optionally asking a deposit first. Ends
- * on the invoice's page.
+ * A new business (with the address an invoice needs) and an accepted quote QT-0001 for one item (quantity x price),
+ * optionally asking a deposit first. Ends on the accepted quote's page.
  */
-export async function issuedInvoice(
+export async function acceptedQuote(
   page: Page,
   label: string,
   item: { name: string; quantity: string; price: string; depositPercent?: string },
@@ -37,6 +37,18 @@ export async function issuedInvoice(
   await sheet(page).getByLabel("How they told you").selectOption("whatsapp");
   await sheet(page).getByRole("button", { name: "Save answer" }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
+}
+
+/**
+ * A new business with an issued invoice INV-0001 for one item (quantity x price), optionally asking a deposit first. Ends
+ * on the invoice's page.
+ */
+export async function issuedInvoice(
+  page: Page,
+  label: string,
+  item: { name: string; quantity: string; price: string; depositPercent?: string },
+) {
+  await acceptedQuote(page, label, item);
   await page.getByRole("button", { name: "Create invoice" }).click();
   await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
