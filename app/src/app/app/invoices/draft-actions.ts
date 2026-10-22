@@ -76,10 +76,16 @@ async function writeDraft(draftId: string | null, form: unknown): Promise<Saved>
 export async function saveInvoiceDraft(draftId: string | null, form: unknown, options: { stay?: boolean } = {}): Promise<SaveDraftResult> {
   const saved = await writeDraft(draftId, form);
   if (!saved.ok) return { status: "error", message: saved.message };
-  revalidatePath("/app/invoices");
   // A new draft opens on its own page; one that is already open stays where it is (and so does one made as the first
   // step of issuing, which carries on from the id it gets back).
-  if (draftId === null && !options.stay) redirect(`/app/invoices/drafts/${saved.id}?saved=1`);
+  if (draftId === null && !options.stay) {
+    revalidatePath("/app/invoices");
+    redirect(`/app/invoices/drafts/${saved.id}?saved=1`);
+  }
+  // The first step of issuing renews nothing: the page is about to be given the draft's address without leaving, and a
+  // refreshed page arriving after that would start it over and lose what the issuing step is about to say.
+  if (draftId === null) return { status: "saved", draftId: saved.id, savedAt: Date.now() };
+  revalidatePath("/app/invoices");
   revalidatePath(`/app/invoices/drafts/${saved.id}`);
   return { status: "saved", draftId: saved.id, savedAt: Date.now() };
 }
