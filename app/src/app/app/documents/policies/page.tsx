@@ -150,6 +150,9 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
                 </ul>
               </details>
             )}
+            <p className="text-sm text-muted-foreground" data-testid="examples-advice">
+              {locale.policies.adviceNote}
+            </p>
           </section>
         </>
       )}
