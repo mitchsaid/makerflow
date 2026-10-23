@@ -126,7 +126,7 @@ SQL: isolation between businesses, session required, members only, a draft canno
 
 ## Questions for the founder
 1. **A draft as the form's values** (decision 1): fine?
-2. **No margin on an invoice with no quote** (decision 3): fine for now?
+2. **No margin on an invoice with no quote** (decision 3): *answered 2026-10-23: no invoice shows a margin at all* (see `invoices-and-payments.md`).
 3. **Adjusted invoices** say so on their page; should the document itself (the PDF) say anything? Recommended: no, the customer sees an invoice, not its history.
 
 ## Not planned yet
