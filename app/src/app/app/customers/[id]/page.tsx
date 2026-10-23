@@ -9,9 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { customerOverview } from "@/lib/customers/overview";
 import { getCustomerPage } from "@/lib/customers/page-data";
-import { getLocalePack } from "@/lib/locale";
+import { draftRowsOf } from "@/lib/invoices/draft";
+import { getLocalePack, vatSettingsFor } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
 import { todayIn } from "@/lib/quotes/dates";
+import { InvoiceDraftRow } from "../../invoices/invoice-draft-row";
 import { InvoiceRow } from "../../invoices/invoice-row";
 import { JobRow } from "../../jobs/job-row";
 import { QuoteRow } from "../../quotes/quote-row";
@@ -27,7 +29,7 @@ const LABELS: Record<Section, string> = { quotes: "Quotes", jobs: "Jobs", invoic
 export default async function CustomerPage({ params, searchParams }: PageProps<"/app/customers/[id]">) {
   const { id } = await params;
   // The customer (with their quotes, jobs and invoices) is one query, beside the workspace check.
-  const [{ customer, quotes: allQuotes, jobs: allJobs, invoices: allInvoices }, { organisation, profile }, query] = await Promise.all([
+  const [{ customer, quotes: allQuotes, jobs: allJobs, invoices: allInvoices, drafts: allDrafts }, { organisation, profile }, query] = await Promise.all([
     getCustomerPage(id),
     requireOrganisation(),
     searchParams,
@@ -40,6 +42,8 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   const quotes = allQuotes.filter((q) => q.organisationId === organisation.id);
   const jobs = allJobs.filter((j) => j.organisationId === organisation.id);
   const invoices = allInvoices.filter((i) => i.organisationId === organisation.id);
+  const drafts = draftRowsOf(allDrafts.filter((d) => d.organisationId === organisation.id), vatSettingsFor(profile, locale));
+  const creditNotes = invoices.reduce((sum, i) => sum + i.creditNoteCount, 0);
   const overview = customerOverview({ quotes, jobs, invoices, today });
   const money = (cents: number) => formatMoney(cents, profile.currencyCode, locale.numberStyle);
 
@@ -137,14 +141,24 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
           <AddLink href={`/app/invoices/new?customer=${customer.id}`} variant="outline">
             New invoice
           </AddLink>
-          {invoices.length === 0 ? (
+          {invoices.length === 0 && drafts.length === 0 ? (
             <Empty title="No invoices yet" line="Open an accepted quote and choose Create invoice." />
           ) : (
-            <ul className="space-y-2">
-              {invoices.map((i) => (
-                <InvoiceRow key={i.id} invoice={i} {...rowProps} />
-              ))}
-            </ul>
+            <>
+              {creditNotes > 0 && (
+                <p className="text-sm text-muted-foreground" data-testid="customer-credit-notes">
+                  {creditNotes} {creditNotes === 1 ? "credit note" : "credit notes"} on these invoices
+                </p>
+              )}
+              <ul className="space-y-2">
+                {drafts.map((d) => (
+                  <InvoiceDraftRow key={d.id} draft={d} currencyCode={profile.currencyCode} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
+                ))}
+                {invoices.map((i) => (
+                  <InvoiceRow key={i.id} invoice={i} {...rowProps} />
+                ))}
+              </ul>
+            </>
           )}
         </section>
       )}

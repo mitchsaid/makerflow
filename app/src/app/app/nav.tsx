@@ -14,7 +14,7 @@ type Item = {
 
 /**
  * On a phone five tabs fit: Home, Quotes, Jobs, Products and More (founder chose Products as its own
- * tab, 2026-10-03, and Jobs over Customers, 2026-10-11). Invoices, Customers, Business and Settings sit behind "More".
+ * tab, 2026-10-03, and Jobs over Customers, 2026-10-11). Materials, Invoices, Customers, Business and Settings sit behind "More".
  * The desktop sidebar has room for everything and has no "More".
  */
 const ITEMS: Item[] = [
@@ -22,6 +22,7 @@ const ITEMS: Item[] = [
   { href: "/app/quotes", label: "Quotes", match: (p) => p.startsWith("/app/quotes"), icon: QuotesIcon },
   { href: "/app/jobs", label: "Jobs", match: (p) => p.startsWith("/app/jobs"), icon: JobsIcon },
   { href: "/app/products", label: "Products", match: (p) => p.startsWith("/app/products"), icon: ProductsIcon },
+  { href: "/app/materials", label: "Materials", match: (p) => p.startsWith("/app/materials"), icon: MaterialsIcon, only: "desktop" },
   { href: "/app/invoices", label: "Invoices", match: (p) => p.startsWith("/app/invoices") || p.startsWith("/app/credit-notes"), icon: InvoicesIcon, only: "desktop" },
   { href: "/app/customers", label: "Customers", match: (p) => p.startsWith("/app/customers"), icon: CustomersIcon, only: "desktop" },
   { href: "/app/business", label: "Business", match: (p) => p.startsWith("/app/business"), icon: BusinessIcon, only: "desktop" },
@@ -32,6 +33,7 @@ const ITEMS: Item[] = [
     label: "More",
     match: (p) =>
       p.startsWith("/app/more") ||
+      p.startsWith("/app/materials") ||
       p.startsWith("/app/invoices") ||
       p.startsWith("/app/credit-notes") ||
       p.startsWith("/app/customers") ||
@@ -160,6 +162,17 @@ function ProductsIcon() {
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
       <circle cx="7.5" cy="7.5" r="1.5" />
+    </svg>
+  );
+}
+
+function MaterialsIcon() {
+  return (
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 3 9 5-9 5-9-5z" />
+      <path d="m3 12.5 9 5 9-5" />
+      <path d="m3 17 9 5 9-5" />
     </svg>
   );
 }

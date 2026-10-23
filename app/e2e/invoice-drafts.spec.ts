@@ -135,6 +135,8 @@ test("a draft can be discarded, and a customer's page starts an invoice for them
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByTestId("customer-added")).toBeVisible();
   await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
+  await expect(page).toHaveURL(/\/app\/customers\/[0-9a-f-]{36}$/);
+  const customerUrl = page.url();
   await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Invoices" }).click();
   await page.getByRole("link", { name: "New invoice" }).click();
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
@@ -142,6 +144,14 @@ test("a draft can be discarded, and a customer's page starts an invoice for them
   await addItem(page, "Shelf", "1", "100");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\?saved=1$/);
+  const draftUrl = page.url().replace(/\?saved=1$/, "");
+
+  // The draft shows under the customer's Invoices, as not issued.
+  await page.goto(`${customerUrl}?section=invoices`);
+  await expect(page.getByTestId("invoice-draft-row")).toContainText("Not issued");
+  await expect(page.getByText("No invoices yet")).toHaveCount(0);
+  await page.getByTestId("invoice-draft-row").getByRole("link").click();
+  await expect(page).toHaveURL(draftUrl);
 
   // Asked once; "Keep it" keeps it.
   await page.getByRole("button", { name: "Discard draft" }).click();

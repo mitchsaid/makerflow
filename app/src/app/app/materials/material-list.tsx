@@ -50,7 +50,7 @@ export function MaterialList({
           <p className="text-muted-foreground">
             Save what you buy and what you paid, to work out what each product costs.
           </p>
-          <AddLink href="/app/products/materials/new" variant="default">
+          <AddLink href="/app/materials/new" variant="default">
             Add your first material
           </AddLink>
         </CardContent>
@@ -93,7 +93,7 @@ export function MaterialList({
           {visible.map((m) => (
             <li key={m.id}>
               <Link
-                href={`/app/products/materials/${m.id}`}
+                href={`/app/materials/${m.id}`}
                 className="block rounded-xl border border-border bg-card px-4 py-3 hover:bg-muted"
               >
                 <span className="flex items-baseline justify-between gap-3">

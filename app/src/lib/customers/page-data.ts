@@ -1,6 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
+import { CUSTOMER_DRAFT_COLUMNS, customerDraftOf, type CustomerDraftRow } from "../invoices/draft-data";
 import { INVOICE_SUMMARY_COLUMNS, invoiceSummaryOf, type InvoiceSummaryRow } from "../invoices/data";
 import type { InvoiceSummary } from "../invoices";
 import { JOB_SUMMARY_COLUMNS, summary as jobSummaryOf, type JobSummaryRow } from "../jobs/data";
@@ -19,9 +20,11 @@ export type CustomerPageData = {
   quotes: QuoteSummary[];
   jobs: JobSummary[];
   invoices: InvoiceSummary[];
+  /** Invoices started for this customer and not issued yet. */
+  drafts: ReturnType<typeof customerDraftOf>[];
 };
 
-type Row = FullRow & { quotes: QuoteSummaryColumns[] | null; jobs: JobSummaryRow[] | null; invoices: InvoiceSummaryRow[] | null };
+type Row = FullRow & { quotes: QuoteSummaryColumns[] | null; jobs: JobSummaryRow[] | null; invoices: InvoiceSummaryRow[] | null; invoice_drafts: CustomerDraftRow[] | null };
 
 /**
  * A customer with their quotes, jobs and invoices, in one query (the page makes one query for its main data). Row-level
@@ -36,7 +39,8 @@ export async function getCustomerPage(id: string): Promise<CustomerPageData> {
       `${CUSTOMER_FULL_COLUMNS},
        quotes:quotes!quotes_customer_same_org ( ${QUOTE_SUMMARY_COLUMNS} ),
        jobs:jobs!jobs_customer_same_org ( ${JOB_SUMMARY_COLUMNS} ),
-       invoices:invoices!invoices_customer_same_org ( ${INVOICE_SUMMARY_COLUMNS} )`,
+       invoices:invoices!invoices_customer_same_org ( ${INVOICE_SUMMARY_COLUMNS} ),
+       invoice_drafts:invoice_drafts!invoice_drafts_customer_same_org ( ${CUSTOMER_DRAFT_COLUMNS} )`,
     )
     .eq("id", id)
     .order("updated_at", { referencedTable: "quotes", ascending: false })
@@ -46,6 +50,8 @@ export async function getCustomerPage(id: string): Promise<CustomerPageData> {
     .order("issue_date", { referencedTable: "invoices", ascending: false })
     .order("number", { referencedTable: "invoices", ascending: false })
     .limit(LIMIT, { referencedTable: "invoices" })
+    .order("updated_at", { referencedTable: "invoice_drafts", ascending: false })
+    .limit(LIMIT, { referencedTable: "invoice_drafts" })
     .maybeSingle();
   if (error) throw new Error(`Could not load the customer: ${error.message}`);
   if (!data) notFound();
@@ -55,5 +61,6 @@ export async function getCustomerPage(id: string): Promise<CustomerPageData> {
     quotes: (row.quotes ?? []).map((q) => quoteSummaryOf(q, row.name)),
     jobs: (row.jobs ?? []).map(jobSummaryOf),
     invoices: (row.invoices ?? []).map(invoiceSummaryOf),
+    drafts: (row.invoice_drafts ?? []).map((d) => customerDraftOf(d, row.name)),
   };
 }

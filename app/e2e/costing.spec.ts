@@ -19,7 +19,7 @@ async function setHourlyRate(page: Page, rate: string) {
 }
 
 async function addFlour(page: Page) {
-  await page.goto("/app/products/materials/new");
+  await page.goto("/app/materials/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake flour");
   await page.getByLabel("Unit", { exact: true }).selectOption("kg");
   await page.getByLabel("How much you bought").fill("12,5");
@@ -95,7 +95,7 @@ test("a material can be added from a cost line without leaving the product", asy
   await expect(dialog).toHaveCount(0);
 
   // Both materials are really saved: they are on the Materials page, and the product keeps them.
-  await page.goto("/app/products/materials");
+  await page.goto("/app/materials");
   await expect(page.getByText("Cake flour").first()).toBeVisible();
   await expect(page.getByText("Silver wire").first()).toBeVisible();
 });

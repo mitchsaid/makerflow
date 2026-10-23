@@ -42,6 +42,7 @@ export const invoiceSummaryOf = (row: InvoiceSummaryRow): InvoiceSummary => ({
   grossCents: Number(row.gross_cents),
   paidCents: paidCentsOf(row.invoice_payments.map((p) => ({ amountCents: Number(p.amount_cents), reversesId: p.reverses_id }))),
   creditedCents: row.credit_notes.reduce((sum, c) => sum + Number(c.gross_cents), 0),
+  creditNoteCount: row.credit_notes.length,
   currencyCode: row.currency_code,
 });
 

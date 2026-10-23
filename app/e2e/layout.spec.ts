@@ -52,7 +52,7 @@ test("on a phone, date fields and the rest of the new quote fit inside their car
 
 test("on a phone, the other forms fit inside their cards too", async ({ page }) => {
   await signUpAndOnboard(page, "layout-forms", "Layout Forms Co");
-  for (const path of ["/app/products/new", "/app/products/materials", "/app/products/materials/new", "/app/business", "/app/documents", "/app/settings", "/app/jobs", "/app/jobs/new", "/app/more"]) {
+  for (const path of ["/app/products/new", "/app/materials", "/app/materials/new", "/app/business", "/app/documents", "/app/settings", "/app/jobs", "/app/jobs/new", "/app/more"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await stickingOut(page), path).toEqual([]);
