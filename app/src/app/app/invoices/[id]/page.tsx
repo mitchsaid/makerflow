@@ -12,8 +12,6 @@ import { jobNumberText } from "@/lib/jobs";
 import { getLocalePack } from "@/lib/locale";
 import { currencySymbol, formatMoney } from "@/lib/money";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
-import { frozenMargins } from "@/lib/quotes/costing";
-import { MarginPanel } from "../../quotes/margin-panel";
 import { PdfPreview } from "../../quotes/pdf-preview";
 import { QuoteDocumentView } from "../../quotes/quote-document-view";
 import { InvoiceStatusChip } from "../invoice-status-chip";
@@ -37,7 +35,6 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
   const refundDueCents = refundDueCentsOf(invoice.grossCents, paidCents, creditedCents);
   const status = invoiceStatus({ grossCents: invoice.grossCents, creditedCents, paidCents, dueDate: invoice.dueDate, today });
   const vat = invoice.snapshot.vat;
-  const margins = frozenMargins(invoice.costing);
   const title = invoice.snapshot.wording.title;
 
   return (
@@ -148,26 +145,6 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
       <section className="sr-only" aria-label="The invoice as text">
         <QuoteDocumentView snapshot={invoice.snapshot} />
       </section>
-
-      {margins && margins.length > 0 && (
-        <section className="space-y-2" aria-labelledby="margin-heading">
-          <h2 id="margin-heading" className="text-base font-semibold">
-            Your margin
-          </h2>
-          <Card>
-            <CardContent>
-              <MarginPanel
-                items={margins}
-                currencyCode={invoice.currencyCode}
-                numberStyle={locale.numberStyle}
-                frozen
-                targetBp={profile.targetMarginBp}
-                note="Worked out when you sent the quote, from what things cost then."
-              />
-            </CardContent>
-          </Card>
-        </section>
-      )}
 
       <section className="space-y-2" aria-labelledby="activity-heading">
         <h2 id="activity-heading" className="text-base font-semibold">

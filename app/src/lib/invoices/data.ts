@@ -74,8 +74,6 @@ export type StoredInvoice = InvoiceSummary & {
   adjusted: boolean;
   note: string | null;
   snapshot: QuoteSnapshot;
-  /** The quote's frozen costing, copied to the invoice. Private. */
-  costing: unknown;
   issuedAt: string;
   /** The quote it was made from, for the link back. */
   quote: { id: string; number: string } | null;
@@ -135,7 +133,6 @@ type DetailRow = InvoiceSummaryRow & {
   adjusted: boolean;
   note: string | null;
   snapshot: QuoteSnapshot;
-  costing: unknown;
   created_at: string;
   quotes: QuoteEmbed | QuoteEmbed[] | null;
   invoice_events: { id: string; kind: string; created_at: string }[];
@@ -150,7 +147,7 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      `${INVOICE_SUMMARY_COLUMNS}, quote_version, adjusted, note, snapshot, costing, created_at,
+      `${INVOICE_SUMMARY_COLUMNS}, quote_version, adjusted, note, snapshot, created_at,
        quotes ( id, number, jobs ( id, number, status ), quote_versions ( version, deposit:snapshot->deposit ) ),
        invoice_events ( id, kind, created_at ),
        all_payments:invoice_payments ( id, amount_cents, paid_on, method, note, reverses_id, created_at ),
@@ -168,7 +165,6 @@ export async function findInvoice(id: string): Promise<StoredInvoice | null> {
     adjusted: row.adjusted,
     note: row.note,
     snapshot: row.snapshot,
-    costing: row.costing,
     issuedAt: row.created_at,
     quote: quote ? { id: quote.id, number: quote.number } : null,
     job: (quote?.jobs ?? []).find((j) => j.status !== "cancelled") ?? null,
