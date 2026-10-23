@@ -17,7 +17,7 @@ export type MaterialSaveState =
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
 const TAKEN = "You already have a material with that name. Give this one its own name, or change that one.";
-const LIST = "/app/products/materials";
+const LIST = "/app/materials";
 
 function toRow(m: MaterialFields) {
   return {

@@ -276,6 +276,7 @@ describe("the invoices list", () => {
     grossCents: 1000,
     paidCents: 0,
     creditedCents: 0,
+    creditNoteCount: 0,
     currencyCode: "ZAR",
     ...over,
   });
@@ -325,6 +326,7 @@ describe("what is owed", () => {
     grossCents,
     paidCents,
     creditedCents: 0,
+    creditNoteCount: 0,
     currencyCode: "ZAR",
   });
   it("adds up what is left to pay, and what of it is overdue; paid invoices count for nothing", () => {

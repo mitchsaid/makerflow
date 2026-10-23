@@ -68,6 +68,31 @@ function summaryOf(row: Row): StoredInvoiceDraft {
   };
 }
 
+/** The columns of a customer's drafts, read inside the customer's own query (the page makes one query). */
+export const CUSTOMER_DRAFT_COLUMNS = "id, organisation_id, quote_id, form, updated_at, quotes ( number )";
+
+export type CustomerDraftRow = {
+  id: string;
+  organisation_id: string;
+  quote_id: string | null;
+  form: unknown;
+  updated_at: string;
+  quotes: { number: string } | { number: string }[] | null;
+};
+
+/** A draft read inside a customer's page: enough to show it as a row. The customer is the one whose page it is. */
+export function customerDraftOf(row: CustomerDraftRow, customerName: string): InvoiceDraftSummary & { quoteNumber: string | null } {
+  return {
+    id: row.id,
+    organisationId: row.organisation_id,
+    quoteId: row.quote_id,
+    customerName,
+    form: isInvoiceDraftForm(row.form) ? row.form : null,
+    updatedAt: row.updated_at,
+    quoteNumber: one(row.quotes)?.number ?? null,
+  };
+}
+
 /** Every draft of the business, newest changes first. One query. */
 export async function getInvoiceDrafts(): Promise<StoredInvoiceDraft[]> {
   const supabase = await createClient();

@@ -137,6 +137,8 @@ export type InvoiceSummary = {
   paidCents: number;
   /** What credit notes have taken off the invoice. */
   creditedCents: number;
+  /** How many credit notes the invoice has. */
+  creditNoteCount: number;
   currencyCode: string;
 };
 

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { AddButton } from "@/components/add-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { NumberStyle } from "@/lib/money";
-import { createMaterialHere } from "./materials/actions";
-import { EMPTY_MATERIAL, MaterialForm } from "./materials/material-form";
+import { createMaterialHere } from "../materials/actions";
+import { EMPTY_MATERIAL, MaterialForm } from "../materials/material-form";
 import type { MaterialOption } from "./costs-section";
 
 /** What the add-a-material dialog needs to know, and who to tell. Absent where materials can't be added from here. */

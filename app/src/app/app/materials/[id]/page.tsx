@@ -9,7 +9,7 @@ import { MaterialForm } from "../material-form";
 import { MaterialArchiveButton } from "./archive-button";
 import { PageHeader } from "@/components/page-header";
 
-export default async function MaterialPage({ params }: PageProps<"/app/products/materials/[id]">) {
+export default async function MaterialPage({ params }: PageProps<"/app/materials/[id]">) {
   const { id } = await params;
   // The material loads beside the workspace check, not after it.
   const [material, { organisation, profile }] = await Promise.all([getMaterial(id), requireOrganisation()]);
@@ -19,7 +19,7 @@ export default async function MaterialPage({ params }: PageProps<"/app/products/
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/products/materials", label: "Materials" }}>
+      <PageHeader back={{ href: "/app/materials", label: "Materials" }}>
         <h1 className="text-xl font-semibold">{material.name}</h1>
       </PageHeader>
       {material.archived && (

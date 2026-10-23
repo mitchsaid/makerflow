@@ -114,7 +114,7 @@ export function CostLineEditor({
                           <AddMaterial config={addMaterial} id={idOf(row.key, "first")} onChosen={(m) => setRow(row.key, { materialId: m.id, unit: m.unit })} variant="default" />
                         ) : (
                           <p className="text-sm text-muted-foreground">
-                            <Link href="/app/products/materials/new" className="underline underline-offset-4">
+                            <Link href="/app/materials/new" className="underline underline-offset-4">
                               Add a material
                             </Link>{" "}
                             first, then come back.

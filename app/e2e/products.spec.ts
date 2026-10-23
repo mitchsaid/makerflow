@@ -70,7 +70,7 @@ test("a failed save says what to fix and keeps what you typed", async ({ page })
 test("services are their own list, with their own form, and save, edit and come back", async ({ page }) => {
   await signUpAndOnboard(page, "p-edit", "Service Co");
   await openProducts(page);
-  const switcher = page.getByRole("navigation", { name: "Products, services or materials" });
+  const switcher = page.getByRole("navigation", { name: "Products or services" });
   await expect(switcher.getByRole("link", { name: "Products" })).toHaveAttribute("aria-current", "page");
   await switcher.getByRole("link", { name: "Services" }).click();
   await expect(page).toHaveURL(/view=services/);

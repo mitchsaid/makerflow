@@ -94,7 +94,7 @@ export type InvoiceDraftRow = {
   updatedAt: string;
 };
 
-export function draftRowsOf(drafts: readonly StoredInvoiceDraft[], vat: VatSettings): InvoiceDraftRow[] {
+export function draftRowsOf(drafts: readonly Pick<StoredInvoiceDraft, "id" | "customerName" | "form" | "quoteNumber" | "updatedAt">[], vat: VatSettings): InvoiceDraftRow[] {
   return drafts.map((d) => {
     const items = d.form ? d.form.lines.filter((l) => !isBlankLine(l)) : [];
     const totals = d.form ? previewTotals(d.form, vat) : null;

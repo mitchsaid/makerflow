@@ -1,12 +1,12 @@
 import { devices, expect, test, type Page } from "@playwright/test";
 import { openBusinessProfile, signUpAndOnboard } from "./helpers";
 
-/** Materials: the third switch on the Products tab (docs/plans/costs-and-recipes.md, slice 1). */
+/** Materials: a place of its own, reached from More on a phone (docs/plans/costs-and-recipes.md, slice 1; docs/plans/materials-menu-and-gaps.md). */
 
 async function openMaterials(page: Page) {
-  await page.goto("/app/products");
-  await page.getByRole("navigation", { name: "Products, services or materials" }).getByRole("link", { name: "Materials" }).click();
-  await expect(page).toHaveURL(/\/app\/products\/materials$/);
+  await page.goto("/app/more");
+  await page.getByRole("link", { name: /^Materials/ }).click();
+  await expect(page).toHaveURL(/\/app\/materials$/);
 }
 
 async function fillMaterial(page: Page, m: { name: string; unit: string; quantity: string; price: string; supplier?: string }) {
@@ -21,11 +21,14 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "mat-main", "Materials Co");
 
-  // The third switch beside Products and Services, with an empty state that says why.
+  // Reached from More, with an empty state that says why. The old address under Products still arrives.
+  await page.goto("/app/products/materials");
+  await expect(page).toHaveURL(/\/app\/materials$/);
   await openMaterials(page);
   await expect(page.getByRole("heading", { name: "No materials yet" })).toHaveCount(0);
   await expect(page.getByText("No materials yet")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Materials" }).first()).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "Materials", level: 1 })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
   await page.getByRole("link", { name: "Add your first material" }).click();
 
   // A business that is not registered for VAT is never asked about it: the price paid is the cost.
@@ -45,7 +48,7 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
   await fillMaterial(page, { name: "Cake flour", unit: "kg", quantity: "12,5", price: "187,50", supplier: "Makro" });
   await expect(page.getByTestId("cost-preview")).toContainText(/R\s?15,00 per kg/);
   await page.getByRole("button", { name: "Add material" }).click();
-  await expect(page).toHaveURL(/\/app\/products\/materials\?added=/);
+  await expect(page).toHaveURL(/\/app\/materials\?added=/);
   await expect(page.getByTestId("material-added")).toHaveText("Added Cake flour.");
 
   // The list says what it holds and what a unit costs.
@@ -84,7 +87,7 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
 
   // Archive hides it from the list, and it can be shown and restored.
   await page.getByRole("button", { name: "Archive material" }).click();
-  await expect(page).toHaveURL(/\/app\/products\/materials$/);
+  await expect(page).toHaveURL(/\/app\/materials$/);
   await expect(page.getByRole("link", { name: /Cake flour/ })).toHaveCount(0);
   await page.getByRole("checkbox", { name: /Show archived/ }).check();
   await page.getByRole("link", { name: /Cake flour/ }).click();
@@ -102,7 +105,7 @@ test("a VAT-registered business says what the price includes, and costs are work
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
-  await page.goto("/app/products/materials/new");
+  await page.goto("/app/materials/new");
   await fillMaterial(page, { name: "Cake flour", unit: "kg", quantity: "12,5", price: "187,50" });
   // Includes VAT is chosen to start (what a shop till shows): 15% comes out, so R13,04 a kg, and it says so.
   await expect(page.getByRole("radio", { name: /^Includes VAT/ })).toBeChecked();
@@ -128,7 +131,7 @@ test("a VAT-registered business says what the price includes, and costs are work
 test("each business only ever sees its own materials", async ({ page, browser }) => {
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "mat-own", "Own Materials Co");
-  await page.goto("/app/products/materials/new");
+  await page.goto("/app/materials/new");
   await fillMaterial(page, { name: "Private beeswax", unit: "g", quantity: "500", price: "450" });
   await page.getByRole("button", { name: "Add material" }).click();
   await expect(page.getByTestId("material-added")).toBeVisible();
@@ -137,7 +140,7 @@ test("each business only ever sees its own materials", async ({ page, browser })
   const other = await browser.newContext({ ...devices["Pixel 7"] });
   const second = await other.newPage();
   await signUpAndOnboard(second, "mat-other", "Other Materials Co");
-  await second.goto("/app/products/materials");
+  await second.goto("/app/materials");
   await expect(second.getByText("No materials yet")).toBeVisible();
   await second.goto(url);
   await expect(second.getByText("This page could not be found")).toBeVisible();
@@ -147,12 +150,12 @@ test("each business only ever sees its own materials", async ({ page, browser })
 
 test("when every material is archived, the list says so instead of looking empty or broken", async ({ page }) => {
   await signUpAndOnboard(page, "mat-allarch", "All Archived Co");
-  await page.goto("/app/products/materials/new");
+  await page.goto("/app/materials/new");
   await fillMaterial(page, { name: "Old stock", unit: "each", quantity: "100", price: "50" });
   await page.getByRole("button", { name: "Add material" }).click();
   await page.getByRole("link", { name: /Old stock/ }).click();
   await page.getByRole("button", { name: "Archive material" }).click();
-  await expect(page).toHaveURL(/\/app\/products\/materials$/);
+  await expect(page).toHaveURL(/\/app\/materials$/);
   await expect(page.getByText("All your materials are archived. Tick Show archived to see them.")).toBeVisible();
   await page.getByRole("checkbox", { name: /Show archived/ }).check();
   await expect(page.getByRole("link", { name: /Old stock/ })).toBeVisible();

@@ -409,7 +409,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "products, with a product");
 
       // Materials: the empty list, the form with its problems, the list with one, and the edit screen.
-      await page.goto("/app/products/materials");
+      await page.goto("/app/materials");
       await expectNoViolations(page, "materials, empty");
       await page.getByRole("link", { name: "Add your first material" }).click();
       await expectNoViolations(page, "new material");
@@ -427,7 +427,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Cake flour", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit material");
       await page.goto("/app/products");
-      await page.getByRole("navigation", { name: "Products, services or materials" }).getByRole("link", { name: "Services" }).click();
+      await page.getByRole("navigation", { name: "Products or services" }).getByRole("link", { name: "Services" }).click();
       await expect(page.getByText("No services yet")).toBeVisible();
       await expectNoViolations(page, "services, empty");
       await page.getByRole("link", { name: "Add your first service" }).click();

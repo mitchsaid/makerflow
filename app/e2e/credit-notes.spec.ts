@@ -57,6 +57,14 @@ test("a credit note corrects an invoice without changing it, and the rest can be
   await expect(page.getByTestId("invoice-owing")).toHaveText(rand("2 000"));
   await expect(page.getByTestId("credit-notes")).toContainText("CN-0001");
 
+  // The customer's page says how many credit notes their invoices carry.
+  await page.goto("/app/customers");
+  await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
+  await expect(page).toHaveURL(/\/app\/customers\/[0-9a-f-]{36}$/);
+  await page.goto(`${page.url()}?section=invoices`);
+  await expect(page.getByTestId("customer-credit-notes")).toHaveText("1 credit note on these invoices");
+  await page.goto(invoiceUrl);
+
   // More than is left of an item is explained at the field, and what was typed stays.
   await page.getByRole("button", { name: "Issue a credit note" }).click();
   await sheet(page).getByLabel("Why", { exact: true }).selectOption({ label: "Price or billing correction" });
