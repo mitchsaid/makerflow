@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { AddLink } from "@/components/add-button";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { draftRowsOf } from "@/lib/invoices/draft";
@@ -18,13 +20,18 @@ export default async function InvoicesPage({ searchParams }: PageProps<"/app/inv
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Invoices</h1>
-        {(invoices.length > 0 || drafts.length > 0) && (
-          <AddLink href="/app/invoices/new" variant="default">
-            New invoice
-          </AddLink>
-        )}
+        <div className="flex items-center gap-2">
+          <Link href="/app/invoices/settings" className={buttonVariants({ variant: "outline" })}>
+            Invoice settings
+          </Link>
+          {(invoices.length > 0 || drafts.length > 0) && (
+            <AddLink href="/app/invoices/new" variant="default">
+              New invoice
+            </AddLink>
+          )}
+        </div>
       </div>
       <InvoiceList key={parseInvoiceFilter(query.show) ?? "all"} initialFilter={parseInvoiceFilter(query.show) ?? "all"} invoices={invoices} drafts={drafts} currencyCode={profile.currencyCode} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
     </main>

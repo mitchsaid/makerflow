@@ -9,7 +9,7 @@ import { PolicyArchiveButton } from "../archive-button";
 import { PolicyForm } from "../policy-form";
 import { PageHeader } from "@/components/page-header";
 
-export default async function EditPolicyPage({ params }: PageProps<"/app/documents/policies/[id]">) {
+export default async function EditPolicyPage({ params }: PageProps<"/app/quotes/settings/policies/[id]">) {
   const { id } = await params;
   // The policy loads beside the workspace check, not after it.
   const [policy, { organisation, profile, role }] = await Promise.all([getPolicy(id), requireOrganisation()]);
@@ -19,7 +19,7 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/documen
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/documents/policies", label: "Terms" }}>
+      <PageHeader back={{ href: "/app/quotes/settings/policies", label: "Terms" }}>
         <h1 className="text-xl font-semibold">{termName(policy)}</h1>
       </PageHeader>
       {policy.archived && (

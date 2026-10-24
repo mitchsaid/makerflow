@@ -55,7 +55,7 @@ async function saveNumbering(docType: DocType, values: NumberingValues): Promise
     console.error(`could not save ${docType} numbering:`, error.code, error.message);
     return { status: "error", message: "Something went wrong saving that. Please try again." };
   }
-  revalidatePath("/app/documents");
+  revalidatePath("/app/quotes/settings");
   return { status: "saved" };
 }
 

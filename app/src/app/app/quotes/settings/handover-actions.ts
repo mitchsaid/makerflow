@@ -10,7 +10,7 @@ export type HandoverDefaultState = { status: "saved" } | { status: "error"; mess
 const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
 const NOT_ALLOWED = "Only owners and admins can change how new quotes start. Ask one of them.";
 
-/** Quotes and invoices > "Delivery or collection": what a new quote starts with. Owners and admins only. */
+/** Quote settings > "Delivery or collection": what a new quote starts with. Owners and admins only. */
 export async function saveHandoverDefault(value: unknown): Promise<HandoverDefaultState> {
   const { organisation, role } = await requireOrganisation();
   if (!canEditBusinessProfile(role)) return { status: "error", message: NOT_ALLOWED };

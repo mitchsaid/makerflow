@@ -6,8 +6,13 @@ const nextConfig: NextConfig = {
   // browser tests, wherever it is put. Errors still show in the dev overlay; production has no badge.
   devIndicators: false,
   // Materials moved out of the Products tab (2026-10-23); old links and bookmarks still arrive.
+  // The quote settings moved into Quotes (2026-10-24, "Quotes and invoices" is no longer a page of its own).
   async redirects() {
-    return [{ source: "/app/products/materials/:path*", destination: "/app/materials/:path*", permanent: false }];
+    return [
+      { source: "/app/products/materials/:path*", destination: "/app/materials/:path*", permanent: false },
+      { source: "/app/documents", destination: "/app/quotes/settings", permanent: false },
+      { source: "/app/documents/:path*", destination: "/app/quotes/settings/:path*", permanent: false },
+    ];
   },
 };
 

@@ -52,7 +52,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
           validUntil: addDays(today, DEFAULT_VALID_DAYS),
           neededBy: "",
           lines: [],
-          // Delivery or collection, as the business usually works (set by the first-quote questions or under Quotes and invoices).
+          // Delivery or collection, as the business usually works (set by the first-quote questions or under Quote settings).
           fulfilment: profile.usualFulfilment ?? "none",
           deliveryFee: "",
           deliveryAddress: "",

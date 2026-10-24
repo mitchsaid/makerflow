@@ -70,9 +70,12 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
 
       <section className="space-y-3" aria-labelledby="next-heading">
         <h2 id="next-heading" className="text-base font-semibold">
-          Where it stands
+          {job.status === "cancelled" ? "Cancelled" : "Where it stands"}
         </h2>
-        <JobSteps jobId={job.id} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
+        {job.status === "cancelled" && (
+          <p className="text-muted-foreground">This job was cancelled, so nothing is counted on it. Restore it to carry on.</p>
+        )}
+        <JobSteps jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
       </section>
 
       <section className="space-y-2" aria-labelledby="make-heading">

@@ -163,7 +163,7 @@ test("terms on a quote: on by default, added from the saved ones or written in t
 
   // Archiving hides it from new quotes; the quote that has it keeps its copy.
   await page.getByRole("button", { name: "Archive this term" }).click();
-  await expect(page).toHaveURL(/\/app\/documents\/policies$/);
+  await expect(page).toHaveURL(/\/app\/quotes\/settings\/policies$/);
   await page.goto("/app/quotes/new");
   await expect(termRow("Changes after you say yes")).toHaveCount(0);
   await page.goto(quoteUrl);

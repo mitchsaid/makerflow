@@ -14,10 +14,10 @@ import { AddLink } from "@/components/add-button";
 import { PageHeader } from "@/components/page-header";
 
 /**
- * Quotes and invoices > Terms: the library of terms a business reuses on its quotes (stored as
+ * Quote settings > Terms: the library of terms a business reuses on its quotes (stored as
  * "policies"). Owners and admins manage it; every member can use it on a quote.
  */
-export default async function PoliciesPage({ searchParams }: PageProps<"/app/documents/policies">) {
+export default async function PoliciesPage({ searchParams }: PageProps<"/app/quotes/settings/policies">) {
   // The terms query runs beside the workspace check, not after it.
   const [all, { organisation, profile, role, dismissedPrompts }, params] = await Promise.all([
     getPolicies(),
@@ -36,7 +36,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/documents", label: "Quotes and invoices" }}>
+      <PageHeader back={{ href: "/app/quotes/settings", label: "Quote settings" }}>
         <h1 className="text-xl font-semibold">Terms</h1>
         <p className="text-muted-foreground">
           Write each term once, then add it to any quote. Existing quotes are never changed.
@@ -92,7 +92,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
               <li key={p.id}>
                 {canEdit ? (
                   <Link
-                    href={`/app/documents/policies/${p.id}`}
+                    href={`/app/quotes/settings/policies/${p.id}`}
                     className="block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
                     {card}
@@ -110,7 +110,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
 
       {canEdit && (
         <>
-          <AddLink href="/app/documents/policies/new">
+          <AddLink href="/app/quotes/settings/policies/new">
             Add a term
           </AddLink>
           <section className="space-y-2" aria-labelledby="examples-heading" data-testid="example-links">
@@ -130,7 +130,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
             <ul className="flex flex-wrap gap-2">
               {examples.forYou.map((e) => (
                 <li key={e.key}>
-                  <Link href={`/app/documents/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
+                  <Link href={`/app/quotes/settings/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
                     {exampleLabel(e)}
                   </Link>
                 </li>
@@ -142,7 +142,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/doc
                 <ul className="flex flex-wrap gap-2">
                   {examples.others.map((e) => (
                     <li key={e.key}>
-                      <Link href={`/app/documents/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
+                      <Link href={`/app/quotes/settings/policies/new?example=${e.key}`} className={buttonVariants({ variant: "outline" })}>
                         {exampleLabel(e)}
                       </Link>
                     </li>

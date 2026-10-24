@@ -23,11 +23,6 @@ const LINKS = [
     description: "Your business name, contact details, address, VAT and bank details.",
   },
   {
-    href: "/app/documents",
-    title: "Quotes and invoices",
-    description: "Numbering, wording, terms and what new quotes start with.",
-  },
-  {
     href: "/app/settings",
     title: "Settings",
     description: "Your account and how the app works for you.",

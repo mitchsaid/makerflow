@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
-import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
+import { localSupabase, openBusinessProfile, openDocuments, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -79,7 +79,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Continue" }).click();
       await expect(page.getByTestId("business-name")).toBeVisible();
 
-      await page.goto("/app/documents/policies");
+      await page.goto("/app/quotes/settings/policies");
       await expect(page.getByTestId("showing-types")).toBeVisible();
       await page.getByTestId("more-examples").locator("summary").click();
       await expectNoViolations(page, "terms, examples for you with more examples open");
@@ -362,6 +362,13 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await page.getByRole("link", { name: /J-0001/ }).click();
       await page.getByRole("button", { name: "Cancel this job" }).click();
+      await expect(page.getByRole("dialog")).toHaveAccessibleName("Cancel this job?");
+      await expectNoViolations(page, "job, asking to cancel it");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel the job" }).click();
+      await expect(page.getByTestId("job-cancelled-notice")).toBeVisible();
+      await expectNoViolations(page, "jobs, a job just cancelled");
+      await page.getByRole("button", { name: /^All/ }).click();
+      await page.getByRole("link", { name: /J-0001/ }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
       await expectNoViolations(page, "job, cancelled");
       await page.getByRole("link", { name: "quote QT-0001" }).click();
@@ -571,9 +578,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product quantity prices, with a problem");
 
-      // Quotes and invoices: the settings page, then quote numbers with a number already used.
+      // Quote settings: the page, then quote numbers with a number already used.
       await openDocuments(page);
-      await expectNoViolations(page, "quotes and invoices");
+      await expectNoViolations(page, "quote settings");
       // Themes: the library, then the studio (each part), then saved.
       await page.getByRole("link", { name: "Manage themes" }).click();
       await expect(page.getByRole("heading", { name: "Themes", level: 1 })).toBeVisible();
@@ -619,18 +626,18 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Deposit on a new quote").selectOption("percent");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByText("Enter a percentage").first()).toBeVisible();
-      await expectNoViolations(page, "quotes and invoices, default deposit with an error");
+      await expectNoViolations(page, "quote settings, default deposit with an error");
       await page.getByLabel("Percentage (%)").fill("40");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.locator("#deposit-default").getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
-      await expectNoViolations(page, "quotes and invoices, default deposit saved");
+      await expectNoViolations(page, "quote settings, default deposit saved");
       // Quote numbers, with a number that has already been used.
       await page.getByLabel("Next number", { exact: true }).fill("1");
       await page.getByRole("button", { name: "Save quote numbers" }).click();
       // Wait for THIS form's answer .
       await expect(page.getByText(/has already been used/).first()).toBeVisible();
       await expect(page.getByRole("button", { name: "Save quote numbers" })).toBeEnabled();
-      await expectNoViolations(page, "quotes and invoices, quote numbers with an error");
+      await expectNoViolations(page, "quote settings, quote numbers with an error");
 
 
       // Terms: the library, the form (with errors and an example), and the saved list with an untitled term.
@@ -664,7 +671,7 @@ for (const scheme of ["light", "dark"] as const) {
       await openDocuments(page);
       await page.getByLabel("Deposit on a new quote").selectOption("ask");
       await page.getByLabel("Intro (optional)").fill("Thank you for asking.");
-      await expectNoViolations(page, "quotes and invoices, usuals");
+      await expectNoViolations(page, "quote settings, usuals");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 
@@ -935,7 +942,9 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("credit-notes")).toBeVisible();
       await expectNoViolations(page, "an invoice with a credit note");
       await openDocuments(page);
-      await expectNoViolations(page, "quotes and invoices, with the three numberings");
+      await expectNoViolations(page, "quote settings, with the quote numbering");
+      await openInvoiceSettings(page);
+      await expectNoViolations(page, "invoice settings, with the invoice and credit note numbering");
     });
 
     test("the margin you aim for: the profile form and a product's summary", async ({ page }) => {

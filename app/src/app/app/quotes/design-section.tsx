@@ -158,7 +158,7 @@ export function DraftPreview({
           })}
           {canEdit && (
             <Link
-              href={`/app/documents/themes/new?quote=${quoteId}`}
+              href={`/app/quotes/settings/themes/new?quote=${quoteId}`}
               className="flex w-28 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl p-1.5 text-center text-sm ring-1 ring-foreground/15 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <span aria-hidden="true" className="text-2xl leading-none">
@@ -173,12 +173,12 @@ export function DraftPreview({
         </p>
         <div className="flex flex-wrap gap-2">
           {canEdit && ownTheme && (
-            <Link href={`/app/documents/themes/${chosen.ref.id}?quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
+            <Link href={`/app/quotes/settings/themes/${chosen.ref.id}?quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
               Edit this theme
             </Link>
           )}
           {canEdit && (
-            <Link href={`/app/documents/themes/new?from=${from}&quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
+            <Link href={`/app/quotes/settings/themes/new?from=${from}&quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
               Remix this theme
             </Link>
           )}

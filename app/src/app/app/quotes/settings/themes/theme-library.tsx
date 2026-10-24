@@ -53,11 +53,11 @@ export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[];
         {canEdit && (
           <div className="flex flex-wrap gap-2">
             {e.own && (
-              <Link href={`/app/documents/themes/${e.key}`} className={buttonVariants({ variant: "outline" })}>
+              <Link href={`/app/quotes/settings/themes/${e.key}`} className={buttonVariants({ variant: "outline" })}>
                 Edit<span className="sr-only"> {e.name}</span>
               </Link>
             )}
-            <Link href={`/app/documents/themes/new?from=${from}`} className={buttonVariants({ variant: "outline" })}>
+            <Link href={`/app/quotes/settings/themes/new?from=${from}`} className={buttonVariants({ variant: "outline" })}>
               Remix<span className="sr-only"> {e.name}</span>
             </Link>
             {e.own && confirming !== e.key && (

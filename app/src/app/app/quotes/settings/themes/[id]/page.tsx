@@ -9,11 +9,11 @@ import { ThemeStudio } from "../theme-studio";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** One of the business's own themes in the studio. */
-export default async function EditThemePage({ params, searchParams }: PageProps<"/app/documents/themes/[id]">) {
+export default async function EditThemePage({ params, searchParams }: PageProps<"/app/quotes/settings/themes/[id]">) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
   const [workspace, saved, products] = await Promise.all([requireOrganisation(), getThemes(), getProducts()]);
-  if (!canEditBusinessProfile(workspace.role)) redirect("/app/documents/themes");
+  if (!canEditBusinessProfile(workspace.role)) redirect("/app/quotes/settings/themes");
   const theme = saved.find((t) => t.id === id);
   if (!theme) notFound();
   const quoteId = typeof query.quote === "string" && UUID.test(query.quote) ? query.quote : undefined;

@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { bankLines, bankSummary, canEditBankDetails } from "@/lib/bank";
@@ -96,20 +94,6 @@ export default async function BusinessProfilePage() {
           )}
         </Card>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quotes and invoices</CardTitle>
-          <CardDescription className="text-base">
-            Numbering, wording, terms and what new quotes start with.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/app/documents" className={buttonVariants({ variant: "outline" })}>
-            Quote and invoice settings
-          </Link>
-        </CardContent>
-      </Card>
     </main>
   );
 }

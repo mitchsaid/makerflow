@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openDocuments, openMore } from "./helpers";
+import { openInvoiceSettings, openMore } from "./helpers";
 import { issuedInvoice } from "./invoice-helpers";
 import { sheet } from "./quote-helpers";
 
@@ -123,7 +123,7 @@ test("crediting an invoice that was paid says what the customer is owed back", a
 
 test("credit note numbers are set with the others and never go back", async ({ page }) => {
   await issuedInvoice(page, "credit-numbering", { name: "Shelf", quantity: "1", price: "100" });
-  await openDocuments(page);
+  await openInvoiceSettings(page);
   await expect(page.getByLabel("Credit note prefix", { exact: true })).toHaveValue("CN-");
   await page.getByLabel("Credit note prefix", { exact: true }).fill("CR/");
   await page.getByLabel("Credit note next number", { exact: true }).fill("50");

@@ -15,8 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BOOLEAN_PARTS, THEME_NAME_MAX, normaliseColour, resolveTheme, sameSpec, type ChoiceName, type ThemeSpec } from "@/lib/quotes/themes";
 import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
-import { LivePdfPreview } from "../../quotes/live-preview";
-import { saveQuoteTheme } from "../../quotes/design-actions";
+import { LivePdfPreview } from "../../live-preview";
+import { saveQuoteTheme } from "../../design-actions";
 import { createTheme, saveTheme } from "../theme-actions";
 
 const ACCENTS: readonly (readonly [string, string])[] = [
@@ -138,7 +138,7 @@ export function ThemeStudio({
         if (id === null) {
           setId(result.id);
           // The address of a theme that exists now (a reload opens it, not a new copy), without reloading the studio.
-          window.history.replaceState(null, "", `/app/documents/themes/${result.id}${quoteId ? `?quote=${quoteId}` : ""}`);
+          window.history.replaceState(null, "", `/app/quotes/settings/themes/${result.id}${quoteId ? `?quote=${quoteId}` : ""}`);
         }
         if (thenUse && quoteId) {
           const used = await saveQuoteTheme(quoteId, result.id, null);
@@ -154,7 +154,7 @@ export function ThemeStudio({
   const leave = (event: React.MouseEvent) => {
     if (dirty && !window.confirm("You have changes that aren't saved. Leave without saving?")) event.preventDefault();
   };
-  const backHref = quoteId ? `/app/quotes/${quoteId}/preview` : "/app/documents/themes";
+  const backHref = quoteId ? `/app/quotes/${quoteId}/preview` : "/app/quotes/settings/themes";
   const backLabel = quoteId ? "the quote preview" : "Themes";
 
   const colourRow = (part: "accent" | "paper" | "gradientTo", label: string, options: readonly (readonly [string, string])[]) => (

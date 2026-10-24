@@ -10,7 +10,7 @@ import { saveQuoteWording, type WordingErrors, type WordingState, type WordingVa
 import { FormErrorScope } from "@/components/form-errors";
 
 /**
- * Quotes and invoices > Quote wording: what every new quote starts with. Each quote can change its
+ * Quote settings > Quote wording: what every new quote starts with. Each quote can change its
  * own copy; changing these never changes a quote that already exists.
  */
 export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingValues; otherWaysHint: string }) {

@@ -50,12 +50,12 @@ import { CustomerPicker } from "./customer-picker";
 import { useItemSheetProducts } from "./use-item-sheet-products";
 import { LineSheet, type LineSheetView } from "./line-sheet";
 import { AddButton } from "@/components/add-button";
-import { saveDepositDefault } from "../documents/deposit-actions";
+import { saveDepositDefault } from "./settings/deposit-actions";
 import { saveUsualDescription, saveUsualPayment, saveUsualSignOff } from "./usual-actions";
 import { UsualButtons } from "./usual-buttons";
 import { QuoteNumber, type QuoteNumbering } from "./quote-number";
 import { canSaveUsualText, canUseUsualText, sameDeposit, sameDiscount, type QuoteUsuals } from "@/lib/quotes/usuals";
-import { saveDiscountDefault } from "../documents/discount-actions";
+import { saveDiscountDefault } from "./settings/discount-actions";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
@@ -133,7 +133,7 @@ export function QuoteBuilder({
   startingText: { description: string; signOff: string };
   /** A new quote: how quotes are numbered now, so the number it will get can be shown. Absent once it has a number. */
   numbering?: QuoteNumbering;
-  /** Owners and admins can change how quotes are numbered (from the quote, or under Quotes and invoices). */
+  /** Owners and admins can change how quotes are numbered (from the quote, or under Quote settings). */
   canChangeNumbering?: boolean;
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;

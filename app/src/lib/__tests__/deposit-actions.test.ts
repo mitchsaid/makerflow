@@ -6,7 +6,7 @@ vi.mock("@/lib/auth/dal", () => ({ requireOrganisation: () => requireOrganisatio
 vi.mock("@/lib/supabase/server", () => ({ createClient: () => createClient() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { saveDepositDefault } from "../../app/app/documents/deposit-actions";
+import { saveDepositDefault } from "../../app/app/quotes/settings/deposit-actions";
 
 const asRole = (role: string) => requireOrganisation.mockResolvedValue({ organisation: { id: "org-1" }, role });
 

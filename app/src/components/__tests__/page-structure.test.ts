@@ -38,17 +38,17 @@ describe("back navigation", () => {
       "products/[id]/page.tsx",
       "materials/new/page.tsx",
       "materials/[id]/page.tsx",
-      "documents/policies/page.tsx",
-      "documents/policies/new/page.tsx",
-      "documents/policies/[id]/page.tsx",
-      "documents/themes/page.tsx",
-      "documents/themes/new/page.tsx",
+      "quotes/settings/policies/page.tsx",
+      "quotes/settings/policies/new/page.tsx",
+      "quotes/settings/policies/[id]/page.tsx",
+      "quotes/settings/themes/page.tsx",
+      "quotes/settings/themes/new/page.tsx",
       "quotes/[id]/page.tsx",
       "quotes/[id]/preview/page.tsx",
     ].map((p) => `app/${p}`);
     const without = under.filter((p) => !sources.find((s) => s.file === p)?.text.includes("<PageHeader"));
     expect(without).toEqual([]);
-    expect(sources.find((s) => s.file === "app/documents/themes/theme-studio.tsx")?.text).toContain("<BackLink");
+    expect(sources.find((s) => s.file === "app/quotes/settings/themes/theme-studio.tsx")?.text).toContain("<BackLink");
   });
 
   it("gives every back control a name that says where it goes", () => {
