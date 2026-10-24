@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * "Save as my usual", from a quote: what is on the quote becomes what every new quote starts with
- * (docs/plans/quote-form-feedback.md). The same columns as Quotes and invoices; owners and admins only (the
+ * (docs/plans/quote-form-feedback.md). The same columns as Quote settings; owners and admins only (the
  * database checks too). Quotes that exist are never changed.
  */
 

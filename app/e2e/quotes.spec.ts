@@ -408,8 +408,8 @@ test("the quotes page links to the quote settings", async ({ page }) => {
   await signUpAndOnboard(page, "q-settings-link", "Link Co");
   await openQuotes(page);
   await page.getByRole("link", { name: "Quote settings" }).click();
-  await expect(page).toHaveURL(/\/app\/documents$/);
-  await expect(page.getByRole("heading", { name: "Quotes and invoices", level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(/\/app\/quotes\/settings$/);
+  await expect(page.getByRole("heading", { name: "Quote settings", level: 1 })).toBeVisible();
 });
 
 test("a long quote shows its first five items and a Show all button; a new item is never hidden", async ({ page }) => {

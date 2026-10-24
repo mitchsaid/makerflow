@@ -4,14 +4,14 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatDocumentNumber } from "@/lib/quotes/numbering";
-import { QuoteNumberingForm } from "../documents/quote-numbering-form";
+import { QuoteNumberingForm } from "./settings/quote-numbering-form";
 
 /** How the business numbers its quotes right now (what the next new quote will be called). */
 export type QuoteNumbering = { prefix: string; nextNumber: number; minDigits: number; lastIssued: number | null };
 
 /**
  * On a new quote: the number it is about to get, so the maker is not left wondering, with a way to change how quotes
- * are numbered without leaving the quote (the same prefix and next-number form as under Quotes and invoices, in a
+ * are numbered without leaving the quote (the same prefix and next-number form as under Quote settings, in a
  * sheet). The number itself is never typed onto one quote: numbers stay gapless and automatic. Only owners and admins
  * can change the numbering; everyone sees the number.
  */

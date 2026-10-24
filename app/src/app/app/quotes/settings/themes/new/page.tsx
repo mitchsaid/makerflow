@@ -17,16 +17,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * own (shown as pictures). Then the studio (`?from=starter:warm`, `?from=theme:<id>` or `?from=blank`),
  * where nothing is saved until Save is pressed. `?quote=<id>` carries on from a quote's preview.
  */
-export default async function NewThemePage({ searchParams }: PageProps<"/app/documents/themes/new">) {
+export default async function NewThemePage({ searchParams }: PageProps<"/app/quotes/settings/themes/new">) {
   const query = await searchParams;
   // The products are only needed to draw the studio's sample quote, not to choose where to start.
   const [workspace, saved, products] = await Promise.all([requireOrganisation(), getThemes(), typeof query.from === "string" ? getProducts() : Promise.resolve([])]);
-  if (!canEditBusinessProfile(workspace.role)) redirect("/app/documents/themes");
+  if (!canEditBusinessProfile(workspace.role)) redirect("/app/quotes/settings/themes");
 
   const quoteParam = typeof query.quote === "string" && UUID.test(query.quote) ? `&quote=${query.quote}` : "";
   if (typeof query.from !== "string") {
     // Step one: how to start.
-    const back = quoteParam ? `/app/quotes/${query.quote as string}/preview` : "/app/documents/themes";
+    const back = quoteParam ? `/app/quotes/${query.quote as string}/preview` : "/app/quotes/settings/themes";
     const card = (href: string, name: string, theme: ReturnType<typeof resolveTheme>, note?: string) => (
       <li key={href}>
         <Link
@@ -49,14 +49,14 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/doc
           <h2 id="blank-heading" className="text-base font-semibold">
             From a blank page
           </h2>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">{card(`/app/documents/themes/new?from=blank${quoteParam}`, "Start from scratch", resolveTheme(BLANK_SPEC, "New"), "Plain black and white")}</ul>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">{card(`/app/quotes/settings/themes/new?from=blank${quoteParam}`, "Start from scratch", resolveTheme(BLANK_SPEC, "New"), "Plain black and white")}</ul>
         </section>
         <section className="space-y-3" aria-labelledby="starter-heading">
           <h2 id="starter-heading" className="text-base font-semibold">
             Remix a starter
           </h2>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {STARTERS.map((s) => card(`/app/documents/themes/new?from=starter:${s.key}${quoteParam}`, s.name, resolveTheme(s.spec, s.name), s.description))}
+            {STARTERS.map((s) => card(`/app/quotes/settings/themes/new?from=starter:${s.key}${quoteParam}`, s.name, resolveTheme(s.spec, s.name), s.description))}
           </ul>
         </section>
         {saved.length > 0 && (
@@ -65,7 +65,7 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/doc
               Remix one of yours
             </h2>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {saved.map((t) => card(`/app/documents/themes/new?from=theme:${t.id}${quoteParam}`, t.name, resolveTheme(t.spec, t.name)))}
+              {saved.map((t) => card(`/app/quotes/settings/themes/new?from=theme:${t.id}${quoteParam}`, t.name, resolveTheme(t.spec, t.name)))}
             </ul>
           </section>
         )}

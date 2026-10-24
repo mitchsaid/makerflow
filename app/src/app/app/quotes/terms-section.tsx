@@ -19,7 +19,7 @@ import {
   type QuotePolicyError,
   type QuotePolicyValues,
 } from "@/lib/policies";
-import { PolicyForm } from "../documents/policies/policy-form";
+import { PolicyForm } from "./settings/policies/policy-form";
 
 /**
  * The quote's terms (docs/plans/quote-form-feedback.md, slice C): the terms on this quote as compact rows, and one

@@ -1,10 +1,11 @@
 import { AddLink } from "@/components/add-button";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getJobs } from "@/lib/jobs/data";
-import { parseJobFilter } from "@/lib/jobs";
+import { jobNumberText, parseJobFilter } from "@/lib/jobs";
 import { getLocalePack } from "@/lib/locale";
 import { todayIn } from "@/lib/quotes/dates";
 import { forOrganisation } from "@/lib/scope";
+import { CancelledNotice } from "./cancelled-notice";
 import { JobList } from "./job-list";
 
 export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">) {
@@ -12,6 +13,8 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
   const [allJobs, { organisation, profile }, query] = await Promise.all([getJobs(), requireOrganisation(), searchParams]);
   const locale = getLocalePack(profile.countryCode);
   const jobs = forOrganisation(allJobs, organisation.id);
+  // Just cancelled: say so, with an Undo (the list is already loaded, so this costs nothing).
+  const cancelled = typeof query.cancelled === "string" ? jobs.find((j) => j.id === query.cancelled && j.status === "cancelled") : undefined;
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -23,6 +26,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
           </AddLink>
         )}
       </div>
+      {cancelled && <CancelledNotice key={cancelled.id} jobId={cancelled.id} jobLabel={`Job ${jobNumberText(cancelled.number)}`} />}
       <JobList key={parseJobFilter(query.show) ?? "active"} jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} initialFilter={parseJobFilter(query.show) ?? "active"} />
     </main>
   );

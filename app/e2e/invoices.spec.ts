@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openDocuments, openMore, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openDocuments, openInvoiceSettings, openMore, signUpAndOnboard } from "./helpers";
 import { sentQuote } from "./quote-helpers";
 
 /** Invoices, slice I1 (docs/plans/invoices-and-payments.md). */
@@ -39,7 +39,7 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   await expect(page.getByText("Saved.")).toBeVisible();
 
   // Carrying on from another system: invoices continue from the number set here, and it can't go back.
-  await openDocuments(page);
+  await openInvoiceSettings(page);
   await expect(page.getByLabel("Invoice prefix", { exact: true })).toHaveValue("INV-");
   await page.getByLabel("Invoice next number", { exact: true }).fill("41");
   await page.getByRole("button", { name: "Save invoice numbers" }).click();
@@ -119,7 +119,7 @@ test("a new business sees an empty list with the way to its first invoice", asyn
 
 test("invoice numbering never goes back", async ({ page }) => {
   await signUpAndOnboard(page, "invoice-numbering", "Numbering Co");
-  await openDocuments(page);
+  await openInvoiceSettings(page);
   await page.getByLabel("Invoice next number", { exact: true }).fill("0");
   await page.getByRole("button", { name: "Save invoice numbers" }).click();
   await expect(page.getByTestId("form-summary")).toBeVisible();
@@ -130,6 +130,7 @@ test("invoice numbering never goes back", async ({ page }) => {
   await page.reload();
   await expect(page.getByLabel("Invoice prefix", { exact: true })).toHaveValue("FAC/");
   await expect(page.getByLabel("Invoice next number", { exact: true })).toHaveValue("7");
-  // The quote numbers are a separate run.
+  // The quote numbers are a separate run, under the quote settings.
+  await openDocuments(page);
   await expect(page.getByLabel("Prefix", { exact: true })).toHaveValue("QT-");
 });

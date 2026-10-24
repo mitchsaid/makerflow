@@ -9,7 +9,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { saveHandoverDefault, type HandoverDefaultState } from "./handover-actions";
 
 /**
- * Quotes and invoices > Delivery or collection: what a new quote starts with. Each quote can change it;
+ * Quote settings > Delivery or collection: what a new quote starts with. Each quote can change it;
  * changing it here never changes a quote that exists.
  */
 export function HandoverDefaultForm({ initial }: { initial: "none" | "collection" | "delivery" }) {

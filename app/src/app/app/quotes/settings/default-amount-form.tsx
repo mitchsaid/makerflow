@@ -16,7 +16,7 @@ export type DefaultAmountState =
   | { status: "error"; message?: string; errors?: Partial<Record<string, string>> };
 
 /**
- * Quotes and invoices: what a new quote starts with for something that is nothing, a percentage of the total or an amount
+ * Quote settings: what a new quote starts with for something that is nothing, a percentage of the total or an amount
  * (the deposit, the discount on the whole quote). One form for both, so they ask the same way; each says its own words.
  * Changing it here never changes a quote that exists, and each quote can change it.
  */

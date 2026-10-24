@@ -36,8 +36,8 @@ export default async function QuotesPage({ searchParams }: PageProps<"/app/quote
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Quotes</h1>
         <div className="flex items-center gap-2">
-          {/* Numbering, wording, policies and defaults: the same page that will hold invoice settings. */}
-          <Link href="/app/documents" className={buttonVariants({ variant: "outline" })}>
+          {/* Numbering, wording, terms, themes and defaults for quotes. */}
+          <Link href="/app/quotes/settings" className={buttonVariants({ variant: "outline" })}>
             Quote settings
           </Link>
           {quotes.length > 0 && (

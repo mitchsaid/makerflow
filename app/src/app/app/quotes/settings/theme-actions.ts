@@ -14,7 +14,7 @@ const NOT_ALLOWED = "Only owners and admins can change the themes. Ask one of th
 
 /** Where a theme's changes show up: the library, quote previews and the quotes list. */
 function refresh() {
-  revalidatePath("/app/documents/themes");
+  revalidatePath("/app/quotes/settings/themes");
   revalidatePath("/app/quotes", "layout");
 }
 

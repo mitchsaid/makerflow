@@ -4,7 +4,7 @@ import { DefaultAmountForm } from "./default-amount-form";
 import { saveDiscountDefault } from "./discount-actions";
 
 /**
- * Quotes and invoices > Discount: the discount on the whole quote that a new quote starts with, for a business that
+ * Quote settings > Discount: the discount on the whole quote that a new quote starts with, for a business that
  * usually gives one. Each quote can change it or take it off; changing it here never changes a quote that exists.
  */
 export function DiscountDefaultForm({

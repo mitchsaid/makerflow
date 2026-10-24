@@ -4,7 +4,7 @@ import { DefaultAmountForm, type DefaultAmountKind } from "./default-amount-form
 import { saveDepositDefault } from "./deposit-actions";
 
 /**
- * Quotes and invoices > Deposit: what a new quote starts with (or "I decide on each quote"). Each quote can change it or
+ * Quote settings > Deposit: what a new quote starts with (or "I decide on each quote"). Each quote can change it or
  * switch it off; changing it here never changes a quote that exists.
  */
 export function DepositDefaultForm({

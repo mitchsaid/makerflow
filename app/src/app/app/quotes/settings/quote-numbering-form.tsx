@@ -10,7 +10,7 @@ import { saveCreditNoteNumbering, saveInvoiceNumbering, saveQuoteNumbering, type
 import { FormErrorScope } from "@/components/form-errors";
 
 /**
- * Quotes and invoices > Quote numbers. A quote is numbered the first time it is saved, from this
+ * Quote settings > Quote numbers. A quote is numbered the first time it is saved, from this
  * prefix and counter. Continue from another system by setting the next number.
  *
  * Also shown in a sheet over a new quote ("Change numbering" beside the number it is about to get): `embedded` then

@@ -21,7 +21,7 @@ async function previewOfNewQuote(page: Page) {
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
 }
 
-test("the logo is set on the Business profile, and Quotes and invoices says where it went", async ({ page }) => {
+test("the logo is set on the Business profile, and the quote settings do not hold it", async ({ page }) => {
   await signUpAndOnboard(page, "logo-profile", "Logo Co");
   await openBusinessProfile(page);
   await expect(page.getByRole("group", { name: "Your logo" })).toBeVisible();
@@ -39,7 +39,7 @@ test("the logo is set on the Business profile, and Quotes and invoices says wher
   await page.reload();
   await expect(page.getByTestId("logoImage-preview")).toHaveCount(0);
 
-  // Quotes and invoices no longer holds it, and points to the Business profile.
+  // The quote settings do not hold it, and point to the Business profile.
   await openDocuments(page);
   await expect(page.getByRole("group", { name: "Your logo" })).toHaveCount(0);
   await page.getByRole("link", { name: "Business profile", exact: true }).click();

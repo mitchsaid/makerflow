@@ -51,7 +51,7 @@ test("a theme is remixed from a starter, changed part by part with the preview f
 
   // Remix Warm: a copy in the studio, with the quote drawn on it.
   await page.getByRole("region", { name: "Remix a starter" }).getByRole("link", { name: /^Warm/ }).click();
-  await expect(page).toHaveURL(/\/app\/documents\/themes\/new\?from=starter:warm/);
+  await expect(page).toHaveURL(/\/app\/quotes\/settings\/themes\/new\?from=starter:warm/);
   await expect(page.getByLabel("Theme name")).toHaveValue("Remix of Warm");
   await expect(page.getByText("A copy of Warm. It isn't saved until you press Save.")).toBeVisible();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
@@ -115,11 +115,11 @@ test("a theme is remixed from a starter, changed part by part with the preview f
   // Name it and save: it now has an address of its own.
   await page.getByLabel("Theme name").fill("Market stall");
   await page.getByRole("button", { name: "Save theme" }).click();
-  await expect(page).toHaveURL(/\/app\/documents\/themes\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/app\/quotes\/settings\/themes\/[0-9a-f-]{36}$/);
   await expect(page.getByTestId("theme-save-status")).toHaveText("Saved.");
 
   // It is in the library.
-  await page.goto("/app/documents/themes");
+  await page.goto("/app/quotes/settings/themes");
   await expect(page.getByTestId("theme-card")).toHaveCount(6);
   await expect(page.getByTestId("theme-card").filter({ hasText: "Market stall" })).toBeVisible();
   await shot(page, "library");
@@ -171,7 +171,7 @@ test("a theme is remixed from a starter, changed part by part with the preview f
   await expect(page.getByTestId("current-design")).toHaveText("From scratch");
 
   // Edit the theme (from a quote's preview there is a link; here, the library): the sent quote is untouched.
-  await page.goto("/app/documents/themes");
+  await page.goto("/app/quotes/settings/themes");
   await page.getByTestId("theme-card").filter({ hasText: "Market stall" }).getByRole("link", { name: /Edit/ }).click();
   await expect(page.getByLabel("Theme name")).toHaveValue("Market stall");
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
@@ -187,7 +187,7 @@ test("a theme is remixed from a starter, changed part by part with the preview f
   expect(withoutDates(sentAfter)).toBe(withoutDates(sentBefore));
 
   // Deleting the theme: the sent quote still reads as sent, and the library has one fewer.
-  await page.goto("/app/documents/themes");
+  await page.goto("/app/quotes/settings/themes");
   const stall = page.getByTestId("theme-card").filter({ hasText: "Market stall" });
   await stall.getByRole("button", { name: /^Delete/ }).click();
   await stall.getByRole("button", { name: /^Yes, delete/ }).click();
