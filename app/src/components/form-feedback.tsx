@@ -23,8 +23,19 @@ export type FormProblem = {
 function focusField(fieldId: string) {
   const el = document.getElementById(fieldId);
   if (!el) return;
-  el.scrollIntoView({ block: "center" });
-  el.focus({ preventScroll: true });
+  const reveal = () => {
+    el.scrollIntoView({ block: "center" });
+    el.focus({ preventScroll: true });
+  };
+  // A field on a tab that is closed: open the tab first (its button), then go to the field once it shows.
+  const closed = el.closest<HTMLElement>('[role="tabpanel"][hidden]');
+  const tab = closed?.getAttribute("aria-labelledby");
+  if (closed && tab) {
+    document.getElementById(tab)?.click();
+    requestAnimationFrame(reveal);
+    return;
+  }
+  reveal();
 }
 
 /**

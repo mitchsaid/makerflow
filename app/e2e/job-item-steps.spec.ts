@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, sheet } from "./quote-helpers";
 
 /** Presses a button from the keyboard (focus, then Enter): buttons below the fold of the headless phone emulation can be reported as covered. */
@@ -13,6 +13,7 @@ async function addProduct(page: Page, name: string, steps: string[]) {
   await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Price", { exact: true }).fill("50");
   if (steps.length > 0) {
+    await openProductTab(page, "Production");
     await page.getByRole("radio", { name: /^As steps/ }).click();
     for (const [i, step] of steps.entries()) {
       if (i > 0) await page.getByRole("button", { name: "Add another step" }).click();
@@ -98,6 +99,7 @@ test("one item's steps can be added to, taken off and reset, without touching th
   // The product kept its steps.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Cupcakes/ }).click();
+  await openProductTab(page, "Production");
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(3);
 
   // Reset puts the item back to the product's steps, each at none, after asking.

@@ -1,11 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, openQuotes, sheet, startSend } from "./quote-helpers";
 
 async function addProductWithSteps(page: Page, name: string, price: string, steps: string[]) {
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Price", { exact: true }).fill(price);
+  await openProductTab(page, "Production");
   await page.getByRole("radio", { name: /^As steps/ }).click();
   for (const [i, step] of steps.entries()) {
     if (i > 0) await page.getByRole("button", { name: "Add another step" }).click();
@@ -25,6 +26,8 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
   await page.getByLabel("Price", { exact: true }).fill("15");
 
   // Tracked as a whole is the default: no steps are asked for until "As steps" is chosen.
+  await expect(page.getByRole("tab", { name: /^Production/ })).toHaveAttribute("aria-selected", "false");
+  await openProductTab(page, "Production");
   await expect(page.getByRole("radio", { name: /^As a whole/ })).toBeChecked();
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Add (a|another) step$/ })).toHaveCount(0);
@@ -56,6 +59,9 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
 
   // Opened again, in the same order; one is removed.
   await page.getByRole("link", { name: /Cupcakes/ }).click();
+  // The count on the tab says how many steps there are, before it is opened.
+  await expect(page.getByRole("tab", { name: /^Production/ })).toContainText("3");
+  await openProductTab(page, "Production");
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(3);
   await expect(page.getByLabel("Step 1", { exact: true })).toHaveValue("Bake");
   await expect(page.getByLabel("Step 2", { exact: true })).toHaveValue("Ice");
@@ -64,6 +70,7 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();
+  await openProductTab(page, "Production");
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(2);
   await expect(page.getByLabel("Step 2", { exact: true })).toHaveValue("Box");
 
@@ -77,6 +84,7 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();
+  await openProductTab(page, "Production");
   await expect(page.getByRole("radio", { name: /^As a whole/ })).toBeChecked();
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(0);
 });
@@ -112,6 +120,7 @@ test("steps come from the product into the job, each counted on its own, and the
   // The product's steps change after the quote went out; the job takes the steps as they are when it is made.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Cupcakes/ }).click();
+  await openProductTab(page, "Production");
   await page.getByRole("button", { name: "Add another step" }).click();
   await page.getByLabel("Step 4", { exact: true }).fill("Deliver");
   await page.getByRole("button", { name: "Save changes" }).click();
