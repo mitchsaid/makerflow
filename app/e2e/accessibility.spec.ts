@@ -269,6 +269,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, cancel question");
       await page.getByRole("button", { name: "Keep editing" }).click();
 
+      // A discount opened and left empty is dropped on save; one that is not a number is a problem to fix.
+      await page.getByLabel("Discount (%)").first().fill("abc");
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "new quote with errors");
