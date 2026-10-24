@@ -135,9 +135,9 @@ test("How to pay says what each part is: bank details, then notes about paying",
   await expect(pay.getByRole("button", { name: "Add bank details" })).toBeVisible();
   const notes = pay.getByLabel("Other ways to pay (optional)");
   await expect(notes).toBeVisible();
-  await expect(pay.getByText(/Printed under your bank details\. For example/)).toBeVisible();
+  await expect(pay.getByText(/Printed under your bank details, like/)).toBeVisible();
   // The old name, which read as a note about the bank details, is gone.
-  await expect(page.getByText("Other ways to pay")).toHaveCount(0);
+  await expect(page.getByText("Notes about paying")).toHaveCount(0);
   // The notes come after the bank details.
   const [bankY, notesY] = [await pay.getByRole("heading", { name: "Bank details" }).boundingBox(), await notes.boundingBox()];
   expect(notesY!.y).toBeGreaterThan(bankY!.y);
@@ -186,9 +186,9 @@ test("helper text sits under the label, above the field; an error sits under the
   const y = async (locator: ReturnType<typeof page.locator>) => (await locator.boundingBox())!.y;
 
   // Label, then its helper text, then the field.
-  const label = page.getByText("Intro (optional)", { exact: true });
+  const label = page.getByText("Description (optional)", { exact: true });
   const hint = page.getByText("Shown on your quotes under the name.");
-  const field = page.getByLabel("Intro (optional)");
+  const field = page.getByLabel("Description (optional)");
   expect(await y(label)).toBeLessThan(await y(hint));
   expect(await y(hint)).toBeLessThan(await y(field));
 

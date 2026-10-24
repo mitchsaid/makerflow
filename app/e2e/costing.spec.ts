@@ -386,5 +386,5 @@ test("an extra has its own costs, counted for each one on the quote, and kept", 
   await sheet(page).getByRole("checkbox", { name: /Gift wrap/ }).uncheck();
   await sheet(page).getByRole("button", { name: /Save|Update|Add to quote/ }).first().click();
   await expect(sheet(page)).toHaveCount(0);
-  await expect(page.getByTestId("margin-panel")).toContainText("add what a product costs");
+  await expect(page.getByTestId("margin-panel")).toContainText("Add what a product costs");
 });
