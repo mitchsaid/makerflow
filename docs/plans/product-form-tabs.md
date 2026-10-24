@@ -1,6 +1,6 @@
 # Plan: tabs on the product form
 
-Status: **planned 2026-10-24; reviewed with the founder the same day (third tab named "Inputs", bar pinned, the sheet over a quote gets no tabs); awaiting the final go.** From the founder (2026-10-24): "I feel like products also needs a top tab bar for core details, production process and inputs, so it isn't so long?" One slice, **no database change**, one pull request.
+Status: **planned 2026-10-24; reviewed with the founder the same day (third tab named "Inputs", bar pinned, the sheet over a quote gets no tabs); built 2026-10-24** (see "Built" at the end). From the founder (2026-10-24): "I feel like products also needs a top tab bar for core details, production process and inputs, so it isn't so long?" One slice, **no database change**, one pull request.
 
 ## Where things stand
 - The product (and service) form is one long scroll: Basics, Variations, Price (with the quantity prices), Extras, Production steps, What it costs to make, then the "coming soon" sections (Stock). The same form opens in a sheet over a quote ("add a product" from the item sheet).
@@ -63,3 +63,11 @@ Inputs by kind: none new.
 - **A closed tab's field cannot be focused** until it is shown; step 3 covers it, and the test checks it for each tab.
 - **Colour alone must not mark a problem:** the tab says "to fix" in words.
 - **Editing a product from the sheet must not lose its steps:** the steps stay in the form's hidden fields although their section is not shown; the test checks it.
+
+## Built (2026-10-24)
+- `components/tab-list.tsx`: `TabList` (ARIA tabs, roving focus, arrow keys, Home and End; `layout="scroll"` for the theme studio, which now uses it, and `layout="equal"` for the product form) and `TabPanel` (a closed tab is `hidden` but stays mounted).
+- `products/product-form.tsx`: three panels (Details; Production, or Steps for a service; Inputs) under a pinned `ProductTabBar` that shows counts and "N to fix" in words, reading which problems are still unfixed from the form's error scope (a fixed field drops its marker at once). The Stock placeholder is the end of Details. A save that comes back with problems opens the first tab that has one, staying put if the open tab has one. `products/product-tabs.ts` says which tab a problem is on (unit tested).
+- `components/form-feedback.tsx`: `focusField` opens a closed tab (clicks its button) before focusing the field, so a summary link always lands.
+- The sheet over a quote: no tabs, no steps section, the Details content and one line, "Add the steps and what it costs to make later, under Products." It still sends the product's steps (hidden field) and leaves its costs alone, so editing a product there keeps both (tested).
+- Tests: `e2e/product-tabs.spec.ts` (new: keeping what is typed across tabs, keys, problems on closed tabs, a service's names and the pinned bar, the sheet keeps steps and costs); `openProductTab` in `e2e/helpers.ts` used by the product, steps, costs, target-margin and accessibility specs; a new accessibility case for the tabs. One assertion in `steps-by-choice.spec.ts` that passed only because it ran before the page had drawn was made to say what it means (the conditions' group, not the name field's).
+- No database change, no new query.

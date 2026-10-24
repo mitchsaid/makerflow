@@ -30,7 +30,55 @@ import type { StepFormRow } from "@/lib/products/steps";
 import { KIND_WORDS, listHref, type ProductFormValues } from "./product-values";
 import { AddButton } from "@/components/add-button";
 import { ChoiceCards } from "@/components/choice-cards";
-import { FormErrorScope } from "@/components/form-errors";
+import { FormErrorScope, useEditedFields } from "@/components/form-errors";
+import { TabList, TabPanel } from "@/components/tab-list";
+import { productTabOf, type ProductTab } from "./product-tabs";
+
+/**
+ * The bar of three tabs, pinned at the top. It reads which problems are still unfixed (a field edited since the last
+ * save drops its problem at once, as in the summary), and says so in words on the tab that holds them.
+ */
+function ProductTabBar({
+  kind,
+  active,
+  onChange,
+  problemTabs,
+  steps,
+  inputs,
+  fid,
+}: {
+  kind: ProductKind;
+  active: ProductTab;
+  onChange: (tab: ProductTab) => void;
+  /** The tab each problem is on, with the id of its field. */
+  problemTabs: readonly { fieldId: string; tab: ProductTab }[];
+  /** How many steps, when the product is tracked as steps. */
+  steps: number;
+  /** How many cost lines. */
+  inputs: number;
+  fid: (key: string) => string;
+}) {
+  const { edited } = useEditedFields();
+  const fixes = (tab: ProductTab) => problemTabs.filter((p) => p.tab === tab && !edited.has(p.fieldId)).length;
+  const note = (tab: ProductTab) => (fixes(tab) > 0 ? `${fixes(tab)} to fix` : undefined);
+  return (
+    <div className="sticky top-0 z-20 -mx-4 border-b border-border bg-background px-4 py-2">
+      <TabList
+        label="Parts of the form"
+        layout="equal"
+        active={active}
+        onChange={onChange}
+        tabId={(tab) => fid(`tab-${tab}`)}
+        panelId={(tab) => fid(`panel-${tab}`)}
+        tabs={[
+          { key: "details", label: "Details", note: note("details") },
+          { key: "production", label: kind === "service" ? "Steps" : "Production", count: steps, note: note("production") },
+          { key: "inputs", label: "Inputs", count: inputs, note: note("inputs") },
+        ]}
+      />
+    </div>
+  );
+}
 
 /**
  * The layers a product will grow, shown where they will live but not working yet
@@ -179,6 +227,8 @@ export function ProductForm({
   }, [pending, uploadingAny]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
+  // Which of the three tabs is open (not in the address: it is a view of one unsaved form). A sheet over a quote has none.
+  const [tab, setTab] = useState<ProductTab>("details");
   // Steps are tracked step by step only when the product has some (the usual is as a whole); the rows typed are kept when it is switched back.
   const [trackedAsSteps, setTrackedAsSteps] = useState(initial.steps.length > 0);
   // After a save, new variations take the ids the database gave them, so saving again keeps them (and the
@@ -357,6 +407,18 @@ export function ProductForm({
   });
   if (errors.extraCosts?.list) problems.push({ fieldId: fid("add-extra"), label: "Extras' costs", message: errors.extraCosts.list });
 
+  // The tab each problem is on: the steps' on Production, the product's own cost lines' on Inputs, the rest on Details
+  // (an extra's cost lines are edited with the extra).
+  const costKeys = values.costLines.map((r) => r.key);
+  const tabOfField = (fieldId: string): ProductTab => productTabOf(fieldId, fid, costKeys);
+  const problemTabs = problems.map((p) => ({ fieldId: p.fieldId, tab: tabOfField(p.fieldId) }));
+  // A save that comes back with problems opens the first tab that has one (staying put if the open tab has one).
+  const [seenForTab, setSeenForTab] = useState(state);
+  if (state !== seenForTab) {
+    setSeenForTab(state);
+    if (!embedded && state.status === "error" && problemTabs.length > 0 && !problemTabs.some((p) => p.tab === tab)) setTab(problemTabs[0].tab);
+  }
+
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
   // answer decides which of the two the form shows (a product has one or the other).
   const priced = values.variations.length > 0;
@@ -464,9 +526,23 @@ export function ProductForm({
     startTransition(() => formAction(formData));
   }
 
+  // Tabs, except in a sheet over a quote: there only the Details part is shown, with a line about the rest.
+  const tabbed = !embedded;
+  const panel = (key: ProductTab, children: React.ReactNode) =>
+    tabbed ? (
+      <TabPanel id={fid(`panel-${key}`)} tabId={fid(`tab-${key}`)} open={tab === key}>
+        {children}
+      </TabPanel>
+    ) : key === "details" ? (
+      children
+    ) : null;
+
   return (
     <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      {tabbed && <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} steps={trackedAsSteps ? values.steps.length : 0} inputs={costing ? values.costLines.length : 0} fid={fid} />}
+      {panel("details", (
+      <>
       <Section title="Basics">
         <TextField
           id={fid("name")}
@@ -665,6 +741,13 @@ export function ProductForm({
           setValues((v) => ({ ...v, extras }));
         }}
       />
+      {tabbed && COMING_SOON[values.kind].filter(([title]) => title === "Stock").map(([title, description]) => (
+        <ComingSoonSection key={title} title={title} description={description} />
+      ))}
+      </>
+      ))}
+      {embedded && <p className="text-sm text-muted-foreground">Add the steps and what it costs to make later, under Products.</p>}
+      {panel("production", tabbed && (
       <StepsSection
         title={values.kind === "service" ? "Steps" : "Production steps"}
         tracked={trackedAsSteps}
@@ -687,6 +770,7 @@ export function ProductForm({
           setValues((v) => ({ ...v, steps }));
         }}
       />
+      ))}
       {/* Sent as one field each: the rows as lists, read and checked by the server. */}
       <input type="hidden" name="steps" value={JSON.stringify(trackedAsSteps ? values.steps : [])} />
       <input type="hidden" name="priceBreaks" value={JSON.stringify(sentPriceBreaks(values.priceBreaks, values.variations))} />
@@ -707,7 +791,7 @@ export function ProductForm({
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 
-      {costing && (
+      {panel("inputs", tabbed && (costing ? (
         <>
           <CostsSection
             title={values.kind === "service" ? "What it costs" : "What it costs to make"}
@@ -750,10 +834,11 @@ export function ProductForm({
           />
           <input type="hidden" name="costLines" value={JSON.stringify(values.costLines)} />
         </>
-      )}
-      {COMING_SOON[values.kind].filter(([title]) => !(costing && title === "Costs and margin")).map(([title, description]) => (
-        <ComingSoonSection key={title} title={title} description={description} />
-      ))}
+      ) : (
+        COMING_SOON[values.kind].filter(([title]) => title === "Costs and margin").map(([title, description]) => (
+          <ComingSoonSection key={title} title={title} description={description} />
+        ))
+      )))}
 
       {state.status === "error" && state.message && (
         <Alert variant="destructive">

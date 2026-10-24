@@ -1,5 +1,5 @@
 import { devices, expect, test, type Page } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { openProductTab, signUpAndOnboard } from "./helpers";
 
 async function openProducts(page: Page) {
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
@@ -82,7 +82,11 @@ test("services are their own list, with their own form, and save, edit and come 
   await expect(page.getByRole("heading", { name: "Add a service", level: 1 })).toBeVisible();
   // A service has no photo or stock, and nothing is left to come: what it costs is a real section.
   await expect(page.getByTestId("coming-soon")).toHaveCount(0);
+  // Three tabs: a service's middle one is Steps, and what it costs is a real section under Inputs.
+  await expect(page.getByRole("tab")).toHaveText([/^Details/, /^Steps/, /^Inputs/]);
+  await openProductTab(page, "Inputs");
   await expect(page.getByRole("group", { name: "What it costs" })).toBeVisible();
+  await openProductTab(page, "Details");
   await expect(page.getByText("Stock")).toHaveCount(0);
 
   await page.getByLabel("Name", { exact: true }).fill("Design time");

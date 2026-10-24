@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
 /** Costing slice C: the margin a maker aims for, and what to charge to reach it (docs/plans/costing-slice-c.md). */
@@ -41,14 +41,18 @@ test("the target margin is set in the profile, judged on a product and a quote, 
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
   await page.getByLabel("Price", { exact: true }).fill("150");
+  await openProductTab(page, "Inputs");
   await tap(page.getByRole("button", { name: "Add your time", exact: true }));
   await page.getByRole("list", { name: "What it costs to make" }).getByLabel("How long it takes").fill("30");
   const note = page.getByTestId("cost-summary").getByTestId("target-note");
   await expect(note).toContainText("Below your 70% target");
   await expect(note).toContainText(rand("200"));
   // A price that reaches it meets it.
+  await openProductTab(page, "Details");
   await page.getByLabel("Price", { exact: true }).fill("200");
+  await openProductTab(page, "Inputs");
   await expect(note).toContainText("Meets your 70% target");
+  await openProductTab(page, "Details");
   await page.getByLabel("Price", { exact: true }).fill("150");
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toHaveText("Added Cake.");
@@ -105,6 +109,7 @@ test("a margin of 40 percent is a price of cost over 0,6, and a business with no
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
   await page.getByLabel("Price", { exact: true }).fill("150");
+  await openProductTab(page, "Inputs");
   await tap(page.getByRole("button", { name: "Add other cost", exact: true }));
   const row = costRow(page, "Other cost 1");
   await row.getByLabel("What is it").fill("Box");
@@ -117,6 +122,7 @@ test("a margin of 40 percent is a price of cost over 0,6, and a business with no
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
   await page.getByLabel("Price", { exact: true }).fill("90");
+  await openProductTab(page, "Inputs");
   await tap(page.getByRole("button", { name: "Add other cost", exact: true }));
   const row2 = costRow(page, "Other cost 1");
   await row2.getByLabel("What is it").fill("Box");

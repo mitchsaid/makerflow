@@ -129,3 +129,9 @@ export function accessTokenFrom(cookies: { name: string; value: string }[]): str
 export function nextServerAction(page: Page) {
   return page.waitForResponse((r) => r.request().method() === "POST" && "next-action" in r.request().headers());
 }
+
+/** The tabs of the product form: Details, Production (a service: Steps) and Inputs. */
+export async function openProductTab(page: Page, name: "Details" | "Production" | "Steps" | "Inputs") {
+  await page.getByRole("tab", { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByRole("tab", { name: new RegExp(`^${name}`) })).toHaveAttribute("aria-selected", "true");
+}

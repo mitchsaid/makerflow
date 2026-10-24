@@ -7,6 +7,7 @@ import { ImageField } from "@/components/image-field";
 import { BackLink } from "@/components/page-header";
 import { ChoiceCards } from "@/components/theme-choices";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TabList } from "@/components/tab-list";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -206,38 +207,13 @@ export function ThemeStudio({
             <LivePdfPreview snapshot={shown} label="Preview" firstPageOnly />
           </div>
         </div>
-        <div
-          role="tablist"
-          aria-label="Parts of the theme"
-          className="-mx-4 flex gap-1 overflow-x-auto px-4 py-2"
-          onKeyDown={(event) => {
-            // Arrow keys move between the tabs (and Home and End jump), as a tab list should.
-            const at = TABS.indexOf(tab);
-            const next = event.key === "ArrowRight" ? at + 1 : event.key === "ArrowLeft" ? at - 1 : event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : null;
-            if (next === null) return;
-            event.preventDefault();
-            const target = TABS[(next + TABS.length) % TABS.length];
-            setTab(target);
-            document.getElementById(`tab-${target}`)?.focus();
-          }}
-        >
-          {TABS.map((t) => (
-            <Button
-              key={t}
-              type="button"
-              role="tab"
-              id={`tab-${t}`}
-              aria-selected={tab === t}
-              aria-controls="studio-panel"
-              tabIndex={tab === t ? 0 : -1}
-              variant={tab === t ? "default" : "ghost"}
-              onClick={() => setTab(t)}
-              className="shrink-0"
-            >
-              {t}
-            </Button>
-          ))}
-        </div>
+        <TabList
+          label="Parts of the theme"
+          tabs={TABS.map((t) => ({ key: t, label: t }))}
+          active={tab}
+          onChange={setTab}
+          panelId={() => "studio-panel"}
+        />
       </div>
 
       <div className="space-y-5 px-4 py-4">

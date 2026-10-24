@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
-import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
+import { localSupabase, openBusinessProfile, openDocuments, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -679,6 +679,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/products/new");
       await page.getByLabel("Name", { exact: true }).fill("Axe steps cake");
       await page.getByLabel("Price", { exact: true }).fill("10");
+      await expectNoViolations(page, "product form, the Details tab");
+      await openProductTab(page, "Production");
       await expectNoViolations(page, "product, steps tracked as a whole");
       await page.getByRole("radio", { name: /^As steps/ }).click();
       await page.getByLabel("Step 1", { exact: true }).fill("Bake");
@@ -724,6 +726,24 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("button", { name: /Reset to the product/ })).toBeVisible();
       await expectNoViolations(page, "job, changing one item's steps");
     });
+    test("the product form's tabs: each tab, and a tab with a problem", async ({ page }) => {
+      test.setTimeout(180_000);
+      await signUpAndOnboard(page, `a11y-tabs-${scheme}`, "Tabs Axe Co");
+      await page.goto("/app/products/new");
+      await page.getByLabel("Name", { exact: true }).fill("Axe tabs cake");
+      await page.getByLabel("Price", { exact: true }).fill("10");
+      await expectNoViolations(page, "product form tabs, Details");
+      await openProductTab(page, "Production");
+      await page.getByRole("radio", { name: /^As steps/ }).click();
+      await expectNoViolations(page, "product form tabs, Production with a blank step");
+      await openProductTab(page, "Inputs");
+      await expectNoViolations(page, "product form tabs, Inputs");
+      await openProductTab(page, "Details");
+      await page.getByRole("button", { name: "Add product" }).click();
+      await expect(page.getByRole("tab", { name: /^Production/ })).toContainText("1 to fix");
+      await expectNoViolations(page, "product form tabs, a tab with a problem");
+    });
+
     test("costs on a product, the hourly rate, and the margin on a quote", async ({ page }) => {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-costs-${scheme}`, "Costs Axe Co");
@@ -736,7 +756,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/products/new");
       await page.getByLabel("Name", { exact: true }).fill("Axe cost cake");
       await page.getByLabel("Price", { exact: true }).fill("100");
-      
+      await openProductTab(page, "Inputs");
+
       await expectNoViolations(page, "product, choosing the kind of cost");
       for (const label of ["Add your time", "Add other cost"]) {
         await page.getByRole("button", { name: label, exact: true }).focus();
@@ -753,7 +774,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product costs, with problems");
       await page.getByRole("button", { name: "Remove condition 1 of Other cost 1" }).click();
-      // An extra with its own costs.
+      // An extra with its own costs (extras are on the Details tab).
+      await openProductTab(page, "Details");
       await page.getByRole("button", { name: "Add an extra" }).click();
       await page.getByLabel("Extra name").last().fill("Axe wrap");
       const adders = page.getByRole("group", { name: "Add a cost (Axe wrap)" });
@@ -791,6 +813,7 @@ for (const scheme of ["light", "dark"] as const) {
       await signUpAndOnboard(page, `a11y-new-material-${scheme}`, "Material Axe Co");
       await page.goto("/app/products/new");
       await page.getByLabel("Name", { exact: true }).fill("Axe soap");
+      await openProductTab(page, "Inputs");
       await page.getByRole("button", { name: "Add a material", exact: true }).focus();
       await page.keyboard.press("Enter");
       await expectNoViolations(page, "a material line, with no materials yet");
@@ -932,13 +955,16 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/products/new");
       await page.getByLabel("Name", { exact: true }).fill("Cake");
       await page.getByLabel("Price", { exact: true }).fill("150");
+      await openProductTab(page, "Inputs");
       const addTime = page.getByRole("button", { name: "Add your time", exact: true });
       await addTime.focus();
       await addTime.press("Enter");
       await page.getByRole("list", { name: "What it costs to make" }).getByLabel("How long it takes").fill("30");
       await expect(page.getByTestId("target-note")).toContainText("Below your 70% target");
       await expectNoViolations(page, "a product, below the target");
+      await openProductTab(page, "Details");
       await page.getByLabel("Price", { exact: true }).fill("200");
+      await openProductTab(page, "Inputs");
       await expect(page.getByTestId("target-note")).toContainText("Meets your 70% target");
       await expectNoViolations(page, "a product, meeting the target");
     });

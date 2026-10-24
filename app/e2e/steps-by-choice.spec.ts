@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, openQuotes, sheet, startSend } from "./quote-helpers";
 
 /**
@@ -52,6 +52,7 @@ async function makeCake(page: Page) {
   await page.getByRole("listitem").filter({ has: page.getByLabel("Extra name") }).getByLabel(/^Price/).fill("30");
   await page.getByRole("button", { name: "Done Gift wrap" }).click();
 
+  await openProductTab(page, "Production");
   await addStep(page, 1, "Bake");
   await addStep(page, 2, "Add a second tier", [{ choice: "Size: Large" }]);
   await addStep(page, 3, "Wrap", [{ choice: "Extra: Gift wrap" }]);
@@ -69,7 +70,9 @@ test("a step can depend on what was chosen: a size, an extra, a quantity, with a
 
   // Opened again, every condition is as it was left.
   await page.getByRole("link", { name: /Cake/ }).click();
-  await expect(stepRow(page, 1).getByRole("group")).toHaveCount(0);
+  await openProductTab(page, "Production");
+  // The first step has no conditions (the name field is a group of its own, so only the conditions' group is looked for).
+  await expect(stepRow(page, 1).getByRole("group", { name: /^When to make/ })).toHaveCount(0);
   await expect(stepRow(page, 2).getByLabel("Depends on")).toHaveValue(/^variation:/);
   await expect(stepRow(page, 2).getByLabel("Depends on").locator("option:checked")).toHaveText("Size: Large");
   await expect(stepRow(page, 3).getByLabel("Depends on").locator("option:checked")).toHaveText("Extra: Gift wrap");
@@ -123,6 +126,7 @@ test("a step that depends on a choice that was taken off the product says so, an
   // The extra goes; its steps' conditions say they lost it.
   await tap(page.getByRole("button", { name: "Edit Gift wrap" }));
   await tap(page.getByRole("button", { name: /Remove this extra/ }));
+  await openProductTab(page, "Production");
   await expect(stepRow(page, 3).getByLabel("Depends on").locator("option:checked")).toHaveText("A choice that was removed");
   await page.getByRole("button", { name: "Save changes" }).click();
   const summary = page.getByTestId("form-summary");
@@ -139,6 +143,7 @@ test("a step that depends on a choice that was taken off the product says so, an
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();
+  await openProductTab(page, "Production");
   await expect(stepRow(page, 3).getByLabel("Depends on").locator("option:checked")).toHaveText("Size: Large");
   await expect(stepRow(page, 4).getByLabel("Depends on")).toHaveCount(1);
 });

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
 /** Costing and margin, slice A (docs/plans/costing-and-margin.md). */
@@ -39,6 +39,7 @@ test("a material can be added from a cost line without leaving the product", asy
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Wedding cake");
   await page.getByLabel("Price", { exact: true }).fill("500");
+  await openProductTab(page, "Inputs");
 
   // No materials yet: the line offers to add one right there, not a link away from the form.
   await addKind(page, "A material");
@@ -117,6 +118,7 @@ test("what it costs to make is set on a product, worked out for each size, and k
   }
 
   // Nothing yet: an invitation, no numbers.
+  await openProductTab(page, "Inputs");
   await expect(page.getByRole("button", { name: "Add a material", exact: true })).toBeVisible();
   await expect(page.getByTestId("cost-summary")).toHaveCount(0);
 
@@ -156,6 +158,7 @@ test("what it costs to make is set on a product, worked out for each size, and k
 
   // Opened again, it is all as it was left.
   await page.getByRole("link", { name: /Cake/ }).click();
+  await openProductTab(page, "Inputs");
   await expect(page.getByLabel("How many one batch makes")).toHaveValue("12");
   await expect(costRow(page, "Material 1").getByLabel("Material", { exact: true }).locator("option:checked")).toHaveText("Cake flour");
   await expect(costRow(page, "Material 1").getByLabel("How much goes in")).toHaveValue("600");
@@ -171,6 +174,7 @@ test("a cost line says how to fix it, and nothing typed is lost", async ({ page 
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Soap");
   await page.getByLabel("Price", { exact: true }).fill("40");
+  await openProductTab(page, "Inputs");
   // With no materials, a material line offers to add one right there.
   await addKind(page, "A material");
   await expect(costRow(page, "Material 1").getByRole("button", { name: "Add a new material" })).toBeVisible();
@@ -209,6 +213,7 @@ test("a draft quote shows the margin only to you, following the size, the quanti
     await r.getByLabel(`Size ${i + 1}`, { exact: true }).fill(name);
     await r.getByLabel(`Size ${i + 1} price`, { exact: true }).fill(price);
   }
+  await openProductTab(page, "Inputs");
   await addKind(page, "A material");
   let row = costRow(page, "Material 1");
   await row.getByLabel("Material", { exact: true }).selectOption({ label: "Cake flour" });
@@ -282,6 +287,7 @@ test("a one-off item can say what it costs, and a sent quote keeps its margin wh
   await page.goto("/app/products/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake");
   await page.getByLabel("Price", { exact: true }).fill("150");
+  await openProductTab(page, "Inputs");
   await addKind(page, "Your time");
   await costRow(page, "Your time 1").getByLabel("How long it takes").fill("30");
   await page.getByRole("button", { name: "Add product" }).click();
