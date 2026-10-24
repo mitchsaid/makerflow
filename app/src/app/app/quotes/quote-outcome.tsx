@@ -241,7 +241,7 @@ export function ChangeAnswerButton({ quoteId }: { quoteId: string }) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Button type="button" size="lg" variant="outline" disabled={pending} onClick={change}>
+      <Button type="button" size="lg" variant="soft" disabled={pending} onClick={change}>
         {pending ? "Changing…" : "Change the answer"}
       </Button>
       <p className="text-sm text-muted-foreground">
@@ -278,7 +278,7 @@ export function QuoteAgainButton({ quoteId }: { quoteId: string }) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Button type="button" size="lg" variant="outline" disabled={pending} onClick={again}>
+      <Button type="button" size="lg" variant="soft" disabled={pending} onClick={again}>
         {pending ? "Copying…" : "Quote again"}
       </Button>
       <p className="text-sm text-muted-foreground">

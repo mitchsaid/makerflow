@@ -5,6 +5,7 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import { getActiveJobDates } from "@/lib/jobs/data";
 import { jobDueCounts } from "@/lib/jobs";
 import { getOwedTotals } from "@/lib/invoices/data";
+import { getQuoteStatuses } from "@/lib/quotes/data";
 import { getLocalePack } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
 import { todayIn } from "@/lib/quotes/dates";
@@ -13,17 +14,54 @@ import { forOrganisation } from "@/lib/scope";
 export default async function WorkspacePage() {
   // The jobs query runs beside the workspace check, not after it.
   // The jobs query runs beside the workspace check, not after it; what is owed needs the business, so it follows.
-  const [activeJobs, { organisation, profile }] = await Promise.all([getActiveJobDates(), requireOrganisation()]);
+  const [activeJobs, quoteStatuses, { organisation, profile }] = await Promise.all([getActiveJobDates(), getQuoteStatuses(), requireOrganisation()]);
   const locale = getLocalePack(profile.countryCode);
   const today = todayIn(locale.timeZone);
   const owed = await getOwedTotals(organisation.id, today);
   const counts = jobDueCounts(forOrganisation(activeJobs, organisation.id), today);
+  const quotes = forOrganisation(quoteStatuses, organisation.id);
+  const waiting = quotes.filter((q) => q.status === "sent").length;
+  const drafts = quotes.filter((q) => q.status === "draft").length;
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <h1 className="text-xl font-semibold" data-testid="business-name">
         {organisation.name}
       </h1>
+
+      {quotes.length === 0 ? (
+        // Nothing yet: the first thing a maker does is a quote, so say so.
+        <Card data-testid="home-first-quote">
+          <CardHeader>
+            <CardTitle className="text-lg">Make your first quote</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-base text-muted-foreground">Pick a customer, add items and prices, then send a PDF.</p>
+            <AddLink href="/app/quotes/new" variant="default">
+              New quote
+            </AddLink>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card data-testid="home-quotes">
+          <CardHeader>
+            <CardTitle className="text-lg">Your quotes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="grid grid-cols-2 gap-3">
+              <li>
+                <CountLink href="/app/quotes?status=sent" label="Waiting for an answer" count={waiting} testId="home-quotes-waiting" />
+              </li>
+              <li>
+                <CountLink href="/app/quotes?status=draft" label="Drafts" count={drafts} testId="home-quotes-drafts" />
+              </li>
+            </ul>
+            <AddLink href="/app/quotes/new" variant="outline">
+              New quote
+            </AddLink>
+          </CardContent>
+        </Card>
+      )}
 
       <Card data-testid="home-jobs">
         <CardHeader>
@@ -35,7 +73,7 @@ export default async function WorkspacePage() {
               <p className="text-base text-muted-foreground">
                 Nothing to make right now. When a customer accepts a quote, turn it into a job.
               </p>
-              <AddLink href="/app/jobs/new" variant="default">
+              <AddLink href="/app/jobs/new" variant={quotes.length === 0 ? "outline" : "default"}>
                 New job
               </AddLink>
             </>
@@ -113,6 +151,21 @@ function DueLink({ href, label, count, tone }: { href: string; label: string; co
       className="block min-h-11 rounded-xl px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <span className={`block text-3xl font-semibold ${tone === "late" ? "text-destructive" : ""}`} data-testid={`home-count-${label === "Late" ? "late" : "week"}`}>
+        {count}
+      </span>
+      <span className="block text-base text-muted-foreground">{label}</span>
+    </Link>
+  );
+}
+
+/** A count that opens a list already narrowed to it. */
+function CountLink({ href, label, count, testId }: { href: string; label: string; count: number; testId: string }) {
+  return (
+    <Link
+      href={href}
+      className="block min-h-11 rounded-xl px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <span className="block text-3xl font-semibold" data-testid={testId}>
         {count}
       </span>
       <span className="block text-base text-muted-foreground">{label}</span>
