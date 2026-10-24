@@ -3,10 +3,7 @@ import { getLocalePack } from "@/lib/locale";
 import type { ProductKind } from "@/lib/products";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
-import { ProductList } from "./product-list";
-import { ProductsSwitch } from "./products-switch";
-import { KIND_WORDS, newHref } from "./product-values";
-import { AddLink } from "@/components/add-button";
+import { ProductsArea } from "./products-area";
 
 /**
  * Products and services: one tab, two lists, switched at the top (founder, 2026-10-03). They
@@ -24,22 +21,12 @@ export default async function ProductsPage({ searchParams }: PageProps<"/app/pro
   const added = typeof params.added === "string" ? params.added : undefined;
   const addedName = products.find((p) => p.id === added)?.name;
   const locale = getLocalePack(profile.countryCode);
-  const hasAny = products.some((p) => p.kind === kind);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Products &amp; services</h1>
-        {hasAny && (
-          <AddLink href={newHref(kind)} variant="default">
-            Add {KIND_WORDS[kind].one}
-          </AddLink>
-        )}
-      </div>
-      <ProductsSwitch active={kind} />
-      <ProductList
+      <ProductsArea
         key={kind}
-        kind={kind}
+        initialKind={kind}
         products={products}
         addedName={addedName}
         currencyCode={profile.currencyCode}

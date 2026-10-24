@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState, NoMatches } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { matchesSearch, type CustomerSummary } from "@/lib/customers";
@@ -23,26 +23,20 @@ export function CustomerList({
   addedName?: string;
 }) {
   const [query, setQuery] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
 
   const archivedCount = customers.filter((c) => c.archived).length;
   const visible = customers.filter(
-    (c) => (showArchived || !c.archived) && matchesSearch(c, query),
+    (c) => (view === "archived" ? c.archived : !c.archived) && matchesSearch(c, query),
   );
 
   if (customers.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-4">
-          <p className="text-base font-medium">No customers yet</p>
-          <p className="text-muted-foreground">
-            Add the people you make things for. Only a name is needed.
-          </p>
-          <AddLink href="/app/customers/new" variant="default">
-            Add your first customer
-          </AddLink>
-        </CardContent>
-      </Card>
+      <EmptyState title="No customers yet" line="Add the people you make things for. Only a name is needed.">
+        <AddLink href="/app/customers/new" variant="default">
+          Add your first customer
+        </AddLink>
+      </EmptyState>
     );
   }
 
@@ -67,16 +61,15 @@ export function CustomerList({
       </Field>
 
       {archivedCount > 0 && (
-        <Field orientation="horizontal" className="items-start py-2.5">
-          <Checkbox
-            id="show-archived"
-            checked={showArchived}
-            onCheckedChange={(checked) => setShowArchived(checked)}
-          />
-          <FieldLabel htmlFor="show-archived" className="text-base">
-            Show archived ({archivedCount})
-          </FieldLabel>
-        </Field>
+        <FilterBar
+          label="Show customers"
+          options={[
+            { key: "current", label: "Current", count: customers.length - archivedCount },
+            { key: "archived", label: "Archived", count: archivedCount },
+          ]}
+          value={view}
+          onChange={setView}
+        />
       )}
 
       <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="customer-count">
@@ -84,7 +77,11 @@ export function CustomerList({
       </p>
 
       {visible.length === 0 ? (
-        <p className="text-muted-foreground">No customers match &ldquo;{query}&rdquo;.</p>
+        <NoMatches
+          message={query.trim() !== "" ? `No customers match “${query.trim()}”.` : view === "archived" ? "No archived customers." : "All your customers are archived."}
+          clearLabel={query.trim() === "" && view === "current" ? "Show archived" : undefined}
+          onClear={() => setView("archived")}
+        />
       ) : (
         <ul className="space-y-2">
           {visible.map((c) => (

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddLink } from "@/components/add-button";
 import { PageHeader } from "@/components/page-header";
-import { SectionSwitch, type SectionLink } from "@/components/section-switch";
+import { SectionTabs, type SectionLink } from "@/components/section-switch";
+import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -100,92 +101,84 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
         </CardContent>
       </Card>
 
-      <SectionSwitch label={`${customer.name}: quotes, jobs, invoices or details`} items={items} active={section} />
-
-      {section === "quotes" && (
-        <section className="space-y-3" aria-label="Quotes">
-          <AddLink href={`/app/quotes/new?customer=${customer.id}`} variant="outline">
-            New quote
-          </AddLink>
-          {quotes.length === 0 ? (
-            <Empty title="No quotes yet" line="A quote you make for this customer will show here." />
-          ) : (
-            <ul className="space-y-2">
-              {quotes.map((q) => (
-                <QuoteRow key={q.id} quote={q} {...rowProps} />
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      {section === "jobs" && (
-        <section className="space-y-3" aria-label="Jobs">
-          <AddLink href={`/app/jobs/new?customer=${customer.id}`} variant="outline">
-            New job
-          </AddLink>
-          {jobs.length === 0 ? (
-            <Empty title="No jobs yet" line="Work you make for this customer will show here." />
-          ) : (
-            <ul className="space-y-2">
-              {jobs.map((j) => (
-                <JobRow key={j.id} job={j} {...rowProps} />
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      {section === "invoices" && (
-        <section className="space-y-3" aria-label="Invoices">
-          <AddLink href={`/app/invoices/new?customer=${customer.id}`} variant="outline">
-            New invoice
-          </AddLink>
-          {invoices.length === 0 && drafts.length === 0 ? (
-            <Empty title="No invoices yet" line="Open an accepted quote and choose Create invoice." />
-          ) : (
-            <>
-              {creditNotes > 0 && (
-                <p className="text-sm text-muted-foreground" data-testid="customer-credit-notes">
-                  {creditNotes} {creditNotes === 1 ? "credit note" : "credit notes"} on these invoices
-                </p>
+      <SectionTabs
+        key={section}
+        label={`${customer.name}: quotes, jobs, invoices or details`}
+        items={items}
+        initial={section}
+        panels={{
+          quotes: (
+            <section className="space-y-3" aria-label="Quotes">
+              <AddLink href={`/app/quotes/new?customer=${customer.id}`} variant="outline">
+                New quote
+              </AddLink>
+              {quotes.length === 0 ? (
+                <EmptyState title="No quotes yet" line="A quote you make for this customer will show here." />
+              ) : (
+                <ul className="space-y-2">
+                  {quotes.map((q) => (
+                    <QuoteRow key={q.id} quote={q} {...rowProps} />
+                  ))}
+                </ul>
               )}
-              <ul className="space-y-2">
-                {drafts.map((d) => (
-                  <InvoiceDraftRow key={d.id} draft={d} currencyCode={profile.currencyCode} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
-                ))}
-                {invoices.map((i) => (
-                  <InvoiceRow key={i.id} invoice={i} {...rowProps} />
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
-
-      {section === "details" && (
-        <section className="space-y-6" aria-label="Details">
-          <CustomerForm
-            key={customer.id}
-            mode="edit"
-            action={updateCustomer.bind(null, customer.id)}
-            initial={valuesFromCustomer(customer)}
-            countryCode={profile.countryCode}
-          />
-          <ArchiveButton id={customer.id} archived={customer.archived} />
-        </section>
-      )}
+            </section>
+          ),
+          jobs: (
+            <section className="space-y-3" aria-label="Jobs">
+              <AddLink href={`/app/jobs/new?customer=${customer.id}`} variant="outline">
+                New job
+              </AddLink>
+              {jobs.length === 0 ? (
+                <EmptyState title="No jobs yet" line="Work you make for this customer will show here." />
+              ) : (
+                <ul className="space-y-2">
+                  {jobs.map((j) => (
+                    <JobRow key={j.id} job={j} {...rowProps} />
+                  ))}
+                </ul>
+              )}
+            </section>
+          ),
+          invoices: (
+            <section className="space-y-3" aria-label="Invoices">
+              <AddLink href={`/app/invoices/new?customer=${customer.id}`} variant="outline">
+                New invoice
+              </AddLink>
+              {invoices.length === 0 && drafts.length === 0 ? (
+                <EmptyState title="No invoices yet" line="Open an accepted quote and choose Create invoice." />
+              ) : (
+                <>
+                  {creditNotes > 0 && (
+                    <p className="text-sm text-muted-foreground" data-testid="customer-credit-notes">
+                      {creditNotes} {creditNotes === 1 ? "credit note" : "credit notes"} on these invoices
+                    </p>
+                  )}
+                  <ul className="space-y-2">
+                    {drafts.map((d) => (
+                      <InvoiceDraftRow key={d.id} draft={d} currencyCode={profile.currencyCode} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
+                    ))}
+                    {invoices.map((i) => (
+                      <InvoiceRow key={i.id} invoice={i} {...rowProps} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          ),
+          details: (
+            <section className="space-y-6" aria-label="Details">
+              <CustomerForm
+                key={customer.id}
+                mode="edit"
+                action={updateCustomer.bind(null, customer.id)}
+                initial={valuesFromCustomer(customer)}
+                countryCode={profile.countryCode}
+              />
+              <ArchiveButton id={customer.id} archived={customer.archived} />
+            </section>
+          ),
+        }}
+      />
     </main>
-  );
-}
-
-function Empty({ title, line }: { title: string; line: string }) {
-  return (
-    <Card>
-      <CardContent className="space-y-1">
-        <p className="text-base font-medium">{title}</p>
-        <p className="text-muted-foreground">{line}</p>
-      </CardContent>
-    </Card>
   );
 }

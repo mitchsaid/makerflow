@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AddLink } from "@/components/add-button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState, NoMatches } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { costPerUnitCents, materialMatchesSearch, type Material } from "@/lib/materials";
@@ -38,23 +38,17 @@ export function MaterialList({
   taxName: string;
 }) {
   const [query, setQuery] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
   const archivedCount = all.filter((m) => m.archived).length;
-  const visible = all.filter((m) => (showArchived || !m.archived) && materialMatchesSearch(m, query));
+  const visible = all.filter((m) => (view === "archived" ? m.archived : !m.archived) && materialMatchesSearch(m, query));
 
   if (all.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-4">
-          <p className="text-base font-medium">No materials yet</p>
-          <p className="text-muted-foreground">
-            Save what you buy and what you paid, to work out what each product costs.
-          </p>
-          <AddLink href="/app/materials/new" variant="default">
-            Add your first material
-          </AddLink>
-        </CardContent>
-      </Card>
+      <EmptyState title="No materials yet" line="Save what you buy and what you paid, to work out what each product costs.">
+        <AddLink href="/app/materials/new" variant="default">
+          Add your first material
+        </AddLink>
+      </EmptyState>
     );
   }
 
@@ -77,17 +71,22 @@ export function MaterialList({
         />
       </Field>
       {archivedCount > 0 && (
-        <Field orientation="horizontal" className="items-center">
-          <Checkbox id="show-archived-materials" checked={showArchived} onCheckedChange={(c) => setShowArchived(c === true)} />
-          <FieldLabel htmlFor="show-archived-materials" className="text-base">
-            Show archived ({archivedCount})
-          </FieldLabel>
-        </Field>
+        <FilterBar
+          label="Show materials"
+          options={[
+            { key: "current", label: "Current", count: all.length - archivedCount },
+            { key: "archived", label: "Archived", count: archivedCount },
+          ]}
+          value={view}
+          onChange={setView}
+        />
       )}
       {visible.length === 0 ? (
-        <p className="text-muted-foreground" role="status">
-          {query.trim() !== "" ? `No materials match “${query.trim()}”.` : "All your materials are archived. Tick Show archived to see them."}
-        </p>
+        <NoMatches
+          message={query.trim() !== "" ? `No materials match “${query.trim()}”.` : view === "archived" ? "No archived materials." : "All your materials are archived."}
+          clearLabel={query.trim() === "" && view === "current" ? "Show archived" : undefined}
+          onClear={() => setView("archived")}
+        />
       ) : (
         <ul className="space-y-2" aria-label="Materials">
           {visible.map((m) => (

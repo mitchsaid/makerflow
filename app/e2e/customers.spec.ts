@@ -186,7 +186,7 @@ test("search, archive and restore", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Carla Smit/ })).toHaveCount(0);
   await expect(page.getByTestId("customer-count")).toHaveText("2 customers");
 
-  await page.getByRole("checkbox", { name: /Show archived \(1\)/ }).check();
+  await page.getByRole("button", { name: /^Archived \(1\)/ }).click();
   await expect(page.getByRole("link", { name: /Carla Smit/ })).toContainText("Archived");
   await page.getByRole("link", { name: /Carla Smit/ }).click();
   await expect(page.getByTestId("archived-notice")).toBeVisible();
@@ -196,7 +196,7 @@ test("search, archive and restore", async ({ page }) => {
 
   await openCustomers(page);
   await expect(page.getByRole("link", { name: /Carla Smit/ })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /Show archived/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Archived/ })).toHaveCount(0);
 });
 
 test("each business only ever sees its own customers", async ({ page, browser }) => {

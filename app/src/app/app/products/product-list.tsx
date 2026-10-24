@@ -4,8 +4,8 @@ import Link from "next/link";
 import { PhotoThumb } from "@/components/photo-thumb";
 import { useState } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState, NoMatches } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { formatMoney, type NumberStyle } from "@/lib/money";
@@ -31,27 +31,22 @@ export function ProductList({
   const [query, setQuery] = useState("");
   const products = allProducts.filter((p) => p.kind === kind);
   const words = KIND_WORDS[kind];
-  const [showArchived, setShowArchived] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
 
   const archivedCount = products.filter((p) => p.archived).length;
-  const visible = products.filter((p) => (showArchived || !p.archived) && productMatchesSearch(p, query));
+  const visible = products.filter((p) => (view === "archived" ? p.archived : !p.archived) && productMatchesSearch(p, query));
 
   if (products.length === 0) {
     return (
       <div className="space-y-4">
-        <Card>
-          <CardContent className="space-y-4">
-            <p className="text-base font-medium">No {words.many} yet</p>
-            <p className="text-muted-foreground">
-              {kind === "service"
-                ? "Save the work you charge for, like design time or setup, with its price."
-                : "Save what you make, with prices, to add to quotes quickly."}
-            </p>
-            <AddLink href={newHref(kind)} variant="default">
-              Add your first {words.one}
-            </AddLink>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={`No ${words.many} yet`}
+          line={kind === "service" ? "Save the work you charge for, like design time or setup, with its price." : "Save what you make, with prices, to add to quotes quickly."}
+        >
+          <AddLink href={newHref(kind)} variant="default">
+            Add your first {words.one}
+          </AddLink>
+        </EmptyState>
         {kind === "product" && (
           <ComingSoonSection
             title="Import from Shopify or a CSV"
@@ -81,24 +76,25 @@ export function ProductList({
         />
       </Field>
       {archivedCount > 0 && (
-        <Field orientation="horizontal" className="items-start py-2.5">
-          <Checkbox
-            id="show-archived"
-            checked={showArchived}
-            onCheckedChange={(checked) => setShowArchived(checked)}
-          />
-          <FieldLabel htmlFor="show-archived" className="text-base">
-            Show archived ({archivedCount})
-          </FieldLabel>
-        </Field>
+        <FilterBar
+          label={`Show ${words.many}`}
+          options={[
+            { key: "current", label: "Current", count: products.length - archivedCount },
+            { key: "archived", label: "Archived", count: archivedCount },
+          ]}
+          value={view}
+          onChange={setView}
+        />
       )}
       <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="product-count">
         {visible.length === 1 ? `1 ${words.one}` : `${visible.length} ${words.many}`}
       </p>
       {visible.length === 0 ? (
-        <p className="text-muted-foreground">
-          No {words.many} match &ldquo;{query}&rdquo;.
-        </p>
+        <NoMatches
+          message={query.trim() !== "" ? `No ${words.many} match “${query.trim()}”.` : view === "archived" ? `No archived ${words.many}.` : `All your ${words.many} are archived.`}
+          clearLabel={query.trim() === "" && view === "current" ? "Show archived" : undefined}
+          onClear={() => setView("archived")}
+        />
       ) : (
         <ul className="space-y-2">
           {visible.map((p) => (

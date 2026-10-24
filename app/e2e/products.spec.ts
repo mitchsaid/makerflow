@@ -148,7 +148,7 @@ test("search, archive and restore", async ({ page }) => {
   await page.getByRole("button", { name: "Archive product" }).click();
   await expect(page).toHaveURL(/\/app\/products$/);
   await expect(page.getByRole("link", { name: /Tasting box/ })).toHaveCount(0);
-  await page.getByRole("checkbox", { name: /Show archived \(1\)/ }).check();
+  await page.getByRole("button", { name: /^Archived \(1\)/ }).click();
   await expect(page.getByRole("link", { name: /Tasting box/ })).toContainText("Archived");
   await page.getByRole("link", { name: /Tasting box/ }).click();
   await expect(page.getByTestId("archived-notice")).toBeVisible();
