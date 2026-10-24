@@ -33,7 +33,7 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
   await expect(page.getByTestId("deposit-summary")).not.toContainText("more than the quote total");
 
   // Errors at the field and in the summary; typed data is kept.
-  await section.getByLabel("Amount").fill("");
+  await section.getByLabel("Amount").fill("abc");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByTestId("form-summary")).toContainText("Enter an amount");
   await expect(section.getByLabel("Amount")).toHaveAttribute("aria-invalid", "true");
@@ -58,7 +58,7 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
   // Back on the draft it is all still there; removing it takes it off the document.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(section.getByLabel("Amount")).toHaveValue("1000");
-  await section.getByRole("button", { name: "Remove deposit" }).click();
+  await page.getByRole("button", { name: "Remove deposit" }).click();
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByRole("region", { name: "The quote as text" }).getByTestId("deposit-lines")).toHaveCount(0);

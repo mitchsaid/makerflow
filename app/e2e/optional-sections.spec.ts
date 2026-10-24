@@ -23,13 +23,13 @@ test("a discount and a deposit are added with a button, removed with Remove, and
   await addDeposit.click();
   const deposit = page.getByRole("group", { name: "Deposit" });
   await expect(deposit.getByLabel("Percentage (%)")).toBeFocused();
-  await deposit.getByRole("button", { name: "Remove deposit" }).click();
+  await page.getByRole("button", { name: "Remove deposit" }).click();
   await expect(addDeposit).toBeVisible();
   await expect(page.getByRole("group", { name: "Deposit" })).toHaveCount(0);
 
   await addDiscount.click();
   await expect(page.getByLabel("Discount (%)")).toBeFocused();
-  await page.getByRole("group", { name: "Discount" }).getByRole("button", { name: "Remove discount" }).click();
+  await page.getByRole("button", { name: "Remove discount" }).click();
   await expect(addDiscount).toBeVisible();
 
   // Opened and left empty: Save is not refused; the empty sections are dropped.
