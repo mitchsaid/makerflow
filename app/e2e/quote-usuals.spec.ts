@@ -10,7 +10,7 @@ test("the introduction is a usual: set once, every new quote starts with it, and
 
   // Nothing saved yet: a new quote starts with a generic suggestion, and nothing is offered for saving until it is changed.
   await page.goto("/app/quotes/new");
-  const description = page.getByLabel("Description (optional)");
+  const description = page.getByLabel("Intro (optional)");
   await expect(description).toHaveValue("Thank you for your interest. Below is what I would prepare for you.");
   await expect(page.getByRole("button", { name: "Save as my usual description" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Use my usual description" })).toHaveCount(0);
@@ -23,16 +23,16 @@ test("the introduction is a usual: set once, every new quote starts with it, and
 
   // The next new quote starts with it, and Quotes and invoices shows it too.
   await page.goto("/app/quotes/new");
-  await expect(page.getByLabel("Description (optional)")).toHaveValue("Thank you for asking about your order.");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("Thank you for asking about your order.");
   await openDocuments(page);
-  await expect(page.getByLabel("Introduction (optional)")).toHaveValue("Thank you for asking about your order.");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("Thank you for asking about your order.");
 
   // Changed on a quote, it can be put back, or kept as the new usual.
   await page.goto("/app/quotes/new");
-  await page.getByLabel("Description (optional)").fill("Just for this one.");
+  await page.getByLabel("Intro (optional)").fill("Just for this one.");
   await expect(page.getByRole("button", { name: "Use my usual description" })).toBeVisible();
   await page.getByRole("button", { name: "Use my usual description" }).click();
-  await expect(page.getByLabel("Description (optional)")).toHaveValue("Thank you for asking about your order.");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("Thank you for asking about your order.");
   // It says what happened as a plain statement, not as an instruction.
   await expect(page.getByText("Using your usual description.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Use my usual description" })).toHaveCount(0);
@@ -55,13 +55,13 @@ test("the sign-off and the notes about paying can be saved as usuals from the qu
   }).toPass();
   await page.getByRole("button", { name: "Save as my usual sign-off" }).click();
   await expect(page.getByText("Saved as your usual sign-off.")).toBeVisible();
-  await page.getByLabel("Notes about paying (optional)").fill("EFT to Wording Co");
+  await page.getByLabel("Other ways to pay (optional)").fill("EFT to Wording Co");
   await page.getByRole("button", { name: "Save as my usual payment notes" }).click();
   await expect(page.getByText("Saved as your usual payment notes.")).toBeVisible();
 
   await page.goto("/app/quotes/new");
   await expect(page.getByLabel("Message (optional)")).toHaveValue("Kind regards");
-  await expect(page.getByLabel("Notes about paying (optional)")).toHaveValue("EFT to Wording Co");
+  await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Wording Co");
 });
 
 test("a deposit can be saved as the usual from a quote, and put back", async ({ page }) => {

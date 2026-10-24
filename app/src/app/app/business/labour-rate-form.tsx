@@ -46,7 +46,7 @@ export function LabourRateForm({ initial, currencySymbol }: { initial: string; c
         <TextField
           id="labourRate"
           label="Price of an hour of your time"
-          hint="Used to cost your time on products. Without VAT."
+          hint="Used to cost your time on products."
           inputMode="decimal"
           autoComplete="off"
           startText={currencySymbol}

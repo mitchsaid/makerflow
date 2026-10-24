@@ -110,7 +110,7 @@ describe("the credit note form", () => {
       const r = parseCreditForm({ ...good, ...over }, context);
       return r.ok ? null : r.errors;
     };
-    expect(bad({ reason: "" })?.reason).toMatch(/Choose why/);
+    expect(bad({ reason: "" })?.reason).toMatch(/Choose a reason/);
     expect(bad({ issueDate: "2026-10-09" })?.issueDate).toMatch(/before the invoice/);
     expect(bad({ issueDate: "2026-10-21" })?.issueDate).toMatch(/hasn't come yet/);
     expect(bad({ explanation: " " })?.explanation).toMatch(/Say in a few words/);

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { EXTRAS_MAX, usedOnWords, type ExtraErrors, type ExtraFormRow } from "@/lib/products/extras";
 import { listSharedExtras, type SharedExtraChoice } from "./extras-actions";
 import { AddButton } from "@/components/add-button";
+import { PrivateTag } from "@/components/private-tag";
 import type { AddMaterialConfig } from "./add-material";
 import { CostLineEditor, type MaterialOption } from "./costs-section";
 import type { CostErrors } from "@/lib/products/costs";
@@ -287,8 +288,11 @@ export function ExtrasSection({
 
                     {costing && (
                       <div className="space-y-3 border-t border-border pt-3">
-                        <p className="text-base font-medium">What it costs you</p>
-                        <p className="-mt-2 text-sm text-muted-foreground">What goes into one, without VAT. Only you see this.</p>
+                        <p className="text-base font-medium">
+                          What it costs you
+                          <PrivateTag />
+                        </p>
+                        <p className="-mt-2 text-sm text-muted-foreground">What goes into one.</p>
                         <CostLineEditor
                           label={`What ${title} costs`}
                           subject={title}

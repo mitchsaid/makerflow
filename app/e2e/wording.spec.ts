@@ -15,7 +15,7 @@ test("the business sets its quote wording once, and each new quote starts with i
   await signUpAndOnboard(page, "w-defaults", "Sweet Co");
   await openDocuments(page);
   await page.getByLabel("Sign-off message (optional)").fill("Yours in sweetness");
-  await page.getByLabel("Notes about paying (optional)").fill("EFT to Sweet Co, FNB 123456");
+  await page.getByLabel("Other ways to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
   // Terms are no longer here: they are the Terms library.
   await expect(page.getByLabel("Small print (optional)")).toHaveCount(0);
   await page.getByRole("button", { name: "Save quote wording" }).click();
@@ -25,7 +25,7 @@ test("the business sets its quote wording once, and each new quote starts with i
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByLabel("Message (optional)")).toHaveValue("Yours in sweetness");
-  await expect(page.getByLabel("Notes about paying (optional)")).toHaveValue("EFT to Sweet Co, FNB 123456");
+  await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Sweet Co, FNB 123456");
   await page.getByLabel("Message (optional)").fill("With love");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();
@@ -73,8 +73,8 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await expect(page.getByTestId("sticky-total")).toHaveText(/R\s?235,00/);
 
   await addCustomerInSheet(page, "Sarah");
-  await page.getByLabel("Description (optional)").fill("Thank you for asking about cupcakes for the party.");
-  await page.getByLabel("Notes about paying (optional)").fill("Pay on collection");
+  await page.getByLabel("Intro (optional)").fill("Thank you for asking about cupcakes for the party.");
+  await page.getByLabel("Other ways to pay (optional)").fill("Pay on collection");
   // A term written in the sheet, with no title: it is saved and put on the quote.
   await page.getByRole("button", { name: "Add a term" }).click();
   await sheet(page).getByLabel("Wording").fill("Orders need two days' notice.");
@@ -96,7 +96,7 @@ test("units, a title and a description: set on the quote, shown on the preview",
 
   // And it all comes back when the draft is opened again.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(page.getByLabel("Description (optional)")).toHaveValue("Thank you for asking about cupcakes for the party.");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("Thank you for asking about cupcakes for the party.");
   await expect(page.getByTestId("quote-term").filter({ hasText: "Orders need two days' notice." })).toBeVisible();
   await expect(item(page, 1)).toContainText(/2 dozen/);
   await expect(item(page, 2)).toContainText(/2,5 kg/);

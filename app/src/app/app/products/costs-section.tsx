@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Trash2Icon } from "lucide-react";
 import { AddButton } from "@/components/add-button";
 import { Section, SelectField, TextField } from "@/components/form-fields";
+import { PrivateTag } from "@/components/private-tag";
 import { QuantityField } from "@/components/quantity-field";
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
@@ -303,8 +304,8 @@ export function CostsSection({
   onMakesChange: (makes: string) => void;
 }) {
   return (
-    <Section title={title}>
-      <p className="-mt-2 text-sm text-muted-foreground">What goes into making one batch, without VAT. Only you see this.</p>
+    <Section title={title} tag={<PrivateTag />}>
+      <p className="-mt-2 text-sm text-muted-foreground">What goes into making one batch.</p>
       <CostLineEditor
         label={title}
         rows={rows}
@@ -371,7 +372,7 @@ function CostSummaryView({
       {summary.leftOutConditions && (
         <p className="text-muted-foreground">Lines that depend on a list choice, an extra or a quantity are not counted here.</p>
       )}
-      <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
+      {vatRegistered && <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>}
     </div>
   );
 }

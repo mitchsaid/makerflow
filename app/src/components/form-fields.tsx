@@ -26,12 +26,14 @@ export type ExtraInputProps = Omit<
 >;
 
 /** A titled card holding a group of fields. */
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, tag, children }: { title: string; /** Beside the title, like the "Private" tag. */ tag?: React.ReactNode; children: React.ReactNode }) {
   return (
     <Card>
       <CardContent>
         <FieldSet>
-          <FieldLegend className="mb-2 data-[variant=legend]:text-lg data-[variant=legend]:font-semibold">{title}</FieldLegend>
+          <FieldLegend className="mb-2 data-[variant=legend]:text-lg data-[variant=legend]:font-semibold">{title}
+            {tag}
+          </FieldLegend>
           <FieldGroup className="gap-4">{children}</FieldGroup>
         </FieldSet>
       </CardContent>

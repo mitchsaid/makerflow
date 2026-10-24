@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PrivateTag } from "@/components/private-tag";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
 import { quoteMargin } from "@/lib/costing";
 import { priceForMarginCents, targetStanding } from "@/lib/costing/target";
@@ -19,6 +20,7 @@ export function MarginPanel({
   note,
   targetBp = null,
   frozen = false,
+  vatRegistered = false,
 }: {
   items: LineMargin[];
   currencyCode: string;
@@ -29,6 +31,8 @@ export function MarginPanel({
   targetBp?: number | null;
   /** A sent quote: nothing here can be edited, so no prompts to add costs. */
   frozen?: boolean;
+  /** Said once, and only to a business that is VAT registered: that costs and margins are worked out without VAT. */
+  vatRegistered?: boolean;
 }) {
   if (items.length === 0) return null;
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
@@ -38,7 +42,7 @@ export function MarginPanel({
   if (costed === 0 && !frozen) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="margin-panel">
-        Only you see this: add what a product costs to make, or what a one-off item costs you, to see your margin here.{" "}
+        <PrivateTag /> Add what a product costs to make, or what a one-off item costs you, to see your margin here.{" "}
         <Link href="/app/products" className="underline underline-offset-4">
           Go to your products
         </Link>
@@ -52,7 +56,7 @@ export function MarginPanel({
     <details className="group text-sm" data-testid="margin-panel">
       <summary className="flex min-h-11 cursor-pointer list-none items-center text-muted-foreground [&::-webkit-details-marker]:hidden">
         <span>
-          Only you see this: margin <span className="font-medium text-foreground" data-testid="margin-summary">{money(total.profitCents)}{total.marginBp === null ? "" : ` · ${formatPercent(total.marginBp, numberStyle)}`}</span>
+          <PrivateTag /> Margin <span className="font-medium text-foreground" data-testid="margin-summary">{money(total.profitCents)}{total.marginBp === null ? "" : ` · ${formatPercent(total.marginBp, numberStyle)}`}</span>
           {total.incomplete ? " or less" : ""}
           {partial ? ` (costed items only, ${costed} of ${items.length})` : ""}
           {standing && (
@@ -86,7 +90,7 @@ export function MarginPanel({
                     Below your {target} target.
                     {(() => {
                       const price = priceForMarginCents(i.margin.costCents, targetBp);
-                      return price === null ? "" : ` For ${target}, sell it for ${money(price)}, without VAT.`;
+                      return price === null ? "" : ` For ${target}, sell it for ${money(price)}${vatRegistered ? ", without VAT" : ""}.`;
                     })()}
                   </p>
                 )}
@@ -108,7 +112,7 @@ export function MarginPanel({
         </ul>
         {note && <p className="text-muted-foreground">{note}</p>}
         {frozen && targetBp !== null && <p className="text-muted-foreground">Compared with the margin you aim for now.</p>}
-        <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>
+        {vatRegistered && <p className="text-muted-foreground">Costs and margins are worked out without VAT.</p>}
       </div>
     </details>
   );

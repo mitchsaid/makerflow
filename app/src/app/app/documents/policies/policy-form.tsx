@@ -179,7 +179,7 @@ export function PolicyForm({
           value={values.title}
           error={errors.title}
           onChange={set("title")}
-          hint="Shown above the wording, like “If you cancel”. Optional."
+          hint="Shown above the wording, like “If you cancel”."
         />
         <TextAreaField
           id={fid("policyBody")}

@@ -276,6 +276,7 @@ export default async function QuotePage({
                 numberStyle={locale.numberStyle}
                 frozen
                 targetBp={profile.targetMarginBp}
+                vatRegistered={profile.vatRegistered}
                 note="Worked out when you sent this version, from what things cost then."
               />
             </CardContent>

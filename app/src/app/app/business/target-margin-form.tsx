@@ -46,7 +46,7 @@ export function TargetMarginForm({ initial }: { initial: string }) {
         <TextField
           id="targetMargin"
           label="Margin you aim for (%)"
-          hint="What is left of the price, without VAT, after costs. Used to suggest prices."
+          hint="What is left of the price after costs. Used to suggest prices."
           inputMode="decimal"
           autoComplete="off"
           value={value}

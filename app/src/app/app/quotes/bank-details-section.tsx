@@ -13,7 +13,7 @@ import { AddButton } from "@/components/add-button";
 
 /**
  * "How to pay" on a quote, in two parts that say what they are: **Bank details** (the business's saved details, with a
- * tick to show them on this quote, on by default) and **Notes about paying** (free text for anything else: SnapScan,
+ * tick to show them on this quote, on by default) and **Other ways to pay** (free text for anything else: SnapScan,
  * a payment reference, "pay on collection"; passed as children). With no
  * details saved, the owner can add them in a sheet over the quote, so nothing typed on the quote is
  * lost; other members are told to ask the owner.

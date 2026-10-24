@@ -37,7 +37,7 @@ export function HandoverDefaultForm({ initial }: { initial: "none" | "collection
     >
       <Section title="Delivery or collection">
         <p className="text-base text-muted-foreground">
-          What a new quote starts with. You can change it on any quote.
+          What a new quote starts with.
         </p>
         {state?.status === "error" && (
           <Alert variant="destructive" role="alert">

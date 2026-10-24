@@ -73,14 +73,14 @@ test("a new quote shows the number it will get, and the numbering can be changed
   await expect(page.getByTestId("quote-number")).toHaveText("QT-0001");
 
   // Saving closes the sheet and the number on the quote follows. What was typed on the quote is kept.
-  await page.getByLabel("Description (optional)").fill("For Sarah's birthday");
+  await page.getByLabel("Intro (optional)").fill("For Sarah's birthday");
   await page.getByRole("button", { name: /Change how quotes are numbered/ }).click();
   await sheet(page).getByLabel("Prefix").fill("CAKE-");
   await sheet(page).getByLabel("Next number").fill("42");
   await sheet(page).getByRole("button", { name: "Save quote numbers" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByTestId("quote-number")).toHaveText("CAKE-0042");
-  await expect(page.getByLabel("Description (optional)")).toHaveValue("For Sarah's birthday");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("For Sarah's birthday");
   await expect(page.getByRole("button", { name: /Change how quotes are numbered/ })).toBeFocused();
 
   // The quote gets that number when it is first saved, and then it is just its number.
@@ -133,11 +133,11 @@ test("How to pay says what each part is: bank details, then notes about paying",
   // Two parts, named: the bank details (with the way to add them), then free notes.
   await expect(pay.getByRole("heading", { name: "Bank details", level: 3 })).toBeVisible();
   await expect(pay.getByRole("button", { name: "Add bank details" })).toBeVisible();
-  const notes = pay.getByLabel("Notes about paying (optional)");
+  const notes = pay.getByLabel("Other ways to pay (optional)");
   await expect(notes).toBeVisible();
-  await expect(pay.getByText(/Printed under your bank details\. For example/)).toBeVisible();
+  await expect(pay.getByText(/Printed under your bank details, like/)).toBeVisible();
   // The old name, which read as a note about the bank details, is gone.
-  await expect(page.getByText("Other ways to pay")).toHaveCount(0);
+  await expect(page.getByText("Notes about paying")).toHaveCount(0);
   // The notes come after the bank details.
   const [bankY, notesY] = [await pay.getByRole("heading", { name: "Bank details" }).boundingBox(), await notes.boundingBox()];
   expect(notesY!.y).toBeGreaterThan(bankY!.y);
