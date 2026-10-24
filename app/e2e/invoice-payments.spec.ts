@@ -19,7 +19,7 @@ async function invoiceWithDeposit(page: Page) {
   await fillItem(page, 1, "Wedding cake", "1", "2500");
   await addCustomerInSheet(page, "Thandi Nkosi");
   const deposit = page.getByRole("group", { name: "Deposit" });
-  await deposit.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+  await page.getByRole("button", { name: "Add a deposit" }).click();
   await deposit.getByLabel("Percentage (%)").fill("40");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);

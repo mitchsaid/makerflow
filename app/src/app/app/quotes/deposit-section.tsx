@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useEditedFields } from "@/components/form-errors";
 import { Section, TextField } from "@/components/form-fields";
-import { Checkbox } from "@/components/ui/checkbox";
+import { AddButton } from "@/components/add-button";
 import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -13,7 +13,7 @@ import { BALANCE_TEXT_MAX, depositAmounts, parseDeposit, type DepositFormValues 
 import type { Fulfilment } from "@/lib/quotes";
 
 /**
- * "Deposit": ask for some of the money up front. A tick, then a percentage or an amount, and when the
+ * "Deposit": ask for some of the money up front. Added with a button, then a percentage or an amount, and when the
  * rest is due (on collection or delivery, or by a date). A live line shows what that comes to.
  * Defaults come from the business's quote settings; each quote can change or switch it off.
  */
@@ -29,6 +29,7 @@ export function DepositSection({
   ask = false,
   decided = false,
   footer,
+  addWith,
 }: {
   values: DepositFormValues;
   onChange: (change: Partial<DepositFormValues>) => void;
@@ -45,6 +46,8 @@ export function DepositSection({
   decided?: boolean;
   /** Under the section's fields (the "Save as my usual" buttons). */
   footer?: React.ReactNode;
+  /** What "Add a deposit" starts with (the business's usual, when it has one); otherwise a percentage with nothing typed. */
+  addWith?: Partial<DepositFormValues>;
 }) {
   // Controls that are not the shared fields report their own edits, so a fixed problem stops showing.
   const { markEdited } = useEditedFields();
@@ -64,8 +67,25 @@ export function DepositSection({
   const parsed = on ? parseDeposit(values, issueDate) : null;
   const amounts = parsed?.ok && parsed.deposit && grossCents !== null && grossCents > 0 ? depositAmounts(grossCents, parsed.deposit) : null;
 
+  // Not asked on every quote: a deposit is an optional extra, added with a button and taken away with Remove.
+  if (!ask && !on) {
+    return (
+      <div>
+        <AddButton
+          id="add-deposit"
+          onClick={() => {
+            edit({ depositKind: lastKind, ...addWith }, "depositValue", "balanceDueDate");
+            setTimeout(() => document.getElementById("depositValue")?.focus(), 0);
+          }}
+        >
+          Add a deposit
+        </AddButton>
+      </div>
+    );
+  }
+
   return (
-    <Section title="Deposit">
+    <Section title="Deposit" onRemove={ask ? undefined : () => edit({ depositKind: "none", depositValue: "" }, "depositValue", "balanceDueDate")}>
       {ask ? (
         <FieldSet>
           <FieldLegend variant="label" className="text-base">
@@ -96,19 +116,7 @@ export function DepositSection({
             ))}
           </RadioGroup>
         </FieldSet>
-      ) : (
-      <Field orientation="horizontal" className="items-start py-2.5">
-        <Checkbox
-          id="depositOn"
-          name="depositOn"
-          checked={on}
-          onCheckedChange={(checked) => edit({ depositKind: checked === true ? lastKind : "none" }, "depositValue", "balanceDueDate")}
-        />
-        <FieldLabel htmlFor="depositOn" className="text-base">
-          Ask for a deposit to start work
-        </FieldLabel>
-      </Field>
-      )}
+      ) : null}
 
       {on && (
         <>

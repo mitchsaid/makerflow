@@ -13,10 +13,10 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
   await fillItem(page, 1, "Wedding cake", "1", "2500");
   await addCustomerInSheet(page, "Sarah");
 
-  // Nothing is asked for until it is ticked.
+  // Nothing is asked for until the deposit is added.
   const section = page.getByRole("group", { name: "Deposit" });
   await expect(section.getByLabel("Worked out as")).toHaveCount(0);
-  await section.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+  await page.getByRole("button", { name: "Add a deposit" }).click();
   await section.getByLabel("Percentage (%)").fill("50");
   await expect(page.getByTestId("deposit-summary")).toContainText(/Deposit\s+R\s?1\s?250,00\s*·\s*Balance\s+R\s?1\s?250,00/);
 
@@ -55,10 +55,10 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
   // Plain words: no jargon about part payments on the quote.
   await expect(text).not.toContainText(/part payment/i);
 
-  // Back on the draft it is all still there; unticking removes it from the document.
+  // Back on the draft it is all still there; removing it takes it off the document.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(section.getByLabel("Amount")).toHaveValue("1000");
-  await section.getByRole("checkbox", { name: "Ask for a deposit to start work" }).uncheck();
+  await section.getByRole("button", { name: "Remove deposit" }).click();
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByRole("region", { name: "The quote as text" }).getByTestId("deposit-lines")).toHaveCount(0);
@@ -85,7 +85,7 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   // A new quote starts with the default ticked, and can change it.
   await page.goto("/app/quotes/new");
   const section = page.getByRole("group", { name: "Deposit" });
-  await expect(section.getByRole("checkbox", { name: "Ask for a deposit to start work" })).toBeChecked();
+  await expect(section.getByLabel("Percentage (%)")).toBeVisible();
   await expect(section.getByLabel("Percentage (%)")).toHaveValue("40");
   await fillItem(page, 1, "Cake", "1", "500");
   await addCustomerInSheet(page, "Thandi");

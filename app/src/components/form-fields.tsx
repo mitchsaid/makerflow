@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
@@ -26,9 +27,21 @@ export type ExtraInputProps = Omit<
 >;
 
 /** A titled card holding a group of fields. */
-export function Section({ title, tag, children }: { title: string; /** Beside the title, like the "Private" tag. */ tag?: React.ReactNode; children: React.ReactNode }) {
+export function Section({
+  title,
+  tag,
+  onRemove,
+  children,
+}: {
+  title: string;
+  /** Beside the title, like the "Private" tag. */
+  tag?: React.ReactNode;
+  /** An optional section that was opened (a discount, a deposit) can be taken away again: "Remove", top right. */
+  onRemove?: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <Card>
+    <Card className="relative">
       <CardContent>
         <FieldSet>
           <FieldLegend className="mb-2 data-[variant=legend]:text-lg data-[variant=legend]:font-semibold">{title}
@@ -37,6 +50,11 @@ export function Section({ title, tag, children }: { title: string; /** Beside th
           <FieldGroup className="gap-4">{children}</FieldGroup>
         </FieldSet>
       </CardContent>
+      {onRemove && (
+        <Button type="button" variant="ghost" onClick={onRemove} aria-label={`Remove ${title.toLowerCase()}`} className="absolute right-3 top-3 text-muted-foreground">
+          Remove
+        </Button>
+      )}
     </Card>
   );
 }

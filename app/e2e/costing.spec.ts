@@ -365,7 +365,7 @@ test("an extra has its own costs, counted for each one on the quote, and kept", 
   await expect(again.getByLabel("What it costs", { exact: true })).toHaveValue("4");
 
   // Made "this product only" (a copy on save), it keeps its costs.
-  await page.getByLabel("Where does it apply?").selectOption("only");
+  await page.getByLabel("Offer it on").selectOption("only");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();

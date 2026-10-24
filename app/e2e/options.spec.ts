@@ -43,8 +43,8 @@ async function addExtra(page: Page, name: string, options: { price?: string; wor
   await fresh.fill(name);
   const card = page.getByRole("listitem").filter({ has: page.getByLabel("Extra name") });
   if (options.price) await card.getByLabel(/^Price/).fill(options.price);
-  if (options.wording) await card.getByRole("checkbox", { name: "Ask for wording" }).check();
-  if (options.productOnly) await card.getByLabel("Where does it apply?").selectOption({ label: "This product only" });
+  if (options.wording) await card.getByRole("checkbox", { name: "Customer types a note" }).check();
+  if (options.productOnly) await card.getByLabel("Offer it on").selectOption({ label: "Only this product" });
 }
 
 test("extras: ticked on a quote with how many and their wording, lists picked, and printed under the item", async ({ page }) => {
@@ -90,7 +90,7 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await sheet(page).getByRole("checkbox", { name: /Gold sprinkles/ }).check();
   await sheet(page).getByRole("checkbox", { name: /Gift box/ }).check();
   // One gift box, not one for each cupcake.
-  await sheet(page).getByRole("checkbox", { name: "A set number, not one for each item", description: /Gift box/ }).check();
+  await sheet(page).getByRole("group", { name: /How many\? Gift box/ }).getByRole("radio", { name: "A set number" }).check();
   await expect(sheet(page).getByLabel("Gift box: how many")).toHaveValue("1");
   // Plus and minus step it; it never goes below one.
   await sheet(page).getByRole("button", { name: "One more", description: "Gift box: how many" }).click();
@@ -118,7 +118,7 @@ test("extras: ticked on a quote with how many and their wording, lists picked, a
   await page.reload();
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("318"));
   await item(page, 1).getByRole("button", { name: /Edit/ }).click();
-  await expect(sheet(page).getByRole("checkbox", { name: "A set number, not one for each item", description: /Gift box/ })).toBeChecked();
+  await expect(sheet(page).getByRole("group", { name: /How many\? Gift box/ }).getByRole("radio", { name: "A set number" })).toBeChecked();
   await expect(sheet(page).getByLabel("Gift box: how many")).toHaveValue("1");
   await expect(sheet(page).getByLabel("Message on the cake: what should it say?")).toHaveValue("Happy 40th Thandi");
   await page.keyboard.press("Escape");
@@ -196,8 +196,8 @@ test("a saved extra on a second product: one price everywhere, until a product g
   await page.getByRole("button", { name: "Edit Gift wrap" }).click();
   await expect(page.getByLabel(/^Price/).last()).toHaveValue("35");
 
-  // "This product only": the cupcakes get their own gift wrap, and the cake keeps the shared one.
-  await page.getByLabel("Where does it apply?").selectOption({ label: "This product only" });
+  // "Only this product": the cupcakes get their own gift wrap, and the cake keeps the shared one.
+  await page.getByLabel("Offer it on").selectOption({ label: "Only this product" });
   await page.getByLabel(/^Price/).last().fill("10");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
@@ -205,7 +205,7 @@ test("a saved extra on a second product: one price everywhere, until a product g
   await page.getByRole("link", { name: /Cake/ }).click();
   await page.getByRole("button", { name: "Edit Gift wrap" }).click();
   await expect(page.getByLabel(/^Price/).last()).toHaveValue("35");
-  await expect(page.getByLabel("Where does it apply?")).toHaveValue("");
+  await expect(page.getByLabel("Offer it on")).toHaveValue("");
 
   // A new saved extra can't take a name another one has.
   await page.goto("/app/products/new");

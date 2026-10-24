@@ -101,7 +101,7 @@ test("the balance can be due 'another time', in the maker's own words, and it pr
   await addCustomerInSheet(page, "Thandi Nkosi");
 
   const deposit = page.getByRole("group", { name: "Deposit" });
-  await deposit.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+  await page.getByRole("button", { name: "Add a deposit" }).click();
   await deposit.getByLabel("Percentage (%)").fill("50");
   await deposit.getByLabel("Balance due", { exact: true }).selectOption("other");
 

@@ -70,16 +70,16 @@ test("a deposit can be saved as the usual from a quote, and put back", async ({ 
   await page.goto("/app/quotes/new");
   const section = page.getByRole("group", { name: "Deposit" });
 
-  // Nothing is offered while there is no deposit; ticking one and giving a percentage offers to keep it.
+  // Nothing is offered while there is no deposit; adding one and giving a percentage offers to keep it.
   await expect(section.getByRole("button", { name: /my usual/ })).toHaveCount(0);
-  await section.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+  await page.getByRole("button", { name: "Add a deposit" }).click();
   await section.getByLabel("Percentage (%)").fill("50");
   await section.getByRole("button", { name: "Save as my usual deposit" }).click();
   await expect(page.getByText("Saved as your usual deposit.")).toBeVisible();
 
   // A new quote starts with it; changing it offers to go back.
   await page.goto("/app/quotes/new");
-  await expect(section.getByRole("checkbox", { name: "Ask for a deposit to start work" })).toBeChecked();
+  await expect(section.getByLabel("Percentage (%)")).toBeVisible();
   await expect(section.getByLabel("Percentage (%)")).toHaveValue("50");
   await section.getByLabel("Percentage (%)").fill("30");
   await section.getByRole("button", { name: "Use my usual deposit" }).click();

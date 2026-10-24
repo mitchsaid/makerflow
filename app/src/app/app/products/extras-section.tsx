@@ -22,7 +22,7 @@ const nextKey = () => `extra-${(keyCounter += 1)}`;
 
 /**
  * "Extras" (docs/plans/product-extras.md): what people can add to a product, like gift wrap or engraving. An
- * extra is a name, a price and an optional "Ask for wording". It is saved once for every product (one price
+ * extra is a name, a price and an optional "Customer types a note". It is saved once for every product (one price
  * everywhere) or is for this product only (its own price, which can differ by size). Adding one offers the
  * business's saved extras first. Each is a card; one is open at a time, and any with a problem stays open so
  * the summary can take the person to it.
@@ -230,7 +230,7 @@ export function ExtrasSection({
                         onCheckedChange={(checked) => setRow(x.key, { asksForWording: checked === true })}
                       />
                       <FieldLabel htmlFor={fid(`extra-${x.key}-wording`)} className="text-base">
-                        Ask for wording
+                        Customer types a note
                       </FieldLabel>
                     </Field>
                     <FieldDescription>Typed on the quote, like what to engrave.</FieldDescription>
@@ -249,11 +249,11 @@ export function ExtrasSection({
 
                     <SelectField
                       id={fid(`extra-${x.key}-shared`)}
-                      label="Where does it apply?"
+                      label="Offer it on"
                       value={x.shared ? "" : "only"}
-                      placeholder="Any product: one price everywhere"
+                      placeholder="All my products"
                       options={["only"]}
-                      optionLabels={{ only: "This product only" }}
+                      optionLabels={{ only: "Only this product" }}
                       hint={
                         x.shared
                           ? (also ?? "Other products can use it too, with this price.")
