@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AddLink } from "@/components/add-button";
-import { Card, CardContent } from "@/components/ui/card";
-import { buttonVariants, Button } from "@/components/ui/button";
+import { EmptyState, NoMatches } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,20 +45,14 @@ export function InvoiceList({
 
   if (invoices.length === 0 && drafts.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-4">
-          <p className="text-base font-medium">No invoices yet</p>
-          <p className="text-muted-foreground">Open an accepted quote and choose Create invoice, or start one with no quote.</p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <AddLink href="/app/invoices/new" variant="default">
-              New invoice
-            </AddLink>
-            <Link href="/app/quotes" className={buttonVariants({ variant: "outline" })}>
-              Go to your quotes
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState title="No invoices yet" line="Open an accepted quote and choose Create invoice, or start one with no quote.">
+        <AddLink href="/app/invoices/new" variant="default">
+          New invoice
+        </AddLink>
+        <Link href="/app/quotes" className={buttonVariants({ variant: "outline" })}>
+          Go to your quotes
+        </Link>
+      </EmptyState>
     );
   }
 
@@ -90,19 +85,7 @@ export function InvoiceList({
         />
       </Field>
 
-      <div role="group" aria-label="Show invoices" className="flex flex-wrap gap-2">
-        {filters.map((f) => (
-          <Button
-            key={f.key}
-            type="button"
-            variant={filter === f.key ? "default" : "outline"}
-            aria-pressed={filter === f.key}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label} ({counts[f.key]})
-          </Button>
-        ))}
-      </div>
+      <FilterBar label="Show invoices" options={filters.map((f) => ({ ...f, count: counts[f.key] }))} value={filter} onChange={setFilter} />
 
       <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="invoice-count">
         {filter === "drafts"
@@ -116,7 +99,7 @@ export function InvoiceList({
 
       {filter === "drafts" ? (
         visibleDrafts.length === 0 ? (
-          <p className="text-muted-foreground">{needle !== "" ? `No drafts match “${query.trim()}”.` : "No drafts."}</p>
+          <NoMatches message={needle !== "" ? `No drafts match “${query.trim()}”.` : "No drafts."} clearLabel="Show all invoices" onClear={() => { setQuery(""); setFilter("all"); }} />
         ) : (
           <ul className="space-y-2">
             {visibleDrafts.map((d) => (
@@ -125,9 +108,19 @@ export function InvoiceList({
           </ul>
         )
       ) : visible.length === 0 ? (
-        <p className="text-muted-foreground">
-          {query.trim() !== "" ? `No invoices match “${query.trim()}”.` : filter === "overdue" ? "Nothing is overdue." : "No invoices here yet."}
-        </p>
+        query.trim() !== "" || filter !== "all" ? (
+          <NoMatches
+            message={query.trim() !== "" ? `No invoices match “${query.trim()}”.` : filter === "overdue" ? "Nothing is overdue." : "No invoices here yet."}
+            clearLabel="Show all invoices"
+            onClear={() => {
+              setQuery("");
+              setFilter("all");
+            }}
+          />
+        ) : (
+          // Nothing issued yet, but drafts are waiting: say so instead of "none", and go to them.
+          <NoMatches message="No invoices issued yet. Your drafts are waiting." clearLabel={`Show drafts (${drafts.length})`} onClear={() => setFilter("drafts")} />
+        )
       ) : (
         <ul className="space-y-2">
           {visible.map((i) => (

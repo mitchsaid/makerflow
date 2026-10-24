@@ -517,12 +517,12 @@ test("the list filters by status and a quote with no customer still shows its nu
   await expect(page.getByRole("heading", { name: /^Quote QT-0002 Draft$/, level: 1 })).toBeVisible();
 
   await openQuotes(page);
-  const filters = page.getByRole("navigation", { name: "Filter quotes" });
+  const filters = page.getByRole("group", { name: "Show quotes" });
   await expect(filters).toContainText("All (2)");
-  await filters.getByRole("link", { name: "Sent (1)" }).click();
+  await filters.getByRole("button", { name: "Sent (1)" }).click();
   await expect(page.getByRole("link", { name: /QT-0001/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /QT-0002/ })).toHaveCount(0);
-  await filters.getByRole("link", { name: "Drafts (1)" }).click();
+  await filters.getByRole("button", { name: "Drafts (1)" }).click();
   await expect(page.getByRole("link", { name: /QT-0002/ })).toContainText("No customer yet");
   await nav(page).getByRole("link", { name: "Quotes" }).click();
 });

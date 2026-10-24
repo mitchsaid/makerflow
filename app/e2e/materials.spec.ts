@@ -89,7 +89,7 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
   await page.getByRole("button", { name: "Archive material" }).click();
   await expect(page).toHaveURL(/\/app\/materials$/);
   await expect(page.getByRole("link", { name: /Cake flour/ })).toHaveCount(0);
-  await page.getByRole("checkbox", { name: /Show archived/ }).check();
+  await page.getByRole("button", { name: /^Archived/ }).click();
   await page.getByRole("link", { name: /Cake flour/ }).click();
   await expect(page.getByTestId("archived-notice")).toBeVisible();
   await page.getByRole("button", { name: "Restore material" }).click();
@@ -156,7 +156,7 @@ test("when every material is archived, the list says so instead of looking empty
   await page.getByRole("link", { name: /Old stock/ }).click();
   await page.getByRole("button", { name: "Archive material" }).click();
   await expect(page).toHaveURL(/\/app\/materials$/);
-  await expect(page.getByText("All your materials are archived. Tick Show archived to see them.")).toBeVisible();
-  await page.getByRole("checkbox", { name: /Show archived/ }).check();
+  await expect(page.getByText("All your materials are archived.")).toBeVisible();
+  await page.getByRole("button", { name: "Show archived" }).click();
   await expect(page.getByRole("link", { name: /Old stock/ })).toBeVisible();
 });

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AddLink } from "@/components/add-button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { EmptyState, NoMatches } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { isActiveJob, isDueThisWeekJob, isOverdueJob, visibleJobs, type JobFilter, type JobSummary } from "@/lib/jobs";
@@ -42,22 +43,14 @@ export function JobList({
 
   if (jobs.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-4">
-          <p className="text-base font-medium">No jobs yet</p>
-          <p className="text-muted-foreground">
-            Add a job for anything you are making, or create one from an accepted quote.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <AddLink href="/app/jobs/new" variant="default">
-              New job
-            </AddLink>
-            <Link href="/app/quotes" className={buttonVariants({ variant: "outline" })}>
-              Go to your quotes
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState title="No jobs yet" line="Add a job for anything you are making, or create one from an accepted quote.">
+        <AddLink href="/app/jobs/new" variant="default">
+          New job
+        </AddLink>
+        <Link href="/app/quotes" className={buttonVariants({ variant: "outline" })}>
+          Go to your quotes
+        </Link>
+      </EmptyState>
     );
   }
 
@@ -84,36 +77,35 @@ export function JobList({
         />
       </Field>
 
-      <div role="group" aria-label="Show jobs" className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <Button
-            key={f.key}
-            type="button"
-            variant={filter === f.key ? "default" : "outline"}
-            aria-pressed={filter === f.key}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label} ({counts[f.key]})
-          </Button>
-        ))}
-      </div>
+      <FilterBar label="Show jobs" options={FILTERS.map((f) => ({ ...f, count: counts[f.key] }))} value={filter} onChange={setFilter} />
 
       <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="job-count">
         {visible.length === 1 ? "1 job" : `${visible.length} jobs`}
       </p>
 
       {visible.length === 0 ? (
-        <p className="text-muted-foreground">
-          {query.trim() !== ""
-            ? `No jobs match “${query.trim()}”.`
-            : filter === "active"
-              ? "Nothing to make right now."
-              : filter === "late"
-                ? "Nothing is late. Well done."
-                : filter === "week"
-                  ? "Nothing is needed in the next week."
-                  : "No jobs here yet."}
-        </p>
+        <NoMatches
+          message={
+            query.trim() !== ""
+              ? `No jobs match “${query.trim()}”.`
+              : filter === "active"
+                ? "Nothing to make right now."
+                : filter === "late"
+                  ? "Nothing is late. Well done."
+                  : filter === "week"
+                    ? "Nothing is needed in the next week."
+                    : "No jobs here yet."
+          }
+          clearLabel="Show all jobs"
+          onClear={
+            query.trim() !== "" || filter !== "all"
+              ? () => {
+                  setQuery("");
+                  setFilter("all");
+                }
+              : undefined
+          }
+        />
       ) : (
         <ul className="space-y-2">
           {visible.map((j) => (
