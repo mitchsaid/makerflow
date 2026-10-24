@@ -89,7 +89,7 @@ test("withdrawing a quote is final, keeps a note, and a new quote can start from
   await openQuotes(page);
   await expect(page.getByRole("link", { name: /QT-0001/ })).toContainText("Withdrawn");
   await expect(page.getByRole("link", { name: /QT-0002/ })).toContainText("Draft");
-  await page.getByRole("link", { name: "Withdrawn (1)" }).click();
+  await page.getByRole("button", { name: "Withdrawn (1)" }).click();
   await expect(page.getByRole("link", { name: /QT-0001/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /QT-0002/ })).toHaveCount(0);
 });
