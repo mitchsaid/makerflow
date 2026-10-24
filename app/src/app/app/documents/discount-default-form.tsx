@@ -18,7 +18,7 @@ export function DiscountDefaultForm({
     <DefaultAmountForm
       formId="discount-default"
       title="Discount"
-      intro="If you usually give a discount, set it here and every new quote starts with it open. You can change it or take it off on any quote."
+      intro="If you usually give a discount, new quotes start with it."
       selectId="defaultDiscountKind"
       selectLabel="Discount on a new quote"
       options={[

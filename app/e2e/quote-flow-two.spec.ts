@@ -73,14 +73,14 @@ test("a new quote shows the number it will get, and the numbering can be changed
   await expect(page.getByTestId("quote-number")).toHaveText("QT-0001");
 
   // Saving closes the sheet and the number on the quote follows. What was typed on the quote is kept.
-  await page.getByLabel("Description (optional)").fill("For Sarah's birthday");
+  await page.getByLabel("Intro (optional)").fill("For Sarah's birthday");
   await page.getByRole("button", { name: /Change how quotes are numbered/ }).click();
   await sheet(page).getByLabel("Prefix").fill("CAKE-");
   await sheet(page).getByLabel("Next number").fill("42");
   await sheet(page).getByRole("button", { name: "Save quote numbers" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByTestId("quote-number")).toHaveText("CAKE-0042");
-  await expect(page.getByLabel("Description (optional)")).toHaveValue("For Sarah's birthday");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("For Sarah's birthday");
   await expect(page.getByRole("button", { name: /Change how quotes are numbered/ })).toBeFocused();
 
   // The quote gets that number when it is first saved, and then it is just its number.
@@ -133,7 +133,7 @@ test("How to pay says what each part is: bank details, then notes about paying",
   // Two parts, named: the bank details (with the way to add them), then free notes.
   await expect(pay.getByRole("heading", { name: "Bank details", level: 3 })).toBeVisible();
   await expect(pay.getByRole("button", { name: "Add bank details" })).toBeVisible();
-  const notes = pay.getByLabel("Notes about paying (optional)");
+  const notes = pay.getByLabel("Other ways to pay (optional)");
   await expect(notes).toBeVisible();
   await expect(pay.getByText(/Printed under your bank details\. For example/)).toBeVisible();
   // The old name, which read as a note about the bank details, is gone.
@@ -186,9 +186,9 @@ test("helper text sits under the label, above the field; an error sits under the
   const y = async (locator: ReturnType<typeof page.locator>) => (await locator.boundingBox())!.y;
 
   // Label, then its helper text, then the field.
-  const label = page.getByText("Description (optional)", { exact: true });
+  const label = page.getByText("Intro (optional)", { exact: true });
   const hint = page.getByText("Shown on your quotes under the name.");
-  const field = page.getByLabel("Description (optional)");
+  const field = page.getByLabel("Intro (optional)");
   expect(await y(label)).toBeLessThan(await y(hint));
   expect(await y(hint)).toBeLessThan(await y(field));
 

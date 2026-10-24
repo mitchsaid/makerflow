@@ -191,7 +191,7 @@ export function NewJobForm({
   if (errors.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: errors.neededBy });
   if (errors.fulfilment) problems.push({ fieldId: "fulfilment-none", label: "Delivery or collection", message: errors.fulfilment });
   if (errors.deliveryAddress) problems.push({ fieldId: "deliveryAddress", label: "Deliver to", message: errors.deliveryAddress });
-  if (errors.note) problems.push({ fieldId: "note", label: "Your note", message: errors.note });
+  if (errors.note) problems.push({ fieldId: "note", label: "Private note", message: errors.note });
   if (serverMessage) problems.push({ fieldId: "create-job", label: "Create job", message: serverMessage });
 
   return (
@@ -300,7 +300,7 @@ export function NewJobForm({
         )}
       </Section>
 
-      <Section title="Your note">
+      <Section title="Private note">
         <TextAreaField
           id="note"
           label="Note (optional)"

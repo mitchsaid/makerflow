@@ -337,7 +337,7 @@ export function QuoteBuilder({
   const f = errors.fields;
   if (f.customerId) problems.push({ fieldId: "customer", label: "Customer name", message: f.customerId });
   if (f.title) problems.push({ fieldId: "title", label: "Quote title", message: f.title });
-  if (f.description) problems.push({ fieldId: "description", label: "Description", message: f.description });
+  if (f.description) problems.push({ fieldId: "description", label: "Intro", message: f.description });
   if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
   if (f.validUntil) problems.push({ fieldId: "validUntil", label: "Valid until", message: f.validUntil });
   if (f.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: f.neededBy });
@@ -375,7 +375,7 @@ export function QuoteBuilder({
     }
   }
   if (f.paymentInstructions) {
-    problems.push({ fieldId: "paymentInstructions", label: "Notes about paying", message: f.paymentInstructions });
+    problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
   }
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
 
@@ -463,7 +463,7 @@ export function QuoteBuilder({
         )}
         <TextAreaField
           id="description"
-          label="Description (optional)"
+          label="Intro (optional)"
           hint="Printed at the top of the quote."
           value={values.description}
           error={f.description}
@@ -808,8 +808,8 @@ export function QuoteBuilder({
       >
         <TextAreaField
           id="paymentInstructions"
-          label="Notes about paying (optional)"
-          hint={`Printed under your bank details. For example, ${getLocalePack(countryCode).payment.otherWaysHint}`}
+          label="Other ways to pay (optional)"
+          hint={`Printed under your bank details, like ${getLocalePack(countryCode).payment.otherWaysHint}`}
           value={values.paymentInstructions}
           error={f.paymentInstructions}
           onChange={(paymentInstructions) => update({ paymentInstructions })}
@@ -888,7 +888,7 @@ export function QuoteBuilder({
             />
           )}
         </dl>
-        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} />
+        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} vatRegistered={vat.registered} />
       </Section>
 
       {state.status === "error" && state.message && (

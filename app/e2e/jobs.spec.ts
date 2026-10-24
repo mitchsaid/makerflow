@@ -47,11 +47,11 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(log).toContainText("Moved to making");
 
   // A note is saved, and kept.
-  await page.getByLabel("Your note").fill("Lemon sponge, no nuts");
+  await page.getByLabel("Private note (optional)").fill("Lemon sponge, no nuts");
   await page.getByRole("button", { name: "Save note" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Note saved." })).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Your note")).toHaveValue("Lemon sponge, no nuts");
+  await expect(page.getByLabel("Private note (optional)")).toHaveValue("Lemon sponge, no nuts");
 
   // Finished jobs leave the "To do" list but stay under Done.
   await page.getByRole("button", { name: "Mark ready", exact: true }).click();
@@ -218,7 +218,7 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await expect(page.getByText("Sam Jacobs")).toBeVisible();
   await expect(page.getByText("14 Oak Road")).toBeVisible();
   await expect(page.getByTestId("job-needed-by")).toContainText("delivery");
-  await expect(page.getByLabel("Your note")).toHaveValue("Match the desk");
+  await expect(page.getByLabel("Private note (optional)")).toHaveValue("Match the desk");
   await expect(page.getByText("Added by hand.")).toBeVisible();
 
   // It moves along like any other job, and the list offers New job once there is one.

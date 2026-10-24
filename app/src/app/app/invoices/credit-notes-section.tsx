@@ -238,7 +238,7 @@ function CreditForm({
   }
 
   const summary: FormProblem[] = [
-    ...(errors.reason ? [{ fieldId: "credit-reason", label: "Why", message: errors.reason }] : []),
+    ...(errors.reason ? [{ fieldId: "credit-reason", label: "Reason", message: errors.reason }] : []),
     ...(errors.issueDate ? [{ fieldId: "credit-date", label: "Day", message: errors.issueDate }] : []),
     ...(errors.lines ? [{ fieldId: `credit-line-${(items.find((i) => i.amountLeftCents > 0) ?? items[0])?.index ?? 0}`, label: "Items", message: errors.lines }] : []),
     ...Object.entries(errors.byLine ?? {}).flatMap(([index, e]) => [
@@ -264,7 +264,7 @@ function CreditForm({
           )}
           <SelectField
             id="credit-reason"
-            label="Why"
+            label="Reason"
             placeholder="Choose a reason"
             options={CREDIT_REASONS}
             optionLabels={reasons}
@@ -312,7 +312,7 @@ function CreditForm({
                           <span className="block text-sm font-normal text-muted-foreground">
                             {done
                               ? "All of it has been credited."
-                              : `${quantity(item.quantityLeftMilli, item.unit)} and ${money(item.amountLeftCents)} left to credit`}
+                              : `${quantity(item.quantityLeftMilli, item.unit)} left to credit (${money(item.amountLeftCents)})`}
                           </span>
                         </span>
                       </FieldLabel>
@@ -354,7 +354,7 @@ function CreditForm({
 
           <TextAreaField
             id="credit-explanation"
-            label="Why it is being credited"
+            label="Explanation"
             hint="A few words. The credit note shows them."
             rows={3}
             maxLength={CREDIT_EXPLANATION_MAX + 100}

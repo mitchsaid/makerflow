@@ -18,7 +18,7 @@ test("a credit note corrects an invoice without changing it, and the rest can be
   await page.getByRole("button", { name: "Issue a credit note" }).click();
   await sheet(page).getByRole("button", { name: "Issue credit note" }).click();
   await expect(page.getByTestId("form-summary")).toBeVisible();
-  await expect(sheet(page).getByText("Choose why you are crediting this invoice.").first()).toBeVisible();
+  await expect(sheet(page).getByText("Choose a reason for crediting this invoice.").first()).toBeVisible();
   await expect(sheet(page).getByText("Tick at least one item to credit.").first()).toBeVisible();
   await expect(sheet(page).getByText(/Say in a few words/).first()).toBeVisible();
 
@@ -29,8 +29,8 @@ test("a credit note corrects an invoice without changing it, and the rest can be
   await sheet(page).getByLabel("How many").fill("2");
   await expect(sheet(page).getByLabel("Amount credited", { exact: true })).toHaveValue("500");
   await expect(page.getByTestId("credit-total")).toContainText(rand("500"));
-  await sheet(page).getByLabel("Why", { exact: true }).selectOption({ label: "Goods returned or defective" });
-  await sheet(page).getByLabel("Why it is being credited").fill("Two came back cracked");
+  await sheet(page).getByLabel("Reason", { exact: true }).selectOption({ label: "Goods returned or defective" });
+  await sheet(page).getByLabel("Explanation").fill("Two came back cracked");
   await expect(sheet(page).getByTestId("coming-soon").filter({ hasText: "back in stock" })).toBeVisible();
   await sheet(page).getByRole("button", { name: "Issue credit note" }).click();
 
@@ -67,8 +67,8 @@ test("a credit note corrects an invoice without changing it, and the rest can be
 
   // More than is left of an item is explained at the field, and what was typed stays.
   await page.getByRole("button", { name: "Issue a credit note" }).click();
-  await sheet(page).getByLabel("Why", { exact: true }).selectOption({ label: "Price or billing correction" });
-  await sheet(page).getByLabel("Why it is being credited").fill("Agreed a lower price");
+  await sheet(page).getByLabel("Reason", { exact: true }).selectOption({ label: "Price or billing correction" });
+  await sheet(page).getByLabel("Explanation").fill("Agreed a lower price");
   await sheet(page).getByRole("checkbox", { name: /Cupcakes/ }).click();
   await expect(sheet(page).getByLabel("How many")).toHaveValue("8");
   await sheet(page).getByLabel("How many").fill("9");
@@ -76,7 +76,7 @@ test("a credit note corrects an invoice without changing it, and the rest can be
   await sheet(page).getByRole("button", { name: "Issue credit note" }).click();
   await expect(sheet(page).getByText("Only 8 left to credit.").first()).toBeVisible();
   await expect(sheet(page).getByText(/Only R\s?2\s?000,00 left to credit/).first()).toBeVisible();
-  await expect(sheet(page).getByLabel("Why it is being credited")).toHaveValue("Agreed a lower price");
+  await expect(sheet(page).getByLabel("Explanation")).toHaveValue("Agreed a lower price");
 
   // Credit everything left: the invoice is credited in full, nothing is owing, and no more can be credited.
   await sheet(page).getByRole("button", { name: "Credit everything left" }).click();
@@ -110,8 +110,8 @@ test("crediting an invoice that was paid says what the customer is owed back", a
   await expect(page.getByTestId("invoice-paid")).toHaveText(rand("500"));
 
   await page.getByRole("button", { name: "Issue a credit note" }).click();
-  await sheet(page).getByLabel("Why", { exact: true }).selectOption({ label: "Order cancelled or reduced" });
-  await sheet(page).getByLabel("Why it is being credited").fill("They cancelled");
+  await sheet(page).getByLabel("Reason", { exact: true }).selectOption({ label: "Order cancelled or reduced" });
+  await sheet(page).getByLabel("Explanation").fill("They cancelled");
   await sheet(page).getByRole("button", { name: "Credit everything left" }).click();
   await sheet(page).getByRole("button", { name: "Issue credit note" }).click();
   await expect(page.getByRole("heading", { name: /^Credit note CN-0001/, level: 1 })).toBeVisible();
@@ -135,8 +135,8 @@ test("credit note numbers are set with the others and never go back", async ({ p
   await page.goto("/app/invoices");
   await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
   await page.getByRole("button", { name: "Issue a credit note" }).click();
-  await sheet(page).getByLabel("Why", { exact: true }).selectOption({ label: "Something else" });
-  await sheet(page).getByLabel("Why it is being credited").fill("Goodwill");
+  await sheet(page).getByLabel("Reason", { exact: true }).selectOption({ label: "Something else" });
+  await sheet(page).getByLabel("Explanation").fill("Goodwill");
   await sheet(page).getByRole("button", { name: "Credit everything left" }).click();
   await sheet(page).getByRole("button", { name: "Issue credit note" }).click();
   await expect(page.getByRole("heading", { name: /^Credit note CR\/0050/, level: 1 })).toBeVisible();

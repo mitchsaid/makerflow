@@ -41,7 +41,7 @@ export function JobNote({ jobId, initial }: { jobId: string; initial: string }) 
     <form onSubmit={save} noValidate className="space-y-3">
       <TextAreaField
         id="job-note"
-        label="Your note"
+        label="Private note (optional)"
         hint="Only you and your team see this."
         value={text}
         onChange={(value) => {

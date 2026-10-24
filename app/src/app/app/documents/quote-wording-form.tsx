@@ -23,9 +23,9 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
   const errors: WordingErrors = state.status === "error" ? (state.errors ?? {}) : {};
   const problems: FormProblem[] = (
     [
-      ["wordingDescription", "Introduction", errors.description],
+      ["wordingDescription", "Intro", errors.description],
       ["wordingSignOff", "Sign-off message", errors.signOff],
-      ["wordingPayment", "Notes about paying", errors.paymentInstructions],
+      ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
 
@@ -57,7 +57,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
     <form onSubmit={submit} className="space-y-4" noValidate>
       <Section title="Quote wording">
         <p className="text-base text-muted-foreground">
-          What a new quote starts with. Existing quotes are not changed.
+          What a new quote starts with.
         </p>
         <FormSummary problems={problems} trigger={tries} />
         {state.status === "error" && state.message && (
@@ -68,7 +68,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         <TextAreaField
           id="wordingDescription"
           name="description"
-          label="Introduction (optional)"
+          label="Intro (optional)"
           hint="Printed at the top of every new quote."
           value={values.description}
           error={errors.description}
@@ -89,8 +89,8 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"
-          label="Notes about paying (optional)"
-          hint={`Printed under your bank details. For example, ${otherWaysHint}`}
+          label="Other ways to pay (optional)"
+          hint={`Printed under your bank details, like ${otherWaysHint}`}
           value={values.paymentInstructions}
           error={errors.paymentInstructions}
           onChange={set("paymentInstructions")}

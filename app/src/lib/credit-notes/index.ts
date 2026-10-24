@@ -126,7 +126,7 @@ export function parseCreditForm(
   const issueDate = typeof values.issueDate === "string" ? values.issueDate.trim() : "";
   const explanation = typeof values.explanation === "string" ? values.explanation.trim() : "";
 
-  if (!isCreditReason(reason)) errors.reason = "Choose why you are crediting this invoice.";
+  if (!isCreditReason(reason)) errors.reason = "Choose a reason for crediting this invoice.";
   if (!isIsoDay(issueDate)) errors.issueDate = "Choose the day of the credit note.";
   else if (issueDate < context.invoiceDate) errors.issueDate = "The credit note can't be dated before the invoice.";
   else if (issueDate > context.today) errors.issueDate = "That day hasn't come yet. Choose today or earlier.";

@@ -177,7 +177,7 @@ test("writing a new term from inside a quote keeps everything typed on the quote
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByTestId("no-policies")).toBeVisible();
-  await page.getByLabel("Description (optional)").fill("Wedding cake for Sarah");
+  await page.getByLabel("Intro (optional)").fill("Wedding cake for Sarah");
 
   // Nothing saved yet: the sheet goes straight to writing one, with a few examples (the rest one tap away).
   await page.getByRole("button", { name: "Add a term" }).click();
@@ -190,7 +190,7 @@ test("writing a new term from inside a quote keeps everything typed on the quote
   await expect(sheet(page)).toHaveCount(0);
 
   // The quote is as it was, and the new term is on it and saved to the library.
-  await expect(page.getByLabel("Description (optional)")).toHaveValue("Wedding cake for Sarah");
+  await expect(page.getByLabel("Intro (optional)")).toHaveValue("Wedding cake for Sarah");
   await expect(page.getByTestId("quote-term").filter({ hasText: "Allergies and handling" })).toContainText(/tell us about any allergies/);
   await expect(page).toHaveURL(/\/app\/quotes\/new$/);
   await openTerms(page);

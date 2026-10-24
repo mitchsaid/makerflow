@@ -147,7 +147,8 @@ test("what it costs to make is set on a product, worked out for each size, and k
   await expect(summary).toHaveCount(2);
   await expect(summary.nth(0)).toContainText(/Small: Costs R\s?69,00 to make one\. Sells for R\s?150,00\. Margin 54%/);
   await expect(summary.nth(1)).toContainText(/Large: Costs R\s?79,00 to make one\. Sells for R\s?300,00\. Margin 73,67%/);
-  await expect(page.getByTestId("cost-summary")).toContainText("without VAT");
+  // Not VAT registered: the "without VAT" note is not said.
+  await expect(page.getByTestId("cost-summary")).not.toContainText("without VAT");
 
   // Makes 12 at a time: a twelfth of each cost.
   await page.getByLabel("How many one batch makes").fill("12");
@@ -263,19 +264,19 @@ test("a draft quote shows the margin only to you, following the size, the quanti
   await expect(page.getByTestId("margin-panel")).toContainText("costed items only, 2 of 3");
   await expect(summary).toHaveText(/R\s?383,00 · /);
 
-  // The breakdown is behind the line; it says without VAT, and where to add the missing costs.
+  // The breakdown is behind the line; it leaves out the VAT note for a business that is not registered, and says where to add the missing costs.
   await page.getByTestId("margin-panel").locator("summary").click();
   await expect(page.getByTestId("margin-item")).toHaveCount(3);
   await expect(page.getByTestId("margin-item").nth(2)).toContainText("No costs yet");
   await expect(page.getByTestId("margin-item").nth(2).getByRole("link", { name: "Add what it costs to make" })).toBeVisible();
-  await expect(page.getByTestId("margin-panel")).toContainText("without VAT");
+  await expect(page.getByTestId("margin-panel")).not.toContainText("without VAT");
 
   // Never on the customer's side: not on the preview of the quote.
   await addCustomerInSheet(page, "Sam Jacobs", { phone: "021 555 0000" });
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByRole("button", { name: "Mark as sent", exact: true })).toBeVisible();
-  await expect(page.getByText(/Only you see this/)).toHaveCount(0);
+  await expect(page.getByText(/Private/)).toHaveCount(0);
   await expect(page.getByText(/73,67|No costs yet|costed items/)).toHaveCount(0);
 });
 

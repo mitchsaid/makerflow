@@ -58,7 +58,7 @@ export async function saveUsualSignOff(value: string): Promise<UsualResult> {
 
 export async function saveUsualPayment(value: string): Promise<UsualResult> {
   if (typeof value !== "string") return { status: "error", message: GENERIC_ERROR };
-  const parsed = optionalMultiline(value, QUOTE_PAYMENT_MAX, "Notes about paying", QUOTE_PAYMENT_MAX_LINES);
+  const parsed = optionalMultiline(value, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!parsed.ok) return { status: "error", message: parsed.error };
   return saveColumn("payment_instructions", parsed.value);
 }

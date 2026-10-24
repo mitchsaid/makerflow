@@ -18,7 +18,7 @@ export function DepositDefaultForm({
     <DefaultAmountForm
       formId="deposit-default"
       title="Deposit"
-      intro="Set what every new quote starts with, or choose “I decide on each quote” and a new quote opens with the deposit choice in front of you. You can change it on any quote."
+      intro="What a new quote starts with. Choose “I decide on each quote” to be asked every time."
       selectId="defaultDepositKind"
       selectLabel="Deposit on a new quote"
       options={[

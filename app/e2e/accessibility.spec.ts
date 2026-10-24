@@ -324,7 +324,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "job, not started");
       await page.getByRole("button", { name: "Start making" }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
-      await page.getByLabel("Your note").fill("Check the colour");
+      await page.getByLabel("Private note (optional)").fill("Check the colour");
       await page.getByRole("button", { name: "Save note" }).click();
       await expect(page.getByText("Note saved.")).toBeVisible();
       // "Note saved." shows a moment before the button is back: a disabled (faded) button fails the contrast check.
@@ -661,14 +661,14 @@ for (const scheme of ["light", "dark"] as const) {
       await signUpAndOnboard(page, `a11y-usual-${scheme}`, "Usual Axe Co");
       await openDocuments(page);
       await page.getByLabel("Deposit on a new quote").selectOption("ask");
-      await page.getByLabel("Introduction (optional)").fill("Thank you for asking.");
+      await page.getByLabel("Intro (optional)").fill("Thank you for asking.");
       await expectNoViolations(page, "quotes and invoices, usuals");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 
       await page.goto("/app/quotes/new");
       await page.getByRole("radio", { name: "A percentage of the total" }).check();
-      await page.getByLabel("Description (optional)").fill("A different introduction");
+      await page.getByLabel("Intro (optional)").fill("A different introduction");
       await expect(page.getByRole("button", { name: "Save as my usual description" })).toBeVisible();
       await expectNoViolations(page, "new quote, deposit choice and Save as my usual");
     });
@@ -923,8 +923,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "issue a credit note, with problems");
       await page.getByRole("dialog").getByRole("checkbox", { name: /Cupcakes/ }).click();
       await expectNoViolations(page, "issue a credit note, an item ticked");
-      await page.getByRole("dialog").getByLabel("Why", { exact: true }).selectOption({ label: "Goods returned or defective" });
-      await page.getByRole("dialog").getByLabel("Why it is being credited").fill("Two came back cracked");
+      await page.getByRole("dialog").getByLabel("Reason", { exact: true }).selectOption({ label: "Goods returned or defective" });
+      await page.getByRole("dialog").getByLabel("Explanation").fill("Two came back cracked");
       await page.getByRole("dialog").getByLabel("How many").fill("2");
       await page.getByRole("dialog").getByRole("button", { name: "Issue credit note" }).click();
       await expect(page.getByRole("heading", { name: /^Credit note CN-0001/, level: 1 })).toBeVisible();

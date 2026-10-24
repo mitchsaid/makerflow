@@ -18,8 +18,8 @@ async function invoiceWithPaymentAndCredit(page: Page, label: string) {
   await page.getByRole("button", { name: "Issue a credit note" }).click();
   await sheet(page).getByRole("checkbox", { name: /Cupcakes/ }).click();
   await sheet(page).getByLabel("How many").fill("2");
-  await sheet(page).getByLabel("Why", { exact: true }).selectOption({ label: "Goods returned or defective" });
-  await sheet(page).getByLabel("Why it is being credited").fill("Two came back cracked");
+  await sheet(page).getByLabel("Reason", { exact: true }).selectOption({ label: "Goods returned or defective" });
+  await sheet(page).getByLabel("Explanation").fill("Two came back cracked");
   await sheet(page).getByRole("button", { name: "Issue credit note" }).click();
   await expect(page.getByRole("heading", { name: /^Credit note CN-0001/, level: 1 })).toBeVisible();
 }
