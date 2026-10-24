@@ -115,7 +115,7 @@ test("a cancelled job can be restored, and frees its quote for another job", asy
   await page.getByRole("button", { name: /^All/ }).click();
   await page.getByRole("link", { name: /J-0001/ }).click();
   await page.getByRole("button", { name: "Restore this job" }).click();
-  await expect(page.getByRole("region", { name: "Where it stands" }).getByRole("alert")).toContainText("another job");
+  await expect(page.getByRole("region", { name: "Cancelled" }).getByRole("alert")).toContainText("another job");
 });
 
 test("a delivery job goes out for delivery before it is done", async ({ page }) => {
