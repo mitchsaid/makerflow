@@ -12,6 +12,7 @@ import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/l
 import { Checkbox } from "@/components/ui/checkbox";
 import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
+import { withoutEmptyOptionals } from "@/lib/quotes/optional";
 import { TermsSection } from "./terms-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -284,10 +285,16 @@ export function QuoteBuilder({
 
   /** Saves the draft; with `then: "preview"` the preview opens once it is saved. */
   function save(then?: "preview") {
+    // A discount or deposit that was opened and left empty is dropped, not refused.
+    const sent = withoutEmptyOptionals(values, { dropDeposit: !askForDeposit });
+    if (sent !== values) {
+      setValues(sent);
+      if (sent.discountKind === "none") setShowDiscount(false);
+    }
     setEditedSinceSave(false);
     startTransition(async () => {
       try {
-        const result = await saveQuoteDraft(quoteId, values, then);
+        const result = await saveQuoteDraft(quoteId, sent, then);
         setState(result);
         if (result.status === "saved" && then === "preview" && quoteId !== null) {
           router.push(`/app/quotes/${quoteId}/preview`);
@@ -663,7 +670,14 @@ export function QuoteBuilder({
       />
 
       {showDiscount ? (
-        <Section title="Discount">
+        <Section
+          title="Discount"
+          onRemove={() => {
+            scope?.markEdited("discountValue");
+            update({ discountKind: "none", discountValue: "" });
+            setShowDiscount(false);
+          }}
+        >
           <DiscountFields
             kind={values.discountKind}
             value={values.discountValue}
@@ -737,6 +751,11 @@ export function QuoteBuilder({
         symbol={symbol}
         errors={{ depositValue: f.depositValue, balanceDueDate: f.balanceDueDate, balanceDueText: f.balanceDueText }}
         ask={askForDeposit}
+        addWith={
+          usuals.depositKind === "percent" || usuals.depositKind === "fixed"
+            ? { depositKind: usuals.depositKind, depositValue: usuals.depositValue }
+            : undefined
+        }
         decided={quoteId !== null}
         footer={
           // "Ask each time" has no usual to save: the choice is made on every quote.

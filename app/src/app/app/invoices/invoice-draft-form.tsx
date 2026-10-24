@@ -27,6 +27,7 @@ import { DiscountFields } from "../quotes/discount-fields";
 import { LineRow } from "../quotes/line-row";
 import { LineSheet, type LineSheetView } from "../quotes/line-sheet";
 import { useItemSheetProducts } from "../quotes/use-item-sheet-products";
+import { withoutEmptyOptionals } from "@/lib/quotes/optional";
 import { discardInvoiceDraft, issueInvoiceDraft, saveInvoiceDraft } from "./draft-actions";
 
 const OFFLINE = "Couldn't reach the server, so nothing may have been saved. Check your connection and try again. Nothing you typed is lost.";
@@ -155,12 +156,23 @@ export function InvoiceDraftForm({
     window.history.replaceState(null, "", `/app/invoices/drafts/${id}`);
   }
 
+  /** A discount that was opened and left empty is dropped, not refused. */
+  function tidy(): InvoiceDraftForm {
+    const sent = withoutEmptyOptionals(values);
+    if (sent !== values) {
+      setValues(sent);
+      setShowDiscount(false);
+    }
+    return sent;
+  }
+
   function save() {
     setMessage(null);
     setProblems([]);
+    const sent = tidy();
     startTransition(async () => {
       try {
-        const result = await saveInvoiceDraft(draftId, values);
+        const result = await saveInvoiceDraft(draftId, sent);
         if (result.status === "saved") {
           setSaved(true);
           adopt(result.draftId);
@@ -177,7 +189,7 @@ export function InvoiceDraftForm({
   /** "Issue invoice": check it as an invoice here first, so a missing thing is named without a round trip, then ask once. */
   function askToIssue() {
     setMessage(null);
-    const checked = parseInvoiceDraft(values, vat);
+    const checked = parseInvoiceDraft(tidy(), vat);
     setTried((n) => n + 1);
     if (!checked.ok) {
       setErrors(checked.errors);
@@ -364,7 +376,13 @@ export function InvoiceDraftForm({
         />
 
         {showDiscount ? (
-          <Section title="Discount">
+          <Section
+            title="Discount"
+            onRemove={() => {
+              update({ discountKind: "none", discountValue: "" });
+              setShowDiscount(false);
+            }}
+          >
             <DiscountFields
               kind={values.discountKind}
               value={values.discountValue}

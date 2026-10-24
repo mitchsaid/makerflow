@@ -186,17 +186,29 @@ export function OptionChoices({
                           onChange={(text) => replace(entry, { ...entry, text })}
                         />
                       )}
-                      <Field orientation="horizontal" className="items-center">
-                        <Checkbox
-                          id={id(`extra-${x.id}-set`)}
-                          aria-describedby={`${fieldId}-label`}
-                          checked={quantity !== null}
-                          onCheckedChange={(on) => replace(entry, { ...entry, quantityMilli: on === true ? 1000 : null })}
-                        />
-                        <FieldLabel htmlFor={id(`extra-${x.id}-set`)} className="text-base">
-                          A set number, not one for each item
-                        </FieldLabel>
-                      </Field>
+                      <FieldSet>
+                        <FieldLegend variant="label" className="text-base">
+                          How many?<span className="sr-only"> {x.name}</span>
+                        </FieldLegend>
+                        <RadioGroup
+                          value={quantity === null ? "each" : "set"}
+                          onValueChange={(v) => replace(entry, { ...entry, quantityMilli: v === "set" ? 1000 : null })}
+                        >
+                          {(
+                            [
+                              ["each", "One for each item"],
+                              ["set", "A set number"],
+                            ] as const
+                          ).map(([choice, label]) => (
+                            <Field key={choice} orientation="horizontal" className="items-center">
+                              <RadioGroupItem id={id(`extra-${x.id}-${choice}`)} value={choice} />
+                              <FieldLabel htmlFor={id(`extra-${x.id}-${choice}`)} className="text-base">
+                                {label}
+                              </FieldLabel>
+                            </Field>
+                          ))}
+                        </RadioGroup>
+                      </FieldSet>
                       {quantity !== null && (
                         <ExtraCount
                           id={id(`extra-${x.id}-quantity`)}

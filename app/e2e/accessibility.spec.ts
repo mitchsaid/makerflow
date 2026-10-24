@@ -201,7 +201,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, delivery to an address on file");
       await page.getByRole("radio", { name: "A different address" }).check();
       await expectNoViolations(page, "new quote, delivery to a different address");
-      await page.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+      await page.getByRole("button", { name: "Add a deposit" }).click();
       await page.getByLabel("Percentage (%)").fill("50");
       await page.getByLabel("Balance due", { exact: true }).selectOption("date");
       await expectNoViolations(page, "new quote, deposit open");
@@ -269,6 +269,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new quote, cancel question");
       await page.getByRole("button", { name: "Keep editing" }).click();
 
+      // A discount opened and left empty is dropped on save; one that is not a number is a problem to fix.
+      await page.getByLabel("Discount (%)").first().fill("abc");
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "new quote with errors");
@@ -455,14 +457,14 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add an extra" }).click();
       await expect(page.getByLabel("Extra name")).toBeFocused();
       await expectNoViolations(page, "product extras, a new extra");
-      await page.getByRole("checkbox", { name: "Ask for wording" }).check();
+      await page.getByRole("checkbox", { name: "Customer types a note" }).check();
       await page.getByLabel("Longest (optional)").fill("0");
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "product extras, with problems");
       await page.getByLabel("Extra name").fill("Engraving");
       await page.getByLabel("Longest (optional)").fill("40");
-      await page.getByLabel("Where does it apply?").selectOption({ label: "This product only" });
+      await page.getByLabel("Offer it on").selectOption({ label: "Only this product" });
       await page.getByRole("checkbox", { name: "Price depends on the size" }).check();
       await expectNoViolations(page, "product extras, priced by size");
       await page.getByLabel("Engraving adds for Small", { exact: true }).fill("5");
@@ -508,7 +510,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("dialog").getByTestId("line-sum")).toBeVisible();
       await expectNoViolations(page, "item sheet, an option that adds to the price");
       await page.getByRole("dialog").getByRole("checkbox", { name: /Gift wrap/ }).check();
-      await page.getByRole("dialog").getByRole("checkbox", { name: "A set number, not one for each item", description: /Gift wrap/ }).check();
+      await page.getByRole("dialog").getByRole("group", { name: /How many\? Gift wrap/ }).getByRole("radio", { name: "A set number" }).check();
       await expect(page.getByRole("dialog").getByLabel("Gift wrap: how many")).toBeVisible();
       await expectNoViolations(page, "item sheet, an extra ticked with how many");
       await page.keyboard.press("Escape");

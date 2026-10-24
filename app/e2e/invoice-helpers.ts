@@ -30,7 +30,7 @@ export async function acceptedQuote(
   await addCustomerInSheet(page, "Thandi Nkosi");
   if (item.depositPercent) {
     const deposit = page.getByRole("group", { name: "Deposit" });
-    await deposit.getByRole("checkbox", { name: "Ask for a deposit to start work" }).check();
+    await page.getByRole("button", { name: "Add a deposit" }).click();
     await deposit.getByLabel("Percentage (%)").fill(item.depositPercent);
   }
   await page.getByRole("button", { name: "Save draft" }).click();
