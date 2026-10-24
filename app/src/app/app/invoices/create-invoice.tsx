@@ -27,10 +27,13 @@ export function CreateInvoice({
   problems,
   customerId,
   defaultOpen = false,
+  primary = true,
 }: {
   quoteId: string;
   /** Open when the page does: the card on a finished job sends the maker here with the sheet ready. */
   defaultOpen?: boolean;
+  /** The next step on the page (filled); false when something else comes first, such as making the job. */
+  primary?: boolean;
   /** "Tax invoice" or "Invoice", in the country's words. */
   documentTitle: string;
   customerName: string;
@@ -46,7 +49,7 @@ export function CreateInvoice({
 
   return (
     <div className="space-y-2">
-      <AddButton size="lg" variant="default" id="create-invoice" onClick={() => setOpen(true)}>
+      <AddButton size="lg" variant={primary ? "default" : "outline"} id="create-invoice" onClick={() => setOpen(true)}>
         Create invoice
       </AddButton>
       <p className="text-sm text-muted-foreground">Turn this accepted quote into a numbered {documentTitle.toLowerCase()}.</p>

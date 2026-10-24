@@ -60,8 +60,6 @@ export function PaymentsSection(props: Props) {
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-base" data-testid="payment-totals">
             <dt className="text-muted-foreground">Paid so far</dt>
             <dd data-testid="invoice-paid">{money(paidCents)}</dd>
-            <dt className="text-muted-foreground">Owing</dt>
-            <dd className="font-medium">{money(owingCents)}</dd>
           </dl>
 
           {rows.length === 0 ? (

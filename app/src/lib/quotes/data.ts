@@ -81,6 +81,14 @@ export async function getQuotes(): Promise<QuoteSummary[]> {
   });
 }
 
+/** Just each quote's status, for the counts on Home (a much lighter read than the list). */
+export async function getQuoteStatuses(): Promise<{ organisationId: string; status: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("quotes").select("organisation_id, status").limit(500);
+  if (error) throw new Error(`Could not load the quote counts: ${error.message}`);
+  return (data ?? []).map((row) => ({ organisationId: row.organisation_id as string, status: row.status as string }));
+}
+
 type LineRow = {
   id: string;
   sort_order: number;

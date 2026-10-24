@@ -210,7 +210,6 @@ export default async function QuotePage({
             today={today}
             askToCreateJob={!dismissedPrompts.includes(CREATE_JOB_PROMPT)}
           />}
-        {isLatest && answered && !quote.job && !quote.invoice && <ChangeAnswerButton quoteId={quote.id} />}
         {isLatest && quote.status === "accepted" && !nudgeJob && (
           quote.job ? (
             <Card>
@@ -248,9 +247,11 @@ export default async function QuotePage({
                 locale,
               })}
               customerId={quote.customer?.id ?? null}
+              primary={!!quote.job}
             />
           )
         )}
+        {isLatest && answered && !quote.job && !quote.invoice && <ChangeAnswerButton quoteId={quote.id} />}
         {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
       </section>
 
