@@ -13,6 +13,12 @@ const COLUMNS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4:
  */
 export function useSectionState<K extends string>(items: readonly SectionLink<K>[], initial: K): [K, (key: K) => void] {
   const [active, setActive] = useState<K>(initial);
+  // The server sent a different view (a link to another section from elsewhere on the page): follow it.
+  const [seen, setSeen] = useState<K>(initial);
+  if (seen !== initial) {
+    setSeen(initial);
+    setActive(initial);
+  }
 
   // The back and forward buttons: read the view from the address.
   useEffect(() => {

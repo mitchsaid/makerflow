@@ -25,7 +25,6 @@ export default async function ProductsPage({ searchParams }: PageProps<"/app/pro
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <ProductsArea
-        key={kind}
         initialKind={kind}
         products={products}
         addedName={addedName}

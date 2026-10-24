@@ -8,6 +8,8 @@ import { addCustomerInSheet, nav, sheet } from "./quote-helpers";
 function pageRequests(page: Page) {
   const seen: string[] = [];
   page.on("request", (r) => {
+    // Next also fetches pages ahead of a tap (a prefetch); that is not waiting for the server.
+    if (r.headers()["next-router-prefetch"]) return;
     if (r.resourceType() === "document" || r.url().includes("_rsc=") || r.headers()["rsc"] === "1") seen.push(r.url());
   });
   return seen;
@@ -78,6 +80,7 @@ test("the filters are one row of chips, the archived view is a chip, and a filte
   await sheet(page).getByLabel("Name", { exact: true }).fill("Shelf");
   await sheet(page).getByLabel("Quantity").fill("1");
   await sheet(page).getByRole("button", { name: "Add to job" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await addCustomerInSheet(page, "Sam Jacobs");
   await page.getByRole("button", { name: "Create job" }).click();
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);

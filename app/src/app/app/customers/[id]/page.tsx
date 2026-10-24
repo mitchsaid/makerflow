@@ -102,7 +102,6 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
       </Card>
 
       <SectionTabs
-        key={section}
         label={`${customer.name}: quotes, jobs, invoices or details`}
         items={items}
         initial={section}
