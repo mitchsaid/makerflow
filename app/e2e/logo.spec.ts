@@ -82,7 +82,7 @@ test("the quote preview offers the logo while there is none: add it there, or ca
   await page.reload();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByTestId("logo-prompt")).toHaveCount(0);
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Logo");
   await expect(page.getByTestId("logoImage-preview")).toBeVisible();
 });
 

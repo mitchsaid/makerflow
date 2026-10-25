@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { businessTab, openBusinessProfile, openDocuments, openProductSettings, quoteSettingsTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, sheet } from "./quote-helpers";
 
@@ -9,17 +9,27 @@ import { addCustomerInSheet, nav, sheet } from "./quote-helpers";
 /** The Save buttons a person can see now. */
 const visibleSaves = (page: Page) => page.locator("main").getByRole("button", { name: /^Save/ }).locator("visible=true");
 
+/** What each button says on the screen, leaving out the words only a screen reader hears. */
+const shownText = (buttons: Locator) =>
+  buttons.evaluateAll((els) =>
+    els.map((el) => {
+      const copy = el.cloneNode(true) as HTMLElement;
+      copy.querySelectorAll(".sr-only").forEach((s) => s.remove());
+      return copy.textContent?.trim();
+    }),
+  );
+
 test("the Business profile is three tabs, each with one full-width Save, and holds no pricing", async ({ page }) => {
   await signUpAndOnboard(page, "long-business", "Long Co");
   await openBusinessProfile(page);
   const tabs = page.getByRole("navigation", { name: "Business profile" });
   await expect(tabs.getByRole("link")).toHaveText(["Details", "Logo", "Bank details"]);
-  await expect(tabs.getByRole("link", { name: "Details" })).toHaveAttribute("aria-current", "page");
+  await expect(tabs.getByRole("link", { name: "Details", exact: true })).toHaveAttribute("aria-current", "page");
 
   // Details: the business, how to reach it, the address, VAT and what you make, with one Save.
   await expect(page.getByRole("checkbox", { name: "Food and baking" })).toBeVisible();
   await expect(visibleSaves(page)).toHaveCount(1);
-  await expect(visibleSaves(page)).toHaveText("Save");
+  expect(await shownText(visibleSaves(page))).toEqual(["Save"]);
   await expect(visibleSaves(page)).toHaveAccessibleName("Save details");
   const save = await visibleSaves(page).boundingBox();
   const main = await page.locator("main").boundingBox();
@@ -62,7 +72,9 @@ test("Quote settings: terms and themes at the top, then Wording, Starting values
   await expect(page.getByRole("group", { name: "Deposit" })).toBeVisible();
   await expect(page.getByLabel("Intro (optional)")).toBeHidden();
   // Each says only "Save"; a screen reader hears what it saves.
-  await expect(visibleSaves(page)).toHaveText(["Save", "Save", "Save"]);
+  expect(await shownText(visibleSaves(page))).toEqual(["Save", "Save", "Save"]);
+  await expect(visibleSaves(page).nth(0)).toHaveAccessibleName("Save deposit");
+  await expect(visibleSaves(page).nth(1)).toHaveAccessibleName("Save discount");
   await expect(visibleSaves(page).nth(2)).toHaveAccessibleName("Save delivery or collection");
 
   await quoteSettingsTab(page, "Numbers");
@@ -78,7 +90,7 @@ test("Product settings hold the hourly rate and the margin, saved together, and 
   await page.getByLabel("Price of an hour of your time").fill("120");
   await page.getByLabel("Margin you aim for (%)").fill("150");
   await page.getByRole("button", { name: "Save pricing" }).click();
-  await expect(page.getByText("Enter a margin from 1 to 99 percent, like 40.")).toBeVisible();
+  await expect(page.locator("#targetMargin-error")).toHaveText("Enter a margin from 1 to 99 percent, like 40.");
   await expect(page.getByTestId("form-summary")).toBeVisible();
   await expect(page.getByLabel("Price of an hour of your time")).toHaveValue("120");
   await page.reload();
@@ -89,7 +101,7 @@ test("Product settings hold the hourly rate and the margin, saved together, and 
   await page.getByRole("button", { name: "Save pricing" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Price of an hour of your time")).toHaveValue("120,00");
+  await expect(page.getByLabel("Price of an hour of your time")).toHaveValue("120");
   await expect(page.getByLabel("Margin you aim for (%)")).toHaveValue("40");
 });
 

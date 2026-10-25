@@ -963,7 +963,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Price of an hour of your time").fill("120");
       await page.getByLabel("Margin you aim for (%)").fill("150");
       await page.getByRole("button", { name: "Save pricing" }).click();
-      await expect(page.getByText("Enter a margin from 1 to 99 percent, like 40.")).toBeVisible();
+      await expect(page.locator("#targetMargin-error")).toHaveText("Enter a margin from 1 to 99 percent, like 40.");
       await expectNoViolations(page, "the margin you aim for, with an error");
       await page.getByLabel("Margin you aim for (%)").fill("70");
       await page.getByRole("button", { name: "Save pricing" }).click();

@@ -30,7 +30,7 @@ test("the target margin is set in Product settings, judged on a product and a qu
   await page.getByRole("button", { name: "Save pricing" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await setTarget(page, "150");
-  await expect(page.getByText("Enter a margin from 1 to 99 percent, like 40.")).toBeVisible();
+  await expect(page.locator("#targetMargin-error")).toHaveText("Enter a margin from 1 to 99 percent, like 40.");
   await expect(page.getByLabel("Margin you aim for (%)")).toHaveValue("150");
   await setTarget(page, "70");
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();

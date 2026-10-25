@@ -60,7 +60,7 @@ test("skipping shows every example, and the terms page links to the Business pro
   await page.getByRole("link", { name: "Manage your terms" }).click();
   // No answer: today's list, in its usual order. It is not asked here: a link goes to where it is.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
-  await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
+  await expect(exampleLinks(page).getByRole("listitem").getByRole("link")).toHaveCount(18);
   await expect(page.getByRole("checkbox")).toHaveCount(0);
   await page.getByTestId("types-link").getByRole("link", { name: "say what you make" }).click();
   await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
@@ -89,5 +89,5 @@ test("'Something else' says nothing about which examples fit", async ({ page }) 
   // The usual list, no "showing" line, and the link to say more.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
   await expect(page.getByTestId("types-link")).toBeVisible();
-  await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
+  await expect(exampleLinks(page).getByRole("listitem").getByRole("link")).toHaveCount(18);
 });
