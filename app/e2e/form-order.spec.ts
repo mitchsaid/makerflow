@@ -1,7 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 
-/** A quote, an invoice and a job ask in the same order, with the same words (docs/ux-review-2026-10-25.md, N3). */
+/**
+ * A quote, an invoice and a job ask in the same order, with the same words (docs/ux-review-2026-10-25.md, N3), and the
+ * order is the document's own, top to bottom: the number and dates, the customer, the items, delivery (founder, 2026-10-25).
+ */
 
 /** The sections of the form, in the order they appear on the screen. */
 async function sections(page: Page, formId: string) {
@@ -9,17 +12,18 @@ async function sections(page: Page, formId: string) {
     legends.filter((l) => l.closest("fieldset")?.parentElement?.closest("fieldset") == null).map((l) => (l.textContent ?? "").trim()),
   );
 }
-const ORDER = ["Customer", "Items", "Dates", "Delivery or collection"];
+const ORDER = ["Dates", "Customer", "Items", "Delivery or collection"];
 const inOrder = (names: string[]) => ORDER.filter((n) => names.includes(n));
 
-test("new quote, new invoice and new job ask for the customer, the items, the dates, then delivery", async ({ page }) => {
+test("new quote, new invoice and new job ask for the dates, the customer, the items, then delivery", async ({ page }) => {
   await signUpAndOnboard(page, "form-order", "Order Co");
 
   await page.goto("/app/quotes/new");
   const quote = await sections(page, "quote-form");
-  expect(inOrder(quote)).toEqual(ORDER);
-  // The wording comes after the money.
-  expect(quote.indexOf("About this quote")).toBeGreaterThan(quote.indexOf("Dates"));
+  // As the quote reads: its number and dates, who it is for, the intro, the items, delivery; then the money and the wording.
+  expect(quote.slice(0, 5)).toEqual(["Quote number and dates", "Customer", "About this quote", "Items", "Delivery or collection"]);
+  expect(quote.at(-1)).toBe("Sign-off");
+  await expect(page.getByRole("group", { name: "Quote number and dates" })).toContainText("QT-0001");
   // The pinned bar is the total; with no breakdown there is no second Totals card.
   await expect(page.getByTestId("totals")).toHaveCount(0);
 

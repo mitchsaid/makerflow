@@ -21,6 +21,7 @@ Missed from the prototype: nothing found.
 
 **B. One form order and one set of words** (N3)
 - New quote, new invoice and new job ask in one order: Customer, Items, Dates and delivery, Money (discount, deposit), Wording (intro, terms, how to pay, notes, sign-off).
+- **Changed by the founder, 2026-10-25:** the order is the document's own, top to bottom. A quote asks for its number and dates, the customer, *About this quote* (the intro), the items, delivery or collection, the discount and deposit, then terms, how to pay, notes and the sign-off. The invoice and job forms follow it: dates, customer, items, delivery, then the rest. (The first order put the quote number low on the form, inside *About this quote*.)
 - One word per thing: *Items*; *Dates*; *date* (*Due date*, *Date paid*, *Date they told you*, *Credit note date*); *Sign-off*; *Delivery (you deliver, with a fee)* everywhere a fee can be added.
 - The Totals card at the end of the quote and invoice forms goes (the pinned bar is the total); the bar's button says *Save*.
 

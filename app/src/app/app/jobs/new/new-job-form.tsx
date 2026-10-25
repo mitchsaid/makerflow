@@ -183,13 +183,13 @@ export function NewJobForm({
 
   // The summary lists problems in the order the fields appear on screen.
   const problems: FormProblem[] = [];
+  if (errors.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: errors.neededBy });
   if (errors.customerId) problems.push({ fieldId: "customer", label: "Customer name", message: errors.customerId });
   values.items.forEach((item, i) => {
     const message = errors[`line:${item.key}`];
     if (message) problems.push({ fieldId: `line-${item.key}-edit`, label: `Item ${i + 1}: ${item.name.trim() || "item"}`, message });
   });
   if (errors.items) problems.push({ fieldId: "add-item", label: "Items", message: errors.items });
-  if (errors.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: errors.neededBy });
   if (errors.fulfilment) problems.push({ fieldId: "fulfilment-none", label: "Delivery or collection", message: errors.fulfilment });
   if (errors.deliveryAddress) problems.push({ fieldId: "deliveryAddress", label: "Deliver to", message: errors.deliveryAddress });
   if (errors.note) problems.push({ fieldId: "note", label: "Private note", message: errors.note });
@@ -199,6 +199,17 @@ export function NewJobForm({
     <FormErrorScope epoch={tried}>
     <form onSubmit={onSubmit} noValidate className="space-y-6" data-testid="new-job-form">
       <FormSummary problems={problems} trigger={tried} />
+
+      <Section title="Dates">
+        <TextField
+          id="neededBy"
+          type="date"
+          label="Needed by (optional)"
+          value={values.neededBy}
+          error={errors.neededBy}
+          onChange={(neededBy) => update({ neededBy })}
+        />
+      </Section>
 
       <Section title="Customer">
         <CustomerPicker
@@ -260,17 +271,6 @@ export function NewJobForm({
           onRemoveLine={removeLine}
           onProductSaved={productSaved}
           focusOnClose={() => focusAfterSheet.current}
-        />
-      </Section>
-
-      <Section title="Dates">
-        <TextField
-          id="neededBy"
-          type="date"
-          label="Needed by (optional)"
-          value={values.neededBy}
-          error={errors.neededBy}
-          onChange={(neededBy) => update({ neededBy })}
         />
       </Section>
 

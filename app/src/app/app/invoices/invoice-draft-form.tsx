@@ -260,6 +260,8 @@ export function InvoiceDraftForm({
   // The summary lists problems in the order the fields appear on screen.
   const f = errors.fields;
   const summary: FormProblem[] = [];
+  if (f.issueDate) summary.push({ fieldId: "issueDate", label: "Invoice date", message: f.issueDate });
+  if (f.dueDate) summary.push({ fieldId: "dueDate", label: "Due date", message: f.dueDate });
   if (f.customerId) summary.push({ fieldId: "customer", label: "Customer name", message: f.customerId });
   values.lines.forEach((line, i) => {
     const e = errors.lines[line.key];
@@ -267,8 +269,6 @@ export function InvoiceDraftForm({
     if (text) summary.push({ fieldId: `line-${line.key}-edit`, label: `Item ${i + 1}: ${line.name.trim() || "item"}`, message: text });
   });
   if (f.lines) summary.push({ fieldId: "add-item", label: "Items", message: f.lines });
-  if (f.issueDate) summary.push({ fieldId: "issueDate", label: "Invoice date", message: f.issueDate });
-  if (f.dueDate) summary.push({ fieldId: "dueDate", label: "Due date", message: f.dueDate });
   if (f.deliveryFee) summary.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.deliveryAddress) summary.push({ fieldId: "deliveryAddress", label: "Deliver to", message: f.deliveryAddress });
   if (f.discountValue) summary.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
@@ -301,6 +301,11 @@ export function InvoiceDraftForm({
             </AlertDescription>
           </Alert>
         )}
+
+        <Section title="Dates">
+          <TextField id="issueDate" type="date" label="Invoice date" value={values.issueDate} error={f.issueDate} onChange={(issueDate) => update({ issueDate })} />
+          <TextField id="dueDate" type="date" label="Due date" value={values.dueDate} error={f.dueDate} onChange={(dueDate) => update({ dueDate })} />
+        </Section>
 
         <Section title="Customer">
           <CustomerPicker
@@ -360,11 +365,6 @@ export function InvoiceDraftForm({
             onProductSaved={productSaved}
             focusOnClose={() => focusAfterSheet.current}
           />
-        </Section>
-
-        <Section title="Dates">
-          <TextField id="issueDate" type="date" label="Invoice date" value={values.issueDate} error={f.issueDate} onChange={(issueDate) => update({ issueDate })} />
-          <TextField id="dueDate" type="date" label="Due date" value={values.dueDate} error={f.dueDate} onChange={(dueDate) => update({ dueDate })} />
         </Section>
 
         <DeliverySection

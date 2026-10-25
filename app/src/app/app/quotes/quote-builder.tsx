@@ -349,7 +349,13 @@ export function QuoteBuilder({
   // The summary lists problems in the order the fields appear on screen.
   const problems: FormProblem[] = [];
   const f = errors.fields;
+  // In the order the form asks: the number and dates, the customer, the intro, the items, then the rest.
+  if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
+  if (f.validUntil) problems.push({ fieldId: "validUntil", label: "Valid until", message: f.validUntil });
+  if (f.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: f.neededBy });
   if (f.customerId) problems.push({ fieldId: "customer", label: "Customer name", message: f.customerId });
+  if (f.title) problems.push({ fieldId: "title", label: "Quote title", message: f.title });
+  if (f.description) problems.push({ fieldId: "description", label: "Intro", message: f.description });
   values.lines.forEach((line, index) => {
     const e = errors.lines[line.key];
     if (!e) return;
@@ -359,18 +365,12 @@ export function QuoteBuilder({
     }
   });
   if (f.lines) problems.push({ fieldId: "add-item", label: "Items", message: f.lines });
-  if (f.issueDate) problems.push({ fieldId: "issueDate", label: "Quote date", message: f.issueDate });
-  if (f.validUntil) problems.push({ fieldId: "validUntil", label: "Valid until", message: f.validUntil });
-  if (f.neededBy) problems.push({ fieldId: "neededBy", label: "Needed by", message: f.neededBy });
   if (f.deliveryFee) problems.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.deliveryAddress) problems.push({ fieldId: "deliveryAddress", label: "Deliver to", message: f.deliveryAddress });
   if (f.discountValue) problems.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.depositValue) problems.push({ fieldId: "depositValue", label: "Deposit", message: f.depositValue });
   if (f.balanceDueDate) problems.push({ fieldId: "balanceDueDate", label: "Balance due by", message: f.balanceDueDate });
   if (f.balanceDueText) problems.push({ fieldId: "balanceDueText", label: "When is the balance due?", message: f.balanceDueText });
-  if (f.title) problems.push({ fieldId: "title", label: "Quote title", message: f.title });
-  if (f.description) problems.push({ fieldId: "description", label: "Intro", message: f.description });
-  if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.policies) {
     // One row for each term that needs fixing, so fixing one never hides another's problem from the summary.
     const rows = values.policies.filter((c) => errors.policies?.[c.key]);
@@ -391,6 +391,7 @@ export function QuoteBuilder({
   if (f.paymentInstructions) {
     problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
   }
+  if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
 
   const priceLabel = priceEntryLabel(vat, taxName);
@@ -448,6 +449,71 @@ export function QuoteBuilder({
     <FormErrorScope epoch={state}>
       <ErrorScopeBridge onScope={setScope} />
     <form id="quote-form" onSubmit={onSave} className="space-y-6" noValidate>
+      <Section title={numbering && quoteId === null ? "Quote number and dates" : "Dates"}>
+        {numbering && quoteId === null && (
+          <QuoteNumber numbering={numbering} onChange={setNumbering} canChange={canChangeNumbering} />
+        )}
+        <TextField
+          id="issueDate"
+          type="date"
+          label="Quote date"
+          value={values.issueDate}
+          error={f.issueDate}
+          onChange={(issueDate) => update({ issueDate })}
+        />
+        <TextField
+          id="validUntil"
+          type="date"
+          label="Valid until"
+          value={values.validUntil}
+          error={f.validUntil}
+          onChange={(validUntil) => update({ validUntil })}
+        />
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Valid for">
+          {VALID_FOR_DAYS.map((days) => {
+            const target = values.issueDate ? safeAddDays(values.issueDate, days) : null;
+            return (
+              <Button
+                key={days}
+                type="button"
+                variant="outline"
+                aria-pressed={target !== null && target === values.validUntil}
+                aria-label={`Valid for ${days} days`}
+                className="aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary"
+                onClick={() => {
+                  scope?.markEdited("validUntil");
+                  if (target) update({ validUntil: target });
+                }}
+              >
+                {days} days
+              </Button>
+            );
+          })}
+        </div>
+        {showNeededBy ? (
+          <TextField
+            id="neededBy"
+            type="date"
+            label="Needed by (optional)"
+            value={values.neededBy}
+            error={f.neededBy}
+            onChange={(neededBy) => update({ neededBy })}
+          />
+        ) : (
+          <div>
+            <AddButton
+              id="add-needed-by"
+              onClick={() => {
+                setShowNeededBy(true);
+                setTimeout(() => document.getElementById("neededBy")?.focus(), 0);
+              }}
+            >
+              Add a needed-by date
+            </AddButton>
+          </div>
+        )}
+      </Section>
+
       <Section title="Customer">
         <CustomerPicker
           id="customer"
@@ -457,6 +523,41 @@ export function QuoteBuilder({
           value={values.customerId}
           onChange={chooseCustomer}
           error={f.customerId}
+        />
+      </Section>
+
+      <Section title="About this quote">
+        {showTitle && (
+          <TextField
+            id="title"
+            label="Quote title (optional)"
+            autoComplete="off"
+            maxLength={120}
+            value={values.title}
+            error={f.title}
+            onChange={(title) => update({ title })}
+          />
+        )}
+        <TextAreaField
+          id="description"
+          label="Intro (optional)"
+          hint="Printed at the top of the quote."
+          value={values.description}
+          error={f.description}
+          onChange={(description) => update({ description })}
+          maxLength={2000}
+        />
+        <UsualButtons
+          what="description"
+          valueKey={values.description}
+          canSave={canSaveUsuals && canSaveUsualText(values.description, usuals.description, startingText.description)}
+          canUse={canUseUsualText(values.description, usuals.description)}
+          save={() => saveUsualDescription(values.description)}
+          onSaved={(value) => setUsuals((u) => ({ ...u, description: value ?? values.description }))}
+          onUse={() => {
+            scope?.markEdited("description");
+            update({ description: usuals.description });
+          }}
         />
       </Section>
 
@@ -561,68 +662,6 @@ export function QuoteBuilder({
           onProductSaved={productSaved}
           focusOnClose={() => focusAfterSheet.current}
         />
-      </Section>
-
-      <Section title="Dates">
-        <TextField
-          id="issueDate"
-          type="date"
-          label="Quote date"
-          value={values.issueDate}
-          error={f.issueDate}
-          onChange={(issueDate) => update({ issueDate })}
-        />
-        <TextField
-          id="validUntil"
-          type="date"
-          label="Valid until"
-          value={values.validUntil}
-          error={f.validUntil}
-          onChange={(validUntil) => update({ validUntil })}
-        />
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Valid for">
-          {VALID_FOR_DAYS.map((days) => {
-            const target = values.issueDate ? safeAddDays(values.issueDate, days) : null;
-            return (
-              <Button
-                key={days}
-                type="button"
-                variant="outline"
-                aria-pressed={target !== null && target === values.validUntil}
-                aria-label={`Valid for ${days} days`}
-                className="aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary"
-                onClick={() => {
-                  scope?.markEdited("validUntil");
-                  if (target) update({ validUntil: target });
-                }}
-              >
-                {days} days
-              </Button>
-            );
-          })}
-        </div>
-        {showNeededBy ? (
-          <TextField
-            id="neededBy"
-            type="date"
-            label="Needed by (optional)"
-            value={values.neededBy}
-            error={f.neededBy}
-            onChange={(neededBy) => update({ neededBy })}
-          />
-        ) : (
-          <div>
-            <AddButton
-              id="add-needed-by"
-              onClick={() => {
-                setShowNeededBy(true);
-                setTimeout(() => document.getElementById("neededBy")?.focus(), 0);
-              }}
-            >
-              Add a needed-by date
-            </AddButton>
-          </div>
-        )}
       </Section>
 
       <DeliverySection
@@ -772,45 +811,6 @@ export function QuoteBuilder({
           )
         }
       />
-
-
-      <Section title="About this quote">
-        {numbering && quoteId === null && (
-          <QuoteNumber numbering={numbering} onChange={setNumbering} canChange={canChangeNumbering} />
-        )}
-        {showTitle && (
-          <TextField
-            id="title"
-            label="Quote title (optional)"
-            autoComplete="off"
-            maxLength={120}
-            value={values.title}
-            error={f.title}
-            onChange={(title) => update({ title })}
-          />
-        )}
-        <TextAreaField
-          id="description"
-          label="Intro (optional)"
-          hint="Printed at the top of the quote."
-          value={values.description}
-          error={f.description}
-          onChange={(description) => update({ description })}
-          maxLength={2000}
-        />
-        <UsualButtons
-          what="description"
-          valueKey={values.description}
-          canSave={canSaveUsuals && canSaveUsualText(values.description, usuals.description, startingText.description)}
-          canUse={canUseUsualText(values.description, usuals.description)}
-          save={() => saveUsualDescription(values.description)}
-          onSaved={(value) => setUsuals((u) => ({ ...u, description: value ?? values.description }))}
-          onUse={() => {
-            scope?.markEdited("description");
-            update({ description: usuals.description });
-          }}
-        />
-      </Section>
 
       <TermsSection
         value={values.policies}
