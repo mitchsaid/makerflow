@@ -62,6 +62,7 @@ describe("parseBusinessProfileForm", () => {
       ok: true,
       name: "Sweet Nothings",
       profile: {
+        ownerName: null,
         countryCode: "ZA",
         currencyCode: "ZAR",
         phone: null,
@@ -76,6 +77,13 @@ describe("parseBusinessProfileForm", () => {
         pricesIncludeVat: true,
       },
     });
+  });
+
+  it("keeps the owner's name, tidied, and says how to fix one that is too long", () => {
+    const r = parseZa(form({ name: "Sweet Co", ownerName: "  Thandi   Nkosi " }));
+    expect(r.ok && r.profile.ownerName).toBe("Thandi Nkosi");
+    const long = parseZa(form({ name: "Sweet Co", ownerName: "a".repeat(121) }));
+    expect(!long.ok && long.errors.ownerName).toMatch(/120 characters/);
   });
 
   it("parses a full valid form", () => {
@@ -149,6 +157,8 @@ const emptyProfile: BusinessProfile = {
       logoImageId: null,
       labourRateCents: null,
     targetMarginBp: null,
+  ownerName: null,
+  signOffAs: "business",
 };
 
 describe("what is missing before documents (South African rules, via the locale pack)", () => {

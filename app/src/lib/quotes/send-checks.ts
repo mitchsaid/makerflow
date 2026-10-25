@@ -6,7 +6,9 @@
  * sends, so a hand-built request cannot skip them.
  */
 
-export type SendProblemCode = "customer" | "items" | "validity" | "deposit" | "balance-date";
+import { NO_OWNER_NAME } from "./sign-off";
+
+export type SendProblemCode = "customer" | "items" | "validity" | "deposit" | "balance-date" | "sign-off";
 
 export type SendProblem = {
   code: SendProblemCode;
@@ -30,6 +32,8 @@ export function sendProblems(input: {
   depositIsNothing?: boolean;
   /** The date the balance is due, when it is by a date. */
   balanceDueDate?: string | null;
+  /** The quote is signed with the owner's name, and none is saved. */
+  noOwnerName?: boolean;
 }): SendProblem[] {
   const problems: SendProblem[] = [];
   if (!input.hasCustomer) {
@@ -55,6 +59,9 @@ export function sendProblems(input: {
   }
   if (input.balanceDueDate && input.balanceDueDate < input.today) {
     problems.push({ code: "balance-date", message: "The date the balance is due has passed. Choose a new date." });
+  }
+  if (input.noOwnerName) {
+    problems.push({ code: "sign-off", message: NO_OWNER_NAME });
   }
   return problems;
 }

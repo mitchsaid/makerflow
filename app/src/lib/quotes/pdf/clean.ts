@@ -45,6 +45,8 @@ export function forPdf(snapshot: QuoteSnapshot): QuoteSnapshot {
     title: clean(snapshot.title ?? null),
     description: clean(snapshot.description ?? null),
     signOff: clean(snapshot.signOff ?? null),
+    // Absent stays absent: an older snapshot prints the business name.
+    ...(snapshot.signOffName === undefined ? {} : { signOffName: clean(snapshot.signOffName) }),
     terms: clean(snapshot.terms ?? null),
     paymentInstructions: clean(snapshot.paymentInstructions ?? null),
     bankDetails: snapshot.bankDetails?.map((l) => ({ label: drawable(l.label), value: drawable(l.value) })),

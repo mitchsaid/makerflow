@@ -19,6 +19,7 @@ const FIX_FIELD: Record<SendProblemCode, { id: string; label: string }> = {
   validity: { id: "validUntil", label: "Change the date" },
   deposit: { id: "depositValue", label: "Change the deposit" },
   "balance-date": { id: "balanceDueDate", label: "Change the date" },
+  "sign-off": { id: "signOffAs", label: "Change who signs" },
 };
 
 /**

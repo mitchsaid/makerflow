@@ -115,6 +115,7 @@ export default async function QuotePage({
           canSaveUsuals={canEditBusinessProfile(role)}
         startingText={locale.documents.quoteStart}
           askForDeposit={profile.defaultDepositKind === "ask"}
+          signers={{ business: organisation.name, owner: profile.ownerName }}
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}
           {quote.versions.length === 0 && <DeleteDraftButton id={quote.id} />}

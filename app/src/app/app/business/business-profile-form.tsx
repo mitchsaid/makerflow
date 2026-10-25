@@ -18,6 +18,7 @@ import { FormErrorScope } from "@/components/form-errors";
 
 export type FormValues = {
   name: string;
+  ownerName: string;
   phone: string;
   email: string;
   addressLine1: string;
@@ -51,6 +52,7 @@ export function BusinessProfileForm({
   const problems: FormProblem[] = (
     [
       ["name", "Business name"],
+      ["ownerName", "Owner's name"],
       ["phone", "Phone"],
       ["email", "Email"],
       ["addressLine1", "Street address"],
@@ -106,6 +108,16 @@ export function BusinessProfileForm({
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Section title="Your business">
         {text("name", "Business name", { autoComplete: "organization", required: true, maxLength: 120 })}
+        <TextField
+          id="ownerName"
+          label="Owner's name (optional)"
+          hint="For signing quotes, if you choose to."
+          autoComplete="name"
+          maxLength={120}
+          error={errors.ownerName}
+          value={values.ownerName}
+          onChange={(value) => set("ownerName")(value)}
+        />
       </Section>
 
       <Section title="How customers reach you">
