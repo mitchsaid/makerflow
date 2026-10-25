@@ -1013,6 +1013,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByLabel("Quantity").fill("2");
       await page.getByRole("dialog").getByLabel(/^Price/).fill("100");
       await page.getByRole("dialog").getByRole("button", { name: "Add to invoice" }).click();
+      // (The closing sheet has an "Add a discount" of its own: wait for it to go.)
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount (%)").fill("10");
       await expectNoViolations(page, "a new invoice, with an item and a discount");

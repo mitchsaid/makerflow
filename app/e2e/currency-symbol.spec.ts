@@ -44,6 +44,7 @@ test("prices show the currency symbol before the field, and nothing else does", 
   await sheet(page).getByLabel(/^Price/).fill("15,50");
   await sheet(page).getByLabel("Item discount amount").fill("0,50");
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("15"));
 
   await page.getByRole("radio", { name: /Delivery/ }).check();
