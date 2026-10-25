@@ -85,16 +85,35 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
 
       <Card>
         <CardContent className="space-y-3">
-          <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-base" data-testid="customer-overview">
-            <dt className="text-muted-foreground">Owing</dt>
-            <dd className="font-medium" data-testid="customer-owing">
-              {overview.owingCents > 0 ? <Link href={`${base}?section=invoices`} className="underline">{money(overview.owingCents)}</Link> : "Nothing owing"}
-            </dd>
-            <dt className="text-muted-foreground">Quotes waiting for an answer</dt>
-            <dd data-testid="customer-open-quotes">{overview.openQuotes}</dd>
-            <dt className="text-muted-foreground">Jobs in progress</dt>
-            <dd data-testid="customer-jobs-in-progress">{overview.jobsInProgress}</dd>
-          </dl>
+          {/* What needs attention for this customer; a count of nothing is left out (docs/ux-review-2026-10-25.md, N7). */}
+          {overview.owingCents > 0 || overview.openQuotes > 0 || overview.jobsInProgress > 0 ? (
+            <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-base" data-testid="customer-overview">
+              {overview.owingCents > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Owing</dt>
+                  <dd className="font-medium" data-testid="customer-owing">
+                    <Link href={`${base}?section=invoices`} className="underline">{money(overview.owingCents)}</Link>
+                  </dd>
+                </>
+              )}
+              {overview.openQuotes > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Quotes waiting for an answer</dt>
+                  <dd data-testid="customer-open-quotes">{overview.openQuotes}</dd>
+                </>
+              )}
+              {overview.jobsInProgress > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Jobs in progress</dt>
+                  <dd data-testid="customer-jobs-in-progress">{overview.jobsInProgress}</dd>
+                </>
+              )}
+            </dl>
+          ) : (
+            <p className="text-base text-muted-foreground" data-testid="customer-overview">
+              Nothing owing, waiting or being made.
+            </p>
+          )}
           <Link href={`${base}/statement`} className={buttonVariants({ variant: "outline", size: "lg" })}>
             Statement of account
           </Link>

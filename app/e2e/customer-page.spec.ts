@@ -28,7 +28,8 @@ test("a customer's page says what they owe and lists their quotes, jobs and invo
 
   // The top: what they owe, what is waiting, what is being made.
   await expect(page.getByTestId("customer-owing")).toContainText(rand("2 500"));
-  await expect(page.getByTestId("customer-open-quotes")).toHaveText("0");
+  // (A count of nothing is left out.)
+  await expect(page.getByTestId("customer-open-quotes")).toHaveCount(0);
   await expect(page.getByTestId("customer-jobs-in-progress")).toHaveText("1");
   await expect(page.getByRole("link", { name: "Statement of account" })).toBeVisible();
 
@@ -74,7 +75,7 @@ test("a customer with nothing yet has plain empty sections, and Details still sa
   await expect(page.getByTestId("customer-added")).toBeVisible();
   await page.getByRole("link", { name: /Newcomer Dlamini/ }).click();
 
-  await expect(page.getByTestId("customer-owing")).toHaveText("Nothing owing");
+  await expect(page.getByTestId("customer-overview")).toHaveText("Nothing owing, waiting or being made.");
   await expect(page.getByText("No quotes yet")).toBeVisible();
   await switchOf(page).getByRole("link", { name: "Jobs" }).click();
   await expect(page.getByText("No jobs yet")).toBeVisible();

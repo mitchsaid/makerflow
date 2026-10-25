@@ -92,7 +92,8 @@ test("the deposit is the first payment, the rest follows, and a mistake is rever
   // Home shows what is owing; the list follows, and the Owing link narrows it.
   await nav(page).getByRole("link", { name: "Home" }).click();
   await expect(page.getByTestId("home-owing")).toHaveText(rand("1 500"));
-  await expect(page.getByTestId("home-overdue")).toHaveText(rand("0"));
+  // Nothing overdue: the tile is left out.
+  await expect(page.getByTestId("home-overdue")).toHaveCount(0);
   await page.getByTestId("home-owing").click();
   await expect(page.getByRole("heading", { name: "Invoices", level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Unpaid/ })).toHaveAttribute("aria-pressed", "true");
