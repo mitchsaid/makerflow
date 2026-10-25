@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
-import { localSupabase, openBusinessProfile, openDocuments, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
+import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -534,6 +534,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "business profile with errors");
 
       // Bank details: with errors, then saved.
+      await businessTab(page, "Bank details");
+      await expectNoViolations(page, "business profile, bank details tab");
       await page.getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByText("Enter the account holder").first()).toBeVisible();
       await expectNoViolations(page, "business profile, bank details with errors");
@@ -548,6 +550,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "business profile, bank details saved");
 
       // A VAT-registered business gets the VAT choice on each item.
+      await businessTab(page, "Details");
       await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
       await page.getByLabel("VAT number").fill("4123456789");
       // Wait for this save itself, not just for a "Saved." that an earlier form on the page may still be showing.
@@ -614,7 +617,7 @@ for (const scheme of ["light", "dark"] as const) {
       }
       await page.getByRole("button", { name: "Save theme" }).click();
       await expect(page.getByTestId("theme-save-status")).toHaveText("Saved.");
-      await openBusinessProfile(page);
+      await openBusinessProfile(page, "Logo");
       // The logo: chosen, then saved (it lives on the Business profile).
       const logo = await sharp({ create: { width: 400, height: 150, channels: 3, background: "#1e3a8a" } }).png().toBuffer();
       await page.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: logo });
@@ -623,6 +626,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save logo" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
       await openDocuments(page);
+      await expectNoViolations(page, "quote settings, wording");
+      await quoteSettingsTab(page, "Starting values");
       // The default deposit: with an error, then saved.
       await page.getByLabel("Deposit on a new quote").selectOption("percent");
       await page.getByRole("button", { name: "Save deposit" }).click();
@@ -633,6 +638,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.locator("#deposit-default").getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
       await expectNoViolations(page, "quote settings, default deposit saved");
       // Quote numbers, with a number that has already been used.
+      await quoteSettingsTab(page, "Numbers");
       await page.getByLabel("Next number", { exact: true }).fill("1");
       await page.getByRole("button", { name: "Save quote numbers" }).click();
       // Wait for THIS form's answer .
@@ -670,9 +676,11 @@ for (const scheme of ["light", "dark"] as const) {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-usual-${scheme}`, "Usual Axe Co");
       await openDocuments(page);
-      await page.getByLabel("Deposit on a new quote").selectOption("ask");
       await page.getByLabel("Intro (optional)").fill("Thank you for asking.");
       await expectNoViolations(page, "quote settings, usuals");
+      await quoteSettingsTab(page, "Starting values");
+      await page.getByLabel("Deposit on a new quote").selectOption("ask");
+      await expectNoViolations(page, "quote settings, starting values");
       await page.getByRole("button", { name: "Save deposit" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 
@@ -757,10 +765,10 @@ for (const scheme of ["light", "dark"] as const) {
     test("costs on a product, the hourly rate, and the margin on a quote", async ({ page }) => {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-costs-${scheme}`, "Costs Axe Co");
-      await openBusinessProfile(page);
-      await expectNoViolations(page, "business profile, with the hourly rate");
+      await openProductSettings(page);
+      await expectNoViolations(page, "product settings");
       await page.getByLabel("Price of an hour of your time").fill("120");
-      await page.getByRole("button", { name: "Save hourly rate" }).click();
+      await page.getByRole("button", { name: "Save pricing" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 
       await page.goto("/app/products/new");
@@ -942,25 +950,23 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: "invoice INV-0001", exact: true }).click();
       await expect(page.getByTestId("credit-notes")).toBeVisible();
       await expectNoViolations(page, "an invoice with a credit note");
-      await openDocuments(page);
+      await openDocuments(page, "Numbers");
       await expectNoViolations(page, "quote settings, with the quote numbering");
       await openInvoiceSettings(page);
       await expectNoViolations(page, "invoice settings, with the invoice and credit note numbering");
     });
 
-    test("the margin you aim for: the profile form and a product's summary", async ({ page }) => {
+    test("the margin you aim for: the product settings and a product's summary", async ({ page }) => {
       test.setTimeout(300_000);
       await signUpAndOnboard(page, `a11y-target-${scheme}`, "Target Axe Co");
-      await openBusinessProfile(page);
+      await openProductSettings(page);
       await page.getByLabel("Price of an hour of your time").fill("120");
-      await page.getByRole("button", { name: "Save hourly rate" }).click();
-      await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
       await page.getByLabel("Margin you aim for (%)").fill("150");
-      await page.getByRole("button", { name: "Save margin" }).click();
+      await page.getByRole("button", { name: "Save pricing" }).click();
       await expect(page.getByText("Enter a margin from 1 to 99 percent, like 40.")).toBeVisible();
       await expectNoViolations(page, "the margin you aim for, with an error");
       await page.getByLabel("Margin you aim for (%)").fill("70");
-      await page.getByRole("button", { name: "Save margin" }).click();
+      await page.getByRole("button", { name: "Save pricing" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
       await expectNoViolations(page, "the margin you aim for, saved");
 

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/save-button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { FormErrorScope } from "@/components/form-errors";
@@ -31,7 +31,7 @@ export function DefaultAmountForm({
   valueLabels,
   valueErrorKey,
   summaryLabel,
-  submitLabel,
+  saveWhat,
   initial,
   symbol,
   save,
@@ -50,7 +50,8 @@ export function DefaultAmountForm({
   valueErrorKey: string;
   /** What the form summary calls the amount ("Deposit"). */
   summaryLabel: string;
-  submitLabel: string;
+  /** What the Save saves, for a screen reader ("deposit"): the page has more than one. */
+  saveWhat: string;
   initial: { kind: DefaultAmountKind; value: string };
   symbol: string;
   save: (values: { kind: DefaultAmountKind; value: string }) => Promise<DefaultAmountState>;
@@ -128,16 +129,12 @@ export function DefaultAmountForm({
             />
           )}
         </Section>
-        <div className="flex items-center gap-4">
-          <Button type="submit" size="lg" disabled={pending}>
-            {pending ? "Saving…" : submitLabel}
-          </Button>
-          {state.status === "saved" && !editedSinceSave && (
-            <p role="status" className="text-base">
-              Saved.
-            </p>
-          )}
-        </div>
+        {state.status === "saved" && !editedSinceSave && (
+          <p role="status" className="text-base">
+            Saved.
+          </p>
+        )}
+        <SaveButton what={saveWhat} pending={pending} />
       </form>
     </FormErrorScope>
   );

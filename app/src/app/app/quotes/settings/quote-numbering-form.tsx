@@ -5,6 +5,7 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/save-button";
 import { formatDocumentNumber, parseNumbering, type NumberingErrors } from "@/lib/quotes/numbering";
 import { saveCreditNoteNumbering, saveInvoiceNumbering, saveQuoteNumbering, type NumberingState } from "./numbering-actions";
 import { FormErrorScope } from "@/components/form-errors";
@@ -155,21 +156,30 @@ export function QuoteNumberingForm({
           </p>
         )}
       </Fields>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : `Save ${noun} numbers`}
-        </Button>
-        {embedded && (
+      {embedded ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <Button type="submit" size="lg" disabled={pending}>
+            {pending ? "Saving…" : `Save ${noun} numbers`}
+          </Button>
           <Button type="button" variant="outline" size="lg" disabled={pending} onClick={embedded.onCancel}>
             Cancel
           </Button>
-        )}
-        {state.status === "saved" && !editedSinceSave && (
-          <p role="status" className="text-base">
-            Saved.
-          </p>
-        )}
-      </div>
+          {state.status === "saved" && !editedSinceSave && (
+            <p role="status" className="text-base">
+              Saved.
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+          {state.status === "saved" && !editedSinceSave && (
+            <p role="status" className="text-base">
+              Saved.
+            </p>
+          )}
+          <SaveButton what={`${noun} numbers`} pending={pending} />
+        </>
+      )}
     </form>
     </FormErrorScope>
   );

@@ -7,6 +7,7 @@ import {
   parseBusinessProfileForm,
   type FieldErrors,
 } from "@/lib/business-profile";
+import { parseBusinessTypes } from "@/lib/business-types";
 import { getLocalePack } from "@/lib/locale";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +29,8 @@ export async function saveBusinessProfile(
 
   const parsed = parseBusinessProfileForm(formData, getLocalePack(profile.countryCode));
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
+  const types = parseBusinessTypes(formData.getAll("businessTypes"));
+  if (!types.ok) return { status: "error", message: types.error };
 
   const supabase = await createClient();
 
@@ -55,6 +58,7 @@ export async function saveBusinessProfile(
       vat_registered: p.vatRegistered,
       vat_number: p.vatNumber,
       prices_include_vat: p.pricesIncludeVat,
+      business_types: types.value,
     })
     .eq("organisation_id", organisation.id)
     .select("organisation_id");

@@ -2,7 +2,8 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { BusinessTypePicker } from "@/components/business-type-picker";
+import { SaveButton } from "@/components/save-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
@@ -11,6 +12,7 @@ import { Section, TextField, type ExtraInputProps } from "@/components/form-fiel
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { getLocalePack } from "@/lib/locale";
 import type { FieldErrors } from "@/lib/business-profile";
+import type { BusinessType } from "@/lib/business-types";
 import { saveBusinessProfile, type SaveState } from "./actions";
 import { FormErrorScope } from "@/components/form-errors";
 
@@ -26,6 +28,7 @@ export type FormValues = {
   vatRegistered: boolean;
   vatNumber: string;
   pricesIncludeVat: "inclusive" | "exclusive";
+  businessTypes: BusinessType[];
 };
 
 const initialState: SaveState = { status: "idle" };
@@ -76,6 +79,9 @@ export function BusinessProfileForm({
     event.preventDefault();
     setEditedSinceSave(false);
     const formData = new FormData(event.currentTarget);
+    // What you make goes from the ticks on screen, whatever the checkboxes put in the form.
+    formData.delete("businessTypes");
+    for (const type of values.businessTypes) formData.append("businessTypes", type);
     startTransition(() => formAction(formData));
   }
 
@@ -155,6 +161,18 @@ export function BusinessProfileForm({
         )}
       </Section>
 
+      <Section title="What you make">
+        <p id="types-legend" className="text-base text-muted-foreground">
+          Tick any that fit. Used only to show fitting examples first.
+        </p>
+        <BusinessTypePicker
+          value={values.businessTypes}
+          onChange={set("businessTypes")}
+          idPrefix="profile-type"
+          labelledBy="types-legend"
+        />
+      </Section>
+
       {state.status === "error" && state.message && (
         <Alert variant="destructive">
           <AlertDescription>{state.message}</AlertDescription>
@@ -165,9 +183,7 @@ export function BusinessProfileForm({
         <p role="status" className="text-sm font-medium">Saved.</p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-        {pending ? "Saving…" : "Save details"}
-      </Button>
+      <SaveButton what="details" pending={pending} />
     </form>
     </FormErrorScope>
   );

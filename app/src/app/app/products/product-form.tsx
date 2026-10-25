@@ -161,7 +161,7 @@ export function ProductForm({
    */
   costing?: {
     materials: MaterialOption[];
-    /** What an hour of the maker's time is worth, or null when it is not set in the business profile. */
+    /** What an hour of the maker's time is worth, or null when it is not set in Product settings. */
     hourlyRateCents: Cents | null;
     vat: VatSettings;
     /** The margin the business aims for (basis points), or null when it has not said. */

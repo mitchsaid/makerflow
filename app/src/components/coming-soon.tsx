@@ -20,3 +20,16 @@ export function ComingSoonSection({ title, description }: { title: string; descr
     </Card>
   );
 }
+
+/**
+ * The placeholders of a screen, together in one quiet group at its end, after everything that works
+ * (docs/plans/ux-pass-2.md, E): never between the fields and their Save.
+ */
+export function ComingLater({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="space-y-3" aria-label="Coming later" data-testid="coming-later">
+      <h2 className="text-sm font-medium text-muted-foreground">Coming later</h2>
+      {children}
+    </section>
+  );
+}

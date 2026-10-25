@@ -31,7 +31,7 @@ export function DepositDefaultForm({
       valueLabels={{ percent: "Percentage (%)", fixed: "Amount" }}
       valueErrorKey="depositValue"
       summaryLabel="Deposit"
-      submitLabel="Save deposit"
+      saveWhat="deposit"
       initial={initial as { kind: DefaultAmountKind; value: string }}
       symbol={symbol}
       save={(values) => saveDepositDefault({ kind: values.kind as "none" | "percent" | "fixed" | "ask", value: values.value })}

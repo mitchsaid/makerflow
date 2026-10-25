@@ -477,7 +477,7 @@ test("items can be zero-rated or exempt: the totals, the preview and the sent qu
 
 test("quote numbers can be set to continue from another system, and never go backwards", async ({ page }) => {
   await signUpAndOnboard(page, "iss-numbering", "Numbering Co");
-  await openDocuments(page);
+  await openDocuments(page, "Numbers");
   await expect(page.getByLabel("Prefix", { exact: true })).toHaveValue("QT-");
   await expect(page.getByLabel("Next number", { exact: true })).toHaveValue("1");
   await expect(page.getByTestId("number-preview")).toHaveText("Your next quote will be QT-0001.");
@@ -492,7 +492,7 @@ test("quote numbers can be set to continue from another system, and never go bac
   await expect(page.getByRole("heading", { name: /^Quote Q\/0100 Draft$/, level: 1 })).toBeVisible();
 
   // Going back to a number already used is refused, says how to fix it, and keeps what was typed.
-  await openDocuments(page);
+  await openDocuments(page, "Numbers");
   await expect(page.getByLabel("Next number", { exact: true })).toHaveValue("101");
   await page.getByLabel("Next number", { exact: true }).fill("50");
   await page.getByRole("button", { name: "Save quote numbers" }).click();

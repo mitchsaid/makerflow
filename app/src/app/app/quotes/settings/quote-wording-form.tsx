@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/save-button";
 import { QUOTE_DESCRIPTION_MAX, QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
 import { saveQuoteWording, type WordingErrors, type WordingState, type WordingValues } from "./wording-actions";
 import { FormErrorScope } from "@/components/form-errors";
@@ -97,16 +97,12 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           maxLength={QUOTE_PAYMENT_MAX}
         />
       </Section>
-      <div className="flex items-center gap-4">
-        <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : "Save quote wording"}
-        </Button>
-        {state.status === "saved" && !editedSinceSave && (
-          <p role="status" className="text-base">
-            Saved.
-          </p>
-        )}
-      </div>
+      {state.status === "saved" && !editedSinceSave && (
+        <p role="status" className="text-base">
+          Saved.
+        </p>
+      )}
+      <SaveButton what="quote wording" pending={pending} />
     </form>
     </FormErrorScope>
   );

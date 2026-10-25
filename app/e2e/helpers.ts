@@ -68,19 +68,49 @@ export async function openMore(page: Page) {
   await expect(page.getByRole("heading", { name: "More", level: 1 })).toBeVisible();
 }
 
-export async function openBusinessProfile(page: Page) {
+export type BusinessTab = "Details" | "Logo" | "Bank details";
+
+/** The Business profile, on its Details tab or the one asked for. */
+export async function openBusinessProfile(page: Page, tab?: BusinessTab) {
   await openMore(page);
   await page.getByRole("link", { name: /Business profile/ }).click();
   await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
+  if (tab) await businessTab(page, tab);
 }
 
-/** Quote settings (numbering, wording, terms, themes): a button on the Quotes page. */
-export async function openDocuments(page: Page) {
+/** Opens a tab of the Business profile. */
+export const businessTab = (page: Page, tab: BusinessTab) => openTab(page, "Business profile", tab);
+
+/** Opens a tab of a page's tabs (named by `nav`). (A tap before the page wakes up does nothing: tap until it is open.) */
+async function openTab(page: Page, nav: string, tab: string) {
+  const link = page.getByRole("navigation", { name: nav }).getByRole("link", { name: tab, exact: true });
+  await expect(async () => {
+    await link.click();
+    await expect(link).toHaveAttribute("aria-current", "page", { timeout: 1_000 });
+  }).toPass();
+}
+
+/** Product settings (your hourly rate and the margin you aim for): a button on the Products page. */
+export async function openProductSettings(page: Page) {
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Products" }).click();
+  await expect(page.getByRole("heading", { name: "Products & services", level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: "Product settings" }).click();
+  await expect(page.getByRole("heading", { name: "Product settings", level: 1 })).toBeVisible();
+}
+
+export type QuoteSettingsTab = "Wording" | "Starting values" | "Numbers";
+
+/** Quote settings (numbering, wording, terms, themes): a button on the Quotes page. Opens on Wording, or the tab asked for. */
+export async function openDocuments(page: Page, tab?: QuoteSettingsTab) {
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Quotes" }).click();
   await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Quote settings" }).click();
   await expect(page.getByRole("heading", { name: "Quote settings", level: 1 })).toBeVisible();
+  if (tab) await quoteSettingsTab(page, tab);
 }
+
+/** Opens a tab of the Quote settings. */
+export const quoteSettingsTab = (page: Page, tab: QuoteSettingsTab) => openTab(page, "Quote settings", tab);
 
 /** Invoice settings (invoice and credit note numbers): a button on the Invoices page, which is behind "More" on a phone. */
 export async function openInvoiceSettings(page: Page) {

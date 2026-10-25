@@ -30,7 +30,7 @@ export function DiscountDefaultForm({
       valueLabels={{ percent: "Discount (%)", fixed: "Discount amount" }}
       valueErrorKey="discountValue"
       summaryLabel="Discount"
-      submitLabel="Save discount"
+      saveWhat="discount"
       initial={initial}
       symbol={symbol}
       save={(values) =>

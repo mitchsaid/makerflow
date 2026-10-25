@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
-import { BUSINESS_TYPE_PROMPT, parseBusinessTypes } from "@/lib/business-types";
+import { parseBusinessTypes } from "@/lib/business-types";
 import { createClient } from "@/lib/supabase/server";
 
 export type TypesSaveState = { status: "saved" } | { status: "error"; message: string };
@@ -30,24 +30,6 @@ export async function saveBusinessTypes(types: unknown): Promise<TypesSaveState>
     .select("organisation_id");
   if (error || !data || data.length !== 1) {
     console.error("could not save business types:", error?.message);
-    return { status: "error", message: GENERIC_ERROR };
-  }
-  revalidatePath("/app", "layout");
-  return { status: "saved" };
-}
-
-/** "Not now" on the prompt that asks what the business makes. Remembered for this person. */
-export async function dismissBusinessTypePrompt(): Promise<TypesSaveState> {
-  const { organisation, user } = await requireOrganisation();
-  const supabase = await createClient();
-  const { error } = await supabase.from("prompt_dismissals").insert({
-    user_id: user.id,
-    organisation_id: organisation.id,
-    prompt_key: BUSINESS_TYPE_PROMPT,
-  });
-  // Already dismissed (a second tab): that is what was asked for.
-  if (error && error.code !== "23505") {
-    console.error("could not dismiss prompt:", error.message);
     return { status: "error", message: GENERIC_ERROR };
   }
   revalidatePath("/app", "layout");

@@ -18,9 +18,6 @@ export const BUSINESS_TYPES = [
   { key: "other", label: "Something else" },
 ] as const;
 
-/** The friendly prompt that asks what the business makes (remembered in prompt_dismissals when dismissed). */
-export const BUSINESS_TYPE_PROMPT = "business-type";
-
 export type BusinessType = (typeof BUSINESS_TYPES)[number]["key"];
 
 export const BUSINESS_TYPE_KEYS: readonly string[] = BUSINESS_TYPES.map((t) => t.key);

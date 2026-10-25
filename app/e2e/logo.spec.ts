@@ -23,7 +23,7 @@ async function previewOfNewQuote(page: Page) {
 
 test("the logo is set on the Business profile, and the quote settings do not hold it", async ({ page }) => {
   await signUpAndOnboard(page, "logo-profile", "Logo Co");
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Logo");
   await expect(page.getByRole("group", { name: "Your logo" })).toBeVisible();
   await chooseLogo(page);
   await expect(page.getByTestId("logoImage-preview")).toBeVisible();
@@ -44,7 +44,8 @@ test("the logo is set on the Business profile, and the quote settings do not hol
   await expect(page.getByRole("group", { name: "Your logo" })).toHaveCount(0);
   await page.getByRole("link", { name: "Business profile", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
-  await expect(page).toHaveURL(/\/app\/business#logo$/);
+  await expect(page).toHaveURL(/\/app\/business\?section=logo$/);
+  await expect(page.getByRole("group", { name: "Your logo" })).toBeVisible();
 });
 
 test("the quote preview offers the logo while there is none: add it there, or cancel", async ({ page }) => {
@@ -105,6 +106,6 @@ test("'Not now' hides the logo card for now, 'Don't ask me again' for good, and 
   await page.reload();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(page.getByTestId("logo-prompt")).toHaveCount(0);
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Logo");
   await expect(page.getByRole("group", { name: "Your logo" })).toBeVisible();
 });

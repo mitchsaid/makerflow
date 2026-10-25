@@ -152,7 +152,7 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   await addBusinessPhone(page);
 
   // The logo, on the Business profile.
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Logo");
   await chooseFile(page, await picture(1200, 400, "png"), "logo.png", "image/png");
   await expect(page.getByTestId("logoImage-preview")).toBeVisible();
   await page.getByRole("button", { name: "Save logo" }).click();
@@ -217,7 +217,7 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   await page.getByRole("button", { name: /^Remove/ }).click();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Logo");
   await page.getByRole("button", { name: /^Remove/ }).click();
   await page.getByRole("button", { name: "Save logo" }).click();
   await expect(page.getByText("Saved.").first()).toBeVisible();

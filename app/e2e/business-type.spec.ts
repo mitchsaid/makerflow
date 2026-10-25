@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { nextServerAction, openBusinessProfile, openDocuments, uniqueEmail, waitForSignInLink } from "./helpers";
+import { openBusinessProfile, openDocuments, uniqueEmail, waitForSignInLink } from "./helpers";
 
 /** Signs up and stops on the "what do you make?" step. */
 async function signUpToTypeStep(page: Page, businessName: string) {
@@ -31,8 +31,8 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   await openDocuments(page);
   await page.getByRole("link", { name: "Manage your terms" }).click();
   await expect(page.getByTestId("showing-types")).toContainText("Showing examples for food and baking and workshops and classes");
-  // No prompt: they answered.
-  await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
+  // Nothing asked: they answered.
+  await expect(page.getByTestId("types-link")).toHaveCount(0);
   // Theirs first, the rest kept under "More examples".
   const first = exampleLinks(page).locator("ul").first().getByRole("link").first();
   await expect(first).toContainText(/made to order|Storage and serving|Handmade|Allergies|Collection|bookings|Changes after/i);
@@ -51,47 +51,43 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   expect(units.indexOf("dozen")).toBeLessThan(units.indexOf("stem"));
 });
 
-test("skipping asks again once on the terms page, and Not now is remembered; the profile can set it later", async ({ page }) => {
+test("skipping shows every example, and the terms page links to the Business profile, where it is asked", async ({ page }) => {
   await signUpToTypeStep(page, "Skip Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page).toHaveURL(/\/app$/);
 
   await openDocuments(page);
   await page.getByRole("link", { name: "Manage your terms" }).click();
-  // No answer: today's list, in its usual order, and a friendly card.
+  // No answer: today's list, in its usual order. It is not asked here: a link goes to where it is.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
   await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
-  await expect(page.getByTestId("business-type-prompt")).toBeVisible();
-  const remembered = nextServerAction(page);
-  await page.getByRole("button", { name: "Not now" }).click();
-  await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
-  await remembered;
-  await page.reload();
-  await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  await page.getByTestId("types-link").getByRole("link", { name: "say what you make" }).click();
+  await expect(page.getByRole("heading", { name: "Business profile", level: 1 })).toBeVisible();
 
-  // It can still be answered in the Business profile.
-  await openBusinessProfile(page);
+  // What you make is part of the details, saved with them.
   await page.getByRole("checkbox", { name: "Flowers and plants" }).check();
-  await page.getByRole("button", { name: "Save what you make" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Flowers and plants" })).toBeChecked();
   await openDocuments(page);
   await page.getByRole("link", { name: "Manage your terms" }).click();
   await expect(page.getByTestId("showing-types")).toContainText("Showing examples for flowers and plants");
   await expect(exampleLinks(page).locator("ul").first().getByRole("link").first()).toContainText(/Seasonal substitutions|Handmade|made to order|Changes after/);
 });
 
-test("the prompt on the terms page saves what they tick, and 'Something else' is not asked again", async ({ page }) => {
-  await signUpToTypeStep(page, "Prompt Co");
+test("'Something else' says nothing about which examples fit", async ({ page }) => {
+  await signUpToTypeStep(page, "Other Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
+  await openBusinessProfile(page);
+  await page.getByRole("checkbox", { name: "Something else" }).check();
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await openDocuments(page);
   await page.getByRole("link", { name: "Manage your terms" }).click();
-  // Pressing the button with nothing ticked says what to do, and saves nothing.
-  await page.getByRole("button", { name: "Show examples for me" }).click();
-  await expect(page.getByTestId("business-type-prompt").getByRole("alert")).toContainText("Tick what you make or sell, or choose Not now.");
-  await page.getByTestId("business-type-prompt").getByRole("checkbox", { name: "Something else" }).check();
-  await page.getByRole("button", { name: "Show examples for me" }).click();
-  await expect(page.getByTestId("business-type-prompt")).toHaveCount(0);
-  // "Something else" says nothing about which examples fit: the usual list, no "showing" line.
+  // The usual list, no "showing" line, and the link to say more.
   await expect(page.getByTestId("showing-types")).toHaveCount(0);
+  await expect(page.getByTestId("types-link")).toBeVisible();
   await expect(exampleLinks(page).getByRole("link")).toHaveCount(18);
 });

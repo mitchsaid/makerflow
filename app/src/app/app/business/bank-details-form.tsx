@@ -5,6 +5,7 @@ import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/save-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { getLocalePack } from "@/lib/locale";
@@ -144,21 +145,25 @@ export function BankDetailsForm({
         </FieldDescription>
         {lastChanged && <p className="text-sm text-muted-foreground">Last changed {lastChanged}.</p>}
       </Section>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : "Save bank details"}
-        </Button>
-        {embedded && (
+      {embedded ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button type="submit" size="lg" disabled={pending}>
+            {pending ? "Saving…" : "Save bank details"}
+          </Button>
           <Button type="button" size="lg" variant="outline" disabled={pending} onClick={embedded.onCancel}>
             Cancel
           </Button>
-        )}
-        {saved && !embedded && (
-          <p role="status" className="text-base">
-            Saved.
-          </p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          {saved && (
+            <p role="status" className="text-base">
+              Saved.
+            </p>
+          )}
+          <SaveButton what="bank details" pending={pending} />
+        </>
+      )}
     </form>
     </FormErrorScope>
   );

@@ -111,7 +111,7 @@ test("a discount can be saved as the usual from a quote, starts every new quote 
   await expect(page.getByText("Using your usual discount.")).toBeVisible();
 
   // Under Quotes and invoices it can be changed, or taken away: new quotes then start without the discount.
-  await openDocuments(page);
+  await openDocuments(page, "Starting values");
   const form = page.locator("#discount-default");
   await expect(form.getByLabel("Discount on a new quote")).toHaveValue("percent");
   await expect(form.getByLabel("Discount (%)")).toHaveValue("10");
@@ -126,7 +126,7 @@ test("a discount can be saved as the usual from a quote, starts every new quote 
 test("\"I decide on each quote\": a new quote opens the deposit choice with nothing chosen, and saves fine without one", async ({ page }) => {
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-ask", "Ask Co");
-  await openDocuments(page);
+  await openDocuments(page, "Starting values");
   const deposit = page.getByRole("group", { name: "Deposit" });
   await deposit.getByLabel("Deposit on a new quote").selectOption("ask");
   await expect(deposit.getByLabel("Percentage (%)")).toHaveCount(0);

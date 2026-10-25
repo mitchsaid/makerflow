@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { AddLink } from "@/components/add-button";
+import { buttonVariants } from "@/components/ui/button";
 import { SectionSwitch, useSectionState, type SectionLink } from "@/components/section-switch";
 import type { NumberStyle } from "@/lib/money";
 import type { ProductKind, ProductSummary } from "@/lib/products";
@@ -35,13 +37,19 @@ export function ProductsArea({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Products &amp; services</h1>
-        {hasAny && (
-          <AddLink href={newHref(kind)} variant="default">
-            Add {KIND_WORDS[kind].one}
-          </AddLink>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Your hourly rate and the margin you aim for: how prices are worked out. */}
+          <Link href="/app/products/settings" className={buttonVariants({ variant: "outline" })}>
+            Product settings
+          </Link>
+          {hasAny && (
+            <AddLink href={newHref(kind)} variant="default">
+              Add {KIND_WORDS[kind].one}
+            </AddLink>
+          )}
+        </div>
       </div>
       <SectionSwitch label="Products or services" items={VIEWS} active={kind} onSelect={select} />
       <ProductList key={kind} kind={kind} products={products} addedName={addedName} currencyCode={currencyCode} numberStyle={numberStyle} />

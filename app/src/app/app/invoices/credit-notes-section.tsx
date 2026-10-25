@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
-import { ComingSoonSection } from "@/components/coming-soon";
+import { ComingLater, ComingSoonSection } from "@/components/coming-soon";
 import { FormErrorScope } from "@/components/form-errors";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { SelectField, TextAreaField, TextField } from "@/components/form-fields";
@@ -364,8 +364,6 @@ function CreditForm({
             onChange={(explanation) => setValues((v) => ({ ...v, explanation }))}
           />
 
-          <ComingSoonSection title="Put returned items back in stock" description="Add what came back to your stock." />
-
           <dl className="space-y-1 rounded-xl bg-muted/40 p-3 text-base ring-1 ring-foreground/10" data-testid="credit-total">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Credit total</dt>
@@ -387,6 +385,9 @@ function CreditForm({
           <Button type="button" size="lg" variant="outline" className="w-full" disabled={pending} onClick={onCancel}>
             Cancel
           </Button>
+          <ComingLater>
+            <ComingSoonSection title="Put returned items back in stock" description="Add what came back to your stock." />
+          </ComingLater>
         </form>
       </FormErrorScope>
     </>

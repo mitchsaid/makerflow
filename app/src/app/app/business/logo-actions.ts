@@ -40,7 +40,7 @@ export async function saveLogo(imageId: string): Promise<LogoState> {
   return { status: "saved" };
 }
 
-/** "Not now" on the card that offers a logo on the quote preview. Remembered for this person, like the business-type prompt. */
+/** "Not now" on the card that offers a logo on the quote preview. Remembered for this person. */
 export async function dismissLogoPrompt(): Promise<LogoState> {
   const { organisation, user } = await requireOrganisation();
   const supabase = await createClient();
