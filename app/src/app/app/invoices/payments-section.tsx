@@ -203,7 +203,7 @@ function PaymentForm({
 
   const summary: FormProblem[] = [
     ...(errors.amount ? [{ fieldId: "payment-amount", label: "Amount", message: errors.amount }] : []),
-    ...(errors.paidOn ? [{ fieldId: "payment-date", label: "Day paid", message: errors.paidOn }] : []),
+    ...(errors.paidOn ? [{ fieldId: "payment-date", label: "Date paid", message: errors.paidOn }] : []),
     ...(errors.method ? [{ fieldId: "payment-method", label: "How it was paid", message: errors.method }] : []),
     ...(errors.note ? [{ fieldId: "payment-note", label: "Note", message: errors.note }] : []),
   ];
@@ -237,7 +237,7 @@ function PaymentForm({
           <TextField
             id="payment-date"
             type="date"
-            label="Day paid"
+            label="Date paid"
             max={today}
             value={values.paidOn}
             error={errors.paidOn}

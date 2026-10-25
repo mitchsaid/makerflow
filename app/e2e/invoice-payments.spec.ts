@@ -104,7 +104,7 @@ test("a payment can't be dated ahead", async ({ page }) => {
   await invoiceWithDeposit(page);
   await page.getByRole("button", { name: "Record a payment" }).click();
   await sheet(page).getByLabel("Amount received").fill("100");
-  await sheet(page).getByLabel("Day paid").fill("2099-01-01");
+  await sheet(page).getByLabel("Date paid").fill("2099-01-01");
   await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(page.getByTestId("form-summary")).toBeVisible();
   await expect(sheet(page).getByText(/hasn't come yet/).first()).toBeVisible();

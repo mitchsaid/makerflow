@@ -212,7 +212,7 @@ export function NewJobForm({
         />
       </Section>
 
-      <Section title="What to make">
+      <Section title="Items">
         {values.items.length === 0 && (
           <p className="text-muted-foreground">No items yet. Add a product, a service or a one-off item.</p>
         )}
@@ -262,7 +262,7 @@ export function NewJobForm({
         />
       </Section>
 
-      <Section title="When and how">
+      <Section title="Dates">
         <TextField
           id="neededBy"
           type="date"
@@ -271,6 +271,9 @@ export function NewJobForm({
           error={errors.neededBy}
           onChange={(neededBy) => update({ neededBy })}
         />
+      </Section>
+
+      <Section title="Delivery or collection">
         <RadioGroup aria-label="Delivery or collection" value={values.fulfilment} onValueChange={(v) => chooseFulfilment(v as JobFulfilment)}>
           {(
             [

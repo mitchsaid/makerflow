@@ -157,7 +157,7 @@ test("the sign-off is a box for several lines, kept as typed, and printed on the
   await signUpAndOnboard(page, "qf2-signoff", "Signoff Co");
   await openQuotes(page);
   await page.getByRole("link", { name: /Start your first quote|New quote/ }).first().click();
-  const signOff = page.getByLabel("Message (optional)");
+  const signOff = page.getByLabel("Sign-off (optional)");
   // A box for lines, with room to see them: not a one-line field.
   expect(await signOff.evaluate((el) => el.tagName)).toBe("TEXTAREA");
   expect((await signOff.boundingBox())!.height).toBeGreaterThan(60);
@@ -171,9 +171,9 @@ test("the sign-off is a box for several lines, kept as typed, and printed on the
   await expect(document).toContainText("Kind regards,");
   // Back on the quote, the lines are still lines.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(page.getByLabel("Message (optional)")).toHaveValue("Thank you so much for asking.\nKind regards,\nThandi");
+  await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Thank you so much for asking.\nKind regards,\nThandi");
   // Too many lines say how to fix it.
-  await page.getByLabel("Message (optional)").fill("1\n2\n3\n4\n5\n6");
+  await page.getByLabel("Sign-off (optional)").fill("1\n2\n3\n4\n5\n6");
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("form-summary")).toBeVisible();
   // At the field and in the summary.

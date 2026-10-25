@@ -19,13 +19,13 @@ test("the customer accepts, the maker changes the answer, then they decline", as
   // A day that hasn't happened is refused with a way to fix it, and what was typed stays.
   await sheet(page).getByLabel("How they told you").selectOption("whatsapp");
   await sheet(page).getByLabel("Note (optional)").fill("Wants it for Saturday");
-  await sheet(page).getByLabel("Day they told you").fill("2099-01-01");
+  await sheet(page).getByLabel("Date they told you").fill("2099-01-01");
   await sheet(page).getByRole("button", { name: "Save answer" }).click();
   await expect(sheet(page).getByTestId("form-summary")).toContainText("hasn't happened yet");
   await expect(sheet(page).getByLabel("Note (optional)")).toHaveValue("Wants it for Saturday");
 
   const today = new Date().toISOString().slice(0, 10);
-  await sheet(page).getByLabel("Day they told you").fill(today);
+  await sheet(page).getByLabel("Date they told you").fill(today);
   await sheet(page).getByRole("button", { name: "Save answer" }).click();
   await expect(sheet(page)).toHaveCount(0);
 

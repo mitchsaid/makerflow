@@ -14,7 +14,7 @@ async function addProduct(page: Page, name: string, price: string, unit: string)
 test("the business sets its quote wording once, and each new quote starts with it", async ({ page }) => {
   await signUpAndOnboard(page, "w-defaults", "Sweet Co");
   await openDocuments(page);
-  await page.getByLabel("Sign-off message (optional)").fill("Yours in sweetness");
+  await page.getByLabel("Sign-off (optional)").fill("Yours in sweetness");
   await page.getByLabel("Other ways to pay (optional)").fill("EFT to Sweet Co, FNB 123456");
   // Terms are no longer here: they are the Terms library.
   await expect(page.getByLabel("Small print (optional)")).toHaveCount(0);
@@ -24,23 +24,23 @@ test("the business sets its quote wording once, and each new quote starts with i
   // A new quote starts with it, and the quote can change its own copy.
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
-  await expect(page.getByLabel("Message (optional)")).toHaveValue("Yours in sweetness");
+  await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Yours in sweetness");
   await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Sweet Co, FNB 123456");
-  await page.getByLabel("Message (optional)").fill("With love");
+  await page.getByLabel("Sign-off (optional)").fill("With love");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
 
   // Changing the business's wording afterwards does not change a quote that exists.
   await openDocuments(page);
-  await page.getByLabel("Sign-off message (optional)").fill("Warmly");
+  await page.getByLabel("Sign-off (optional)").fill("Warmly");
   await page.getByRole("button", { name: "Save quote wording" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await page.goto(quoteUrl);
-  await expect(page.getByLabel("Message (optional)")).toHaveValue("With love");
+  await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("With love");
   // A new one starts with the new wording.
   await page.goto("/app/quotes/new");
-  await expect(page.getByLabel("Message (optional)")).toHaveValue("Warmly");
+  await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Warmly");
 });
 
 test("units, a title and a description: set on the quote, shown on the preview", async ({ page }) => {
@@ -80,7 +80,7 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await sheet(page).getByLabel("Wording").fill("Orders need two days' notice.");
   await sheet(page).getByRole("button", { name: "Save term" }).click();
   await expect(sheet(page)).toHaveCount(0);
-  await page.getByLabel("Message (optional)").fill("Yours in sweetness");
+  await page.getByLabel("Sign-off (optional)").fill("Yours in sweetness");
 
   // The preview shows it all: the picture of the real document, and its text version.
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();

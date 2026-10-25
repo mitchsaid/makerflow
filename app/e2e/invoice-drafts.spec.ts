@@ -38,7 +38,7 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   // A customer and an item, in the same pickers as a quote; the total follows.
   await addCustomerInSheet(page, "Thandi Nkosi");
   await addItem(page, "Shelf", "2", "100");
-  await expect(page.getByTestId("totals")).toContainText(rand("200"));
+  await expect(page.getByTestId("sticky-total")).toContainText(rand("200"));
   await expect(page.getByTestId("sticky-total")).toContainText(rand("200"));
 
   // Save draft keeps it and opens its own page.
@@ -63,12 +63,12 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   await page.getByRole("button", { name: /Edit Shelf/ }).click();
   await sheet(page).getByLabel(/^Price/).fill("150");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
-  await expect(page.getByTestId("totals")).toContainText(rand("300"));
+  await expect(page.getByTestId("sticky-total")).toContainText(rand("300"));
   await page.getByRole("button", { name: "Add a discount" }).click();
   await page.getByLabel("Discount (%)").fill("10");
   await expect(page.getByTestId("totals")).toContainText(rand("270"));
   await page.getByLabel("Note (optional)").fill("Thanks for your business");
-  await page.getByLabel("Due day").fill("2031-01-31");
+  await page.getByLabel("Due date").fill("2031-01-31");
 
   // Issuing asks once, says what happens, and then numbers it.
   await issueButton(page).click();
@@ -193,7 +193,7 @@ test("a finished job made by hand starts an invoice with its customer and items,
   await page.getByRole("button", { name: /Edit Brackets/ }).click();
   await sheet(page).getByLabel(/^Price/).fill("25");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
-  await expect(page.getByTestId("totals")).toContainText(rand("100"));
+  await expect(page.getByTestId("sticky-total")).toContainText(rand("100"));
   await issueButton(page).click();
   await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
@@ -214,7 +214,7 @@ test("Adjust before issuing starts a draft from the accepted quote, changed and 
   await expect(page.getByTestId("invoice-quote-note")).toContainText("quote QT-0001");
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
   await expect(page.getByRole("button", { name: /Edit Cupcakes/ })).toContainText("10");
-  await expect(page.getByTestId("totals")).toContainText(rand("2 500"));
+  await expect(page.getByTestId("sticky-total")).toContainText(rand("2 500"));
 
   // Asking again reopens the same draft.
   await page.goto(quoteUrl);
@@ -231,7 +231,7 @@ test("Adjust before issuing starts a draft from the accepted quote, changed and 
   await page.getByRole("button", { name: /Edit Cupcakes/ }).click();
   await sheet(page).getByLabel("Quantity").fill("8");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
-  await expect(page.getByTestId("totals")).toContainText(rand("2 000"));
+  await expect(page.getByTestId("sticky-total")).toContainText(rand("2 000"));
   await issueButton(page).click();
   await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();

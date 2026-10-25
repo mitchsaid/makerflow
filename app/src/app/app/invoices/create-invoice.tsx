@@ -164,7 +164,7 @@ function InvoiceForm({
     // The list below shows what is missing from the start; the summary joins in once the button has been pressed.
     ...(tries === 0 ? [] : problems).map((p) => ({ fieldId: `invoice-problem-${p.code}`, label: "Before you can issue it", message: p.message })),
     ...(errors.issueDate ? [{ fieldId: "invoice-issue-date", label: "Invoice date", message: errors.issueDate }] : []),
-    ...(errors.dueDate ? [{ fieldId: "invoice-due-date", label: "Due day", message: errors.dueDate }] : []),
+    ...(errors.dueDate ? [{ fieldId: "invoice-due-date", label: "Due date", message: errors.dueDate }] : []),
     ...(errors.note ? [{ fieldId: "invoice-note", label: "Note", message: errors.note }] : []),
   ];
 
@@ -217,7 +217,7 @@ function InvoiceForm({
           <TextField
             id="invoice-due-date"
             type="date"
-            label="Due day"
+            label="Due date"
             hint="The day you want to be paid by."
             value={values.dueDate}
             error={errors.dueDate}
