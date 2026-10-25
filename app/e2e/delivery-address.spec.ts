@@ -24,7 +24,7 @@ async function addCustomer(page: Page, name: string, details: { street?: string;
   await page.getByRole("option", { name: new RegExp(`Add “${name}”`) }).click();
   const dialog = page.getByRole("dialog", { name: "Add a customer" });
   if (details.street || details.city || details.deliverTo) {
-    await dialog.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+    await dialog.getByRole("button", { name: "Add an address" }).click();
     const address = dialog.getByRole("group", { name: "Address", exact: true });
     if (details.street) await address.getByLabel("Street address").fill(details.street);
     if (details.city) await address.getByLabel("City or town").fill(details.city);

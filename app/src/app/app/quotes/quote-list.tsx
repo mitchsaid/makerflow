@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { FilterBar } from "@/components/filter-bar";
 import { NoMatches } from "@/components/empty-state";
 import type { NumberStyle } from "@/lib/money";
@@ -29,14 +31,37 @@ export function QuoteList({
   // Only statuses with something in them, and "All" always.
   const options = STATUS_FILTERS.filter((f) => f.key === "all" || (counts.get(f.key) ?? 0) > 0).map((f) => ({ ...f, count: counts.get(f.key) ?? 0 }));
   const [chosen, setChosen] = useState<Filter>(initialFilter);
+  const [query, setQuery] = useState("");
   const filter = options.some((o) => o.key === chosen) ? chosen : "all";
-  const shown = filter === "all" ? quotes : quotes.filter((q) => q.key === filter);
+  // Search by customer or quote number, like the other lists.
+  const needle = query.trim().toLowerCase();
+  const shown = (filter === "all" ? quotes : quotes.filter((q) => q.key === filter)).filter(
+    (q) => needle === "" || q.number.toLowerCase().includes(needle) || (q.customerName ?? "").toLowerCase().includes(needle),
+  );
 
   return (
     <div className="space-y-4">
+      <Field>
+        <FieldLabel htmlFor="quote-search">Search quotes</FieldLabel>
+        <Input
+          id="quote-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Customer or quote number"
+          autoComplete="off"
+        />
+      </Field>
       {options.length > 2 && <FilterBar label="Show quotes" options={options} value={filter} onChange={setChosen} />}
       {shown.length === 0 ? (
-        <NoMatches message="No quotes here yet." clearLabel="Show all quotes" onClear={() => setChosen("all")} />
+        <NoMatches
+          message={needle !== "" ? `No quotes match “${query.trim()}”.` : "No quotes here yet."}
+          clearLabel="Show all quotes"
+          onClear={() => {
+            setQuery("");
+            setChosen("all");
+          }}
+        />
       ) : (
         <ul className="space-y-2">
           {shown.map((q) => (

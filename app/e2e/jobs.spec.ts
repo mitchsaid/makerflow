@@ -4,6 +4,15 @@ import { addCustomerInSheet, nav, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
 
+/** The All filter on the Jobs list. (A tap before the list wakes up does nothing: tap until it is chosen.) */
+async function showAll(page: Page) {
+  const all = page.getByRole("button", { name: /^All/ });
+  await expect(async () => {
+    await all.click();
+    await expect(all).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
+  }).toPass();
+}
+
 /** Records that the customer accepted the quote that is open. */
 async function accept(page: Page) {
   await page.getByRole("button", { name: "They accepted" }).click();
@@ -47,11 +56,11 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(log).toContainText("Moved to making");
 
   // A note is saved, and kept.
-  await page.getByLabel("Private note (optional)").fill("Lemon sponge, no nuts");
+  await page.getByLabel("Note (optional)").fill("Lemon sponge, no nuts");
   await page.getByRole("button", { name: "Save note" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Note saved." })).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Private note (optional)")).toHaveValue("Lemon sponge, no nuts");
+  await expect(page.getByLabel("Note (optional)")).toHaveValue("Lemon sponge, no nuts");
 
   // Finished jobs leave the "To do" list but stay under Done.
   await page.getByRole("button", { name: "Mark ready", exact: true }).click();
@@ -100,7 +109,7 @@ test("a cancelled job can be restored, and frees its quote for another job", asy
   await page.getByRole("button", { name: "Cancel this job" }).click();
   await sheet(page).getByRole("button", { name: "Cancel the job" }).click();
   await expect(page.getByTestId("job-cancelled-notice")).toBeVisible();
-  await page.getByRole("button", { name: /^All/ }).click();
+  await showAll(page);
   await page.getByRole("link", { name: /J-0001/ }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
   await expect(page.getByText("This job was cancelled, so nothing is counted on it.")).toBeVisible();
@@ -112,7 +121,7 @@ test("a cancelled job can be restored, and frees its quote for another job", asy
 
   // The first one can't be restored beside the second.
   await nav(page).getByRole("link", { name: "Jobs" }).click();
-  await page.getByRole("button", { name: /^All/ }).click();
+  await showAll(page);
   await page.getByRole("link", { name: /J-0001/ }).click();
   await page.getByRole("button", { name: "Restore this job" }).click();
   await expect(page.getByRole("region", { name: "Cancelled" }).getByRole("alert")).toContainText("another job");
@@ -186,7 +195,7 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add Wedding cake");
   await expect(sheet(page).getByLabel(/^Price/)).toHaveCount(0);
-  await expect(sheet(page).getByLabel("Discount on this item")).toHaveCount(0);
+  await expect(sheet(page).getByRole("button", { name: "Add a discount" })).toHaveCount(0);
   const size = sheet(page).getByRole("group", { name: "Choose a size" });
   await expect(size).not.toContainText("R");
   // The product has no usual size, so one must be chosen, as on a quote; a quantity of zero is refused too.
@@ -245,7 +254,7 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await expect(page.getByText("Sam Jacobs")).toBeVisible();
   await expect(page.getByText("14 Oak Road")).toBeVisible();
   await expect(page.getByTestId("job-needed-by")).toContainText("delivery");
-  await expect(page.getByLabel("Private note (optional)")).toHaveValue("Match the desk");
+  await expect(page.getByLabel("Note (optional)")).toHaveValue("Match the desk");
   await expect(page.getByText("Added by hand.")).toBeVisible();
 
   // It moves along like any other job, and the list offers New job once there is one.
@@ -319,7 +328,7 @@ test("counting what is made starts the job, and offers the next step when everyt
   await expect(page.getByTestId("item-progress").nth(1)).toContainText("Made 3 of 4 pair");
 
   // Everything made: the page offers the next step, but nothing moves by itself.
-  await page.getByTestId("item-progress").nth(1).getByRole("checkbox", { name: /All made for Brackets/ }).check();
+  await page.getByTestId("item-progress").nth(1).getByRole("button", { name: /All made for Brackets/ }).click();
   await expect(page.getByTestId("job-progress")).toContainText("All 2 items made");
   await expect(page.getByTestId("all-made-prompt")).toContainText("Everything is made.");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();

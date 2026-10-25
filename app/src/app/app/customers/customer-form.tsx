@@ -1,5 +1,6 @@
 "use client";
 
+import { PrivateTag } from "@/components/private-tag";
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
@@ -82,15 +83,12 @@ export function CustomerForm({
   const [values, setValues] = useState<CustomerFormValues>(initial);
   const [editedSinceSave, setEditedSinceSave] = useState(false);
   // The optional sections start open when editing or when there is already something in them.
-  const hasMore = [
-    initial.addressLine1,
-    initial.addressLine2,
-    initial.city,
-    initial.region,
-    initial.postalCode,
-    initial.notes,
-  ].some((v) => v !== "") || !initial.deliverySameAsMain;
-  const [showMore, setShowMore] = useState(mode === "edit" || hasMore);
+  const hasAddress =
+    [initial.addressLine1, initial.addressLine2, initial.city, initial.region, initial.postalCode].some((v) => v !== "") ||
+    !initial.deliverySameAsMain;
+  // Each optional part is added on its own, the same way as everywhere else (an address, with where to deliver; a note).
+  const [showAddress, setShowAddress] = useState(mode === "edit" || hasAddress);
+  const [showNotes, setShowNotes] = useState(mode === "edit" || initial.notes !== "");
 
   // Hand the result to whoever opened the sheet, once per result.
   const embeddedRef = useRef(embedded);
@@ -218,7 +216,7 @@ export function CustomerForm({
         {text("email", "Email", { type: "email", inputMode: "email", autoComplete: "off" })}
       </Section>
 
-      {showMore ? (
+      {showAddress && (
         <>
           <Section title="Address">
             <AddressFields
@@ -260,23 +258,44 @@ export function CustomerForm({
               />
             )}
           </Section>
-          <Section title="Private notes">
+        </>
+      )}
+      {showNotes && (
+          <Section title="Notes" tag={<PrivateTag />}>
             <TextAreaField
               id={fid("notes")}
               name="notes"
               label="Anything to remember (optional)"
-              hint="Only you and your team see this. It is never printed."
               error={errors.notes}
               value={values.notes}
               onChange={set("notes")}
               maxLength={2000}
             />
           </Section>
-        </>
-      ) : (
-        <AddButton onClick={() => setShowMore(true)}>
-          Add address, delivery details or notes
-        </AddButton>
+      )}
+      {(!showAddress || !showNotes) && (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {!showAddress && (
+            <AddButton
+              onClick={() => {
+                setShowAddress(true);
+                setTimeout(() => document.getElementById(fid("addressLine1"))?.focus(), 0);
+              }}
+            >
+              Add an address
+            </AddButton>
+          )}
+          {!showNotes && (
+            <AddButton
+              onClick={() => {
+                setShowNotes(true);
+                setTimeout(() => document.getElementById(fid("notes"))?.focus(), 0);
+              }}
+            >
+              Add a note
+            </AddButton>
+          )}
+        </div>
       )}
 
       {state.status === "error" && state.message && (

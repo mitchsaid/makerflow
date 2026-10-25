@@ -36,7 +36,7 @@ test("prices show the currency symbol before the field, and nothing else does", 
   await sheet(page).getByRole("button", { name: /One-off item/ }).click();
   expect(await before(sheet(page).getByLabel(/^Price/))).toBe("R");
   expect(await before(sheet(page).getByLabel("Quantity"))).toBeNull();
-  await sheet(page).getByLabel("Discount on this item").selectOption("percent");
+  await sheet(page).getByRole("button", { name: "Add a discount" }).click();
   expect(await before(sheet(page).getByLabel("Item discount (%)"))).toBeNull();
   await sheet(page).getByLabel("Discount on this item").selectOption("fixed");
   expect(await before(sheet(page).getByLabel("Item discount amount"))).toBe("R");

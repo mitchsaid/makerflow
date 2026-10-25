@@ -69,6 +69,7 @@ export function TextField({
   startText,
   hint,
   labelHidden = false,
+  tag,
   ...props
 }: ExtraInputProps & {
   id: string;
@@ -84,9 +85,11 @@ export function TextField({
   hint?: string;
   /** The label is read out but not shown (for rows under shared column headings). */
   labelHidden?: boolean;
+  /** Beside the label, like the "Private" tag (give it the id `${id}-tag` so the field is described by it). */
+  tag?: React.ReactNode;
 }) {
   const { error, markEdited } = useFieldError(id, errorProp);
-  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
+  const describedBy = [tag ? `${id}-tag` : null, hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
   const input = (
     <Input
       id={id}
@@ -105,9 +108,18 @@ export function TextField({
   );
   return (
     <Field data-invalid={!!error}>
-      <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>
-        {label}
-      </FieldLabel>
+      {tag ? (
+        <div className="flex items-center">
+          <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>
+            {label}
+          </FieldLabel>
+          {tag}
+        </div>
+      ) : (
+        <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>
+          {label}
+        </FieldLabel>
+      )}
       {hint && (
         <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
           {hint}
@@ -134,6 +146,7 @@ export function TextAreaField({
   value,
   onChange,
   hint,
+  tag,
   ...props
 }: Omit<React.ComponentProps<typeof Textarea>, "value" | "onChange" | "id" | "name"> & {
   id: string;
@@ -141,16 +154,25 @@ export function TextAreaField({
   label: string;
   error?: string;
   hint?: string;
+  /** Beside the label, like the "Private" tag (give it the id `${id}-tag` so the field is described by it). */
+  tag?: React.ReactNode;
   value: string;
   onChange: (value: string) => void;
 }) {
   const { error, markEdited } = useFieldError(id, errorProp);
-  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null]
+  const describedBy = [tag ? `${id}-tag` : null, hint ? `${id}-hint` : null, error ? `${id}-error` : null]
     .filter(Boolean)
     .join(" ");
   return (
     <Field data-invalid={!!error}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {tag ? (
+        <div className="flex items-center">
+          <FieldLabel htmlFor={id}>{label}</FieldLabel>
+          {tag}
+        </div>
+      ) : (
+        <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      )}
       {hint && (
         <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
           {hint}

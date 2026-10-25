@@ -30,7 +30,7 @@ export async function fillItem(
   await sheet(page).getByLabel("Quantity").fill(quantity);
   await sheet(page).getByLabel(/^Price/).fill(price);
   if (discountPercent) {
-    await sheet(page).getByLabel("Discount on this item").selectOption("percent");
+    await sheet(page).getByRole("button", { name: "Add a discount" }).click();
     await sheet(page).getByLabel("Item discount (%)").fill(discountPercent);
   }
   if (vat) await sheet(page).getByLabel("VAT on this item").selectOption(vat);

@@ -163,7 +163,7 @@ test("steps come from the product into the job, each counted on its own, and the
 
   // Every step done: the item is made, and the job offers Ready.
   for (const step of ["Ice", "Box", "Deliver"]) {
-    await page.getByRole("checkbox", { name: new RegExp(`^All done.*${step}`) }).check();
+    await page.getByRole("button", { name: new RegExp(`^All done.*${step}`) }).click();
   }
   await expect(steps.getByTestId("item-made")).toHaveText("All made");
   await expect(page.getByTestId("job-progress")).toContainText("All 1 item made".replace("All 1 item made", "1 of 1 item made"));
@@ -176,7 +176,7 @@ test("steps come from the product into the job, each counted on its own, and the
   await lessDeliver.focus();
   await page.keyboard.press("Enter");
   await expect(steps.getByTestId("item-made")).toHaveText("Made 11 of 12");
-  await page.getByRole("checkbox", { name: /^All done.*Deliver/ }).check();
+  await page.getByRole("button", { name: /^All done.*Deliver/ }).click();
   await page.getByRole("button", { name: "Mark ready", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
 });

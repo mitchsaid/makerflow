@@ -33,11 +33,12 @@ export function InvoiceJobCard({ quoteId, quoteNumber, offer }: { quoteId: strin
 
   return (
     <Alert ref={region} tabIndex={-1} role="region" aria-label="Invoice this job" data-testid="invoice-job-nudge" className="outline-none">
-      <AlertTitle>Invoice {quoteNumber}?</AlertTitle>
+      <AlertTitle>Invoice this job?</AlertTitle>
       <AlertDescription className="space-y-3">
-        <span className="block">The job is done. Turn the quote into an invoice.</span>
+        <span className="block">The job is done. Its quote, {quoteNumber}, becomes the invoice.</span>
         <span className="flex flex-wrap items-start gap-2">
-          <Link href={`/app/quotes/${quoteId}?next=invoice`} className={buttonVariants({ size: "lg" })}>
+          {/* A button inside the card's text, which underlines links: not this one. */}
+          <Link href={`/app/quotes/${quoteId}?next=invoice`} className={`${buttonVariants({ size: "lg" })} !no-underline`}>
             Create invoice
           </Link>
           <Button type="button" variant="outline" size="lg" onClick={close}>

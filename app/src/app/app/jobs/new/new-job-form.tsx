@@ -1,5 +1,6 @@
 "use client";
 
+import { PrivateTag } from "@/components/private-tag";
 import { useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
@@ -303,11 +304,10 @@ export function NewJobForm({
         )}
       </Section>
 
-      <Section title="Private note">
+      <Section title="Note" tag={<PrivateTag />}>
         <TextAreaField
           id="note"
           label="Note (optional)"
-          hint="Only you and your team see this."
           rows={3}
           maxLength={NEW_JOB_LIMITS.note + 100}
           value={values.note}
