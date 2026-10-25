@@ -88,8 +88,8 @@ test("Home counts the jobs that are late and the ones needed this week, and open
   await signUpAndOnboard(page, "job-home", "Home Jobs Co");
 
   // Nothing yet.
-  await expect(page.getByTestId("home-jobs")).toContainText("Nothing to make right now");
-  await expect(page.getByRole("link", { name: "New job" })).toBeVisible();
+  await expect(page.getByTestId("home-jobs")).toHaveCount(0);
+  await expect(page.getByTestId("home-first-quote").getByRole("link", { name: "New job" })).toBeVisible();
 
   await sentQuote(page);
   await accept(page);
@@ -99,15 +99,16 @@ test("Home counts the jobs that are late and the ones needed this week, and open
 
   // A job with no day set is neither late nor due.
   await nav(page).getByRole("link", { name: "Home" }).click();
-  await expect(page.getByTestId("home-count-late")).toHaveText("0");
-  await expect(page.getByTestId("home-count-week")).toHaveText("0");
+  // (A count of nothing is left out.)
+  await expect(page.getByTestId("home-count-late")).toHaveCount(0);
+  await expect(page.getByTestId("home-count-week")).toHaveCount(0);
   await expect(page.getByTestId("home-jobs")).toContainText("Nothing is due in the next week.");
 
   // Needed yesterday: late.
   await setNeededBy(jobId, day(-1));
   await page.reload();
   await expect(page.getByTestId("home-count-late")).toHaveText("1");
-  await expect(page.getByTestId("home-count-week")).toHaveText("0");
+  await expect(page.getByTestId("home-count-week")).toHaveCount(0);
   await page.getByTestId("home-count-late").click();
   await expect(page).toHaveURL(/\/app\/jobs\?show=late$/);
   await expect(page.getByRole("button", { name: /^Late \(1\)/ })).toHaveAttribute("aria-pressed", "true");
@@ -116,7 +117,7 @@ test("Home counts the jobs that are late and the ones needed this week, and open
   // Needed in six days: this week (the last day of it). In seven: not yet.
   await setNeededBy(jobId, day(6));
   await nav(page).getByRole("link", { name: "Home" }).click();
-  await expect(page.getByTestId("home-count-late")).toHaveText("0");
+  await expect(page.getByTestId("home-count-late")).toHaveCount(0);
   await expect(page.getByTestId("home-count-week")).toHaveText("1");
   await page.getByTestId("home-count-week").click();
   await expect(page).toHaveURL(/\/app\/jobs\?show=week$/);
@@ -127,7 +128,7 @@ test("Home counts the jobs that are late and the ones needed this week, and open
   await page.reload();
   await expect(page.getByText("Nothing is needed in the next week.")).toBeVisible();
   await nav(page).getByRole("link", { name: "Home" }).click();
-  await expect(page.getByTestId("home-count-week")).toHaveText("0");
+  await expect(page.getByTestId("home-count-week")).toHaveCount(0);
 
   // The buttons on the list itself switch without leaving the page.
   await page.getByRole("link", { name: /^See the job to do$/ }).click();

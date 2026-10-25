@@ -12,7 +12,6 @@ import { todayIn } from "@/lib/quotes/dates";
 import { forOrganisation } from "@/lib/scope";
 
 export default async function WorkspacePage() {
-  // The jobs query runs beside the workspace check, not after it.
   // The jobs query runs beside the workspace check, not after it; what is owed needs the business, so it follows.
   const [activeJobs, quoteStatuses, { organisation, profile }] = await Promise.all([getActiveJobDates(), getQuoteStatuses(), requireOrganisation()]);
   const locale = getLocalePack(profile.countryCode);
@@ -23,13 +22,21 @@ export default async function WorkspacePage() {
   const waiting = quotes.filter((q) => q.status === "sent").length;
   const drafts = quotes.filter((q) => q.status === "draft").length;
 
+  const firstRun = quotes.length === 0 && counts.active === 0 && owed.count === 0;
+  // What needs the maker, money first (docs/ux-review-2026-10-25.md, N7). A count of nothing is left out.
+  const showMoney = owed.count > 0;
+  const showQuotes = waiting > 0 || drafts > 0;
+  const showJobs = counts.active > 0;
+  const caughtUp = !firstRun && !showMoney && !showQuotes && !showJobs;
+  const money = (cents: number) => formatMoney(cents, profile.currencyCode, locale.numberStyle);
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <h1 className="text-xl font-semibold" data-testid="business-name">
         {organisation.name}
       </h1>
 
-      {quotes.length === 0 ? (
+      {firstRun && (
         // Nothing yet: the first thing a maker does is a quote, so say so.
         <Card data-testid="home-first-quote">
           <CardHeader>
@@ -37,24 +44,78 @@ export default async function WorkspacePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-base text-muted-foreground">Pick a customer, add items and prices, then send a PDF.</p>
-            <AddLink href="/app/quotes/new" variant="default">
-              New quote
-            </AddLink>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <AddLink href="/app/quotes/new" variant="default">
+                New quote
+              </AddLink>
+              <AddLink href="/app/jobs/new" variant="outline">
+                New job
+              </AddLink>
+            </div>
           </CardContent>
         </Card>
-      ) : (
+      )}
+
+      {caughtUp && (
+        <Card data-testid="home-caught-up">
+          <CardHeader>
+            <CardTitle className="text-lg">You&apos;re all caught up</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-base text-muted-foreground">Nothing is owed, waiting for an answer or due to be made.</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <AddLink href="/app/quotes/new" variant="default">
+                New quote
+              </AddLink>
+              <AddLink href="/app/jobs/new" variant="outline">
+                New job
+              </AddLink>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {showMoney && (
+        <Card data-testid="home-money">
+          <CardHeader>
+            <CardTitle className="text-lg">Money owed to you</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="grid grid-cols-2 gap-3">
+              {/* Overdue first, and only when something is. */}
+              {owed.overdueCents > 0 && (
+                <li>
+                  <MoneyLink href="/app/invoices?show=overdue" label="Overdue" text={money(owed.overdueCents)} tone="late" testId="home-overdue" />
+                </li>
+              )}
+              <li>
+                <MoneyLink href="/app/invoices?show=unpaid" label="Owing" text={money(owed.owingCents)} tone="calm" testId="home-owing" />
+              </li>
+            </ul>
+            <Link href="/app/invoices" className="inline-flex min-h-11 items-center font-medium underline">
+              {owed.count === 1 ? "See the invoice" : `See all ${owed.count} invoices owing`}
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {showQuotes && (
         <Card data-testid="home-quotes">
           <CardHeader>
             <CardTitle className="text-lg">Your quotes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <ul className="grid grid-cols-2 gap-3">
-              <li>
-                <CountLink href="/app/quotes?status=sent" label="Waiting for an answer" count={waiting} testId="home-quotes-waiting" />
-              </li>
-              <li>
-                <CountLink href="/app/quotes?status=draft" label="Drafts" count={drafts} testId="home-quotes-drafts" />
-              </li>
+              {waiting > 0 && (
+                <li>
+                  <CountLink href="/app/quotes?status=sent" label="Waiting for an answer" count={waiting} testId="home-quotes-waiting" />
+                </li>
+              )}
+              {drafts > 0 && (
+                <li>
+                  <CountLink href="/app/quotes?status=draft" label={drafts === 1 ? "Draft" : "Drafts"} count={drafts} testId="home-quotes-drafts" />
+                </li>
+              )}
             </ul>
             <AddLink href="/app/quotes/new" variant="outline">
               New quote
@@ -63,63 +124,30 @@ export default async function WorkspacePage() {
         </Card>
       )}
 
-      <Card data-testid="home-jobs">
-        <CardHeader>
-          <CardTitle className="text-lg">Your jobs</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {counts.active === 0 ? (
-            <>
-              <p className="text-base text-muted-foreground">
-                Nothing to make right now. When a customer accepts a quote, turn it into a job.
-              </p>
-              <AddLink href="/app/jobs/new" variant={quotes.length === 0 ? "outline" : "default"}>
-                New job
-              </AddLink>
-            </>
-          ) : (
-            <>
-              <ul className="grid grid-cols-2 gap-3">
-                <li>
-                  <DueLink href="/app/jobs?show=late" label="Late" count={counts.late} tone={counts.late > 0 ? "late" : "calm"} />
-                </li>
-                <li>
-                  <DueLink href="/app/jobs?show=week" label="Needed this week" count={counts.thisWeek} tone="calm" />
-                </li>
-              </ul>
-              {counts.late === 0 && counts.thisWeek === 0 && (
-                <p className="text-base text-muted-foreground">Nothing is due in the next week.</p>
-              )}
-              <Link href="/app/jobs" className="inline-flex min-h-11 items-center font-medium underline">
-                {counts.active === 1 ? "See the job to do" : `See all ${counts.active} jobs to do`}
-              </Link>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {owed.count > 0 && (
-        <Card data-testid="home-money">
+      {showJobs && (
+        <Card data-testid="home-jobs">
           <CardHeader>
-            <CardTitle className="text-lg">Money owed to you</CardTitle>
+            <CardTitle className="text-lg">Your jobs</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ul className="grid grid-cols-2 gap-3">
-              <li>
-                <MoneyLink href="/app/invoices?show=unpaid" label="Owing" text={formatMoney(owed.owingCents, profile.currencyCode, locale.numberStyle)} tone="calm" testId="home-owing" />
-              </li>
-              <li>
-                <MoneyLink
-                  href="/app/invoices?show=overdue"
-                  label="Overdue"
-                  text={formatMoney(owed.overdueCents, profile.currencyCode, locale.numberStyle)}
-                  tone={owed.overdueCents > 0 ? "late" : "calm"}
-                  testId="home-overdue"
-                />
-              </li>
-            </ul>
-            <Link href="/app/invoices" className="inline-flex min-h-11 items-center font-medium underline">
-              {owed.count === 1 ? "See the invoice" : `See all ${owed.count} invoices owing`}
+            {counts.late > 0 || counts.thisWeek > 0 ? (
+              <ul className="grid grid-cols-2 gap-3">
+                {counts.late > 0 && (
+                  <li>
+                    <DueLink href="/app/jobs?show=late" label="Late" count={counts.late} tone="late" />
+                  </li>
+                )}
+                {counts.thisWeek > 0 && (
+                  <li>
+                    <DueLink href="/app/jobs?show=week" label="Needed this week" count={counts.thisWeek} tone="calm" />
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <p className="text-base text-muted-foreground">Nothing is due in the next week.</p>
+            )}
+            <Link href="/app/jobs" className="inline-flex min-h-11 items-center font-medium underline">
+              {counts.active === 1 ? "See the job to do" : `See all ${counts.active} jobs to do`}
             </Link>
           </CardContent>
         </Card>
