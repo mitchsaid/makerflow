@@ -209,6 +209,9 @@ function OutcomeForm({
         <Button type="submit" size="lg" className="w-full" variant={answer ? "default" : "destructive"} disabled={pending}>
           {pending ? "Saving…" : thenCreateJob ? "Save answer and create job" : answer ? "Save answer" : "Withdraw quote"}
         </Button>
+        <Button type="button" size="lg" variant="outline" className="w-full" disabled={pending} onClick={onDone}>
+          Cancel
+        </Button>
       </form>
       </FormErrorScope>
     </>
@@ -241,12 +244,9 @@ export function ChangeAnswerButton({ quoteId }: { quoteId: string }) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Button type="button" size="lg" variant="soft" disabled={pending} onClick={change}>
+      <Button type="button" size="lg" variant="outline" disabled={pending} onClick={change}>
         {pending ? "Changing…" : "Change the answer"}
       </Button>
-      <p className="text-sm text-muted-foreground">
-        Back to Sent, to record a different answer. The earlier one stays in the activity.
-      </p>
     </div>
   );
 }
@@ -278,12 +278,9 @@ export function QuoteAgainButton({ quoteId }: { quoteId: string }) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Button type="button" size="lg" variant="soft" disabled={pending} onClick={again}>
+      <Button type="button" size="lg" variant="outline" disabled={pending} onClick={again}>
         {pending ? "Copying…" : "Quote again"}
       </Button>
-      <p className="text-sm text-muted-foreground">
-        A new draft for the same customer, with the same items and wording. It gets a new number.
-      </p>
     </div>
   );
 }

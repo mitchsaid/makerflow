@@ -62,6 +62,7 @@ export function AddMaterial({
                   numberStyle={config.numberStyle}
                   currencySymbol={config.currencySymbol}
                   idPrefix="new-material-"
+                  onCancel={() => setOpen(false)}
                   onSaved={(material) => {
                     config.onAdded(material);
                     onChosen(material);

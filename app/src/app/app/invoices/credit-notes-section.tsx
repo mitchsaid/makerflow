@@ -125,7 +125,7 @@ export function CreditNotesSection(props: Props) {
       <Sheet open={open} onOpenChange={(isOpen) => !busy && setOpen(isOpen)}>
         <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => document.getElementById("issue-credit-note") ?? true}>
           {/* Mounted only while open, so every opening starts fresh. */}
-          {open && <CreditForm {...props} onBusyChange={setBusy} />}
+          {open && <CreditForm {...props} onBusyChange={setBusy} onCancel={() => setOpen(false)} />}
         </SheetContent>
       </Sheet>
     </section>
@@ -147,7 +147,8 @@ function CreditForm({
   invoiceGroups,
   priorGroups,
   onBusyChange,
-}: Props & { onBusyChange: (busy: boolean) => void }) {
+  onCancel,
+}: Props & { onBusyChange: (busy: boolean) => void; onCancel: () => void }) {
   const router = useRouter();
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
   const quantity = (milli: number, unit: string | null) => quantityText(milli, unit, numberStyle, " ");
@@ -382,6 +383,9 @@ function CreditForm({
           </p>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
             {pending ? "Issuing…" : "Issue credit note"}
+          </Button>
+          <Button type="button" size="lg" variant="outline" className="w-full" disabled={pending} onClick={onCancel}>
+            Cancel
           </Button>
         </form>
       </FormErrorScope>

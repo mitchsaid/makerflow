@@ -52,7 +52,6 @@ export function CreateInvoice({
       <AddButton size="lg" variant={primary ? "default" : "outline"} id="create-invoice" onClick={() => setOpen(true)}>
         Create invoice
       </AddButton>
-      <p className="text-sm text-muted-foreground">Turn this accepted quote into a numbered {documentTitle.toLowerCase()}.</p>
       <Sheet
         open={open}
         onOpenChange={(isOpen) => {
@@ -78,6 +77,7 @@ export function CreateInvoice({
               problems={problems}
               customerId={customerId}
               onBusyChange={setBusy}
+              onCancel={() => setOpen(false)}
             />
           )}
         </SheetContent>
@@ -95,6 +95,7 @@ function InvoiceForm({
   problems: initialProblems,
   customerId,
   onBusyChange,
+  onCancel,
 }: {
   quoteId: string;
   documentTitle: string;
@@ -104,6 +105,7 @@ function InvoiceForm({
   problems: InvoiceProblem[];
   customerId: string | null;
   onBusyChange: (busy: boolean) => void;
+  onCancel: () => void;
 }) {
   const [values, setValues] = useState<InvoiceFormValues>(defaults);
   const [errors, setErrors] = useState<InvoiceFormErrors>({});
@@ -242,6 +244,9 @@ function InvoiceForm({
           </p>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
             {pending ? "Issuing…" : `Issue ${documentTitle.toLowerCase()}`}
+          </Button>
+          <Button type="button" size="lg" variant="outline" className="w-full" disabled={pending} onClick={onCancel}>
+            Cancel
           </Button>
         </form>
       </FormErrorScope>

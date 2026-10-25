@@ -533,7 +533,7 @@ export function InvoiceDraftForm({
               {pending ? "Issuing…" : "Issue invoice"}
             </Button>
             <Button type="button" variant="outline" size="lg" className="w-full" disabled={pending} onClick={() => setConfirming(false)}>
-              Keep editing
+              Cancel
             </Button>
           </div>
         </SheetContent>
