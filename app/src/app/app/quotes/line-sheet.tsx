@@ -1,5 +1,7 @@
 "use client";
 
+import { withoutEmptyOptionals } from "@/lib/quotes/optional";
+import { PrivateTag } from "@/components/private-tag";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
@@ -522,6 +524,8 @@ function ConfigureView({
   onEditProduct: (product: ProductSummary, line: LineFormValues) => void;
 }) {
   const [line, setLine] = useState(initialLine);
+  // The line as it stands, for the save below (which works on a tidied copy of it under the same name).
+  const lineNow = line;
   const [errors, setErrors] = useState<LineErrors>({});
   // Required options with nothing chosen, by option id (shown after Save is pressed).
   const [optionErrors, setOptionErrors] = useState<Record<string, string>>({});
@@ -612,9 +616,13 @@ function ConfigureView({
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const current = lineNow;
     event.preventDefault();
     // This form sits inside the quote's form in the React tree: never save the quote with it.
     event.stopPropagation();
+    // A discount opened and left empty is dropped, not refused (the same rule as the quote's own discount).
+    const line = withoutEmptyOptionals(current);
+    if (line !== current) setLine(line);
     // A job item has no price: the parser still wants one, so it is given a neutral one that is never kept.
     const result = parseLine(job ? { ...line, unitPrice: "0", discountKind: "none", discountValue: "", vatStatus: "standard" } : line);
     setAttempt((n) => n + 1);
@@ -745,7 +753,8 @@ function ConfigureView({
           error={errors.quantity}
           onChange={changeQuantity}
         />
-        <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />
+        {/* A product's line has the product's unit (shown with the quantity); only a one-off item asks for one. */}
+        {!line.productId && <UnitField id={id("unit")} value={line.unit} error={errors.unit} onChange={set("unit")} />}
         {!job && (
           <TextField
             id={id("unitPrice")}
@@ -762,8 +771,8 @@ function ConfigureView({
         {!job && !line.productId && (
           <TextField
             id={id("unitCost")}
-            label={line.unit.trim() ? `What it costs you per ${line.unit.trim()}` : "What it costs you"}
-            hint="Optional. Not shown on the quote."
+            label={line.unit.trim() ? `What it costs you per ${line.unit.trim()} (optional)` : "What it costs you (optional)"}
+            tag={<PrivateTag id={`${id("unitCost")}-tag`} />}
             startText={symbol}
             inputMode="decimal"
             autoComplete="off"
@@ -811,34 +820,51 @@ function ConfigureView({
           error={errors.description}
           onChange={set("description")}
         />
-        {!job && (
-        <SelectField
-          id={id("discountKind")}
-          label="Discount on this item"
-          value={line.discountKind === "none" ? "" : line.discountKind}
-          onChange={(kind) =>
-            setLine((l) => ({
-              ...l,
-              discountKind: (kind === "" ? "none" : kind) as DiscountKind,
-              discountValue: kind === "" ? "" : l.discountValue,
-            }))
-          }
-          placeholder="No discount"
-          options={["percent", "fixed"]}
-          optionLabels={{ percent: "A percentage", fixed: "An amount" }}
-        />
+        {/* A discount on the item is an optional thing, added and removed the way the quote's own discount is. */}
+        {!job && line.discountKind === "none" && (
+          <div>
+            <AddButton
+              id={id("add-discount")}
+              onClick={() => {
+                setLine((l) => ({ ...l, discountKind: "percent", discountValue: "" }));
+                setTimeout(() => document.getElementById(id("discountValue"))?.focus(), 0);
+              }}
+            >
+              Add a discount
+            </AddButton>
+          </div>
         )}
         {!job && line.discountKind !== "none" && (
-          <TextField
-            id={id("discountValue")}
-            label={line.discountKind === "percent" ? "Item discount (%)" : "Item discount amount"}
-            startText={line.discountKind === "fixed" ? symbol : undefined}
-            inputMode="decimal"
-            autoComplete="off"
-            value={line.discountValue}
-            error={errors.discountValue}
-            onChange={set("discountValue")}
-          />
+          <div className="space-y-4 rounded-xl border border-border p-3" role="group" aria-label="Item discount">
+            <SelectField
+              id={id("discountKind")}
+              label="Discount on this item"
+              value={line.discountKind}
+              onChange={(kind) => setLine((l) => ({ ...l, discountKind: (kind === "fixed" ? "fixed" : "percent") as DiscountKind }))}
+              options={["percent", "fixed"]}
+              optionLabels={{ percent: "A percentage", fixed: "An amount" }}
+            />
+            <TextField
+              id={id("discountValue")}
+              label={line.discountKind === "percent" ? "Item discount (%)" : "Item discount amount"}
+              startText={line.discountKind === "fixed" ? symbol : undefined}
+              inputMode="decimal"
+              autoComplete="off"
+              value={line.discountValue}
+              error={errors.discountValue}
+              onChange={set("discountValue")}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setLine((l) => ({ ...l, discountKind: "none", discountValue: "" }));
+                setTimeout(() => document.getElementById(id("add-discount"))?.focus(), 0);
+              }}
+            >
+              Remove discount
+            </Button>
+          </div>
         )}
         {!job && vatChoices && (
           <SelectField

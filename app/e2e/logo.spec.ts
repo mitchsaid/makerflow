@@ -85,16 +85,21 @@ test("the quote preview offers the logo while there is none: add it there, or ca
   await expect(page.getByTestId("logoImage-preview")).toBeVisible();
 });
 
-test("'Not now' hides the logo card for this person, and the Business profile still has the section", async ({ page }) => {
+test("'Not now' hides the logo card for now, 'Don't ask me again' for good, and the Business profile still has the section", async ({ page }) => {
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "logo-notnow", "Not Now Co");
   await previewOfNewQuote(page);
   await expect(page.getByTestId("logo-prompt")).toBeVisible();
-  const remembered = nextServerAction(page);
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByTestId("logo-prompt")).toHaveCount(0);
   // Focus goes to the page's heading, not to nowhere.
   await expect(page.locator("#preview-title")).toBeFocused();
+  // Only for this visit: it comes back.
+  await page.reload();
+  await expect(page.getByTestId("logo-prompt")).toBeVisible();
+  const remembered = nextServerAction(page);
+  await page.getByRole("button", { name: "Don't ask me again" }).click();
+  await expect(page.getByTestId("logo-prompt")).toHaveCount(0);
   // It is remembered (in the database), so it stays gone after a reload and on the next quote.
   await remembered;
   await page.reload();

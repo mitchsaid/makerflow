@@ -77,7 +77,7 @@ test("a business customer keeps its details, and they persist after editing", as
   await page.getByLabel("VAT number").fill("4123456789");
   await page.getByLabel("Company registration number").fill("2020/123456/07");
   await page.getByLabel("Phone", { exact: true }).fill("021 555 0000");
-  await page.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+  await page.getByRole("button", { name: "Add an address" }).click();
   const address = page.getByRole("group", { name: "Address", exact: true });
   await address.getByLabel("Street address").fill("1 Main Road");
   await address.getByLabel("City or town").fill("Cape Town");
@@ -92,6 +92,7 @@ test("a business customer keeps its details, and they persist after editing", as
   await delivery.getByLabel("City or town").fill("Durban");
   await delivery.getByLabel("Province").selectOption("KwaZulu-Natal");
   await delivery.getByLabel("Postal code").fill("4001");
+  await page.getByRole("button", { name: "Add a note" }).click();
   await page.getByLabel("Anything to remember (optional)").fill("Pays on 30 days");
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByTestId("customer-added")).toBeVisible();
@@ -229,7 +230,7 @@ test("a separate delivery address must be filled in, and ticking 'same as above'
   await signUpAndOnboard(page, "cust-deliv", "Deliveries Co");
   await page.goto("/app/customers/new");
   await page.getByLabel("Name", { exact: true }).fill("Thandi Nkosi");
-  await page.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+  await page.getByRole("button", { name: "Add an address" }).click();
   const delivery = page.getByRole("group", { name: "Delivery" });
   await delivery.getByRole("checkbox", { name: "Same as the address above" }).uncheck();
 

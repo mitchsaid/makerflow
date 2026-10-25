@@ -91,10 +91,18 @@ export function StepsEditor({
 
   if (!open) {
     return (
-      <Button ref={openButton} type="button" variant="outline" onClick={() => setOpen(true)}>
-        {steps.length > 0 ? "Change steps" : "Add steps"}
-        <span className="sr-only"> for {name}</span>
-      </Button>
+      steps.length > 0 ? (
+        <Button ref={openButton} type="button" variant="outline" onClick={() => setOpen(true)}>
+          Change steps
+          <span className="sr-only"> for {name}</span>
+        </Button>
+      ) : (
+        // Adding something has the plus, like every add action (docs/adr/0008-add-actions.md).
+        <AddButton ref={openButton} onClick={() => setOpen(true)}>
+          Add steps
+          <span className="sr-only"> for {name}</span>
+        </AddButton>
+      )
     );
   }
 

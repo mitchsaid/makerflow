@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AddLink } from "@/components/add-button";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -35,9 +36,9 @@ export default async function QuotesPage({ searchParams }: PageProps<"/app/quote
             Quote settings
           </Link>
           {quotes.length > 0 && (
-            <Link href="/app/quotes/new" className={buttonVariants()}>
+            <AddLink href="/app/quotes/new" variant="default">
               New quote
-            </Link>
+            </AddLink>
           )}
         </div>
       </div>

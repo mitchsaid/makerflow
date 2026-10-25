@@ -257,7 +257,7 @@ test("the sheet's fields do not collide with the quote's, and a lost connection 
   await page.getByLabel("Customer name", { exact: true }).fill("Someone");
   await page.getByRole("option", { name: /Add “Someone”/ }).click();
   const sheet = page.getByRole("dialog", { name: "Add a customer" });
-  await sheet.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+  await sheet.getByRole("button", { name: "Add a note" }).click();
   // The customer's notes field has its own label and its own id, apart from the quote's notes.
   await sheet.getByLabel("Anything to remember (optional)").fill("Customer notes");
   await expect(page.getByLabel("Notes for your customer (optional)")).toHaveValue("Quote notes");

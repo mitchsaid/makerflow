@@ -1,5 +1,6 @@
 "use client";
 
+import { PrivateTag } from "@/components/private-tag";
 import { useState, useTransition } from "react";
 import { TextAreaField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
@@ -41,8 +42,8 @@ export function JobNote({ jobId, initial }: { jobId: string; initial: string }) 
     <form onSubmit={save} noValidate className="space-y-3">
       <TextAreaField
         id="job-note"
-        label="Private note (optional)"
-        hint="Only you and your team see this."
+        label="Note (optional)"
+        tag={<PrivateTag id="job-note-tag" />}
         value={text}
         onChange={(value) => {
           setText(value);

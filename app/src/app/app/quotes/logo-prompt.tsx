@@ -15,8 +15,8 @@ const focusTitle = () => setTimeout(() => document.getElementById(PAGE_TITLE)?.f
 /**
  * On the quote preview, for people who can set the logo: while the business has none (and they have not said "Not
  * now"), a friendly card offers to add one right here. It opens the Business profile's own logo form in a sheet.
- * Saving closes the sheet and the quote redraws with the logo on it (the save refreshes the page). "Not now" is
- * remembered for this person, as the business-type prompt is.
+ * Saving closes the sheet and the quote redraws with the logo on it (the save refreshes the page). "Not now" closes it
+ * for this visit; "Don't ask me again" is remembered for this person, as on every prompt card.
  *
  * This component stays on the page after the logo is saved, so the sheet can finish closing and hand focus back.
  */
@@ -40,6 +40,17 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
               <AddButton id="add-logo" variant="default" onClick={() => setOpen(true)}>
                 Add your logo
               </AddButton>
+              {/* The same two ways out as every prompt card: for now, or for good. */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setHidden(true);
+                  focusTitle();
+                }}
+              >
+                Not now
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -52,7 +63,7 @@ export function LogoPrompt({ businessName, askForLogo }: { businessName: string;
                   });
                 }}
               >
-                Not now
+                Don&apos;t ask me again
               </Button>
             </span>
           </AlertDescription>

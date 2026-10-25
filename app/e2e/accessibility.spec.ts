@@ -139,7 +139,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: "Add a customer", level: 1 })).toBeVisible();
       await expectNoViolations(page, "add customer");
       await page.getByRole("checkbox", { name: "This is a business" }).check();
-      await page.getByRole("button", { name: "Add address, delivery details or notes" }).click();
+      await page.getByRole("button", { name: "Add an address" }).click();
+      await page.getByRole("button", { name: "Add a note" }).click();
       await expectNoViolations(page, "add customer, business with all sections");
       await page.getByLabel("Phone", { exact: true }).fill("bad");
       await page.getByRole("button", { name: "Add customer" }).click();
@@ -326,7 +327,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "job, not started");
       await page.getByRole("button", { name: "Start making" }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
-      await page.getByLabel("Private note (optional)").fill("Check the colour");
+      await page.getByLabel("Note (optional)").fill("Check the colour");
       await page.getByRole("button", { name: "Save note" }).click();
       await expect(page.getByText("Note saved.")).toBeVisible();
       // "Note saved." shows a moment before the button is back: a disabled (faded) button fails the contrast check.
@@ -1012,6 +1013,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByLabel("Quantity").fill("2");
       await page.getByRole("dialog").getByLabel(/^Price/).fill("100");
       await page.getByRole("dialog").getByRole("button", { name: "Add to invoice" }).click();
+      // (The closing sheet has an "Add a discount" of its own: wait for it to go.)
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount (%)").fill("10");
       await expectNoViolations(page, "a new invoice, with an item and a discount");

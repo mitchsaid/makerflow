@@ -24,7 +24,8 @@ test("a finished job offers to invoice its quote, and the invoice is then shown 
 
   const card = page.getByTestId("invoice-job-nudge");
   await expect(card).toBeVisible();
-  await expect(card).toContainText("Invoice QT-0001?");
+  await expect(card).toContainText("Invoice this job?");
+  await expect(card).toContainText("QT-0001");
 
   // Create invoice opens the quote with its own sheet ready; issuing makes the invoice.
   await card.getByRole("link", { name: "Create invoice" }).click();

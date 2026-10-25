@@ -63,6 +63,8 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   await page.getByRole("button", { name: /Edit Shelf/ }).click();
   await sheet(page).getByLabel(/^Price/).fill("150");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
+  // (The closing sheet has an "Add a discount" of its own: wait for it to go.)
+  await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("sticky-total")).toContainText(rand("300"));
   await page.getByRole("button", { name: "Add a discount" }).click();
   await page.getByLabel("Discount (%)").fill("10");

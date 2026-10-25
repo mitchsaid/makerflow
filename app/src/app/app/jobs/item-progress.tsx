@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { TextField } from "@/components/form-fields";
 import { parseMade, stepMade } from "@/lib/jobs";
 import { quantityToInput, type NumberStyle } from "@/lib/money";
@@ -16,7 +14,7 @@ import { setItemMade, setStepDone } from "./actions";
 const OFFLINE = "Couldn't reach the server, so that count wasn't saved. Try again.";
 
 /**
- * How much of one item is made: plus and minus for one unit at a time, a number to type, and "All made". The count
+ * How much of one item is made: plus and minus for one unit at a time, a number to type, and an "All made" button. The count
  * on screen changes at once; the saves go to the server one after another, so quick taps cannot cross. If a save is
  * refused the count goes back to what the server has and says why.
  *
@@ -166,17 +164,13 @@ export function ItemProgress({
         >
           <PlusIcon aria-hidden="true" />
         </Button>
-        <Field orientation="horizontal" className="min-h-11 w-auto items-center py-1.5">
-          <Checkbox
-            id={`${idBase}-all`}
-            checked={done}
-            onCheckedChange={(checked) => save(checked === true ? quantityMilli : 0)}
-          />
-          <FieldLabel htmlFor={`${idBase}-all`} className="text-base">
+        {/* One more way to count, as a button beside the stepper (not a tick box inside a counter). */}
+        {!done && (
+          <Button type="button" variant="soft" id={`${idBase}-all`} onClick={() => save(quantityMilli)}>
             {allWords}
             <span className="sr-only"> for {step ? `${step.name}, ${name}` : name}</span>
-          </FieldLabel>
-        </Field>
+          </Button>
+        )}
       </div>
       {error && (
         <Alert variant="destructive" role="alert">

@@ -62,5 +62,6 @@ test("an issued invoice: the deposit is the one filled button, and the payment a
   await page.getByRole("button", { name: "Record the deposit" }).click();
   await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(sheet(page)).toHaveCount(0);
-  expect(await filled(page)).toEqual(["Record a payment"]);
+  // Once the page has the payment, the deposit is no longer asked for.
+  await expect.poll(() => filled(page)).toEqual(["Record a payment"]);
 });

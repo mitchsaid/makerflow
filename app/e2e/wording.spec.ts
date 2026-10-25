@@ -49,10 +49,10 @@ test("units, a title and a description: set on the quote, shown on the preview",
   await openQuotes(page);
   await page.getByRole("link", { name: "Start your first quote" }).click();
 
-  // Choosing a product fills its unit; the price is per that unit.
+  // Choosing a product brings its unit (not asked again); the price is per that unit.
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
-  await expect(sheet(page).getByLabel("Unit (optional)")).toHaveValue("dozen");
+  await expect(sheet(page).getByLabel("Unit (optional)")).toHaveCount(0);
   await expect(sheet(page).getByLabel(/^Price/)).toHaveAccessibleName(/per dozen/);
   await sheet(page).getByLabel("Quantity").fill("2");
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
