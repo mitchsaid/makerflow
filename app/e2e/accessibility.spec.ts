@@ -862,7 +862,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/quotes");
       await page.getByRole("link", { name: /QT-0001/ }).first().click();
       await page.getByRole("button", { name: "Create invoice" }).click();
-      await page.getByRole("dialog").getByLabel("Due day").fill("2000-01-01");
+      await page.getByRole("dialog").getByLabel("Due date").fill("2000-01-01");
       await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "create invoice, with a problem");

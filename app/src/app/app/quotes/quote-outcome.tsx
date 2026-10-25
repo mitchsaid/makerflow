@@ -149,7 +149,7 @@ function OutcomeForm({
   }
 
   const summary: FormProblem[] = [
-    ...(errors.on ? [{ fieldId: "outcome-on", label: "Day", message: errors.on }] : []),
+    ...(errors.on ? [{ fieldId: "outcome-on", label: "Date they told you", message: errors.on }] : []),
     ...(errors.how ? [{ fieldId: "outcome-how", label: "How they told you", message: errors.how }] : []),
     ...(errors.note ? [{ fieldId: "outcome-note", label: "Note", message: errors.note }] : []),
   ];
@@ -173,7 +173,7 @@ function OutcomeForm({
             <TextField
               id="outcome-on"
               type="date"
-              label="Day they told you"
+              label="Date they told you"
               value={values.on}
               error={errors.on}
               max={today}

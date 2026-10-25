@@ -24,7 +24,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
   const problems: FormProblem[] = (
     [
       ["wordingDescription", "Intro", errors.description],
-      ["wordingSignOff", "Sign-off message", errors.signOff],
+      ["wordingSignOff", "Sign-off", errors.signOff],
       ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
@@ -78,7 +78,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
         <TextAreaField
           id="wordingSignOff"
           name="signOff"
-          label="Sign-off message (optional)"
+          label="Sign-off (optional)"
           rows={3}
           maxLength={QUOTE_SIGN_OFF_MAX}
           value={values.signOff}

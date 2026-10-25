@@ -267,11 +267,11 @@ export function InvoiceDraftForm({
     if (text) summary.push({ fieldId: `line-${line.key}-edit`, label: `Item ${i + 1}: ${line.name.trim() || "item"}`, message: text });
   });
   if (f.lines) summary.push({ fieldId: "add-item", label: "Items", message: f.lines });
+  if (f.issueDate) summary.push({ fieldId: "issueDate", label: "Invoice date", message: f.issueDate });
+  if (f.dueDate) summary.push({ fieldId: "dueDate", label: "Due date", message: f.dueDate });
   if (f.deliveryFee) summary.push({ fieldId: "deliveryFee", label: "Delivery fee", message: f.deliveryFee });
   if (f.deliveryAddress) summary.push({ fieldId: "deliveryAddress", label: "Deliver to", message: f.deliveryAddress });
   if (f.discountValue) summary.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
-  if (f.issueDate) summary.push({ fieldId: "issueDate", label: "Invoice date", message: f.issueDate });
-  if (f.dueDate) summary.push({ fieldId: "dueDate", label: "Due day", message: f.dueDate });
   if (f.notes) summary.push({ fieldId: "notes", label: "Note", message: f.notes });
   for (const p of problems) summary.push({ fieldId: `invoice-problem-${p.code}`, label: "Before you can issue it", message: p.message });
   if (message) summary.push({ fieldId: "issue-invoice", label: "Invoice", message });
@@ -362,6 +362,11 @@ export function InvoiceDraftForm({
           />
         </Section>
 
+        <Section title="Dates">
+          <TextField id="issueDate" type="date" label="Invoice date" value={values.issueDate} error={f.issueDate} onChange={(issueDate) => update({ issueDate })} />
+          <TextField id="dueDate" type="date" label="Due date" value={values.dueDate} error={f.dueDate} onChange={(dueDate) => update({ dueDate })} />
+        </Section>
+
         <DeliverySection
           fulfilment={values.fulfilment}
           deliveryFee={values.deliveryFee}
@@ -408,10 +413,6 @@ export function InvoiceDraftForm({
           </div>
         )}
 
-        <Section title="Dates">
-          <TextField id="issueDate" type="date" label="Invoice date" value={values.issueDate} error={f.issueDate} onChange={(issueDate) => update({ issueDate })} />
-          <TextField id="dueDate" type="date" label="Due day" value={values.dueDate} error={f.dueDate} onChange={(dueDate) => update({ dueDate })} />
-        </Section>
 
         <Section title="Note">
           <TextAreaField
@@ -426,6 +427,8 @@ export function InvoiceDraftForm({
           />
         </Section>
 
+        {/* The pinned bar is the total; the card is only for a breakdown (a discount, VAT). */}
+        {(discountsCents > 0 || vat.registered) && (
         <Section title="Totals">
           <dl className="space-y-1 text-base" data-testid="totals">
             {discountsCents > 0 && totals && (
@@ -446,6 +449,7 @@ export function InvoiceDraftForm({
             )}
           </dl>
         </Section>
+        )}
 
         {problems.length > 0 && (
           <Alert variant="destructive" data-testid="invoice-problems">

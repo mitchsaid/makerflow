@@ -315,7 +315,8 @@ test("valid-for shortcuts set the date, and prices follow the business's VAT set
   await sheet(page).getByRole("button", { name: "Back" }).click();
   await page.keyboard.press("Escape");
   await expect(sheet(page)).toHaveCount(0);
-  await expect(page.getByTestId("totals")).not.toContainText("VAT");
+  await expect(page.getByTestId("totals")).toHaveCount(0);
+  await expect(page.getByText(/VAT/)).toHaveCount(0);
 
   const issue = await page.getByLabel("Quote date", { exact: true }).inputValue();
   await page.getByRole("button", { name: "Valid for 30 days" }).click();

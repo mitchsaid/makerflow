@@ -240,7 +240,7 @@ function CreditForm({
 
   const summary: FormProblem[] = [
     ...(errors.reason ? [{ fieldId: "credit-reason", label: "Reason", message: errors.reason }] : []),
-    ...(errors.issueDate ? [{ fieldId: "credit-date", label: "Day", message: errors.issueDate }] : []),
+    ...(errors.issueDate ? [{ fieldId: "credit-date", label: "Credit note date", message: errors.issueDate }] : []),
     ...(errors.lines ? [{ fieldId: `credit-line-${(items.find((i) => i.amountLeftCents > 0) ?? items[0])?.index ?? 0}`, label: "Items", message: errors.lines }] : []),
     ...Object.entries(errors.byLine ?? {}).flatMap(([index, e]) => [
       ...(e.quantity ? [{ fieldId: `credit-line-${index}-quantity`, label: `${items.find((i) => i.index === Number(index))?.name ?? "Item"}: how many`, message: e.quantity }] : []),
@@ -276,7 +276,7 @@ function CreditForm({
           <TextField
             id="credit-date"
             type="date"
-            label="Day of the credit note"
+            label="Credit note date"
             max={today}
             value={values.issueDate}
             error={errors.issueDate}

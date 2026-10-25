@@ -15,7 +15,8 @@ test("the introduction is a usual: set once, every new quote starts with it, and
   await expect(page.getByRole("button", { name: "Save as my usual description" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Use my usual description" })).toHaveCount(0);
 
-  // Typing one offers to keep it, in one tap.
+  // Typing one offers to keep it, in one tap. (The intro sits low on the form: let the page finish loading before typing.)
+  await page.waitForLoadState("networkidle");
   await description.fill("Thank you for asking about your order.");
   await page.getByRole("button", { name: "Save as my usual description" }).click();
   await expect(page.getByText("Saved as your usual description.")).toBeVisible();
@@ -44,11 +45,11 @@ test("the sign-off and the notes about paying can be saved as usuals from the qu
   await page.goto("/app/quotes/new");
   // No example is suggested any more; the sign-off starts with a generic one, which is not offered for saving as it is.
   await expect(page.getByText("Like “Yours in sweetness”")).toHaveCount(0);
-  await expect(page.getByLabel("Message (optional)")).toHaveValue("Thank you for the opportunity to quote. Please get in touch with any questions.");
+  await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Thank you for the opportunity to quote. Please get in touch with any questions.");
   await expect(page.getByRole("button", { name: "Save as my usual sign-off" })).toHaveCount(0);
 
   // (Typing while the page is still waking up can land in front of the text instead of replacing it: type until it takes.)
-  const message = page.getByLabel("Message (optional)");
+  const message = page.getByLabel("Sign-off (optional)");
   await expect(async () => {
     await message.fill("Kind regards");
     await expect(message).toHaveValue("Kind regards", { timeout: 1_000 });
@@ -60,7 +61,7 @@ test("the sign-off and the notes about paying can be saved as usuals from the qu
   await expect(page.getByText("Saved as your usual payment notes.")).toBeVisible();
 
   await page.goto("/app/quotes/new");
-  await expect(page.getByLabel("Message (optional)")).toHaveValue("Kind regards");
+  await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Kind regards");
   await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Wording Co");
 });
 

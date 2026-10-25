@@ -54,13 +54,13 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
 
   // A due day before the invoice day is caught at the field, and what was typed stays.
   await sheet(page).getByLabel("Invoice date").fill("2026-10-20");
-  await sheet(page).getByLabel("Due day").fill("2026-10-10");
+  await sheet(page).getByLabel("Due date").fill("2026-10-10");
   await sheet(page).getByLabel("Note (optional)").fill("Thanks for your order!");
   await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
   await expect(sheet(page).getByText("The due day can't be before the invoice date.").first()).toBeVisible();
   await expect(sheet(page).getByLabel("Note (optional)")).toHaveValue("Thanks for your order!");
 
-  await sheet(page).getByLabel("Due day").fill("2026-11-03");
+  await sheet(page).getByLabel("Due date").fill("2026-11-03");
   await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
   await expect(page).toHaveURL(/\/app\/invoices\/[0-9a-f-]{36}$/);
   const url = page.url();
