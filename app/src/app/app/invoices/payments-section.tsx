@@ -49,6 +49,7 @@ export function PaymentsSection(props: Props) {
   const owingCents = Math.max(0, grossCents - paidCents);
   const [form, setForm] = useState<{ amount: number | null; note: string } | null>(null);
   const [reversing, setReversing] = useState<PaymentRow | null>(null);
+  const depositOffered = owingCents > 0 && !props.fullyCredited && depositCents !== null && rows.length === 0;
 
   return (
     <section className="space-y-3" aria-labelledby="payments-heading">
@@ -98,7 +99,7 @@ export function PaymentsSection(props: Props) {
             </ul>
           )}
 
-          {owingCents > 0 && !props.fullyCredited && depositCents !== null && rows.length === 0 && (
+          {depositOffered && (
             <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="deposit-offer">
               <p className="text-base">Your quote asked for a deposit of {money(depositCents)}.</p>
               <Button type="button" onClick={() => setForm({ amount: Math.min(depositCents, owingCents), note: props.depositNote })}>
@@ -112,7 +113,13 @@ export function PaymentsSection(props: Props) {
               Nothing is owing: this invoice is fully credited.
             </p>
           ) : owingCents > 0 ? (
-            <AddButton id="record-payment" variant="default" size="lg" onClick={() => setForm({ amount: null, note: "" })}>
+            <AddButton
+              id="record-payment"
+              // The deposit, when it is offered, is the next step and the one filled button; any other payment is outlined.
+              variant={depositOffered ? "outline" : "default"}
+              size="lg"
+              onClick={() => setForm({ amount: null, note: "" })}
+            >
               Record a payment
             </AddButton>
           ) : (
@@ -256,7 +263,10 @@ function PaymentForm({
             onChange={(note) => setValues((v) => ({ ...v, note }))}
           />
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
-            {pending ? "Saving…" : "Save payment"}
+            {pending ? "Saving…" : "Record payment"}
+          </Button>
+          <Button type="button" size="lg" variant="outline" className="w-full" disabled={pending} onClick={onDone}>
+            Cancel
           </Button>
         </form>
       </FormErrorScope>

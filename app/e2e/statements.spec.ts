@@ -13,7 +13,7 @@ async function invoiceWithPaymentAndCredit(page: Page, label: string) {
   await page.getByRole("button", { name: "Record a payment" }).click();
   await sheet(page).getByLabel("Amount received").fill("1000");
   await sheet(page).getByLabel("How it was paid (optional)").selectOption("eft");
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(page.getByTestId("invoice-paid")).toHaveText(rand("1 000"));
   await page.getByRole("button", { name: "Issue a credit note" }).click();
   await sheet(page).getByRole("checkbox", { name: /Cupcakes/ }).click();
@@ -79,7 +79,7 @@ test("a customer's statement shows what was invoiced, credited and paid, and wha
   await page.goto((await text.getByRole("link", { name: "INV-0001" }).first().getAttribute("href"))!);
   await page.getByRole("button", { name: "Record a payment" }).click();
   await sheet(page).getByLabel("Amount received").fill("1000");
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(page.getByTestId("invoice-status-chip")).toHaveText("Paid");
   await page.goto(`${statementUrl}?owing=1`);
   await expect(page.getByText("Nothing owing")).toBeVisible();

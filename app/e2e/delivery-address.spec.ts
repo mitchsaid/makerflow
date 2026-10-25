@@ -97,7 +97,11 @@ test("a delivery uses the customer's saved address, or another one, and it print
   await expect(document).toContainText("5 Elm Street");
   await expect(document).toContainText("Parkhurst");
 
-  // Quote again carries the address to the new draft.
+  // Once answered, Quote again carries the address to the new draft.
+  await page.getByRole("button", { name: "They declined" }).click();
+  await sheet(page).getByLabel("How they told you").selectOption("whatsapp");
+  await sheet(page).getByRole("button", { name: "Save answer" }).click();
+  await expect(page.getByRole("heading", { name: /^Quote QT-0001 Declined$/, level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Quote again" }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0002 Draft$/, level: 1 })).toBeVisible();
   await expect(page.getByRole("radio", { name: /Address on this quote/ })).toBeChecked();

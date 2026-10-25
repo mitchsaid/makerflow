@@ -48,7 +48,7 @@ test("the deposit is the first payment, the rest follows, and a mistake is rever
   await expect(sheet(page).getByLabel("Amount received")).toHaveValue("1000");
   await expect(sheet(page).getByLabel("Note (optional)")).toHaveValue("Deposit");
   await sheet(page).getByLabel("How it was paid (optional)").selectOption("eft");
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("invoice-paid")).toHaveText(rand("1 000"));
   await expect(page.getByTestId("invoice-owing")).toHaveText(rand("1 500"));
@@ -63,11 +63,11 @@ test("the deposit is the first payment, the rest follows, and a mistake is rever
   await page.getByRole("button", { name: "Record a payment" }).click();
   await sheet(page).getByLabel("Amount received").fill("2000");
   await sheet(page).getByLabel("Note (optional)").fill("Final payment");
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(sheet(page).getByText(/more than what is owing/).first()).toBeVisible();
   await expect(sheet(page).getByLabel("Note (optional)")).toHaveValue("Final payment");
   await sheet(page).getByLabel("Amount received").fill("1500");
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("invoice-status-chip")).toHaveText("Paid");
   await expect(page.getByTestId("paid-in-full")).toBeVisible();
@@ -105,7 +105,7 @@ test("a payment can't be dated ahead", async ({ page }) => {
   await page.getByRole("button", { name: "Record a payment" }).click();
   await sheet(page).getByLabel("Amount received").fill("100");
   await sheet(page).getByLabel("Day paid").fill("2099-01-01");
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(page.getByTestId("form-summary")).toBeVisible();
   await expect(sheet(page).getByText(/hasn't come yet/).first()).toBeVisible();
   await expect(page.getByTestId("payment")).toHaveCount(0);

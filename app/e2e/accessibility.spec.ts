@@ -902,11 +902,11 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Record a payment" }).click();
       await expectNoViolations(page, "record a payment");
       await page.getByRole("dialog").getByLabel("Amount received").fill("100000");
-      await page.getByRole("dialog").getByRole("button", { name: "Save payment" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Record payment" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "record a payment, with a problem");
       await page.getByRole("dialog").getByLabel("Amount received").fill("300");
-      await page.getByRole("dialog").getByRole("button", { name: "Save payment" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Record payment" }).click();
       await expect(page.getByTestId("payment")).toHaveCount(1);
       await expectNoViolations(page, "an invoice with a payment");
 
@@ -1018,7 +1018,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.locator("#issue-invoice").click();
       await expect(page.getByRole("dialog", { name: "Issue this invoice?" })).toBeVisible();
       await expectNoViolations(page, "the issue confirmation");
-      await page.getByRole("dialog").getByRole("button", { name: "Keep editing" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByText("Draft saved.")).toBeVisible();
       await expectNoViolations(page, "an invoice draft");

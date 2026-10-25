@@ -47,6 +47,7 @@ export function MaterialForm({
   currencySymbol,
   idPrefix = "",
   onSaved,
+  onCancel,
 }: {
   action: Action;
   initial: MaterialFormValues;
@@ -61,6 +62,8 @@ export function MaterialForm({
   idPrefix?: string;
   /** Set when the form is shown over another screen: told once, with the material, when it has been added. */
   onSaved?: (material: AddedMaterial) => void;
+  /** Shown over another screen: the way back without adding anything (every sheet ends with Cancel). */
+  onCancel?: () => void;
 }) {
   const fid = (key: string) => `${idPrefix}${key}`;
   const vatRegistered = vatRateBp !== null;
@@ -198,6 +201,11 @@ export function MaterialForm({
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving…" : mode === "edit" ? "Save changes" : "Add material"}
       </Button>
+      {onCancel && (
+        <Button type="button" variant="outline" disabled={pending} className="w-full sm:w-auto sm:ml-3" onClick={onCancel}>
+          Cancel
+        </Button>
+      )}
     </form>
     </FormErrorScope>
   );

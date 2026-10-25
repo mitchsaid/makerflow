@@ -74,7 +74,7 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   await issueButton(page).click();
   await expect(sheet(page)).toHaveAccessibleName("Issue this invoice?");
   await expect(sheet(page)).toContainText("can't be changed");
-  await sheet(page).getByRole("button", { name: "Keep editing" }).click();
+  await sheet(page).getByRole("button", { name: "Cancel" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await issueButton(page).click();
   await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();

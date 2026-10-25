@@ -26,7 +26,8 @@ export function ShareDocument({ url, number, title }: { url: string; number: str
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Button type="button" size="lg" disabled={busy} onClick={share}>
+      {/* An issued document's PDF: handed over again, never the next step, so outlined (one filled button per screen). */}
+      <Button type="button" size="lg" variant="outline" className="w-full sm:w-auto" disabled={busy} onClick={share}>
         {busy ? "Getting the PDF…" : canShare ? "Share PDF" : "Download PDF"}
       </Button>
     </div>

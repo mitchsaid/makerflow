@@ -106,7 +106,7 @@ test("crediting an invoice that was paid says what the customer is owed back", a
   test.setTimeout(240_000);
   await issuedInvoice(page, "credit-refund", { name: "Shelf", quantity: "1", price: "1000", depositPercent: "50" });
   await page.getByRole("button", { name: "Record the deposit" }).click();
-  await sheet(page).getByRole("button", { name: "Save payment" }).click();
+  await sheet(page).getByRole("button", { name: "Record payment" }).click();
   await expect(page.getByTestId("invoice-paid")).toHaveText(rand("500"));
 
   await page.getByRole("button", { name: "Issue a credit note" }).click();

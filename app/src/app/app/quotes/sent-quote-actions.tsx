@@ -60,7 +60,8 @@ export function SentQuoteActions({
         </Alert>
       )}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="button" size="lg" disabled={busy} onClick={share}>
+        {/* Once sent, the maker already has the PDF: handing it over again is never the next step, so it is outlined. */}
+        <Button type="button" size="lg" variant="outline" disabled={busy} onClick={share}>
           {busy ? "Getting the PDF…" : canShare ? "Share PDF" : "Download PDF"}
         </Button>
         {latest && (

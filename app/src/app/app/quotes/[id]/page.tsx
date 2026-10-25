@@ -193,13 +193,7 @@ export default async function QuotePage({
         </Alert>
       )}
 
-      <SentQuoteActions
-        quoteId={quote.id}
-        number={quote.number}
-        version={shown.version}
-        latest={canRevise}
-      />
-
+      {isLatest && quote.status !== "draft" && (
       <section className="space-y-3" aria-labelledby="more-heading">
         <h2 id="more-heading" className="text-base font-semibold">
           What you can do next
@@ -224,7 +218,7 @@ export default async function QuotePage({
               </CardContent>
             </Card>
           ) : (
-            <CreateJobButton quoteId={quote.id} />
+            <CreateJobButton quoteId={quote.id} compact />
           )
         )}
         {isLatest && quote.status === "accepted" && (
@@ -251,9 +245,23 @@ export default async function QuotePage({
             />
           )
         )}
-        {isLatest && answered && !quote.job && !quote.invoice && <ChangeAnswerButton quoteId={quote.id} />}
-        {isLatest && quote.status !== "draft" && <QuoteAgainButton quoteId={quote.id} />}
+        {/* The corrections come last and quiet: changing an answer, or starting again from this quote once it is settled. */}
+        {isLatest && (quote.status === "accepted" || quote.status === "declined" || quote.status === "withdrawn") && (
+          <div className="flex flex-col gap-3 sm:flex-row" data-testid="quote-corrections">
+            {answered && !quote.job && !quote.invoice && <ChangeAnswerButton quoteId={quote.id} />}
+            <QuoteAgainButton quoteId={quote.id} />
+          </div>
+        )}
       </section>
+      )}
+
+      {/* Handing the PDF over again, and revising: after the next step, never instead of it. */}
+      <SentQuoteActions
+        quoteId={quote.id}
+        number={quote.number}
+        version={shown.version}
+        latest={canRevise}
+      />
 
       <PdfPreview
         url={`/app/quotes/${quote.id}/pdf?version=${shown.version}`}
