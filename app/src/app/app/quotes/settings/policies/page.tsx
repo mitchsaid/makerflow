@@ -5,11 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
-import { BUSINESS_TYPE_PROMPT, describeTypes, hasSpecificTypes, splitForTypes } from "@/lib/business-types";
+import { describeTypes, hasSpecificTypes, splitForTypes } from "@/lib/business-types";
 import { exampleLabel, sortPolicies, termExamples, termName } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
 import { forOrganisation } from "@/lib/scope";
-import { BusinessTypePrompt } from "./business-type-prompt";
 import { AddLink } from "@/components/add-button";
 import { PageHeader } from "@/components/page-header";
 
@@ -19,7 +18,7 @@ import { PageHeader } from "@/components/page-header";
  */
 export default async function PoliciesPage({ searchParams }: PageProps<"/app/quotes/settings/policies">) {
   // The terms query runs beside the workspace check, not after it.
-  const [all, { organisation, profile, role, dismissedPrompts }, params] = await Promise.all([
+  const [all, { organisation, profile, role }, params] = await Promise.all([
     getPolicies(),
     requireOrganisation(),
     searchParams,
@@ -30,8 +29,6 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/quo
   const canEdit = canEditBusinessProfile(role);
   const types = profile.businessTypes;
   const examples = splitForTypes(termExamples(locale.policies), types);
-  // Skipped (or never answered) and not dismissed: offer the question again, once, kindly.
-  const askTypes = canEdit && (types === null || types.length === 0) && !dismissedPrompts.includes(BUSINESS_TYPE_PROMPT);
   const saved = typeof params.saved === "string" ? policies.find((p) => p.id === params.saved) : undefined;
 
   return (
@@ -106,8 +103,6 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/quo
         </ul>
       )}
 
-      {canEdit && askTypes && <BusinessTypePrompt />}
-
       {canEdit && (
         <>
           <AddLink href="/app/quotes/settings/policies/new">
@@ -118,12 +113,21 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/quo
               <h2 id="examples-heading" className="text-base font-semibold">
                 {hasSpecificTypes(types) ? "Examples for you" : "Start from an example"}
               </h2>
-              {hasSpecificTypes(types) && (
+              {/* What you make is asked in one place, the Business profile: this only links there. */}
+              {hasSpecificTypes(types) ? (
                 <p className="text-sm text-muted-foreground" data-testid="showing-types">
                   Showing examples for {describeTypes(types)}.{" "}
-                  <Link href="/app/business#what-you-make" className="underline">
+                  <Link href="/app/business" className="underline">
                     Change
                   </Link>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground" data-testid="types-link">
+                  To see the examples that fit first,{" "}
+                  <Link href="/app/business" className="underline">
+                    say what you make
+                  </Link>
+                  .
                 </p>
               )}
             </div>

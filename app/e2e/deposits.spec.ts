@@ -66,7 +66,7 @@ test("a deposit on a quote: worked out live, shown on the document in plain word
 
 test("the business sets a default deposit; new quotes start with it; a too-big deposit stops sending; a sent quote keeps its deposit", async ({ page }) => {
   await signUpAndOnboard(page, "dep-default", "Default Co");
-  await openDocuments(page);
+  await openDocuments(page, "Starting values");
   const deposit = page.getByRole("group", { name: "Deposit" });
   // Errors at the field, then saved.
   await deposit.getByLabel("Deposit on a new quote").selectOption("percent");
@@ -111,7 +111,7 @@ test("the business sets a default deposit; new quotes start with it; a too-big d
   await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByTestId("sent-banner")).toBeVisible();
   const quoteUrl = page.url().split("?")[0];
-  await openDocuments(page);
+  await openDocuments(page, "Starting values");
   await deposit.getByLabel("Percentage (%)").fill("10");
   await page.getByRole("button", { name: "Save deposit" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();

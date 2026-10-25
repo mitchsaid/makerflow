@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { SectionTabs, type SectionLink } from "@/components/section-switch";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getLocalePack } from "@/lib/locale";
@@ -15,19 +16,42 @@ import { DiscountDefaultForm } from "./discount-default-form";
 import { QuoteNumberingForm } from "./quote-numbering-form";
 import { QuoteWordingForm } from "./quote-wording-form";
 
+const SECTIONS = ["wording", "start", "numbers"] as const;
+type Section = (typeof SECTIONS)[number];
+const ITEMS: SectionLink<Section>[] = [
+  { key: "wording", label: "Wording", href: "/app/quotes/settings" },
+  { key: "start", label: "Starting values", href: "/app/quotes/settings?section=start" },
+  { key: "numbers", label: "Numbers", href: "/app/quotes/settings?section=numbers" },
+];
+
 /**
  * Quote settings: how quotes are numbered and worded, the terms library, the themes and what a new quote starts with.
+ * The terms and the themes are pages of their own, linked at the top; the rest is in three tabs (docs/plans/ux-pass-2.md, E).
  * They live with the quotes (reached from the Quotes page), not on a page of their own in the menu. Facts about the
  * business (name, contact, address, VAT, what you make, bank details) stay on the Business profile; invoice numbering
  * is under Invoices.
  */
-export default async function QuoteSettingsPage() {
+export default async function QuoteSettingsPage({ searchParams }: PageProps<"/app/quotes/settings">) {
   // The numbering query runs beside the workspace check, not after it.
-  const [{ organisation, profile, role }, sequences] = await Promise.all([requireOrganisation(), getQuoteSequences()]);
+  const [{ organisation, profile, role }, sequences, query] = await Promise.all([
+    requireOrganisation(),
+    getQuoteSequences(),
+    searchParams,
+  ]);
   const sequence = sequenceFor(sequences, organisation.id);
   const locale = getLocalePack(profile.countryCode);
   const usuals = usualsFromProfile(profile, locale.numberStyle);
   const canEdit = canEditBusinessProfile(role);
+  const symbol = currencySymbol(profile.currencyCode, locale.numberStyle);
+  const wanted = typeof query.section === "string" ? query.section : "wording";
+  const section: Section = (SECTIONS as readonly string[]).includes(wanted) ? (wanted as Section) : "wording";
+  const onlyOwners = (
+    <Card>
+      <CardHeader>
+        <CardDescription className="text-base">Only owners and admins can change these.</CardDescription>
+      </CardHeader>
+    </Card>
+  );
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -35,89 +59,71 @@ export default async function QuoteSettingsPage() {
         <h1 className="text-xl font-semibold">Quote settings</h1>
       </PageHeader>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Terms</CardTitle>
-          <CardDescription className="text-base">
-            Write each term once, then add it to any quote.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/app/quotes/settings/policies" className={buttonVariants({ variant: "outline" })}>
+      <div className="space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link href="/app/quotes/settings/policies" className={buttonVariants({ variant: "outline", size: "lg" })}>
             Manage your terms
           </Link>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quote themes</CardTitle>
-          <CardDescription className="text-base">
-            Colours, fonts and layout. Start from a starter, remix it, or build your own.
-            {canEdit && (
-              <>
-                {" "}
-                Your logo is in the{" "}
-                <Link href="/app/business#logo" className="underline">
-                  Business profile
-                </Link>
-                .
-              </>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/app/quotes/settings/themes" className={buttonVariants({ variant: "outline" })}>
+          <Link href="/app/quotes/settings/themes" className={buttonVariants({ variant: "outline", size: "lg" })}>
             Manage themes
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+        {canEdit && (
+          <p className="text-sm text-muted-foreground">
+            Your logo is in the{" "}
+            <Link href="/app/business?section=logo" className="underline">
+              Business profile
+            </Link>
+            .
+          </p>
+        )}
+      </div>
 
-      {canEdit && (
-        <QuoteWordingForm
-          otherWaysHint={locale.payment.otherWaysHint}
-          initial={{
-            description: usuals.description,
-            signOff: usuals.signOff,
-            paymentInstructions: usuals.paymentInstructions,
-          }}
-        />
-      )}
-
-      {canEdit && (
-        <DepositDefaultForm
-          symbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
-          initial={{ kind: usuals.depositKind, value: usuals.depositValue }}
-        />
-      )}
-
-      {canEdit && (
-        <DiscountDefaultForm
-          symbol={currencySymbol(profile.currencyCode, locale.numberStyle)}
-          initial={{ kind: usuals.discountKind, value: usuals.discountValue }}
-        />
-      )}
-
-      {canEdit && <HandoverDefaultForm initial={profile.usualFulfilment ?? "none"} />}
-
-      {canEdit ? (
-        <QuoteNumberingForm
-          initialPrefix={sequence.prefix}
-          initialNext={sequence.nextNumber}
-          minDigits={sequence.minDigits}
-          lastIssued={sequence.lastIssued}
-        />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Quote numbers</CardTitle>
-            <CardDescription className="text-base">
-              Next quote: {formatDocumentNumber(sequence.prefix, sequence.nextNumber, sequence.minDigits)}. Only owners and admins can change numbering.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
-
+      <SectionTabs
+        label="Quote settings"
+        items={ITEMS}
+        initial={section}
+        panels={{
+          wording: canEdit ? (
+            <QuoteWordingForm
+              otherWaysHint={locale.payment.otherWaysHint}
+              initial={{
+                description: usuals.description,
+                signOff: usuals.signOff,
+                paymentInstructions: usuals.paymentInstructions,
+              }}
+            />
+          ) : (
+            onlyOwners
+          ),
+          start: canEdit ? (
+            <>
+              <DepositDefaultForm symbol={symbol} initial={{ kind: usuals.depositKind, value: usuals.depositValue }} />
+              <DiscountDefaultForm symbol={symbol} initial={{ kind: usuals.discountKind, value: usuals.discountValue }} />
+              <HandoverDefaultForm initial={profile.usualFulfilment ?? "none"} />
+            </>
+          ) : (
+            onlyOwners
+          ),
+          numbers: canEdit ? (
+            <QuoteNumberingForm
+              initialPrefix={sequence.prefix}
+              initialNext={sequence.nextNumber}
+              minDigits={sequence.minDigits}
+              lastIssued={sequence.lastIssued}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quote numbers</CardTitle>
+                <CardDescription className="text-base">
+                  Next quote: {formatDocumentNumber(sequence.prefix, sequence.nextNumber, sequence.minDigits)}. Only owners and admins can change numbering.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ),
+        }}
+      />
     </main>
   );
 }

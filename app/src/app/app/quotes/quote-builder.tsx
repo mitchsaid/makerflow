@@ -14,6 +14,7 @@ import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
 import { withoutEmptyOptionals } from "@/lib/quotes/optional";
 import { TermsSection } from "./terms-section";
+import { ComingLater, ComingSoonSection } from "@/components/coming-soon";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -928,6 +929,12 @@ export function QuoteBuilder({
           Draft saved.
         </p>
       )}
+      <ComingLater>
+        <ComingSoonSection
+          title="Customer agrees to the terms"
+          description="With online quotes, customers agree to the terms when they accept."
+        />
+      </ComingLater>
     </form>
     </FormErrorScope>
 

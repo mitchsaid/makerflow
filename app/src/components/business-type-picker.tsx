@@ -6,7 +6,7 @@ import { BUSINESS_TYPES, type BusinessType } from "@/lib/business-types";
 
 /**
  * The ticks for "what do you make or sell?" Any number can be ticked (a baker who also runs workshops
- * ticks both). Used on the sign-up step, the Business profile and the policies prompt.
+ * ticks both). Used on the sign-up step and the Business profile.
  */
 export function BusinessTypePicker({
   value,

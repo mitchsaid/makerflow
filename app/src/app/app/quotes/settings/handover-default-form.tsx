@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Section } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/save-button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { saveHandoverDefault, type HandoverDefaultState } from "./handover-actions";
@@ -60,16 +60,12 @@ export function HandoverDefaultForm({ initial }: { initial: "none" | "collection
           </NativeSelect>
         </Field>
       </Section>
-      <div className="flex items-center gap-4">
-        <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
-        {state?.status === "saved" && !edited && (
-          <p role="status" className="text-base">
-            Saved.
-          </p>
-        )}
-      </div>
+      {state?.status === "saved" && !edited && (
+        <p role="status" className="text-base">
+          Saved.
+        </p>
+      )}
+      <SaveButton what="delivery or collection" pending={pending} />
     </form>
   );
 }

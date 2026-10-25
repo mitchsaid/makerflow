@@ -36,7 +36,7 @@ test("deleting the account asks for the email address, removes the data and the 
   const org = membership.organisation_id;
 
   // The business has a logo, so there is a file in storage to remove.
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Logo");
   const logo = await sharp({ create: { width: 400, height: 150, channels: 3, background: "#1e3a8a" } }).png().toBuffer();
   await page.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: logo });
   await expect(page.getByTestId("logoImage-preview")).toBeVisible();

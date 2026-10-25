@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
+import { openProductSettings, openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
 /** Costing slice C: the margin a maker aims for, and what to charge to reach it (docs/plans/costing-slice-c.md). */
@@ -15,22 +15,22 @@ const costRow = (page: Page, title: string) =>
   page.getByRole("list", { name: "What it costs to make" }).getByRole("listitem").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
 
 async function setTarget(page: Page, text: string) {
-  await openBusinessProfile(page);
+  await openProductSettings(page);
   await page.getByLabel("Margin you aim for (%)").fill(text);
-  await page.getByRole("button", { name: "Save margin" }).click();
+  await page.getByRole("button", { name: "Save pricing" }).click();
 }
 
-test("the target margin is set in the profile, judged on a product and a quote, and a price is suggested", async ({ page }) => {
+test("the target margin is set in Product settings, judged on a product and a quote, and a price is suggested", async ({ page }) => {
   test.setTimeout(300_000);
   await signUpAndOnboard(page, "target-margin", "Target Co");
 
   // The target says how to fix it, and can be cleared.
-  await openBusinessProfile(page);
+  await openProductSettings(page);
   await page.getByLabel("Price of an hour of your time").fill("120");
-  await page.getByRole("button", { name: "Save hourly rate" }).click();
+  await page.getByRole("button", { name: "Save pricing" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await setTarget(page, "150");
-  await expect(page.getByText("Enter a margin from 1 to 99 percent, like 40.")).toBeVisible();
+  await expect(page.locator("#targetMargin-error")).toHaveText("Enter a margin from 1 to 99 percent, like 40.");
   await expect(page.getByLabel("Margin you aim for (%)")).toHaveValue("150");
   await setTarget(page, "70");
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();

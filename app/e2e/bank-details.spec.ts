@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { businessTab, openBusinessProfile, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, openQuotes, sheet } from "./quote-helpers";
 
 const BANK = {
@@ -17,7 +17,7 @@ async function fillBank(page: Page, scope: ReturnType<Page["locator"]> | Page, o
 
 test("the owner saves bank details in the Business profile, checked for this country", async ({ page }) => {
   await signUpAndOnboard(page, "bank-profile", "Sweet Co");
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Bank details");
   const bank = page.getByRole("group", { name: "Bank details" });
   await expect(bank.getByRole("checkbox", { name: /document number as their payment reference/ })).toBeChecked();
 
@@ -98,6 +98,7 @@ test("a sent quote keeps the bank details it showed when they change later", asy
   await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
+  await businessTab(page, "Bank details");
   const bank = page.getByRole("group", { name: "Bank details" });
   await fillBank(page, bank);
   await page.getByRole("button", { name: "Save bank details" }).click();
@@ -115,7 +116,7 @@ test("a sent quote keeps the bank details it showed when they change later", asy
   const quoteUrl = page.url().split("?")[0];
 
   // The owner changes the account afterwards.
-  await openBusinessProfile(page);
+  await openBusinessProfile(page, "Bank details");
   await fillBank(page, page.getByRole("group", { name: "Bank details" }), { "Bank name": "Capitec", "Account number": "1234567890" });
   await page.getByRole("button", { name: "Save bank details" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();

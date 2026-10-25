@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
+import { openProductSettings, openProductTab, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
 /** Costing and margin, slice A (docs/plans/costing-and-margin.md). */
@@ -12,9 +12,9 @@ async function tap(locator: Locator) {
 const costRow = (page: Page, title: string) => page.getByRole("list", { name: "What it costs to make" }).getByRole("listitem").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
 
 async function setHourlyRate(page: Page, rate: string) {
-  await openBusinessProfile(page);
+  await openProductSettings(page);
   await page.getByLabel("Price of an hour of your time").fill(rate);
-  await page.getByRole("button", { name: "Save hourly rate" }).click();
+  await page.getByRole("button", { name: "Save pricing" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 }
 

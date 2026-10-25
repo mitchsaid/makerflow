@@ -131,6 +131,6 @@ test("invoice numbering never goes back", async ({ page }) => {
   await expect(page.getByLabel("Invoice prefix", { exact: true })).toHaveValue("FAC/");
   await expect(page.getByLabel("Invoice next number", { exact: true })).toHaveValue("7");
   // The quote numbers are a separate run, under the quote settings.
-  await openDocuments(page);
+  await openDocuments(page, "Numbers");
   await expect(page.getByLabel("Prefix", { exact: true })).toHaveValue("QT-");
 });

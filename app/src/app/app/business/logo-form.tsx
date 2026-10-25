@@ -5,6 +5,7 @@ import { ImageField } from "@/components/image-field";
 import { Section } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/save-button";
 import { saveLogo, type LogoState } from "./logo-actions";
 
 /**
@@ -90,21 +91,25 @@ export function LogoForm({
   return (
     <form onSubmit={submit} className="space-y-4" noValidate id={embedded ? undefined : "logo"}>
       {embedded ? <div className="space-y-4">{fields}</div> : <Section title="Your logo">{fields}</Section>}
-      <div className="flex items-center gap-4">
-        <Button type="submit" size="lg" disabled={pending}>
-          {pending ? "Saving…" : "Save logo"}
-        </Button>
-        {embedded && (
+      {embedded ? (
+        <div className="flex items-center gap-4">
+          <Button type="submit" size="lg" disabled={pending}>
+            {pending ? "Saving…" : "Save logo"}
+          </Button>
           <Button type="button" variant="outline" size="lg" disabled={pending} onClick={embedded.onCancel}>
             Cancel
           </Button>
-        )}
-        {state.status === "saved" && !editedSinceSave && !embedded && (
-          <p role="status" className="text-base">
-            Saved.
-          </p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          {state.status === "saved" && !editedSinceSave && (
+            <p role="status" className="text-base">
+              Saved.
+            </p>
+          )}
+          <SaveButton what="logo" pending={pending} />
+        </>
+      )}
     </form>
   );
 }

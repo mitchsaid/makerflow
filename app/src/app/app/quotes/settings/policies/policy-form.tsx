@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ComingSoonSection } from "@/components/coming-soon";
+import { ComingLater, ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { useBusinessTypes } from "@/components/business-types-context";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
@@ -208,17 +208,6 @@ export function PolicyForm({
         </FieldDescription>
       </Section>
 
-      {shownExample?.suggestsStages && (
-        <ComingSoonSection
-          title="Cancellation stages"
-          description="What the customer is charged at each stage, like deposit and work done."
-        />
-      )}
-      <ComingSoonSection
-        title="Only on certain products"
-        description="Only on quotes with certain products, like “natural stones vary” on jewellery."
-      />
-
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button type="submit" size="lg" disabled={pending}>
           {pending ? "Saving…" : "Save term"}
@@ -233,6 +222,19 @@ export function PolicyForm({
           </Link>
         )}
       </div>
+
+      <ComingLater>
+        {shownExample?.suggestsStages && (
+          <ComingSoonSection
+            title="Cancellation stages"
+            description="What the customer is charged at each stage, like deposit and work done."
+          />
+        )}
+        <ComingSoonSection
+          title="Only on certain products"
+          description="Only on quotes with certain products, like “natural stones vary” on jewellery."
+        />
+      </ComingLater>
     </form>
     </FormErrorScope>
   );

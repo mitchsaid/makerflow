@@ -179,10 +179,10 @@ export function CostLineEditor({
                     {!hourlyRateSet && (
                       <p className="text-sm text-muted-foreground">
                         Your time is counted at an hourly rate.{" "}
-                        <Link href="/app/business" className="underline underline-offset-4">
+                        <Link href="/app/products/settings" className="underline underline-offset-4">
                           Set what an hour of your time is worth
                         </Link>{" "}
-                        in your business profile.
+                        in Product settings.
                       </p>
                     )}
                   </>
@@ -288,7 +288,7 @@ export function CostsSection({
   materials: MaterialOption[];
   /** Lets the maker add a material from a line, without leaving the form. */
   addMaterial?: AddMaterialConfig;
-  /** Whether the Business profile says what an hour of the maker's time is worth. */
+  /** Whether Product settings say what an hour of the maker's time is worth. */
   hourlyRateSet: boolean;
   /** The margin the business aims for (basis points), or null: nothing is judged against it. */
   targetBp: number | null;

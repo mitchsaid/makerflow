@@ -35,8 +35,8 @@ Missed from the prototype: nothing found.
 - The job's invoice card: *Invoice this job?*, buttons never underlined inside cards, *Create invoice* opens its sheet on the quote as before but the card says where it goes; every prompt offers *Not now* and *Don't ask me again*.
 
 **E. Long pages and coming soon at the end** (T5, T7 and the leftovers)
-- Business profile: tabs *Details | Logo | Bank details*; each with one full-width *Save*. *What you make* sits in Details. The pricing preferences move to Products › Pricing settings.
-- Quote settings: tabs *Wording | Starting values | Numbers*, with Terms and Themes as two links at the top; every Save full width and named *Save*.
+- Business profile: tabs *Details | Logo | Bank details*; each with one full-width *Save*. *What you make* sits in Details. The pricing preferences move to Products › Product settings (`/app/products/settings`), one form with one Save.
+- Quote settings: tabs *Wording | Starting values | Numbers*, with Terms and Themes as two links at the top; every Save full width and named *Save*. Starting values keeps three short forms (deposit, discount, delivery or collection), each saving its own thing: they were built as separate usuals that the quote form also saves one by one (*Save as my usual*), so one Save for the three would mean a second way to save them.
 - Coming-soon cards inside forms move to one quiet "Coming later" group at the end of the screen.
 - *What you make* is asked in one place (the Terms page links to it instead of asking again).
 - The filter bar shows that it scrolls (a fade at the edge) and starts at the first chip.

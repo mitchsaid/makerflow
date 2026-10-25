@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AddButton } from "@/components/add-button";
-import { ComingSoonSection } from "@/components/coming-soon";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -222,11 +221,6 @@ export function TermsSection({
           </AddButton>
         </div>
       )}
-
-      <ComingSoonSection
-        title="Customer agrees to the terms"
-        description="With online quotes, customers agree to the terms when they accept."
-      />
 
       <Sheet open={sheetOpen} onOpenChange={(isOpen) => !isOpen && !saving && setSheetOpen(false)}>
         <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => addButton.current ?? true}>

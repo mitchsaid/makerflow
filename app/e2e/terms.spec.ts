@@ -23,7 +23,7 @@ test("the terms library: an optional title, your own wording, examples to start 
   await expect(page.getByTestId("no-policies")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Expected variations", level: 2 })).toHaveCount(0);
   // The country's 13 examples, and the 5 short lines that were the old Terms box's starters.
-  await expect(page.getByTestId("example-links").getByRole("link")).toHaveCount(18);
+  await expect(page.getByTestId("example-links").getByRole("listitem").getByRole("link")).toHaveCount(18);
   await expect(page.getByTestId("examples-advice")).toContainText("not legal advice");
 
   await page.getByRole("link", { name: "Add a term" }).click();
