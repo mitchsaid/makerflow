@@ -6,6 +6,7 @@ import type { BusinessProfile } from "@/lib/business-profile";
 import { businessTypesFromRow } from "@/lib/business-types";
 import { bankFromRow, type BankDetails, type BankRow } from "@/lib/bank";
 import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
+import { isSignOffAs } from "@/lib/quotes/sign-off";
 
 /**
  * Data access layer: who is signed in, and which business they are working in.
@@ -89,6 +90,8 @@ type ProfileRow = {
   default_discount_value: number | string;
   usual_fulfilment: "collection" | "delivery" | null;
   default_sign_off: string | null;
+  owner_name: string | null;
+  sign_off_as: string;
   default_description: string | null;
   payment_instructions: string | null;
   logo_image_id: string | null;
@@ -125,7 +128,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
            vat_registered, vat_number, prices_include_vat,
-           default_sign_off, default_description, payment_instructions, business_types,
+           default_sign_off, default_description, payment_instructions, business_types, owner_name, sign_off_as,
            default_deposit_kind, default_deposit_value, default_discount_kind, default_discount_value, usual_fulfilment, logo_image_id, labour_rate_cents, target_margin_bp
          ),
          business_bank_details (
@@ -177,6 +180,8 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       defaultDiscountValue: Number(p?.default_discount_value ?? 0),
       usualFulfilment: p?.usual_fulfilment ?? null,
       defaultSignOff: p?.default_sign_off ?? null,
+      ownerName: p?.owner_name ?? null,
+      signOffAs: isSignOffAs(p?.sign_off_as) ? p.sign_off_as : "business",
       defaultDescription: p?.default_description ?? null,
       paymentInstructions: p?.payment_instructions ?? null,
       logoImageId: p?.logo_image_id ?? null,

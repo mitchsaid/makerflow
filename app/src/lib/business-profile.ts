@@ -1,6 +1,7 @@
 import type { BusinessType } from "./business-types";
 import { optionalChoice, optionalText, optionalValidated } from "./form-values";
 import type { ContactFacts, LocalePack } from "./locale";
+import { parseOwnerName, type SignOffAs } from "./quotes/sign-off";
 import {
   validateBusinessName,
   validateEmail,
@@ -19,6 +20,10 @@ export type BusinessProfile = {
   defaultDiscountValue: number;
   /** What a new quote starts with for delivery or collection (null: nothing chosen). */
   usualFulfilment: "collection" | "delivery" | null;
+  /** The owner's name, for signing quotes when chosen (lib/quotes/sign-off). Null when not given. Set on the Business profile. */
+  ownerName: string | null;
+  /** Who a new quote is signed by: the business name, the owner's name or no name. Edited under Quote settings > Wording. */
+  signOffAs: SignOffAs;
   /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
   countryCode: string;
   /** ISO currency code. Not editable yet. */
@@ -48,10 +53,11 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents" | "targetMarginBp">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents" | "targetMarginBp" | "signOffAs">;
 
 export type FieldName =
   | "name"
+  | "ownerName"
   | "phone"
   | "email"
   | "addressLine1"
@@ -82,6 +88,9 @@ export function parseBusinessProfileForm(
 
   const name = validateBusinessName(form.get("name"));
   if (!name.ok) errors.name = name.error;
+
+  const ownerName = parseOwnerName(form.get("ownerName") ?? "");
+  if (!ownerName.ok) errors.ownerName = ownerName.error;
 
   const phone = optionalValidated(form.get("phone"), validatePhone);
   if (!phone.ok) errors.phone = phone.error;
@@ -127,6 +136,7 @@ export function parseBusinessProfileForm(
     ok: true,
     name: name.value,
     profile: {
+      ownerName: ownerName.ok ? ownerName.value : null,
       countryCode: locale.countryCode,
       currencyCode: locale.currencyCode,
       phone: phone.ok ? phone.value : null,

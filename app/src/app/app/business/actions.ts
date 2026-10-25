@@ -48,6 +48,7 @@ export async function saveBusinessProfile(
   const { data: saved, error: profileError } = await supabase
     .from("business_profiles")
     .update({
+      owner_name: p.ownerName,
       phone: p.phone,
       email: p.email,
       address_line1: p.addressLine1,

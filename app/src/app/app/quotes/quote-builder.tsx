@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import Link from "next/link";
+import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { termName, type PolicyPackContent, type PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
@@ -58,6 +59,7 @@ import { QuoteNumber, type QuoteNumbering } from "./quote-number";
 import { canSaveUsualText, canUseUsualText, sameDeposit, sameDiscount, type QuoteUsuals } from "@/lib/quotes/usuals";
 import { saveDiscountDefault } from "./settings/discount-actions";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
+import { isSignOffAs, SIGN_OFF_CHOICES, signOffChoiceLabels } from "@/lib/quotes/sign-off";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -94,6 +96,7 @@ export function QuoteBuilder({
   canChangeNumbering = false,
   askForDeposit = false,
   costing,
+  signers,
   header,
   children,
 }: {
@@ -141,6 +144,8 @@ export function QuoteBuilder({
   askForDeposit?: boolean;
   /** What costs are worked out with (the materials and the hourly rate), for the private margin on the draft. */
   costing: { materials: Pick<Material, "id" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null; targetMarginBp: number | null };
+  /** The names a quote can be signed with: the business's, and the owner's when one is saved (lib/quotes/sign-off). */
+  signers: { business: string; owner: string | null };
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
   header?: React.ReactNode;
   /** What goes between the form and the bar, such as Delete draft. */
@@ -871,7 +876,7 @@ export function QuoteBuilder({
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
-          hint="Shown at the end, above your business name."
+          hint="Shown at the end, above the name you sign with."
         />
         <UsualButtons
           what="sign-off"
@@ -885,6 +890,23 @@ export function QuoteBuilder({
             update({ signOff: usuals.signOff });
           }}
         />
+        <SelectField
+          id="signOffAs"
+          label="Sign with"
+          value={values.signOffAs ?? "business"}
+          onChange={(choice) => update({ signOffAs: isSignOffAs(choice) ? choice : "business" })}
+          options={SIGN_OFF_CHOICES}
+          optionLabels={signOffChoiceLabels(signers.business, signers.owner)}
+        />
+        {values.signOffAs === "owner" && !signers.owner && (
+          <p className="text-sm text-muted-foreground" data-testid="no-owner-name">
+            No owner&apos;s name is saved yet.{" "}
+            <Link href="/app/business" className="underline">
+              Add it in the Business profile
+            </Link>
+            , or choose another name.
+          </p>
+        )}
       </Section>
 
       {/* The pinned bar is the total; the card is only for a breakdown (a discount, VAT) and the private margin. */}

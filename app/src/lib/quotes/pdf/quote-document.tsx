@@ -8,6 +8,7 @@ import { makeStyles } from "./styles";
 import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 import { vatView } from "../vat-view";
 import { extrasView, itemName, quantityPriceNote } from "../line-text";
+import { signOffBlock } from "../sign-off";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -95,6 +96,7 @@ export function QuoteDocument({
 }) {
   const theme = themeFromStored(s);
   const styles = makeStyles(theme);
+  const signOff = signOffBlock(s);
   const headCell = theme.layout === "table" && theme.rows === "sheet" ? styles.cellGrid : undefined;
   const money = (cents: number) => formatMoney(cents, s.currencyCode, s.numberStyle);
   const day = (iso: string) => formatDay(iso, s.dateLocale);
@@ -562,10 +564,10 @@ export function QuoteDocument({
             </Text>
           ) : null}
 
-          {s.signOff ? (
+          {signOff ? (
             <View style={styles.signOff} wrap={false}>
-              <Text>{s.signOff}</Text>
-              <Text style={styles.signOffName}>{s.business.name}</Text>
+              {signOff.message ? <Text>{signOff.message}</Text> : null}
+              {signOff.name ? <Text style={styles.signOffName}>{signOff.name}</Text> : null}
             </View>
           ) : null}
 

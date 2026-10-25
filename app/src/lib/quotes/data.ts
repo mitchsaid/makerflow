@@ -9,6 +9,7 @@ import { DELIVERY_COLUMNS, deliveryFromRow, type DeliveryRow } from "../customer
 import { isStarterKey, type StarterKey } from "./themes";
 import type { QuoteEventKind } from "./outcome";
 import type { QuoteSnapshot } from "./snapshot";
+import { isSignOffAs, type SignOffAs } from "./sign-off";
 
 /**
  * Quote reads. Row-level security limits every query to businesses the signed-in person
@@ -171,6 +172,7 @@ type QuoteRow = {
   show_bank_details: boolean;
   show_photos: boolean;
   show_quantity_prices: boolean;
+  sign_off_as: string;
   theme_id: string | null;
   theme_starter: string | null;
   deposit_kind: DepositKind;
@@ -218,6 +220,8 @@ export type StoredQuote = {
   showPhotos: boolean;
   /** Say under an item that a quantity price set its price. */
   showQuantityPrices: boolean;
+  /** Who signs (./sign-off). */
+  signOffAs: SignOffAs;
   /** This quote's own theme: one of the business's (an id) or a starter; neither means it follows the business's default. */
   themeId: string | null;
   themeStarter: StarterKey | null;
@@ -328,7 +332,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, payment_instructions, show_bank_details, show_photos, show_quantity_prices, theme_id, theme_starter,
+       title, description, sign_off, payment_instructions, show_bank_details, show_photos, show_quantity_prices, sign_off_as, theme_id, theme_starter,
        deposit_kind, deposit_value, balance_due, balance_due_date, balance_due_text, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
@@ -372,6 +376,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     showBankDetails: row.show_bank_details,
     showPhotos: row.show_photos,
     showQuantityPrices: row.show_quantity_prices,
+    signOffAs: isSignOffAs(row.sign_off_as) ? row.sign_off_as : "business",
     themeId: row.theme_id,
     themeStarter: isStarterKey(row.theme_starter) ? row.theme_starter : null,
     depositKind: row.deposit_kind,

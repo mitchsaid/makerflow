@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, TextAreaField } from "@/components/form-fields";
+import Link from "next/link";
+import { Section, SelectField, TextAreaField } from "@/components/form-fields";
+import { isSignOffAs, SIGN_OFF_CHOICES, signOffChoiceLabels } from "@/lib/quotes/sign-off";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SaveButton } from "@/components/save-button";
 import { QUOTE_DESCRIPTION_MAX, QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
@@ -13,7 +15,16 @@ import { FormErrorScope } from "@/components/form-errors";
  * Quote settings > Quote wording: what every new quote starts with. Each quote can change its
  * own copy; changing these never changes a quote that already exists.
  */
-export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingValues; otherWaysHint: string }) {
+export function QuoteWordingForm({
+  initial,
+  otherWaysHint,
+  signers,
+}: {
+  initial: WordingValues;
+  otherWaysHint: string;
+  /** The names a quote can be signed with: the business's, and the owner's when one is saved. */
+  signers: { business: string; owner: string | null };
+}) {
   const [values, setValues] = useState(initial);
   const [state, setState] = useState<WordingState>({ status: "idle" });
   const [tries, setTries] = useState(0);
@@ -30,7 +41,7 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
 
   const set =
-    <K extends keyof WordingValues>(key: K) =>
+    <K extends Exclude<keyof WordingValues, "signOffAs">>(key: K) =>
     (value: string) => {
       setEditedSinceSave(true);
       setValues((v) => ({ ...v, [key]: value }));
@@ -84,8 +95,29 @@ export function QuoteWordingForm({ initial, otherWaysHint }: { initial: WordingV
           value={values.signOff}
           error={errors.signOff}
           onChange={set("signOff")}
-          hint="Shown at the end, above your business name."
+          hint="Shown at the end, above the name you sign with."
         />
+        <SelectField
+          id="wordingSignOffAs"
+          name="signOffAs"
+          label="Sign with"
+          value={values.signOffAs}
+          onChange={(choice) => {
+            setEditedSinceSave(true);
+            setValues((v) => ({ ...v, signOffAs: isSignOffAs(choice) ? choice : "business" }));
+          }}
+          options={SIGN_OFF_CHOICES}
+          optionLabels={signOffChoiceLabels(signers.business, signers.owner)}
+        />
+        {values.signOffAs === "owner" && !signers.owner && (
+          <p className="text-sm text-muted-foreground" data-testid="no-owner-name">
+            No owner&apos;s name is saved yet.{" "}
+            <Link href="/app/business" className="underline">
+              Add it in the Business profile
+            </Link>
+            , or choose another name.
+          </p>
+        )}
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"

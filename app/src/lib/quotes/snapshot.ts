@@ -8,6 +8,7 @@ import type { LocalePack } from "../locale";
 import type { NumberStyle, VatGroup, VatSettings, VatStatus } from "../money";
 import { resolveTheme, starter, type Theme } from "./themes";
 import type { ParsedQuote } from "./index";
+import { signOffNameFor } from "./sign-off";
 
 /**
  * Everything a quote document shows, frozen. When a quote is sent this is stored with its
@@ -151,6 +152,11 @@ export type QuoteSnapshot = {
   title?: string | null;
   description?: string | null;
   signOff?: string | null;
+  /**
+   * The name under the sign-off (lib/quotes/sign-off): the business's, the owner's, or null for none. Absent from
+   * snapshots made before the choice existed, which print the business name.
+   */
+  signOffName?: string | null;
   /** The old free-text Terms box. Only on versions sent before it became a term (docs/plans/terms.md). */
   terms?: string | null;
   paymentInstructions?: string | null;
@@ -238,6 +244,8 @@ export type BusinessFacts = {
   vatRegistered: boolean;
   vatNumber: string | null;
   logoImageId?: string | null;
+  /** The owner's name, for a quote signed with it. */
+  ownerName?: string | null;
 };
 
 /** The business as a document prints it: its address as the country writes it, and the VAT number only when registered. */
@@ -416,6 +424,7 @@ export function buildQuoteSnapshot(input: {
     title: quote.title,
     description: quote.description,
     signOff: quote.signOff,
+    signOffName: signOffNameFor(quote.signOffAs ?? "business", business.name, business.ownerName ?? null),
     paymentInstructions: quote.paymentInstructions,
     bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
     deposit: depositFor(quote, locale),

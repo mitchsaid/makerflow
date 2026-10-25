@@ -39,6 +39,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <QuoteBuilder
         quoteId={null}
+        signers={{ business: organisation.name, owner: profile.ownerName }}
         costing={{ materials: forOrganisation(allMaterials, organisation.id), hourlyRateCents: profile.labourRateCents, targetMarginBp: profile.targetMarginBp }}
         header={
           // A new quote has its X to cancel; there is no page above it to go back to.
@@ -73,6 +74,8 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
           showPhotos: true,
           // Quantity prices are not mentioned on the quote unless the maker asks.
           showQuantityPrices: false,
+          // Who signs, as the business usually does (Quote settings > Wording).
+          signOffAs: profile.signOffAs,
           // The deposit the business has set as its default, if any (the balance starts on collection or delivery).
           // "Ask me each time" starts with nothing chosen: the deposit section puts the choice in front of the maker.
           depositKind: profile.defaultDepositKind === "ask" ? "none" : profile.defaultDepositKind,

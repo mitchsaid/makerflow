@@ -2,6 +2,7 @@ import type { VatStatus } from "../money";
 import { moneyToInput, percentToInput, quantityToInput, type NumberStyle } from "../money";
 import type { BalanceDue, DepositKind } from "./deposit";
 import type { DiscountKind, Fulfilment, ItemKind, LineFormValues, LineOption, QuoteFormValues } from "./index";
+import type { SignOffAs } from "./sign-off";
 
 /** The fields of a stored quote that the builder form needs (see StoredQuote in ./data). */
 export type StoredQuoteFields = {
@@ -20,6 +21,7 @@ export type StoredQuoteFields = {
   showBankDetails: boolean;
   showPhotos: boolean;
   showQuantityPrices?: boolean;
+  signOffAs?: SignOffAs;
   depositKind: DepositKind;
   depositValue: number;
   balanceDue: BalanceDue;
@@ -105,6 +107,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     showBankDetails: quote.showBankDetails,
     showPhotos: quote.showPhotos,
     showQuantityPrices: quote.showQuantityPrices,
+    signOffAs: quote.signOffAs,
     depositKind: quote.depositKind,
     depositValue:
       quote.depositKind === "percent"

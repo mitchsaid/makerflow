@@ -87,9 +87,11 @@ export default async function QuoteSettingsPage({ searchParams }: PageProps<"/ap
           wording: canEdit ? (
             <QuoteWordingForm
               otherWaysHint={locale.payment.otherWaysHint}
+              signers={{ business: organisation.name, owner: profile.ownerName }}
               initial={{
                 description: usuals.description,
                 signOff: usuals.signOff,
+                signOffAs: profile.signOffAs,
                 paymentInstructions: usuals.paymentInstructions,
               }}
             />

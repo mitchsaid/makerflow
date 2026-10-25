@@ -6,6 +6,7 @@ import type { QuoteSnapshot, SnapshotParty } from "@/lib/quotes/snapshot";
 import { vatView } from "@/lib/quotes/vat-view";
 import { extrasView, itemName, quantityPriceNote } from "@/lib/quotes/line-text";
 import { themeFromStored } from "@/lib/quotes/themes";
+import { signOffBlock } from "@/lib/quotes/sign-off";
 
 /**
  * A sent quote on screen, drawn from its frozen snapshot only (the same data the PDF uses), so
@@ -20,6 +21,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
   const separate = themeFromStored(s).extraPrices === "separate";
   const extras = (l: QuoteSnapshot["lines"][number]) =>
     extrasView(l, separate, money, quantityText(l.quantityMilli, null, s.numberStyle));
+  const signOff = signOffBlock(s);
   const rate = s.vat.rateBp !== null ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : "";
 
   return (
@@ -212,10 +214,10 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
-        {s.signOff && (
-          <div>
-            <p className="whitespace-pre-line text-base">{s.signOff}</p>
-            <p className="text-base font-semibold">{s.business.name}</p>
+        {signOff && (
+          <div data-testid="sign-off">
+            {signOff.message && <p className="whitespace-pre-line text-base">{signOff.message}</p>}
+            {signOff.name && <p className="text-base font-semibold">{signOff.name}</p>}
           </div>
         )}
 

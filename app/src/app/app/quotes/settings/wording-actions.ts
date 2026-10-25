@@ -12,16 +12,17 @@ import {
   QUOTE_SIGN_OFF_MAX,
   QUOTE_SIGN_OFF_MAX_LINES,
 } from "@/lib/quotes";
+import { isSignOffAs, type SignOffAs } from "@/lib/quotes/sign-off";
 import { createClient } from "@/lib/supabase/server";
 
-export type WordingValues = { description: string; signOff: string; paymentInstructions: string };
-export type WordingErrors = Partial<Record<keyof WordingValues, string>>;
+export type WordingValues = { description: string; signOff: string; signOffAs: SignOffAs; paymentInstructions: string };
+export type WordingErrors = Partial<Record<Exclude<keyof WordingValues, "signOffAs">, string>>;
 export type WordingState =
   | { status: "idle" }
   | { status: "saved" }
   | { status: "error"; message?: string; errors?: WordingErrors };
 
-/** Sets what new quotes start with: the introduction, the sign-off and how to pay (terms are in the Terms library). Owners and admins only. */
+/** Sets what new quotes start with: the introduction, the sign-off and who signs, and how to pay (terms are in the Terms library). Owners and admins only. */
 export async function saveQuoteWording(values: WordingValues): Promise<WordingState> {
   const { organisation, role } = await requireOrganisation();
   if (!canEditBusinessProfile(role)) {
@@ -30,6 +31,7 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
   if (
     typeof values?.description !== "string" ||
     typeof values?.signOff !== "string" ||
+    !isSignOffAs(values?.signOffAs) ||
     typeof values?.paymentInstructions !== "string"
   ) {
     return { status: "error", message: "Something went wrong saving that. Please try again." };
@@ -52,6 +54,7 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
     .update({
       default_description: description.value,
       default_sign_off: signOff.value,
+      sign_off_as: values.signOffAs,
       payment_instructions: payment.value,
     })
     .eq("organisation_id", organisation.id)

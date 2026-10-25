@@ -44,6 +44,7 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
   const locale = getLocalePack(profile.countryCode);
   const initial: FormValues = {
     name: organisation.name,
+    ownerName: profile.ownerName ?? "",
     phone: profile.phone ?? "",
     email: profile.email ?? "",
     addressLine1: profile.addressLine1 ?? "",

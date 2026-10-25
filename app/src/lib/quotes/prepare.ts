@@ -83,6 +83,7 @@ export async function prepareQuote(
     depositTooBig: depositNow?.tooBig ?? false,
     depositIsNothing: !!depositNow && parsed.quote.totals.grossCents > 0 && depositNow.depositCents === 0,
     balanceDueDate: parsed.quote.deposit?.balance.kind === "date" ? parsed.quote.deposit.balance.date : null,
+    noOwnerName: parsed.quote.signOffAs === "owner" && !profile.ownerName,
   });
   return {
     ok: true,
