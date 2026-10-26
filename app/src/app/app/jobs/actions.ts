@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { canEditBusinessProfile } from "@/lib/business-profile";
 import { CREATE_JOB_PROMPT, INVOICE_JOB_PROMPT, isJobStatus } from "@/lib/jobs";
 import type { LineFormValues } from "@/lib/quotes";
 import { parseJobLine, parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
@@ -94,6 +95,36 @@ export async function moveJob(jobId: string, to: string): Promise<JobActionResul
   revalidatePath("/app/jobs");
   revalidatePath(`/app/jobs/${jobId}`);
   return { status: "done" };
+}
+
+export type DeleteJobResult = { status: "deleted"; number: number } | { status: "error"; message: string };
+
+/**
+ * Deletes a job that has not been started, or was cancelled (anything else keeps its record). Owners and admins only; the
+ * person's own session proves the job is theirs, then the server-only function deletes it.
+ */
+export async function deleteJob(jobId: string): Promise<DeleteJobResult> {
+  const { organisation, role } = await requireOrganisation();
+  if (!UUID.test(jobId)) return { status: "error", message: GENERIC_ERROR };
+  if (!canEditBusinessProfile(role)) return { status: "error", message: "Only an owner or admin can delete a job. You can cancel it instead." };
+
+  const supabase = await createClient();
+  const { data: own } = await supabase.from("jobs").select("id").eq("id", jobId).eq("organisation_id", organisation.id).maybeSingle();
+  if (!own) return { status: "error", message: "That job could not be found." };
+
+  const made = adminOrMessage();
+  if (!made.admin) return { status: "error", message: made.message };
+  const { data: number, error } = await made.admin.rpc("delete_job", { p_org: organisation.id, p_job_id: jobId });
+  if (error?.code === "P0002") {
+    return { status: "error", message: "This job can't be deleted now. Only a job that hasn't been started, or was cancelled, can be. Refresh the page to see where it stands." };
+  }
+  if (error || typeof number !== "number") {
+    console.error("could not delete job:", error?.code, error?.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+
+  revalidatePath("/app/jobs");
+  return { status: "deleted", number };
 }
 
 export type JobNoteState = { status: "idle" } | { status: "saved" } | { status: "error"; message: string };

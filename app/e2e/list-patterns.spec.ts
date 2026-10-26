@@ -95,6 +95,6 @@ test("the filters are one row of chips, the archived view is a chip, and a filte
   // Nothing late: it says so in one line, with the way back.
   await bar.getByRole("button", { name: /^Late/ }).click();
   await expect(page.getByTestId("no-matches")).toContainText("Nothing is late");
-  await page.getByTestId("no-matches").getByRole("button", { name: "Show all jobs" }).click();
+  await page.getByTestId("no-matches").getByRole("button", { name: "Show to-do jobs" }).click();
   await expect(page.getByRole("link", { name: /Shelf/ })).toBeVisible();
 });

@@ -92,6 +92,9 @@ export function otherJobSteps(status: JobStatus, fulfilment: JobFulfilment): Job
   return steps;
 }
 
+/** Only a job that has not been started, or was cancelled, can be deleted; any other keeps its record. */
+export const canDeleteJob = (status: JobStatus): boolean => status === "not_started" || status === "cancelled";
+
 /** Active: not finished and not cancelled. */
 export const isActiveJob = (status: JobStatus): boolean => status !== "done" && status !== "cancelled";
 
@@ -128,13 +131,17 @@ export type JobSummary = {
   createdAt: string;
 };
 
-export type JobFilter = "active" | "late" | "week" | "done" | "all";
+export type JobFilter = "active" | "late" | "week" | "done" | "cancelled" | "all";
 
 /** The filter a Jobs address asks for (`?show=late`), or null. */
 export const parseJobFilter = (value: unknown): JobFilter | null =>
-  value === "active" || value === "late" || value === "week" || value === "done" || value === "all" ? value : null;
+  value === "active" || value === "late" || value === "week" || value === "done" || value === "cancelled" || value === "all" ? value : null;
 
-/** The jobs to show: active ones first by the day they are needed (no day last), then the finished ones, newest first. */
+/**
+ * The jobs to show: active ones first by the day they are needed (no day last), then the finished ones, newest first.
+ * "All" is every job that was not cancelled (to do and done); cancelled ones have their own filter, so they never turn up
+ * among the rest.
+ */
 export function visibleJobs(jobs: readonly JobSummary[], filter: JobFilter, query: string, today: string): JobSummary[] {
   const q = query.trim().toLowerCase();
   const matches = (j: JobSummary) =>
@@ -146,7 +153,9 @@ export function visibleJobs(jobs: readonly JobSummary[], filter: JobFilter, quer
   const keep = (j: JobSummary) => {
     switch (filter) {
       case "all":
-        return true;
+        return j.status !== "cancelled";
+      case "cancelled":
+        return j.status === "cancelled";
       case "active":
         return isActiveJob(j.status);
       case "late":
