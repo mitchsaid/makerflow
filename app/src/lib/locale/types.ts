@@ -49,6 +49,22 @@ export type BankField = {
   validate(input: unknown): ValidationResult<string>;
 };
 
+/** One kind of way to pay other than the bank account, as its country offers it (see LocalePack.payment.waysToPay). */
+export type WayToPayKind = {
+  /** Stored as payment_methods.kind. Never changes once data exists. */
+  kind: string;
+  /** In the list of kinds when adding one: "Payment link". */
+  label: string;
+  /** One line saying what it is, under the label. */
+  description: string;
+  /** What a new one is called until the maker names it: "Pay online". */
+  defaultName: string;
+  /** False for a kind that is planned but not built (shown as coming soon, never saved). */
+  available: boolean;
+  /** The details to ask for, in the order a document prints them. */
+  fields: readonly BankField[];
+};
+
 export type LocalePack = {
   /** ISO 3166-1 alpha-2, as stored in business_profiles.country_code */
   countryCode: string;
@@ -95,8 +111,12 @@ export type LocalePack = {
   payment: {
     /** The items of the bank details, in the order a document shows them. */
     bankFields: readonly BankField[];
-    /** Help under the free text for other ways to pay, naming this country's methods. */
-    otherWaysHint: string;
+    /** What a bank transfer is called here, on screens and documents: "EFT". */
+    bankTransferName: string;
+    /** The ways to pay other than the bank account, in the order the add list shows them. */
+    waysToPay: readonly WayToPayKind[];
+    /** Help under the payment notes box (a line for this quote only), naming this country's habits. */
+    paymentNotesHint: string;
     /** What the payment reference line is called on a document: "Reference". */
     referenceLabel: string;
     /** The ways a customer pays, in this country's words, for recording a payment. The keys are fixed (the database knows them). */

@@ -19,6 +19,7 @@ export type StoredQuoteFields = {
   signOff: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
+  hiddenPaymentMethods?: string[];
   showPhotos: boolean;
   showQuantityPrices?: boolean;
   signOffAs?: SignOffAs;
@@ -106,6 +107,7 @@ export function toFormValues(quote: StoredQuoteFields, style: NumberStyle): Quot
     signOff: quote.signOff ?? "",
     paymentInstructions: quote.paymentInstructions ?? "",
     showBankDetails: quote.showBankDetails,
+    hiddenPaymentMethods: quote.hiddenPaymentMethods ?? [],
     showPhotos: quote.showPhotos,
     showQuantityPrices: quote.showQuantityPrices,
     signOffAs: quote.signOffAs,

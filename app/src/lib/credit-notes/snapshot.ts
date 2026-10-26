@@ -84,6 +84,7 @@ export function buildCreditNoteSnapshot(input: {
     terms: undefined,
     paymentInstructions: null,
     bankDetails: [],
+    paymentMethods: [],
     deposit: null,
     policies: [],
     invoice: undefined,

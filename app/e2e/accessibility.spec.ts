@@ -229,13 +229,19 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Done" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
-      // Bank details on a quote: the sheet to add them, with and without errors.
-      await page.getByRole("button", { name: "Add bank details" }).click();
-      await expect(page.getByRole("dialog", { name: "Add bank details" })).toBeVisible();
+      // Ways to pay on a quote: the sheet to add one (the list of kinds, then EFT), with and without errors.
+      await page.getByRole("button", { name: "Add a way to pay" }).click();
+      await expect(page.getByRole("dialog", { name: "Add a way to pay" })).toBeVisible();
+      await expectNoViolations(page, "new quote, add a way to pay sheet");
+      await page.getByRole("dialog").getByRole("button", { name: /^EFT/ }).click();
+      await expect(page.getByRole("dialog", { name: "Add EFT" })).toBeVisible();
       await expectNoViolations(page, "new quote, add bank details sheet");
       await page.getByRole("dialog").getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByRole("dialog").getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "new quote, add bank details sheet with errors");
+      // Cancel goes back to the list of kinds; Cancel there closes the sheet.
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Add a way to pay" })).toBeVisible();
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
@@ -533,13 +539,13 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "business profile with errors");
 
-      // Bank details: with errors, then saved.
-      await businessTab(page, "Bank details");
-      await expectNoViolations(page, "business profile, bank details tab");
+      // Ways to pay: the EFT with errors, then saved, then another way added in a sheet.
+      await businessTab(page, "Ways to pay");
+      await expectNoViolations(page, "business profile, ways to pay tab");
       await page.getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByText("Enter the account holder").first()).toBeVisible();
       await expectNoViolations(page, "business profile, bank details with errors");
-      const bank = page.getByRole("group", { name: "Bank details" });
+      const bank = page.getByRole("group", { name: "EFT", exact: true });
       await bank.getByLabel("Account holder").fill("Axe Co");
       await bank.getByLabel("Bank name", { exact: true }).fill("FNB");
       await bank.getByLabel("Account type").selectOption("Savings");
@@ -548,6 +554,14 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Save bank details" }).click();
       await expect(page.getByText(/Last changed /)).toBeVisible();
       await expectNoViolations(page, "business profile, bank details saved");
+      await page.getByRole("button", { name: "Add a way to pay" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /^Payment link/ }).click();
+      await expectNoViolations(page, "business profile, add payment link sheet");
+      await page.getByRole("dialog").getByLabel("Web address").fill("https://pay.example.test/axe");
+      await page.getByRole("dialog").getByRole("button", { name: "Save way to pay" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByRole("group", { name: "Pay online" })).toBeVisible();
+      await expectNoViolations(page, "business profile, a payment link added");
 
       // A VAT-registered business gets the VAT choice on each item.
       await businessTab(page, "Details");

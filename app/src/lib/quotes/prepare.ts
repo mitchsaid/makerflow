@@ -69,6 +69,7 @@ export async function prepareQuote(
     vat,
     locale,
     bank: workspace.bankDetails,
+    paymentMethods: workspace.paymentMethods,
     productPhotos,
     choicePhotos,
     theme: resolveTheme(chosen.spec, chosen.name),

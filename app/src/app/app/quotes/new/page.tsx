@@ -3,6 +3,7 @@ import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getProducts } from "@/lib/products/data";
 import { getMaterials } from "@/lib/materials/data";
 import { bankPreview, canEditBankDetails } from "@/lib/bank";
+import { paymentWayView } from "@/lib/payments";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { defaultQuotePolicies } from "@/lib/policies";
 import { getPolicies } from "@/lib/policies/data";
@@ -16,7 +17,7 @@ import { QuoteBuilder } from "../quote-builder";
 
 export default async function NewQuotePage({ searchParams }: PageProps<"/app/quotes/new">) {
   // Customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails }, query] = await Promise.all([
+  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails, paymentMethods }, query] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
     getMaterials(),
@@ -70,6 +71,8 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
           paymentInstructions: usuals.paymentInstructions,
           // Bank details print by default; the switch on the quote turns them off for this one.
           showBankDetails: true,
+          // The ways to pay the maker keeps off new quotes start unticked.
+          hiddenPaymentMethods: paymentMethods.filter((m) => !m.onNewQuotes).map((m) => m.id),
           // Product photos show by default (each quote can switch them off).
           showPhotos: true,
           // Quantity prices are not mentioned on the quote unless the maker asks.
@@ -91,6 +94,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
         policyContent={locale.policies}
         canManagePolicies={canEditBusinessProfile(role)}
         bankDetails={bankPreview(bankDetails, locale)}
+        paymentWays={paymentMethods.map((m) => paymentWayView(m, locale))}
         canEditBankDetails={canEditBankDetails(role)}
         usuals={usuals}
         canSaveUsuals={canEditBusinessProfile(role)}

@@ -238,6 +238,8 @@ export function makeStyles(theme: Theme) {
     bankRow: { flexDirection: "row", paddingVertical: 1.5 },
     bankLabel: { width: 94, flexShrink: 0, color: theme.muted },
     bankValue: { fontWeight: 700, flexShrink: 1 },
+    payGroup: { marginTop: 6 },
+    payGroupName: { fontWeight: 700, marginBottom: 1.5, fontFamily: heading },
     payOther: { marginTop: 6 },
     signOff: { marginTop: 20 },
     signOffName: { fontWeight: 700, marginTop: 2, fontFamily: heading },

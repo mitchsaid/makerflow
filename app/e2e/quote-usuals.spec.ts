@@ -53,7 +53,7 @@ test("the intro: kept with one link, then the link is gone; changed, the usual c
   await expect(page.getByLabel("Intro (optional)")).toHaveValue("Thank you for your interest. Below is what I would prepare for you.");
 });
 
-test("the sign-off (its message and who signs) and the ways to pay are kept for new quotes with their links", async ({ page }) => {
+test("the sign-off (its message and who signs) and the payment note are kept for new quotes with their links", async ({ page }) => {
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-wording", "Wording Co");
   await page.goto("/app/quotes/new");
@@ -71,15 +71,15 @@ test("the sign-off (its message and who signs) and the ways to pay are kept for 
   await page.getByLabel("Name to sign with").fill("Studio Wording");
   await page.getByRole("button", { name: "Use this sign-off on new quotes" }).click();
   await expect(page.getByText("New quotes now start with this sign-off.")).toBeVisible();
-  await page.getByLabel("Other ways to pay (optional)").fill("EFT to Wording Co");
-  await page.getByRole("button", { name: "Use these ways to pay on new quotes" }).click();
-  await expect(page.getByText("New quotes now start with these ways to pay.")).toBeVisible();
+  await page.getByLabel("Payment notes (optional)").fill("EFT to Wording Co");
+  await page.getByRole("button", { name: "Use this note on new quotes" }).click();
+  await expect(page.getByText("New quotes now start with this payment note.")).toBeVisible();
 
   await page.goto("/app/quotes/new");
   await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Kind regards");
   await expect(page.getByLabel("Sign with", { exact: true })).toHaveValue("other");
   await expect(page.getByLabel("Name to sign with")).toHaveValue("Studio Wording");
-  await expect(page.getByLabel("Other ways to pay (optional)")).toHaveValue("EFT to Wording Co");
+  await expect(page.getByLabel("Payment notes (optional)")).toHaveValue("EFT to Wording Co");
   await expect(page.getByRole("button", { name: "Use this sign-off on new quotes" })).toHaveCount(0);
 });
 

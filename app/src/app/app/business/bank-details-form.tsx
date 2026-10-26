@@ -87,10 +87,7 @@ export function BankDetailsForm({
   return (
     <FormErrorScope epoch={tries}>
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <Section title="Bank details">
-        <p className="text-base text-muted-foreground">
-          Shown under “How to pay” on your quotes. Sent quotes keep the details they were sent with.
-        </p>
+      <Section title={locale.payment.bankTransferName} description="Your bank account. Sent quotes keep the details they were sent with.">
         <FormSummary problems={problems} trigger={tries} />
         {message && (
           <Alert variant="destructive" role="alert">

@@ -20,6 +20,8 @@ export type StatementDocumentData = {
   dateLocale: string;
   statement: Statement;
   bank: BankLine[];
+  /** The business's other saved ways to pay, each with its rows. Absent in older callers. */
+  ways?: { name: string; lines: BankLine[] }[];
   /** The wording from the country's locale pack. */
   words: {
     title: string;
@@ -185,7 +187,7 @@ export function StatementDocument({ data, logo }: { data: StatementDocumentData;
           </Text>
         ) : null}
 
-        {owing && data.bank.length > 0 ? (
+        {owing && (data.bank.length > 0 || (data.ways ?? []).length > 0) ? (
           <View style={styles.section} wrap={false}>
             <Text style={styles.label}>{words.howToPay}</Text>
             <View style={styles.how}>
@@ -193,6 +195,17 @@ export function StatementDocument({ data, logo }: { data: StatementDocumentData;
                 <View key={i} style={styles.bankRow}>
                   <Text style={styles.bankLabel}>{b.label}</Text>
                   <Text>{b.value}</Text>
+                </View>
+              ))}
+              {(data.ways ?? []).map((way, w) => (
+                <View key={w} style={{ marginTop: 4 }}>
+                  <Text style={{ fontWeight: 700 }}>{way.name}</Text>
+                  {way.lines.map((l, i) => (
+                    <View key={i} style={styles.bankRow}>
+                      <Text style={styles.bankLabel}>{l.label}</Text>
+                      <Text>{l.value}</Text>
+                    </View>
+                  ))}
                 </View>
               ))}
             </View>

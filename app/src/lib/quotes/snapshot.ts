@@ -1,4 +1,5 @@
 import { bankLines, type BankDetails, type BankLine } from "../bank";
+import { paymentWaySnapshots, type PaymentMethod, type PaymentWaySnapshot } from "../payments";
 import { formatPercent } from "../money";
 import { chosenIdsOf } from "./chosen";
 import { depositAmounts } from "./deposit";
@@ -167,6 +168,12 @@ export type QuoteSnapshot = {
    */
   bankDetails?: BankLine[];
   /**
+   * The other ways to pay printed under "How to pay" (a payment link, PayShap, pay on collection), frozen with the
+   * document, with each way's id so an invoice made from this version can show their current details. Absent on
+   * versions sent before ways to pay existed, or when the quote showed none.
+   */
+  paymentMethods?: PaymentWaySnapshot[];
+  /**
    * The deposit and the balance, frozen with the words used (so a later change to the wording never alters a
    * sent quote). Absent on versions sent before deposits existed, and when the quote asks for none.
    */
@@ -229,6 +236,8 @@ export type QuoteSnapshot = {
      * those show "Terms and policies", then "Other terms", as they did.
      */
     termsHeading?: string;
+    /** What a bank transfer is called ("EFT"), for the heading over the account when other ways to pay are shown too. */
+    bankTransferName?: string;
   };
 };
 
@@ -321,6 +330,8 @@ export function buildQuoteSnapshot(input: {
   locale: LocalePack;
   /** The business's saved bank details, if any. Printed only when the quote has them switched on. */
   bank: BankDetails | null;
+  /** The business's saved ways to pay besides the bank account. The ones unticked on the quote are left off. */
+  paymentMethods?: readonly PaymentMethod[];
   /** Each product's photo (product id to image id), for the lines that come from products. */
   productPhotos?: ReadonlyMap<string, string>;
   /**
@@ -427,12 +438,14 @@ export function buildQuoteSnapshot(input: {
     signOffName: signOffNameFor(quote.signOffAs ?? "business", business.name, business.ownerName ?? null, quote.signOffOther ?? null),
     paymentInstructions: quote.paymentInstructions,
     bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
+    paymentMethods: paymentWaySnapshots(input.paymentMethods ?? [], quote.hiddenPaymentMethods ?? [], locale),
     deposit: depositFor(quote, locale),
     policies: quote.policies.map((p) => ({ title: p.title, body: p.body })),
     wording: {
       title: locale.documents.quoteTitle,
       notATaxInvoice: locale.documents.quoteNotATaxInvoice,
       termsHeading: locale.documents.termsHeading,
+      bankTransferName: locale.payment.bankTransferName,
       inclusiveStatement:
         vat.registered && vat.entry === "inclusive"
           ? present.some((status) => status !== "standard")

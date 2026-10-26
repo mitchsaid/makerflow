@@ -1,6 +1,7 @@
 import type { LocalePack } from "../locale";
 import type { BankDetails } from "../bank";
 import { bankLines } from "../bank";
+import { invoicePaymentWays, type PaymentMethod } from "../payments";
 import type { Customer } from "../customers";
 import { businessParty, customerParty, type BusinessFacts, type QuoteSnapshot, type SnapshotParty } from "../quotes/snapshot";
 
@@ -23,6 +24,8 @@ export function buildInvoiceSnapshot(input: {
   customer: Customer | null;
   /** The business's saved bank details. Printed only when the quote had them on. */
   bank: BankDetails | null;
+  /** The business's saved ways to pay besides the bank account. Printed only the ones the quote showed. */
+  paymentMethods?: readonly PaymentMethod[];
   /** The quote's number on the invoice; null for an invoice made without a quote. Defaults to the version's own number. */
   quoteNumber?: string | null;
 }): { snapshot: QuoteSnapshot; referenceLabel: string | null } {
@@ -51,6 +54,7 @@ export function buildInvoiceSnapshot(input: {
       // The deposit shows as a payment from the next slice; until then the invoice is for the whole.
       deposit: null,
       bankDetails: lines,
+      paymentMethods: invoicePaymentWays(version.paymentMethods ?? [], input.paymentMethods ?? [], locale),
       invoice: {
         dueDate: input.dueDate,
         quoteNumber: input.quoteNumber === undefined ? version.number : input.quoteNumber,
