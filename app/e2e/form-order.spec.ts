@@ -21,7 +21,7 @@ test("new quote, new invoice and new job ask for the dates, the customer, the it
   await page.goto("/app/quotes/new");
   const quote = await sections(page, "quote-form");
   // As the quote reads: its number and dates, who it is for, the intro, the items, delivery; then the money and the wording.
-  expect(quote.slice(0, 5)).toEqual(["Quote number and dates", "Customer", "About this quote", "Items", "Delivery or collection"]);
+  expect(quote.slice(0, 5)).toEqual(["Quote number and dates", "Customer", "Intro (optional)", "Items", "Delivery or collection"]);
   expect(quote.at(-1)).toBe("Sign-off");
   await expect(page.getByRole("group", { name: "Quote number and dates" })).toContainText("QT-0001");
   // The pinned bar is the total; with no breakdown there is no second Totals card.

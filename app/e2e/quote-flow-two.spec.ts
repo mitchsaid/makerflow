@@ -56,9 +56,8 @@ test("a new quote shows the number it will get, and the numbering can be changed
   await signUpAndOnboard(page, "qf2-number", "Number Co");
   await page.goto("/app/quotes/new");
 
-  // The number it is about to get, and that it is given on the first save.
+  // The number it is about to get.
   await expect(page.getByTestId("quote-number")).toHaveText("QT-0001");
-  await expect(page.getByText("Given when you first save it.")).toBeVisible();
 
   // Change numbering opens the same prefix and next-number form as Quotes and invoices, in a sheet.
   await page.getByRole("button", { name: /Change how quotes are numbered/ }).click();
@@ -187,7 +186,7 @@ test("helper text sits under the label, above the field; an error sits under the
 
   // Label, then its helper text, then the field.
   const label = page.getByText("Description (optional)", { exact: true });
-  const hint = page.getByText("Shown on your quotes under the name.");
+  const hint = page.getByText("A line about it for your quotes, like the size or what's included.");
   const field = page.getByLabel("Description (optional)");
   expect(await y(label)).toBeLessThan(await y(hint));
   expect(await y(hint)).toBeLessThan(await y(field));

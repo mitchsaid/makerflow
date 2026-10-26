@@ -30,12 +30,15 @@ export type ExtraInputProps = Omit<
 export function Section({
   title,
   tag,
+  description,
   onRemove,
   children,
 }: {
   title: string;
-  /** Beside the title, like the "Private" tag. */
+  /** Beside the title, like the "Private" tag, or "(optional)" for a section that is one optional field. */
   tag?: React.ReactNode;
+  /** One short line under the title: what the section is for. */
+  description?: string;
   /** An optional section that was opened (a discount, a deposit) can be taken away again: "Remove", top right. */
   onRemove?: () => void;
   children: React.ReactNode;
@@ -47,6 +50,7 @@ export function Section({
           <FieldLegend className="mb-2 data-[variant=legend]:text-lg data-[variant=legend]:font-semibold">{title}
             {tag}
           </FieldLegend>
+          {description && <p className="-mt-2 mb-2 text-sm text-muted-foreground">{description}</p>}
           <FieldGroup className="gap-4">{children}</FieldGroup>
         </FieldSet>
       </CardContent>
@@ -147,11 +151,17 @@ export function TextAreaField({
   onChange,
   hint,
   tag,
+  labelHidden = false,
   ...props
 }: Omit<React.ComponentProps<typeof Textarea>, "value" | "onChange" | "id" | "name"> & {
   id: string;
   name?: string;
   label: string;
+  /**
+   * The section's title already says what it is (a section that is one field): the label is for screen readers, and
+   * the hint sits under the title.
+   */
+  labelHidden?: boolean;
   error?: string;
   hint?: string;
   /** Beside the label, like the "Private" tag (give it the id `${id}-tag` so the field is described by it). */
@@ -167,14 +177,14 @@ export function TextAreaField({
     <Field data-invalid={!!error}>
       {tag ? (
         <div className="flex items-center">
-          <FieldLabel htmlFor={id}>{label}</FieldLabel>
+          <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>{label}</FieldLabel>
           {tag}
         </div>
       ) : (
-        <FieldLabel htmlFor={id}>{label}</FieldLabel>
+        <FieldLabel htmlFor={id} className={labelHidden ? "sr-only" : undefined}>{label}</FieldLabel>
       )}
       {hint && (
-        <p id={`${id}-hint`} className="-mt-1 text-sm text-muted-foreground">
+        <p id={`${id}-hint`} className={labelHidden ? "-mt-3 text-sm text-muted-foreground" : "-mt-1 text-sm text-muted-foreground"}>
           {hint}
         </p>
       )}
@@ -255,4 +265,9 @@ export function SelectField({
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
   );
+}
+
+/** "(optional)" beside a section's title, for a section that is one optional field (its own label is hidden). */
+export function OptionalTag() {
+  return <span className="text-base font-normal text-muted-foreground"> (optional)</span>;
 }

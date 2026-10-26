@@ -111,7 +111,7 @@ test("what is coming later sits at the end of the quote form and of the term for
   const later = page.getByTestId("coming-later");
   await expect(later).toContainText("Customer agrees to the terms");
   // Nothing coming soon inside the Terms section; the group is the last thing in the form.
-  await expect(page.getByRole("group", { name: "Terms" }).getByTestId("coming-soon")).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Terms and conditions" }).getByTestId("coming-soon")).toHaveCount(0);
   const last = await page.locator("form").first().evaluate((form) => form.lastElementChild?.getAttribute("data-testid"));
   expect(last).toBe("coming-later");
 

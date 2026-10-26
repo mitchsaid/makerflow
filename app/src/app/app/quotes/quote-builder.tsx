@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import Link from "next/link";
-import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import { OptionalTag, Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { termName, type PolicyPackContent, type PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
@@ -135,7 +135,7 @@ export function QuoteBuilder({
   usuals: QuoteUsuals;
   /** Owners and admins can save what is on the quote as the usual; others can only use it. */
   canSaveUsuals: boolean;
-  /** The country's generic description and sign-off a new quote starts with when there is no usual (not offered for saving). */
+  /** The country's generic intro and sign-off a new quote starts with when there is no usual (not offered for keeping). */
   startingText: { description: string; signOff: string };
   /** A new quote: how quotes are numbered now, so the number it will get can be shown. Absent once it has a number. */
   numbering?: QuoteNumbering;
@@ -244,7 +244,8 @@ export function QuoteBuilder({
     signOffAs === usuals.signOffAs &&
     (signOffAs !== "other" || normaliseText(values.signOffOther ?? "") === normaliseText(usuals.signOffOther));
   const usualSignOffSet = usuals.signOff !== "" || usuals.signOffAs !== "business";
-  // Something of the maker's own to keep: their words (not the country's generic start), or a name other than the business.
+  // Something to keep: a message that is not the country's generic start (new quotes begin with that anyway), or a name
+  // other than the business.
   const signOffIsOwn =
     (normaliseText(values.signOff) !== "" && !(usuals.signOff === "" && normaliseText(values.signOff) === normaliseText(startingText.signOff))) ||
     signOffAs !== "business";
@@ -537,7 +538,8 @@ export function QuoteBuilder({
         />
       </Section>
 
-      <Section title="About this quote">
+      {/* One field, so the section's title is its name (a quote from before can also have a title). */}
+      <Section title="Intro" tag={showTitle ? undefined : <OptionalTag />}>
         {showTitle && (
           <TextField
             id="title"
@@ -552,23 +554,24 @@ export function QuoteBuilder({
         <TextAreaField
           id="description"
           label="Intro (optional)"
-          hint="Printed at the top of the quote."
+          labelHidden={!showTitle}
+          hint="A line or two above your items, like a thank-you or what the price includes."
           value={values.description}
           error={f.description}
           onChange={(description) => update({ description })}
           maxLength={2000}
         />
         <UseOnNewQuotes
-          id="description-on-new-quotes"
           label="Use this intro on new quotes"
           what="intro"
           valueKey={values.description}
           canEdit={canSaveUsuals}
+          // The country's generic start is what new quotes begin with anyway: not something to keep.
           show={normaliseText(values.description) !== "" && !(usuals.description === "" && normaliseText(values.description) === normaliseText(startingText.description))}
-          checked={usuals.description !== "" && normaliseText(values.description) === normaliseText(usuals.description)}
+          matches={usuals.description !== "" && normaliseText(values.description) === normaliseText(usuals.description)}
           canUse={canUseUsualText(values.description, usuals.description)}
-          onToggle={async (on) => {
-            const result = await saveUsualDescription(on ? values.description : "");
+          onSave={async () => {
+            const result = await saveUsualDescription(values.description);
             if (result.status === "saved") setUsuals((u) => ({ ...u, description: result.value }));
             return result;
           }}
@@ -695,17 +698,16 @@ export function QuoteBuilder({
         errors={{ deliveryFee: f.deliveryFee, deliveryAddress: f.deliveryAddress }}
         footer={
           <UseOnNewQuotes
-            id="fulfilment-on-new-quotes"
             label={values.fulfilment === "delivery" ? "Start new quotes with delivery" : "Start new quotes with collection"}
             what="choice"
             valueKey={values.fulfilment}
             canEdit={canSaveUsuals}
             show={values.fulfilment !== "none"}
-            checked={values.fulfilment !== "none" && values.fulfilment === usuals.fulfilment}
+            matches={values.fulfilment !== "none" && values.fulfilment === usuals.fulfilment}
             canUse={false}
-            onToggle={async (on) => {
+            onSave={async () => {
               // The choice only: the fee and the address are for each quote.
-              const sent = on ? values.fulfilment : "none";
+              const sent = values.fulfilment;
               const result = await saveHandoverDefault(sent);
               if (result.status === "saved") {
                 setUsuals((u) => ({ ...u, fulfilment: sent }));
@@ -739,20 +741,19 @@ export function QuoteBuilder({
             onValueChange={(discountValue) => update({ discountValue })}
           />
           <UseOnNewQuotes
-            id="discount-on-new-quotes"
             label="Use this discount on new quotes"
             what="discount"
             valueKey={`${values.discountKind}:${values.discountValue}`}
             canEdit={canSaveUsuals}
             show={values.discountKind !== "none" && values.discountValue.trim() !== ""}
-            checked={usuals.discountKind !== "none" && sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })}
+            matches={usuals.discountKind !== "none" && sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })}
             canUse={
               usuals.discountKind !== "none" &&
               !sameDiscount({ kind: values.discountKind, value: values.discountValue }, { kind: usuals.discountKind, value: usuals.discountValue })
             }
-            onToggle={async (on) => {
-              // What is saved is what is on the quote when the tick is pressed (unticked: new quotes start without one).
-              const sent: { kind: DiscountKind; value: string } = on ? { kind: values.discountKind, value: values.discountValue } : { kind: "none", value: "" };
+            onSave={async () => {
+              // What is saved is what is on the quote when the link is pressed.
+              const sent: { kind: DiscountKind; value: string } = { kind: values.discountKind, value: values.discountValue };
               const result = await saveDiscountDefault(sent);
               if (result.status === "saved") {
                 setUsuals((u) => ({ ...u, discountKind: sent.kind, discountValue: sent.value }));
@@ -799,16 +800,15 @@ export function QuoteBuilder({
         }
         decided={quoteId !== null}
         footer={
-          // "Ask each time" has no usual to save: the choice is made on every quote.
-          !askForDeposit && usuals.depositKind !== "ask" && (
+          // Also when the business decides on every quote: ticking makes this deposit the usual instead.
+          (
             <UseOnNewQuotes
-              id="deposit-on-new-quotes"
               label="Use this deposit on new quotes"
               what="deposit"
               valueKey={`${values.depositKind}:${values.depositValue}`}
               canEdit={canSaveUsuals}
               show={values.depositKind !== "none" && values.depositValue.trim() !== ""}
-              checked={
+              matches={
                 (usuals.depositKind === "percent" || usuals.depositKind === "fixed") &&
                 sameDeposit({ kind: values.depositKind, value: values.depositValue }, { kind: usuals.depositKind, value: usuals.depositValue })
               }
@@ -816,8 +816,8 @@ export function QuoteBuilder({
                 (usuals.depositKind === "percent" || usuals.depositKind === "fixed") &&
                 !sameDeposit({ kind: values.depositKind, value: values.depositValue }, { kind: usuals.depositKind, value: usuals.depositValue })
               }
-              onToggle={async (on) => {
-                const sent: { kind: QuoteFormValues["depositKind"]; value: string } = on ? { kind: values.depositKind, value: values.depositValue } : { kind: "none", value: "" };
+              onSave={async () => {
+                const sent: { kind: QuoteFormValues["depositKind"]; value: string } = { kind: values.depositKind, value: values.depositValue };
                 const result = await saveDepositDefault(sent);
                 if (result.status === "saved") {
                   setUsuals((u) => ({ ...u, depositKind: sent.kind, depositValue: sent.value }));
@@ -869,17 +869,16 @@ export function QuoteBuilder({
           maxLength={1000}
         />
         <UseOnNewQuotes
-          id="payment-on-new-quotes"
           label="Use these ways to pay on new quotes"
           what="ways to pay"
           plural
           valueKey={values.paymentInstructions}
           canEdit={canSaveUsuals}
           show={normaliseText(values.paymentInstructions) !== ""}
-          checked={usuals.paymentInstructions !== "" && normaliseText(values.paymentInstructions) === normaliseText(usuals.paymentInstructions)}
+          matches={usuals.paymentInstructions !== "" && normaliseText(values.paymentInstructions) === normaliseText(usuals.paymentInstructions)}
           canUse={canUseUsualText(values.paymentInstructions, usuals.paymentInstructions)}
-          onToggle={async (on) => {
-            const result = await saveUsualPayment(on ? values.paymentInstructions : "");
+          onSave={async () => {
+            const result = await saveUsualPayment(values.paymentInstructions);
             if (result.status === "saved") setUsuals((u) => ({ ...u, paymentInstructions: result.value }));
             return result;
           }}
@@ -890,11 +889,12 @@ export function QuoteBuilder({
         />
       </BankDetailsSection>
 
-      <Section title="Notes">
+      <Section title="Notes for your customer" tag={<OptionalTag />}>
         <TextAreaField
           id="notes"
           label="Notes for your customer (optional)"
-          hint="Shown on the quote, like how long the work takes."
+          labelHidden
+          hint="Like how long the work takes, or how to care for it."
           value={values.notes}
           error={f.notes}
           onChange={(notes) => update({ notes })}
@@ -911,7 +911,8 @@ export function QuoteBuilder({
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
-          hint="Shown at the end, above the name you sign with."
+          labelHidden
+          hint="A friendly closing line, like a thank-you or an invitation to ask questions."
         />
         <SelectField
           id="signOffAs"
@@ -942,18 +943,15 @@ export function QuoteBuilder({
           </p>
         )}
         <UseOnNewQuotes
-          id="sign-off-on-new-quotes"
           label="Use this sign-off on new quotes"
           what="sign-off"
           valueKey={`${values.signOff}|${signOffAs}|${values.signOffOther ?? ""}`}
           canEdit={canSaveUsuals}
           show={signOffIsOwn}
-          checked={usualSignOffSet && sameSignOff}
+          matches={usualSignOffSet && sameSignOff}
           canUse={usualSignOffSet && !sameSignOff}
-          onToggle={async (on) => {
-            const sent = on
-              ? { signOff: values.signOff, signOffAs, signOffOther: values.signOffOther ?? "" }
-              : { signOff: "", signOffAs: "business" as const, signOffOther: "" };
+          onSave={async () => {
+            const sent = { signOff: values.signOff, signOffAs, signOffOther: values.signOffOther ?? "" };
             const result = await saveUsualSignOffChoice(sent);
             if (result.status === "saved") setUsuals((u) => ({ ...u, signOff: result.value, signOffAs: sent.signOffAs, signOffOther: sent.signOffOther }));
             return result;

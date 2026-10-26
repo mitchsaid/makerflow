@@ -36,7 +36,6 @@ export function QuoteNumber({
         <p className="text-lg font-semibold" data-testid="quote-number">
           {number}
         </p>
-        <p className="text-sm text-muted-foreground">Given when you first save it.</p>
       </div>
       {canChange && (
         <Button

@@ -5,7 +5,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormErrorScope } from "@/components/form-errors";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { OptionalTag, Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
@@ -414,11 +414,12 @@ export function InvoiceDraftForm({
         )}
 
 
-        <Section title="Note">
+        <Section title="Note for your customer" tag={<OptionalTag />}>
           <TextAreaField
             id="notes"
             label="Note (optional)"
-            hint="Printed on the invoice."
+            labelHidden
+            hint="Like a thank-you or a reminder of how to pay."
             rows={3}
             maxLength={INVOICE_NOTE_MAX + 100}
             value={values.notes}

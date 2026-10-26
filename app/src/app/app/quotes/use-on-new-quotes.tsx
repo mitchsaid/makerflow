@@ -3,54 +3,49 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
 
 export type UsualSaveResult = { status: "saved" } | { status: "error"; message?: string };
 
 /**
- * "Use this … on new quotes" (docs/plans/use-on-new-quotes.md): one tick at the end of a section of the quote form that
- * says whether what is on this quote is what every new quote starts with, and changes that in one tap. Ticked: what is
- * on the quote becomes the usual. Unticked: new quotes start without it. It is saved at once (quotes that exist are never
- * changed), and it is ticked by itself when the quote already matches the usual. Only owners and admins see the tick;
- * anyone can put the usual back on the quote with "Use my usual".
+ * "Use this … on new quotes" (docs/plans/use-on-new-quotes.md): a quiet link under a section of the quote form that
+ * makes what is on this quote what every new quote starts with. It is a first-time thing a maker rarely changes, so it
+ * is only there while the quote has something worth keeping that is not the usual yet; once saved (at once, quotes that
+ * exist are never changed) it goes, leaving a note that says so and where to change it again (Quote settings, where all
+ * of these live). Only owners and admins see it. "Use my usual" puts the usual back on a quote that differs from it.
  */
 export function UseOnNewQuotes({
-  id,
   label,
   what,
   plural = false,
   show,
-  checked,
+  matches,
   canEdit,
   canUse,
   valueKey,
-  onToggle,
+  onSave,
   onUse,
 }: {
-  id: string;
-  /** "Use this discount on new quotes": names what it is, as a page has several. */
+  /** "Use this discount on new quotes": the link's words, naming what it is, as a page has several. */
   label: string;
   /** What it is, for the notes and the Use my usual button: "discount", "deposit". */
   what: string;
   /** "these ways to pay" rather than "this …". */
   plural?: boolean;
-  /** There is something on the quote to keep (a discount with an amount, words that are the maker's own). */
+  /** There is something on the quote to keep (a discount with an amount, words of the maker's own). */
   show: boolean;
-  /** What is on the quote is the usual now. */
-  checked: boolean;
+  /** What is on the quote is the usual already: nothing to offer. */
+  matches: boolean;
   /** Owners and admins: they can change what new quotes start with. */
   canEdit: boolean;
   /** There is a usual, and the quote differs from it: offer to put it back. */
   canUse: boolean;
   /** Changes whenever what is on the quote changes, so a note goes once it no longer describes it. */
   valueKey: string;
-  /** Saves (true) or clears (false) the usual from what is on the quote now. */
-  onToggle: (on: boolean) => Promise<UsualSaveResult>;
+  /** Makes what is on the quote the usual. */
+  onSave: () => Promise<UsualSaveResult>;
   onUse: () => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const [wanted, setWanted] = useState<boolean | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; key: string } | null>(null);
   const usedUsual = useRef(false);
@@ -63,26 +58,26 @@ export function UseOnNewQuotes({
     }
   }, [valueKey, what]);
 
-  const showTick = canEdit && show;
+  const offer = canEdit && show && !matches;
   const showNote = note !== null && note.key === valueKey;
-  if (!showTick && !canUse && !showNote && !message) return null;
+  if (!offer && !canUse && !showNote && !message) return null;
 
-  function toggle(on: boolean) {
+  function save() {
     setMessage(null);
-    setWanted(on);
     startTransition(async () => {
       try {
-        const result = await onToggle(on);
+        const result = await onSave();
         if (result.status === "saved") {
-          const it = `${plural ? "these" : "this"} ${what}`;
-          setNote({ text: on ? `New quotes now start with ${it}.` : `New quotes no longer start with ${it}.`, key: valueKey });
+          setNote({
+            text: `New quotes now start with ${plural ? "these" : "this"} ${what}. You can change it in Quote settings.`,
+            key: valueKey,
+          });
         } else {
           setMessage(result.message ?? "Something went wrong saving that. Please try again.");
         }
       } catch {
         setMessage("Couldn't reach the server, so nothing was saved. Try again.");
       }
-      setWanted(null);
     });
   }
 
@@ -93,32 +88,32 @@ export function UseOnNewQuotes({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      {showTick && (
-        <Field orientation="horizontal" className="items-start py-2.5">
-          <Checkbox
-            id={id}
-            checked={wanted ?? checked}
+      <div className="flex flex-wrap items-center gap-x-4">
+        {offer && (
+          <Button
+            type="button"
+            variant="link"
             disabled={pending}
-            onCheckedChange={(next) => toggle(next === true)}
-          />
-          <FieldLabel htmlFor={id} className="text-base">
-            {label}
-          </FieldLabel>
-        </Field>
-      )}
-      {canUse && (
-        <Button
-          type="button"
-          variant="soft"
-          disabled={pending}
-          onClick={() => {
-            usedUsual.current = true;
-            onUse();
-          }}
-        >
-          Use my usual<span className="sr-only"> {what}</span>
-        </Button>
-      )}
+            className="h-auto min-h-11 justify-start px-0 underline text-muted-foreground text-sm"
+            onClick={save}
+          >
+            {pending ? "Saving…" : label}
+          </Button>
+        )}
+        {canUse && (
+          <Button
+            type="button"
+            variant="soft"
+            disabled={pending}
+            onClick={() => {
+              usedUsual.current = true;
+              onUse();
+            }}
+          >
+            Use my usual<span className="sr-only"> {what}</span>
+          </Button>
+        )}
+      </div>
       <p role="status" className="text-sm text-muted-foreground">
         {showNote ? note.text : ""}
       </p>
