@@ -17,7 +17,7 @@ import {
 import { optionalMultiline, optionalText } from "../form-values";
 import { parseQuotePolicies, type QuotePolicyError, type QuotePolicyValues } from "../policies";
 import { isIsoDay } from "./dates";
-import { isSignOffAs, type SignOffAs } from "./sign-off";
+import { isSignOffAs, parseSignOffOther, type SignOffAs } from "./sign-off";
 import { VARIATION_LABEL_MAX, VARIATION_NAME_MAX } from "../products/variations";
 import { EXTRA_TEXT_MAX } from "../products/extras";
 import { OPTION_NAME_MAX, type OptionKind } from "../products/options";
@@ -137,6 +137,8 @@ export type QuoteFormValues = {
   showQuantityPrices?: boolean;
   /** Who signs: the business name, the owner's name or no name (./sign-off). An older app does not send it. */
   signOffAs?: SignOffAs;
+  /** The name typed for "Another name" (only with that choice). */
+  signOffOther?: string;
   /** The deposit and when the balance is due (see ./deposit). */
   depositKind: DepositFormValues["depositKind"];
   depositValue: string;
@@ -167,6 +169,7 @@ export type QuoteErrors = {
       | "title"
       | "description"
       | "signOff"
+      | "signOffOther"
       | "paymentInstructions"
       | "depositValue"
       | "balanceDueDate"
@@ -241,6 +244,8 @@ export type ParsedQuote = {
   showQuantityPrices: boolean | undefined;
   /** Who signs. Undefined when an older app saved the quote: the draft keeps its choice. */
   signOffAs: SignOffAs | undefined;
+  /** The name typed for "Another name"; null with any other choice. */
+  signOffOther: string | null;
   /** Null: no deposit. */
   deposit: ParsedDeposit | null;
   policies: { policyId: string | null; title: string | null; body: string }[];
@@ -287,6 +292,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (v.showPhotos !== undefined && typeof v.showPhotos !== "boolean") return false;
   if (v.showQuantityPrices !== undefined && typeof v.showQuantityPrices !== "boolean") return false;
   if (v.signOffAs !== undefined && !isSignOffAs(v.signOffAs)) return false;
+  if (v.signOffOther !== undefined && typeof v.signOffOther !== "string") return false;
   // Same for the deposit: an older app does not send it, and that means no deposit.
   if (v.depositKind !== undefined && !isDepositKind(v.depositKind)) return false;
   if (v.balanceDue !== undefined && v.balanceDue !== "handover" && v.balanceDue !== "date" && v.balanceDue !== "other") return false;
@@ -606,6 +612,8 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   if (!description.ok) errors.fields.description = description.error;
   const signOff = optionalMultiline(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off", QUOTE_SIGN_OFF_MAX_LINES);
   if (!signOff.ok) errors.fields.signOff = signOff.error;
+  const signOffOther = parseSignOffOther(isSignOffAs(values.signOffAs) ? values.signOffAs : "business", values.signOffOther);
+  if (!signOffOther.ok) errors.fields.signOffOther = signOffOther.error;
   const deliveryAddress = optionalMultiline(
     typeof values.deliveryAddress === "string" ? values.deliveryAddress : "",
     QUOTE_DELIVERY_ADDRESS_MAX,
@@ -657,7 +665,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
 
   const hasErrors =
     Object.keys(errors.fields).length > 0 || Object.keys(errors.lines).length > 0;
-  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok || !deposit.ok) {
+  if (hasErrors || !notes.ok || !title.ok || !description.ok || !signOff.ok || !signOffOther.ok || !payment.ok || !policies.ok || !fulfilment.ok || !quoteDiscount.ok || !deposit.ok) {
     return { ok: false, errors };
   }
 
@@ -711,6 +719,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       showPhotos: typeof values.showPhotos === "boolean" ? values.showPhotos : undefined,
       showQuantityPrices: typeof values.showQuantityPrices === "boolean" ? values.showQuantityPrices : undefined,
       signOffAs: isSignOffAs(values.signOffAs) ? values.signOffAs : undefined,
+      signOffOther: signOffOther.value,
       deposit: deposit.deposit,
       policies: policies.policies,
       totals,
@@ -791,7 +800,8 @@ export function toDatabasePayload(
       // Absent (not false) when an older app did not send it, so the draft keeps its setting.
       ...(quote.showPhotos === undefined ? {} : { show_photos: quote.showPhotos }),
       ...(quote.showQuantityPrices === undefined ? {} : { show_quantity_prices: quote.showQuantityPrices }),
-      ...(quote.signOffAs === undefined ? {} : { sign_off_as: quote.signOffAs }),
+      // The other name goes with the choice (the database keeps both when the choice is absent).
+      ...(quote.signOffAs === undefined ? {} : { sign_off_as: quote.signOffAs, sign_off_other: quote.signOffOther }),
       ...depositColumns(quote.deposit),
       policies: quote.policies.map((p) => ({ policy_id: p.policyId, title: p.title, body: p.body })),
       country_code: context.countryCode,

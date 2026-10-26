@@ -1,16 +1,17 @@
 /**
- * Who signs a quote (docs/plans/quote-sign-off-name.md): the business name, the owner's name, or no name. The choice is
+ * Who signs a quote (docs/plans/quote-sign-off-name.md): the business name, the owner's name, another name the maker
+ * types (a studio name, "The Nkosi family"), or no name. The choice is
  * a usual (Quote settings) and each quote's own; the name it gives is frozen in the sent version's snapshot.
  */
 
-export type SignOffAs = "business" | "owner" | "none";
+export type SignOffAs = "business" | "owner" | "other" | "none";
 
-export const SIGN_OFF_CHOICES: readonly SignOffAs[] = ["business", "owner", "none"];
+export const SIGN_OFF_CHOICES: readonly SignOffAs[] = ["business", "owner", "other", "none"];
 
 export const OWNER_NAME_MAX = 120;
 
 export function isSignOffAs(value: unknown): value is SignOffAs {
-  return value === "business" || value === "owner" || value === "none";
+  return value === "business" || value === "owner" || value === "other" || value === "none";
 }
 
 /** The words for each choice, with the name it gives where there is one ("The owner's name (Thandi Nkosi)"). */
@@ -18,15 +19,28 @@ export function signOffChoiceLabels(businessName: string, ownerName: string | nu
   return {
     business: `The business name (${businessName})`,
     owner: ownerName ? `The owner's name (${ownerName})` : "The owner's name",
+    other: "Another name",
     none: "No name",
   };
 }
 
-/** The name the quote is signed with: the business's, the owner's (null when none is saved), or none. */
-export function signOffNameFor(choice: SignOffAs, businessName: string, ownerName: string | null): string | null {
+/** The name the quote is signed with: the business's, the owner's (null when none is saved), the one typed, or none. */
+export function signOffNameFor(choice: SignOffAs, businessName: string, ownerName: string | null, otherName: string | null = null): string | null {
   if (choice === "business") return businessName;
   if (choice === "owner") return ownerName;
+  if (choice === "other") return otherName;
   return null;
+}
+
+export const SIGN_OFF_OTHER_MAX = 120;
+
+/** The name typed for "Another name": required with that choice, tidied; dropped with any other choice. */
+export function parseSignOffOther(choice: SignOffAs, input: unknown): { ok: true; value: string | null } | { ok: false; error: string } {
+  if (choice !== "other") return { ok: true, value: null };
+  const value = typeof input === "string" ? input.trim().replace(/\s+/g, " ") : "";
+  if (value === "") return { ok: false, error: "Enter the name to sign with, or choose another option." };
+  if (value.length > SIGN_OFF_OTHER_MAX) return { ok: false, error: `Keep the name to ${SIGN_OFF_OTHER_MAX} characters or fewer.` };
+  return { ok: true, value };
 }
 
 /** The owner's name was chosen but none is saved: what to tell the maker, where the choice is made and before sending. */

@@ -59,7 +59,7 @@ import { QuoteNumber, type QuoteNumbering } from "./quote-number";
 import { canSaveUsualText, canUseUsualText, sameDeposit, sameDiscount, type QuoteUsuals } from "@/lib/quotes/usuals";
 import { saveDiscountDefault } from "./settings/discount-actions";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
-import { isSignOffAs, SIGN_OFF_CHOICES, signOffChoiceLabels } from "@/lib/quotes/sign-off";
+import { isSignOffAs, SIGN_OFF_CHOICES, SIGN_OFF_OTHER_MAX, signOffChoiceLabels } from "@/lib/quotes/sign-off";
 
 const VALID_FOR_DAYS = [7, 14, 30, 60] as const;
 
@@ -393,6 +393,7 @@ export function QuoteBuilder({
   }
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
+  if (f.signOffOther) problems.push({ fieldId: "signOffOther", label: "Name to sign with", message: f.signOffOther });
 
   const priceLabel = priceEntryLabel(vat, taxName);
 
@@ -898,6 +899,17 @@ export function QuoteBuilder({
           options={SIGN_OFF_CHOICES}
           optionLabels={signOffChoiceLabels(signers.business, signers.owner)}
         />
+        {values.signOffAs === "other" && (
+          <TextField
+            id="signOffOther"
+            label="Name to sign with"
+            autoComplete="off"
+            maxLength={SIGN_OFF_OTHER_MAX}
+            value={values.signOffOther ?? ""}
+            error={f.signOffOther}
+            onChange={(signOffOther) => update({ signOffOther })}
+          />
+        )}
         {values.signOffAs === "owner" && !signers.owner && (
           <p className="text-sm text-muted-foreground" data-testid="no-owner-name">
             No owner&apos;s name is saved yet.{" "}

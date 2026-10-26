@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import Link from "next/link";
-import { Section, SelectField, TextAreaField } from "@/components/form-fields";
-import { isSignOffAs, SIGN_OFF_CHOICES, signOffChoiceLabels } from "@/lib/quotes/sign-off";
+import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import { isSignOffAs, SIGN_OFF_CHOICES, SIGN_OFF_OTHER_MAX, signOffChoiceLabels } from "@/lib/quotes/sign-off";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SaveButton } from "@/components/save-button";
 import { QUOTE_DESCRIPTION_MAX, QUOTE_PAYMENT_MAX, QUOTE_SIGN_OFF_MAX } from "@/lib/quotes";
@@ -36,6 +36,7 @@ export function QuoteWordingForm({
     [
       ["wordingDescription", "Intro", errors.description],
       ["wordingSignOff", "Sign-off", errors.signOff],
+      ["wordingSignOffOther", "Name to sign with", errors.signOffOther],
       ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
@@ -109,6 +110,18 @@ export function QuoteWordingForm({
           options={SIGN_OFF_CHOICES}
           optionLabels={signOffChoiceLabels(signers.business, signers.owner)}
         />
+        {values.signOffAs === "other" && (
+          <TextField
+            id="wordingSignOffOther"
+            name="signOffOther"
+            label="Name to sign with"
+            autoComplete="off"
+            maxLength={SIGN_OFF_OTHER_MAX}
+            value={values.signOffOther}
+            error={errors.signOffOther}
+            onChange={set("signOffOther")}
+          />
+        )}
         {values.signOffAs === "owner" && !signers.owner && (
           <p className="text-sm text-muted-foreground" data-testid="no-owner-name">
             No owner&apos;s name is saved yet.{" "}

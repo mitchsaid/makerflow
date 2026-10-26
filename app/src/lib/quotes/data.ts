@@ -173,6 +173,7 @@ type QuoteRow = {
   show_photos: boolean;
   show_quantity_prices: boolean;
   sign_off_as: string;
+  sign_off_other: string | null;
   theme_id: string | null;
   theme_starter: string | null;
   deposit_kind: DepositKind;
@@ -222,6 +223,8 @@ export type StoredQuote = {
   showQuantityPrices: boolean;
   /** Who signs (./sign-off). */
   signOffAs: SignOffAs;
+  /** The name typed for "Another name". */
+  signOffOther: string | null;
   /** This quote's own theme: one of the business's (an id) or a starter; neither means it follows the business's default. */
   themeId: string | null;
   themeStarter: StarterKey | null;
@@ -332,7 +335,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, payment_instructions, show_bank_details, show_photos, show_quantity_prices, sign_off_as, theme_id, theme_starter,
+       title, description, sign_off, payment_instructions, show_bank_details, show_photos, show_quantity_prices, sign_off_as, sign_off_other, theme_id, theme_starter,
        deposit_kind, deposit_value, balance_due, balance_due_date, balance_due_text, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
@@ -377,6 +380,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     showPhotos: row.show_photos,
     showQuantityPrices: row.show_quantity_prices,
     signOffAs: isSignOffAs(row.sign_off_as) ? row.sign_off_as : "business",
+    signOffOther: row.sign_off_other,
     themeId: row.theme_id,
     themeStarter: isStarterKey(row.theme_starter) ? row.theme_starter : null,
     depositKind: row.deposit_kind,

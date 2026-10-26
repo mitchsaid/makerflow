@@ -76,6 +76,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
           showQuantityPrices: false,
           // Who signs, as the business usually does (Quote settings > Wording).
           signOffAs: profile.signOffAs,
+          signOffOther: profile.signOffOther ?? "",
           // The deposit the business has set as its default, if any (the balance starts on collection or delivery).
           // "Ask me each time" starts with nothing chosen: the deposit section puts the choice in front of the maker.
           depositKind: profile.defaultDepositKind === "ask" ? "none" : profile.defaultDepositKind,

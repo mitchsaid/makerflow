@@ -49,7 +49,7 @@ begin
   assert (select owner_name from public.business_profiles where organisation_id = org_a) = 'Thandi Nkosi', 'the owner name was not saved';
   begin
     update public.business_profiles set sign_off_as = 'someone' where organisation_id = org_a;
-    raise exception 'a fourth choice was accepted';
+    raise exception 'a fifth choice was accepted';
   exception when check_violation then null;
   end;
   begin
@@ -74,7 +74,26 @@ begin
   assert (select sign_off_as from public.quotes where id = q) = 'none', 'no name was not saved';
   begin
     perform public.save_quote_draft(org_a, q, pg_temp.quote_json(cust, '{"sign_off_as": "someone"}'), '[]'::jsonb);
-    raise exception 'a quote took a fourth choice';
+    raise exception 'a quote took a fifth choice';
+  exception when check_violation then null;
+  end;
+
+  -- Another name (migration 20261121100000): kept with its choice, never without its name, dropped with another choice.
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json(cust, '{"sign_off_as": "other", "sign_off_other": "  The Nkosi family "}'), '[]'::jsonb);
+  assert (select sign_off_as = 'other' and sign_off_other = 'The Nkosi family' from public.quotes where id = q), 'the other name was not saved';
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json(cust), '[]'::jsonb);
+  assert (select sign_off_other from public.quotes where id = q) = 'The Nkosi family', 'a payload without the choice should keep the name';
+  begin
+    perform public.save_quote_draft(org_a, q, pg_temp.quote_json(cust, '{"sign_off_as": "other", "sign_off_other": "  "}'), '[]'::jsonb);
+    raise exception 'another name was accepted without a name';
+  exception when check_violation then null;
+  end;
+  perform public.save_quote_draft(org_a, q, pg_temp.quote_json(cust, '{"sign_off_as": "none"}'), '[]'::jsonb);
+  assert (select sign_off_other is null from public.quotes where id = q), 'the other name should go with its choice';
+  update public.business_profiles set sign_off_as = 'other', sign_off_other = 'Studio Nkosi' where organisation_id = org_a;
+  begin
+    update public.business_profiles set sign_off_other = null where organisation_id = org_a;
+    raise exception 'the usual took another name without a name';
   exception when check_violation then null;
   end;
   reset role;
