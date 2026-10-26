@@ -687,8 +687,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/quotes/new");
       await page.getByRole("radio", { name: "A percentage of the total" }).check();
       await page.getByLabel("Intro (optional)").fill("A different introduction");
-      await expect(page.getByRole("checkbox", { name: "Use this intro on new quotes" })).toBeVisible();
-      await expectNoViolations(page, "new quote, deposit choice and the Use on new quotes tick");
+      await expect(page.getByRole("button", { name: "Use this intro on new quotes" })).toBeVisible();
+      await expectNoViolations(page, "new quote, deposit choice and the Use on new quotes link");
     });
     test("production steps, on a product and on a job", async ({ page }) => {
       test.setTimeout(240_000);

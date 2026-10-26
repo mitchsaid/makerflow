@@ -185,18 +185,17 @@ export function TermsSection({
         )}
         {saved && (
           <UseOnNewQuotes
-            id={`policy-${c.key}-on-new-quotes`}
             label={`Add “${name}” to new quotes`}
             what="term"
             valueKey={c.key}
             canEdit={canManage}
             show
-            checked={saved.includeByDefault}
+            matches={saved.includeByDefault}
             canUse={false}
-            onToggle={async (on) => {
-              const result = await setPolicyOnNewQuotes(saved.id, on);
+            onSave={async () => {
+              const result = await setPolicyOnNewQuotes(saved.id, true);
               if (result.status === "ok") {
-                onLibraryAdd({ ...saved, includeByDefault: on });
+                onLibraryAdd({ ...saved, includeByDefault: true });
                 return { status: "saved" as const };
               }
               return { status: "error" as const, message: result.message };

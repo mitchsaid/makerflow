@@ -94,6 +94,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
         canEditBankDetails={canEditBankDetails(role)}
         usuals={usuals}
         canSaveUsuals={canEditBusinessProfile(role)}
+        startingText={locale.documents.quoteStart}
         numbering={{
           prefix: sequence.prefix,
           nextNumber: sequence.nextNumber,
