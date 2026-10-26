@@ -44,7 +44,7 @@ export function DepositSection({
   ask?: boolean;
   /** In "ask" mode on a quote that was saved before: what it has is the choice made (so no deposit shows as chosen). */
   decided?: boolean;
-  /** Under the section's fields (the "Save as my usual" buttons). */
+  /** Under the section's fields (the "Use this deposit on new quotes" tick). */
   footer?: React.ReactNode;
   /** What "Add a deposit" starts with (the business's usual, when it has one); otherwise a percentage with nothing typed. */
   addWith?: Partial<DepositFormValues>;

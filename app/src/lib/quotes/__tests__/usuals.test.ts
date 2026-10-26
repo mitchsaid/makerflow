@@ -5,10 +5,10 @@ import { canSaveUsualText, canUseUsualText, normaliseText, sameDeposit, sameDisc
 const za = { decimal: ",", group: " " } as const;
 
 describe("the usuals a new quote starts with", () => {
-  const base = { defaultDescription: null, defaultSignOff: null, paymentInstructions: null, defaultDepositKind: "none", defaultDepositValue: 0, defaultDiscountKind: "none", defaultDiscountValue: 0 } as const;
+  const base = { defaultDescription: null, defaultSignOff: null, paymentInstructions: null, defaultDepositKind: "none", defaultDepositValue: 0, defaultDiscountKind: "none", defaultDiscountValue: 0, usualFulfilment: null, signOffAs: "business", signOffOther: null } as const;
 
   it("are empty for a business that has set none", () => {
-    expect(usualsFromProfile(base, za as never)).toEqual({ description: "", signOff: "", paymentInstructions: "", depositKind: "none", depositValue: "", discountKind: "none", discountValue: "" });
+    expect(usualsFromProfile(base, za as never)).toEqual({ description: "", signOff: "", paymentInstructions: "", depositKind: "none", depositValue: "", discountKind: "none", discountValue: "", fulfilment: "none", signOffAs: "business", signOffOther: "" });
   });
   it("carry the saved wording and the deposit as it is typed", () => {
     const u = usualsFromProfile(
@@ -26,6 +26,12 @@ describe("the usuals a new quote starts with", () => {
     const fixed = usualsFromProfile({ ...base, defaultDiscountKind: "fixed", defaultDiscountValue: 25000 }, za as never);
     expect(fixed.discountKind).toBe("fixed");
     expect(fixed.discountValue).toMatch(/^250/);
+  });
+  it("carry delivery or collection, and who signs with the name typed", () => {
+    const u = usualsFromProfile({ ...base, usualFulfilment: "delivery", signOffAs: "other", signOffOther: "Studio Nkosi" }, za as never);
+    expect(u.fulfilment).toBe("delivery");
+    expect(u.signOffAs).toBe("other");
+    expect(u.signOffOther).toBe("Studio Nkosi");
   });
   it("keep 'ask' with no amount", () => {
     const u = usualsFromProfile({ ...base, defaultDepositKind: "ask" }, za as never);

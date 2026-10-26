@@ -19,6 +19,8 @@ import {
   type QuotePolicyValues,
 } from "@/lib/policies";
 import { PolicyForm } from "./settings/policies/policy-form";
+import { UseOnNewQuotes } from "./use-on-new-quotes";
+import { setPolicyOnNewQuotes } from "./settings/policies/actions";
 
 /**
  * The quote's terms (docs/plans/quote-form-feedback.md, slice C): the terms on this quote as compact rows, and one
@@ -180,6 +182,27 @@ export function TermsSection({
           <Button type="button" variant="soft" aria-label={`Change the wording for this quote: ${name}`} onClick={() => openWording(c.key)}>
             Change the wording for this quote
           </Button>
+        )}
+        {saved && (
+          <UseOnNewQuotes
+            id={`policy-${c.key}-on-new-quotes`}
+            label={`Add “${name}” to new quotes`}
+            what="term"
+            valueKey={c.key}
+            canEdit={canManage}
+            show
+            checked={saved.includeByDefault}
+            canUse={false}
+            onToggle={async (on) => {
+              const result = await setPolicyOnNewQuotes(saved.id, on);
+              if (result.status === "ok") {
+                onLibraryAdd({ ...saved, includeByDefault: on });
+                return { status: "saved" as const };
+              }
+              return { status: "error" as const, message: result.message };
+            }}
+            onUse={() => {}}
+          />
         )}
       </li>
     );

@@ -115,3 +115,27 @@ export async function setPolicyArchived(id: string, archived: boolean): Promise<
   revalidatePath("/app/quotes/settings/policies");
   return { status: "ok" };
 }
+
+/**
+ * "Add … to new quotes", from a quote's Terms: whether a saved term starts every new quote (the same as its "Include on
+ * new quotes" tick). Quotes that exist are never changed.
+ */
+export async function setPolicyOnNewQuotes(id: string, on: boolean): Promise<PolicyArchiveState> {
+  const { organisation, role } = await requireOrganisation();
+  if (!canEditBusinessProfile(role)) return { status: "error", message: NOT_ALLOWED };
+  if (!UUID.test(id) || typeof on !== "boolean") return { status: "error", message: GENERIC_ERROR };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .update({ include_by_default: on })
+    .eq("id", id)
+    .eq("organisation_id", organisation.id)
+    .select("id");
+  if (error || !data || data.length !== 1) {
+    console.error("could not change a term's place on new quotes:", error?.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  revalidatePath("/app/quotes/settings/policies");
+  return { status: "ok" };
+}

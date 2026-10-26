@@ -24,6 +24,7 @@ export function DeliverySection({
   feeLabel,
   symbol,
   errors,
+  footer,
 }: {
   fulfilment: Fulfilment;
   deliveryFee: string;
@@ -36,6 +37,8 @@ export function DeliverySection({
   feeLabel: string;
   symbol: string;
   errors: { deliveryFee?: string; deliveryAddress?: string };
+  /** At the end of the section: on a quote, the tick that makes this choice the usual. */
+  footer?: React.ReactNode;
 }) {
   function chooseFulfilment(next: Fulfilment) {
     // Delivery to a customer who has an address on file: use it unless something is already typed.
@@ -90,6 +93,7 @@ export function DeliverySection({
           />
         </>
       )}
+      {footer}
     </Section>
   );
 }
