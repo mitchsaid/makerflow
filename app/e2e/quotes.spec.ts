@@ -132,7 +132,7 @@ test("choosing an existing customer by keyboard, and changing it", async ({ page
   await expect(options).toHaveCount(2);
   await expect(options.first()).toContainText("Bongani Dube");
   // The list is part of the page, not floating inside the card, so nothing in it is cut off.
-  const card = page.getByRole("group", { name: "Customer" });
+  const card = page.getByRole("group", { name: "Customer", exact: true });
   const cardBox = (await card.boundingBox())!;
   const lastBox = (await options.last().boundingBox())!;
   expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height);
