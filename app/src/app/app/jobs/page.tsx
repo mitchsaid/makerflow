@@ -1,4 +1,5 @@
 import { AddLink } from "@/components/add-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getJobs } from "@/lib/jobs/data";
 import { jobNumberText, parseJobFilter } from "@/lib/jobs";
@@ -16,6 +17,9 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
   // Just cancelled: say so, with an Undo (the list is already loaded, so this costs nothing).
   const cancelled = typeof query.cancelled === "string" ? jobs.find((j) => j.id === query.cancelled && j.status === "cancelled") : undefined;
 
+  // Just deleted: say so (the number only, which is checked, never text from the address).
+  const deleted = typeof query.deleted === "string" && /^[1-9]\d{0,8}$/.test(query.deleted) ? Number(query.deleted) : null;
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
@@ -26,6 +30,11 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
           </AddLink>
         )}
       </div>
+      {deleted && (
+        <Alert role="status" data-testid="job-deleted-notice">
+          <AlertDescription>Job {jobNumberText(deleted)} deleted.</AlertDescription>
+        </Alert>
+      )}
       {cancelled && <CancelledNotice key={cancelled.id} jobId={cancelled.id} jobLabel={`Job ${jobNumberText(cancelled.number)}`} />}
       <JobList key={parseJobFilter(query.show) ?? "active"} jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} initialFilter={parseJobFilter(query.show) ?? "active"} />
     </main>

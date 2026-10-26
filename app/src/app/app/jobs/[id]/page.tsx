@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { canEditBusinessProfile } from "@/lib/business-profile";
 import { AddLink } from "@/components/add-button";
 import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
@@ -23,7 +24,7 @@ import { PageHeader } from "@/components/page-header";
 export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   const { id } = await params;
   // The job loads beside the workspace check, not after it.
-  const [job, { organisation, profile, dismissedPrompts }] = await Promise.all([getJob(id), requireOrganisation()]);
+  const [job, { organisation, profile, role, dismissedPrompts }] = await Promise.all([getJob(id), requireOrganisation()]);
   // Another business of the same person is not this workspace's job.
   if (job.organisationId !== organisation.id) notFound();
 
@@ -75,7 +76,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         {job.status === "cancelled" && (
           <p className="text-muted-foreground">This job was cancelled, so nothing is counted on it. Restore it to carry on.</p>
         )}
-        <JobSteps jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
+        <JobSteps jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} canDelete={canEditBusinessProfile(role)} />
       </section>
 
       <section className="space-y-2" aria-labelledby="make-heading">

@@ -19,6 +19,7 @@ import {
   jobDueCounts,
   isDueThisWeekJob,
   parseJobFilter,
+  canDeleteJob,
   shouldNudgeCreateJob,
   shouldNudgeInvoiceJob,
   type JobFulfilment,
@@ -162,7 +163,13 @@ describe("the list", () => {
   it("shows active jobs by the day they are needed, undated last, then the finished ones for All", () => {
     expect(visibleJobs(jobs, "active", "", TODAY).map((j) => j.number)).toEqual([2, 1, 3]);
     expect(visibleJobs(jobs, "done", "", TODAY).map((j) => j.number)).toEqual([4]);
-    expect(visibleJobs(jobs, "all", "", TODAY).map((j) => j.number)).toEqual([2, 1, 3, 5, 4]);
+    expect(visibleJobs(jobs, "all", "", TODAY).map((j) => j.number)).toEqual([2, 1, 3, 4]);
+  });
+  it("keeps cancelled jobs out of All, in a list of their own, newest first", () => {
+    const more = [...jobs, job({ number: 6, status: "cancelled" })];
+    expect(visibleJobs(more, "cancelled", "", TODAY).map((j) => j.number)).toEqual([6, 5]);
+    expect(visibleJobs(more, "all", "", TODAY).map((j) => j.number)).not.toContain(5);
+    expect(parseJobFilter("cancelled")).toBe("cancelled");
   });
   it("shows only the late jobs, or only those needed this week", () => {
     const dated = [
@@ -276,5 +283,11 @@ describe("the Invoice it card on a finished job", () => {
   it("is gone for good once this person said not to ask again, and the job prompt's answer is a different one", () => {
     expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["invoice-finished-job"] })).toBe(false);
     expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["create-job", "logo"] })).toBe(true);
+  });
+});
+
+describe("deleting a job", () => {
+  it("is only for a job that has not been started or was cancelled", () => {
+    expect(JOB_STATUSES.filter(canDeleteJob)).toEqual(["not_started", "cancelled"]);
   });
 });

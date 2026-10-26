@@ -142,7 +142,7 @@ Read in full: `Dashboard.tsx` (lines 1 to 583, the whole Home screen: the welcom
 | Convert menu on a quote: Invoice or Job, any time | **Kept** as the existing "Create a job" section on an accepted quote; invoices come later | |
 | `convertQuoteToJob` when a job exists already: sets it back to Not Started | **Dropped**: one job per accepted quote; a second attempt says so (already handled by `create_job_from_quote`) | Numbers and history stay honest |
 | A notification "Job … created from Quote …" | **Later**: notifications are not built | |
-| Delete a job | **Dropped** (cancel instead, so numbers stay gapless; recorded earlier) | |
+| Delete a job | **Built later (2026-10-26)**: a job that is not started, or cancelled, can be deleted by an owner or admin (anything else keeps its record: cancel it). The number is free again when it was the newest; an older one leaves a gap, which is fine because a job is not a legal document (numbers are the highest plus one) | Founder: "Can't deletion just release the number in the sequence?" |
 
 ### What the maker sees
 1. **Home** shows a **Jobs** card instead of the "You're all set up" placeholder: two big numbers, **Late** (needed on a day that has passed, not finished) and **Needed this week** (needed today or in the next six days, not finished). Each is a link that opens the Jobs list already filtered to those jobs. With no active jobs the card says "Nothing to make right now" and offers **New job**. When there are jobs but none are late or due this week it says "Nothing is due in the next week." with a link to the list.
@@ -181,3 +181,9 @@ Jobs slice 1 was planned without reading the prototype's Jobs screen (see "Proto
 
 ## Not planned yet
 Online payments, reminders by email or WhatsApp, recurring invoices, statements, supplier bills, stock movements from jobs (costs plan, slices 5 and 6), per-item and per-stage progress (costs plan, slice 3), assigning jobs to people (employees, layer 11), jobs without quotes.
+
+## Cancelled jobs and deleting (2026-10-26)
+Founder: "I don't like that the 'show all' button on jobs showed archived jobs. Do jobs need to be archived? Can't they just be cancelled/deleted?" Jobs were never archived; the cancelled ones showed under **All**.
+- **All** is every job that is not cancelled (to do and done). **Cancelled** is its own filter chip, shown only while something is cancelled. The empty-list button says **Show to-do jobs**.
+- **Delete this job** (job page, owners and admins) for a job that is Not started or Cancelled, after a sheet that asks. It removes the job, its items and its activity log (`delete_job`, server-only, migration `20261123100000_delete_job.sql`, needs human review); the quote and any invoice are untouched, and the quote can get a new job. The Jobs list says "Job J-0003 deleted."
+- Staff can still cancel and restore; only owners and admins delete.

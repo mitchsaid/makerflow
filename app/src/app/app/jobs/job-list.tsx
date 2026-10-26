@@ -17,6 +17,7 @@ const FILTERS: { key: JobFilter; label: string }[] = [
   { key: "late", label: "Late" },
   { key: "week", label: "This week" },
   { key: "done", label: "Done" },
+  { key: "cancelled", label: "Cancelled" },
   { key: "all", label: "All" },
 ];
 
@@ -59,7 +60,8 @@ export function JobList({
     late: jobs.filter((j) => isOverdueJob(j, today)).length,
     week: jobs.filter((j) => isDueThisWeekJob(j, today)).length,
     done: jobs.filter((j) => j.status === "done").length,
-    all: jobs.length,
+    cancelled: jobs.filter((j) => j.status === "cancelled").length,
+    all: jobs.filter((j) => j.status !== "cancelled").length,
   };
   const visible = visibleJobs(jobs, filter, query, today);
 
@@ -77,7 +79,13 @@ export function JobList({
         />
       </Field>
 
-      <FilterBar label="Show jobs" options={FILTERS.map((f) => ({ ...f, count: counts[f.key] }))} value={filter} onChange={setFilter} />
+      {/* Cancelled has its own chip, but only while there is something cancelled to look at. */}
+      <FilterBar
+        label="Show jobs"
+        options={FILTERS.filter((f) => f.key !== "cancelled" || counts.cancelled > 0 || filter === "cancelled").map((f) => ({ ...f, count: counts[f.key] }))}
+        value={filter}
+        onChange={setFilter}
+      />
 
       <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="job-count">
         {visible.length === 1 ? "1 job" : `${visible.length} jobs`}
@@ -94,14 +102,16 @@ export function JobList({
                   ? "Nothing is late. Well done."
                   : filter === "week"
                     ? "Nothing is needed in the next week."
-                    : "No jobs here yet."
+                    : filter === "cancelled"
+                      ? "No cancelled jobs."
+                      : "No jobs here yet."
           }
-          clearLabel="Show all jobs"
+          clearLabel="Show to-do jobs"
           onClear={
-            query.trim() !== "" || filter !== "all"
+            query.trim() !== "" || filter !== "active"
               ? () => {
                   setQuery("");
-                  setFilter("all");
+                  setFilter("active");
                 }
               : undefined
           }
