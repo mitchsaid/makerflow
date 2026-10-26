@@ -21,7 +21,7 @@ Update this table whenever a feature's prototype code is read (`docs/plans/READM
 | Quote accepted flow (`Quotes.tsx`: "Convert to Job?" modal, Convert menu) and `convertQuoteToJob` | Read in full (2026-10-14) | `docs/plans/jobs-and-invoices.md` (Jobs slice 3) |
 | Reset functions (`clearAllData`, `loadCompanyPreset`, `resetToDefaults`) and the `App.tsx` ErrorBoundary | Read in full (2026-10-13) | `docs/plans/delete-account.md` |
 | Document templates | `quoteTemplates.ts` read for the quote looks; the customiser screen not in full (its logo options read 2026-10-13) | `docs/plans/quote-looks.md`, `docs/plans/business-logo.md` |
-| Profile (business details, logo, bank, VAT) | `Profile.tsx` read in full (2026-10-13) | `docs/plans/business-logo.md` (the logo); the rest was built from earlier plans |
+| Profile (business details, logo, bank, VAT) | `Profile.tsx` read in full (2026-10-13); bank card and printed payment block re-read in full for the payment methods plan (2026-10-26) | `docs/plans/business-logo.md` (the logo); `docs/plans/payment-methods.md` (ways to pay); the rest was built from earlier plans |
 | Time tracker, scratchpad | Summary only | Section 2 table only |
 
 ## 1. What the prototype is
