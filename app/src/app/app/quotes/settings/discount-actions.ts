@@ -16,7 +16,7 @@ const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
 
 /**
  * Sets the discount on the whole quote that a new quote starts with (none, a percentage, or an amount): from Quotes
- * and invoices, or "Save as my usual" on a quote. Owners and admins only; each quote can change it or take it off.
+ * and invoices, or the "Use this discount on new quotes" tick on a quote. Owners and admins only; each quote can change it or take it off.
  */
 export async function saveDiscountDefault(values: DiscountDefaultValues): Promise<DiscountDefaultState> {
   const { organisation, role } = await requireOrganisation();

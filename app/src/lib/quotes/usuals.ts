@@ -1,6 +1,7 @@
 import { moneyToInput, percentToInput, type NumberStyle } from "../money";
 import { depositColumns, parseDeposit, type DefaultDepositKind } from "./deposit";
 import { discountFrom } from "./index";
+import type { SignOffAs } from "./sign-off";
 
 /**
  * "Your usual" (docs/plans/quote-form-feedback.md): what a new quote starts with, saved once for the business. On a
@@ -17,6 +18,11 @@ export type QuoteUsuals = {
   discountKind: "none" | "percent" | "fixed";
   /** The discount as typed; empty for "none". */
   discountValue: string;
+  /** Delivery or collection, or nothing chosen ("none"). */
+  fulfilment: "none" | "collection" | "delivery";
+  /** Who signs, and the name typed for "Another name" (lib/quotes/sign-off). */
+  signOffAs: SignOffAs;
+  signOffOther: string;
 };
 
 export function usualsFromProfile(
@@ -28,6 +34,9 @@ export function usualsFromProfile(
     defaultDepositValue: number;
     defaultDiscountKind: "none" | "percent" | "fixed";
     defaultDiscountValue: number;
+    usualFulfilment: "collection" | "delivery" | null;
+    signOffAs: SignOffAs;
+    signOffOther: string | null;
   },
   style: NumberStyle,
 ): QuoteUsuals {
@@ -49,6 +58,9 @@ export function usualsFromProfile(
         : profile.defaultDiscountKind === "fixed"
           ? moneyToInput(profile.defaultDiscountValue, style)
           : "",
+    fulfilment: profile.usualFulfilment ?? "none",
+    signOffAs: profile.signOffAs,
+    signOffOther: profile.signOffOther ?? "",
   };
 }
 
