@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import Link from "next/link";
-import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
+import { OptionalTag, Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { termName, type PolicyPackContent, type PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
 import { BankDetailsSection } from "./bank-details-section";
@@ -92,7 +92,6 @@ export function QuoteBuilder({
   canEditBankDetails,
   usuals: initialUsuals,
   canSaveUsuals,
-  startingText,
   numbering: initialNumbering,
   canChangeNumbering = false,
   askForDeposit = false,
@@ -135,8 +134,6 @@ export function QuoteBuilder({
   usuals: QuoteUsuals;
   /** Owners and admins can save what is on the quote as the usual; others can only use it. */
   canSaveUsuals: boolean;
-  /** The country's generic description and sign-off a new quote starts with when there is no usual (not offered for saving). */
-  startingText: { description: string; signOff: string };
   /** A new quote: how quotes are numbered now, so the number it will get can be shown. Absent once it has a number. */
   numbering?: QuoteNumbering;
   /** Owners and admins can change how quotes are numbered (from the quote, or under Quote settings). */
@@ -244,10 +241,8 @@ export function QuoteBuilder({
     signOffAs === usuals.signOffAs &&
     (signOffAs !== "other" || normaliseText(values.signOffOther ?? "") === normaliseText(usuals.signOffOther));
   const usualSignOffSet = usuals.signOff !== "" || usuals.signOffAs !== "business";
-  // Something of the maker's own to keep: their words (not the country's generic start), or a name other than the business.
-  const signOffIsOwn =
-    (normaliseText(values.signOff) !== "" && !(usuals.signOff === "" && normaliseText(values.signOff) === normaliseText(startingText.signOff))) ||
-    signOffAs !== "business";
+  // Something to keep: a message, or a name other than the business.
+  const signOffIsOwn = normaliseText(values.signOff) !== "" || signOffAs !== "business";
 
   const [numbering, setNumbering] = useState(initialNumbering);
   const [sheetView, setSheetView] = useState<LineSheetView | null>(null);
@@ -537,7 +532,8 @@ export function QuoteBuilder({
         />
       </Section>
 
-      <Section title="About this quote">
+      {/* One field, so the section's title is its name (a quote from before can also have a title). */}
+      <Section title="Intro" tag={showTitle ? undefined : <OptionalTag />}>
         {showTitle && (
           <TextField
             id="title"
@@ -552,7 +548,8 @@ export function QuoteBuilder({
         <TextAreaField
           id="description"
           label="Intro (optional)"
-          hint="Printed at the top of the quote."
+          labelHidden={!showTitle}
+          hint="A line or two above your items, like a thank-you or what the price includes."
           value={values.description}
           error={f.description}
           onChange={(description) => update({ description })}
@@ -564,7 +561,7 @@ export function QuoteBuilder({
           what="intro"
           valueKey={values.description}
           canEdit={canSaveUsuals}
-          show={normaliseText(values.description) !== "" && !(usuals.description === "" && normaliseText(values.description) === normaliseText(startingText.description))}
+          show={normaliseText(values.description) !== ""}
           checked={usuals.description !== "" && normaliseText(values.description) === normaliseText(usuals.description)}
           canUse={canUseUsualText(values.description, usuals.description)}
           onToggle={async (on) => {
@@ -799,8 +796,8 @@ export function QuoteBuilder({
         }
         decided={quoteId !== null}
         footer={
-          // "Ask each time" has no usual to save: the choice is made on every quote.
-          !askForDeposit && usuals.depositKind !== "ask" && (
+          // Also when the business decides on every quote: ticking makes this deposit the usual instead.
+          (
             <UseOnNewQuotes
               id="deposit-on-new-quotes"
               label="Use this deposit on new quotes"
@@ -890,11 +887,12 @@ export function QuoteBuilder({
         />
       </BankDetailsSection>
 
-      <Section title="Notes">
+      <Section title="Notes for your customer" tag={<OptionalTag />}>
         <TextAreaField
           id="notes"
           label="Notes for your customer (optional)"
-          hint="Shown on the quote, like how long the work takes."
+          labelHidden
+          hint="Like how long the work takes, or how to care for it."
           value={values.notes}
           error={f.notes}
           onChange={(notes) => update({ notes })}
@@ -911,7 +909,8 @@ export function QuoteBuilder({
           value={values.signOff}
           error={f.signOff}
           onChange={(signOff) => update({ signOff })}
-          hint="Shown at the end, above the name you sign with."
+          labelHidden
+          hint="A friendly closing line, like a thank-you or an invitation to ask questions."
         />
         <SelectField
           id="signOffAs"

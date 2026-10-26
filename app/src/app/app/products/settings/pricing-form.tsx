@@ -51,7 +51,7 @@ export function PricingForm({ initial, currencySymbol }: { initial: Values; curr
   return (
     <FormErrorScope epoch={state}>
       <form onSubmit={submit} className="space-y-6" noValidate>
-        <Section title="What your time is worth">
+        <Section title="How you price">
           <TextField
             id="labourRate"
             label="Price of an hour of your time"
@@ -63,8 +63,6 @@ export function PricingForm({ initial, currencySymbol }: { initial: Values; curr
             error={errors.labourRate}
             onChange={set("labourRate")}
           />
-        </Section>
-        <Section title="The margin you aim for">
           <TextField
             id="targetMargin"
             label="Margin you aim for (%)"

@@ -29,11 +29,14 @@ test("the new quote reads like an app: no tagline, no title, optional parts offe
   // The form follows the printed quote: notes come just before the sign-off, after the terms and payment details.
   const order = await page.locator("legend").allTextContents();
   const at = (name: string) => order.findIndex((t) => t.trim() === name);
-  expect(at("Terms")).toBeGreaterThan(-1);
-  expect(at("Notes")).toBeGreaterThan(at("Terms"));
-  expect(at("Notes")).toBeGreaterThan(at("How to pay") > -1 ? at("How to pay") : at("Terms"));
-  expect(at("Sign-off")).toBe(at("Notes") + 1);
-  await expect(page.getByText("Shown on the quote, like how long the work takes.")).toBeVisible();
+  expect(at("Terms and conditions")).toBeGreaterThan(-1);
+  const notes = at("Notes for your customer (optional)");
+  expect(notes).toBeGreaterThan(at("Terms and conditions"));
+  expect(notes).toBeGreaterThan(at("How to pay") > -1 ? at("How to pay") : at("Terms and conditions"));
+  expect(at("Sign-off")).toBe(notes + 1);
+  // A section that is one field is titled once; its hint says how it is used, not where it is printed.
+  await expect(page.locator('label[for="notes"]')).toHaveClass(/sr-only/);
+  await expect(page.getByText("Like how long the work takes, or how to care for it.")).toBeVisible();
   await expect(page.getByText("Like “Yours in sweetness”")).toHaveCount(0);
 
   // The primary button is the next step.

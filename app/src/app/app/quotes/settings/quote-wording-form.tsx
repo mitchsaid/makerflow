@@ -81,7 +81,7 @@ export function QuoteWordingForm({
           id="wordingDescription"
           name="description"
           label="Intro (optional)"
-          hint="Printed at the top of every new quote."
+          hint="A line or two above your items, like a thank-you or what the price includes."
           value={values.description}
           error={errors.description}
           onChange={set("description")}
@@ -96,7 +96,7 @@ export function QuoteWordingForm({
           value={values.signOff}
           error={errors.signOff}
           onChange={set("signOff")}
-          hint="Shown at the end, above the name you sign with."
+          hint="A friendly closing line, like a thank-you or an invitation to ask questions."
         />
         <SelectField
           id="wordingSignOffAs"

@@ -19,6 +19,8 @@ At the end of each section that new quotes can start with, one tick that says wh
 - *Use these ways to pay on new quotes* (How to pay)
 - *Use this sign-off on new quotes* (the message and who signs, with the name typed for "Another name")
 
+The deposit tick shows also when the business decides the deposit on every quote ("I decide on each quote"): ticking then makes this deposit the usual instead. The intro and sign-off ticks show whenever there is a message, the country's generic one included (founder, 2026-10-26: "I don't see the option for requiring a deposit on new quotes").
+
 The tick is **ticked when the quote already matches** what new quotes start with, so it also shows the usual. Ticking saves what is on the quote at once ("New quotes now start with this discount."); unticking stops it ("… no longer start with this discount": no discount, no deposit, nothing chosen, the generic intro and sign-off, the term left off). Quotes that exist never change. It shows only when there is something to keep (an amount, the maker's own words, a choice), and only to owners and admins. *Use my usual …* stays, for putting the usual back on a quote that differs. Quote settings still shows and changes all of it.
 
 ## Interactions reused and new interactions
@@ -45,7 +47,7 @@ No migration. The same columns as Quote settings: `default_description`, `defaul
 1. **Valid for** (7, 14, 30, 60 days): a usual for how long a quote is valid (needs a column).
 2. **The delivery fee**, with *Start new quotes with delivery* (needs a column).
 3. **Show my bank details** and **Show product photos**: the two switches on a quote.
-4. **The quote theme**: "Use this theme on new quotes" on the preview.
+4. ~~The quote theme~~: not needed. A new quote already starts with the theme picked last (docs/plans/quote-themes.md), which the founder confirmed is what they want (2026-10-26).
 5. **Invoices**, once invoice wording lives under Invoices: due in N days, the note.
 6. **A product's price on a quote**: "Save as the product's price" when a price is changed on an item (a different kind of default; worth asking first).
 

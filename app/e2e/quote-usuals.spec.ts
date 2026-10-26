@@ -11,12 +11,12 @@ test("the intro: ticked, new quotes start with it; changed, the tick is off and 
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-desc", "Usual Co");
 
-  // Nothing saved yet: a new quote starts with a generic suggestion, and there is nothing of the maker's own to keep.
+  // Nothing saved yet: a new quote starts with a generic suggestion; it is not the usual (the tick is off), and there is no usual to go back to.
   await page.goto("/app/quotes/new");
   const intro = page.getByLabel("Intro (optional)");
   const tick = page.getByRole("checkbox", { name: "Use this intro on new quotes" });
   await expect(intro).toHaveValue("Thank you for your interest. Below is what I would prepare for you.");
-  await expect(tick).toHaveCount(0);
+  await expect(tick).not.toBeChecked();
   await expect(page.getByRole("button", { name: "Use my usual intro" })).toHaveCount(0);
 
   // Their own words can be kept, in one tap. (The page must be awake before typing.)
@@ -55,9 +55,9 @@ test("the sign-off (its message and who signs) and the ways to pay are kept for 
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "us-wording", "Wording Co");
   await page.goto("/app/quotes/new");
-  // The generic message, signed by the business, is not something of theirs to keep.
+  // The generic message, signed by the business, is not the usual yet.
   await expect(page.getByLabel("Sign-off (optional)")).toHaveValue("Thank you for the opportunity to quote. Please get in touch with any questions.");
-  await expect(page.getByRole("checkbox", { name: "Use this sign-off on new quotes" })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "Use this sign-off on new quotes" })).not.toBeChecked();
 
   // (Typing while the page is still waking up can land in front of the text instead of replacing it: type until it takes.)
   const message = page.getByLabel("Sign-off (optional)");
@@ -187,6 +187,8 @@ test("\"I decide on each quote\": a new quote opens the deposit choice with noth
   await section.getByRole("radio", { name: "A percentage of the total" }).check();
   await section.getByLabel("Percentage (%)").fill("25");
   await expect(section.getByLabel("Balance due")).toBeVisible();
+  // Deciding each time can still become a usual deposit, from here.
+  await expect(section.getByRole("checkbox", { name: "Use this deposit on new quotes" })).not.toBeChecked();
   await section.getByRole("radio", { name: "No deposit" }).check();
   await expect(section.getByLabel("Percentage (%)")).toHaveCount(0);
 

@@ -5,7 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { DeliveryAddress } from "@/components/delivery-address";
-import { Section, TextAreaField, TextField } from "@/components/form-fields";
+import { OptionalTag, Section, TextAreaField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
 import { FieldError, Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -304,10 +304,12 @@ export function NewJobForm({
         )}
       </Section>
 
-      <Section title="Note" tag={<PrivateTag />}>
+      <Section title="Note" tag={<><OptionalTag /><PrivateTag /></>}>
         <TextAreaField
           id="note"
           label="Note (optional)"
+          labelHidden
+          hint="Like what they asked for, or where to leave it."
           rows={3}
           maxLength={NEW_JOB_LIMITS.note + 100}
           value={values.note}

@@ -226,7 +226,7 @@ function InvoiceForm({
           <TextAreaField
             id="invoice-note"
             label="Note (optional)"
-            hint="Shown on the invoice, like thanks or a reminder."
+            hint="Like a thank-you or a reminder of how to pay."
             rows={3}
             maxLength={INVOICE_NOTE_MAX + 100}
             value={values.note}

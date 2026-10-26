@@ -209,7 +209,7 @@ export function TermsSection({
   };
 
   return (
-    <Section title="Terms">
+    <Section title="Terms and conditions" description="Your rules for the order, like deposits, cancellations and lead times.">
       {error && (
         <p id="policies-error" role="alert" className="text-sm text-destructive">
           {error}

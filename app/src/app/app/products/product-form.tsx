@@ -560,7 +560,7 @@ export function ProductForm({
           id={fid("description")}
           name="description"
           label="Description (optional)"
-          hint="Shown on your quotes under the name."
+          hint="A line about it for your quotes, like the size or what's included."
           maxLength={1000}
           value={values.description}
           error={errors.description}

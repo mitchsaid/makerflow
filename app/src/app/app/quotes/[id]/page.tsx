@@ -113,7 +113,6 @@ export default async function QuotePage({
           canEditBankDetails={canEditBankDetails(role)}
           usuals={usualsFromProfile(profile, locale.numberStyle)}
           canSaveUsuals={canEditBusinessProfile(role)}
-        startingText={locale.documents.quoteStart}
           askForDeposit={profile.defaultDepositKind === "ask"}
           signers={{ business: organisation.name, owner: profile.ownerName }}
         >
