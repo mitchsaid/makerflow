@@ -374,7 +374,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Cancel the job" }).click();
       await expect(page.getByTestId("job-cancelled-notice")).toBeVisible();
       await expectNoViolations(page, "jobs, a job just cancelled");
-      await page.getByRole("button", { name: /^All/ }).click();
+      await page.getByRole("button", { name: /^Cancelled/ }).click();
       await page.getByRole("link", { name: /J-0001/ }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
       await expectNoViolations(page, "job, cancelled");
