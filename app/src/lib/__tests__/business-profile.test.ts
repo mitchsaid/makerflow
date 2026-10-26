@@ -159,6 +159,7 @@ const emptyProfile: BusinessProfile = {
     targetMarginBp: null,
   ownerName: null,
   signOffAs: "business",
+  signOffOther: null,
 };
 
 describe("what is missing before documents (South African rules, via the locale pack)", () => {

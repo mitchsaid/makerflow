@@ -12,10 +12,10 @@ import {
   QUOTE_SIGN_OFF_MAX,
   QUOTE_SIGN_OFF_MAX_LINES,
 } from "@/lib/quotes";
-import { isSignOffAs, type SignOffAs } from "@/lib/quotes/sign-off";
+import { isSignOffAs, parseSignOffOther, type SignOffAs } from "@/lib/quotes/sign-off";
 import { createClient } from "@/lib/supabase/server";
 
-export type WordingValues = { description: string; signOff: string; signOffAs: SignOffAs; paymentInstructions: string };
+export type WordingValues = { description: string; signOff: string; signOffAs: SignOffAs; signOffOther: string; paymentInstructions: string };
 export type WordingErrors = Partial<Record<Exclude<keyof WordingValues, "signOffAs">, string>>;
 export type WordingState =
   | { status: "idle" }
@@ -32,6 +32,7 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
     typeof values?.description !== "string" ||
     typeof values?.signOff !== "string" ||
     !isSignOffAs(values?.signOffAs) ||
+    typeof values?.signOffOther !== "string" ||
     typeof values?.paymentInstructions !== "string"
   ) {
     return { status: "error", message: "Something went wrong saving that. Please try again." };
@@ -42,6 +43,8 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
   if (!description.ok) errors.description = description.error;
   const signOff = optionalMultiline(values.signOff, QUOTE_SIGN_OFF_MAX, "The sign-off", QUOTE_SIGN_OFF_MAX_LINES);
   if (!signOff.ok) errors.signOff = signOff.error;
+  const other = parseSignOffOther(values.signOffAs, values.signOffOther);
+  if (!other.ok) errors.signOffOther = other.error;
   const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.paymentInstructions = payment.error;
   if (Object.keys(errors).length > 0 || !description.ok || !signOff.ok || !payment.ok) {
@@ -55,6 +58,7 @@ export async function saveQuoteWording(values: WordingValues): Promise<WordingSt
       default_description: description.value,
       default_sign_off: signOff.value,
       sign_off_as: values.signOffAs,
+      sign_off_other: other.ok ? other.value : null,
       payment_instructions: payment.value,
     })
     .eq("organisation_id", organisation.id)

@@ -424,7 +424,7 @@ export function buildQuoteSnapshot(input: {
     title: quote.title,
     description: quote.description,
     signOff: quote.signOff,
-    signOffName: signOffNameFor(quote.signOffAs ?? "business", business.name, business.ownerName ?? null),
+    signOffName: signOffNameFor(quote.signOffAs ?? "business", business.name, business.ownerName ?? null, quote.signOffOther ?? null),
     paymentInstructions: quote.paymentInstructions,
     bankDetails: bankLines(quote.showBankDetails ? input.bank : null, input.number, locale),
     deposit: depositFor(quote, locale),

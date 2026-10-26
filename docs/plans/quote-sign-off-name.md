@@ -47,6 +47,9 @@ One slice: the migration, the Business profile field, the usual, the quote's cho
 - Unit: the snapshot's name for each choice and for an old snapshot; the send check; the usual.
 - Browser: set the owner's name, choose it as the usual, a new quote starts with it, the preview prints it, *No name* prints the message alone, a sent quote keeps the name after it changes; the send hold without a name. Accessibility case for Quote settings › Wording and the Business profile.
 
+## Another name (founder, 2026-10-26)
+"Add 'other' (with text field) as an option for sign off." *Sign with* gains **Another name**, with *Name to sign with* under it (a studio name, "The Nkosi family"), in Quote settings › Wording and on each quote. The name is required with that choice (the error says so at the field) and dropped with any other. Data: `sign_off_as` gains `'other'`; `sign_off_other` on `business_profiles` and `quotes` (1–120 characters), never empty with that choice; `save_quote_draft` carries it with the choice. Migration `20261121100000_sign_off_other.sql` (needs human review).
+
 ## Questions for the founder
 None open.
 

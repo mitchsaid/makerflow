@@ -92,6 +92,7 @@ export default async function QuoteSettingsPage({ searchParams }: PageProps<"/ap
                 description: usuals.description,
                 signOff: usuals.signOff,
                 signOffAs: profile.signOffAs,
+                signOffOther: profile.signOffOther ?? "",
                 paymentInstructions: usuals.paymentInstructions,
               }}
             />

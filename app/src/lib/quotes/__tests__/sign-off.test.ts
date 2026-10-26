@@ -3,7 +3,7 @@ import { ZA_LOCALE } from "../../locale/za";
 import type { VatSettings } from "../../money";
 import { parseQuote, type QuoteFormValues } from "../index";
 import { sendProblems } from "../send-checks";
-import { NO_OWNER_NAME, parseOwnerName, signOffBlock, signOffChoiceLabels, signOffNameFor, type SignOffAs } from "../sign-off";
+import { NO_OWNER_NAME, parseOwnerName, parseSignOffOther, signOffBlock, signOffChoiceLabels, signOffNameFor, type SignOffAs } from "../sign-off";
 import { buildQuoteSnapshot } from "../snapshot";
 
 /** Who signs a quote (docs/plans/quote-sign-off-name.md). */
@@ -76,12 +76,14 @@ describe("who signs a quote", () => {
     expect(signOffNameFor("owner", "Sweet Co", "Thandi Nkosi")).toBe("Thandi Nkosi");
     expect(signOffNameFor("owner", "Sweet Co", null)).toBeNull();
     expect(signOffNameFor("none", "Sweet Co", "Thandi Nkosi")).toBeNull();
+    expect(signOffNameFor("other", "Sweet Co", "Thandi Nkosi", "The Nkosi family")).toBe("The Nkosi family");
   });
 
   it("names each choice with the name it gives", () => {
     expect(signOffChoiceLabels("Sweet Co", "Thandi Nkosi")).toEqual({
       business: "The business name (Sweet Co)",
       owner: "The owner's name (Thandi Nkosi)",
+      other: "Another name",
       none: "No name",
     });
     expect(signOffChoiceLabels("Sweet Co", null).owner).toBe("The owner's name");
@@ -121,7 +123,25 @@ describe("who signs a quote", () => {
     expect(parseOwnerName(42).ok).toBe(false);
   });
 
-  it("refuses a sign-off choice that is not one of the three", () => {
+  it("signs with another name when one is typed, asks for it when it is not, and drops it with any other choice", () => {
+    const parsed = parseQuote(form({ signOffAs: "other", signOffOther: "  The   Nkosi family " }), NOT_REGISTERED);
+    expect(parsed.ok && parsed.quote.signOffOther).toBe("The Nkosi family");
+    const empty = parseQuote(form({ signOffAs: "other", signOffOther: " " }), NOT_REGISTERED);
+    expect(!empty.ok && empty.errors.fields.signOffOther).toBe("Enter the name to sign with, or choose another option.");
+    const other = parseQuote(form({ signOffAs: "owner", signOffOther: "The Nkosi family" }), NOT_REGISTERED);
+    expect(other.ok && other.quote.signOffOther).toBeNull();
+    expect(parseSignOffOther("other", "a".repeat(121)).ok).toBe(false);
+
+    const quote = parseQuote(form({ signOffAs: "other", signOffOther: "The Nkosi family" }), NOT_REGISTERED);
+    if (!quote.ok) throw new Error("should parse");
+    const snapshot = buildQuoteSnapshot({
+      quote: quote.quote, number: "QT-0001", version: 1, business: { ...business }, customer: null,
+      countryCode: "ZA", currencyCode: "ZAR", vat: NOT_REGISTERED, locale: ZA_LOCALE, bank: null,
+    });
+    expect(signOffBlock(snapshot)).toEqual({ message: "Yours in sweetness", name: "The Nkosi family" });
+  });
+
+  it("refuses a sign-off choice that is not one of the four", () => {
     const bad = { ...form(), signOffAs: "someone" } as unknown as QuoteFormValues;
     // The shape check refuses it, so a hand-built request cannot store it.
     return import("../index").then(({ isQuoteFormValues }) => {

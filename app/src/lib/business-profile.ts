@@ -24,6 +24,8 @@ export type BusinessProfile = {
   ownerName: string | null;
   /** Who a new quote is signed by: the business name, the owner's name or no name. Edited under Quote settings > Wording. */
   signOffAs: SignOffAs;
+  /** The name typed for "Another name", when that is how new quotes are signed. */
+  signOffOther: string | null;
   /** ISO country code (business_profiles.country_code): selects the locale pack. Not editable. */
   countryCode: string;
   /** ISO currency code. Not editable yet. */
@@ -53,7 +55,7 @@ export type BusinessProfile = {
 };
 
 /** What the Business details form edits (the quote wording has its own form). */
-export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents" | "targetMarginBp" | "signOffAs">;
+export type BusinessDetails = Omit<BusinessProfile, "defaultSignOff" | "defaultDescription" | "paymentInstructions" | "businessTypes" | "defaultDepositKind" | "defaultDepositValue" | "defaultDiscountKind" | "defaultDiscountValue" | "usualFulfilment" | "logoImageId" | "labourRateCents" | "targetMarginBp" | "signOffAs" | "signOffOther">;
 
 export type FieldName =
   | "name"
