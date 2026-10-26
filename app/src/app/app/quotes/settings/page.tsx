@@ -86,7 +86,7 @@ export default async function QuoteSettingsPage({ searchParams }: PageProps<"/ap
         panels={{
           wording: canEdit ? (
             <QuoteWordingForm
-              otherWaysHint={locale.payment.otherWaysHint}
+              paymentNotesHint={locale.payment.paymentNotesHint}
               signers={{ business: organisation.name, owner: profile.ownerName }}
               initial={{
                 description: usuals.description,

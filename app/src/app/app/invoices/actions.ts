@@ -68,6 +68,7 @@ export async function issueInvoice(quoteId: string, values: InvoiceFormValues): 
     business: { name: organisation.name, ...profile },
     customer,
     bank: workspace.bankDetails,
+    paymentMethods: workspace.paymentMethods,
   });
 
   let admin;

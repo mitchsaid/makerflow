@@ -60,6 +60,7 @@ export async function prepareInvoiceDraft(
     vat,
     locale,
     bank: workspace.bankDetails,
+    paymentMethods: workspace.paymentMethods,
     productPhotos,
     choicePhotos,
     theme: resolveTheme(chosen.spec, chosen.name),
@@ -73,6 +74,7 @@ export async function prepareInvoiceDraft(
     business,
     customer,
     bank: workspace.bankDetails,
+    paymentMethods: workspace.paymentMethods,
     quoteNumber: quote?.number ?? null,
   });
   const problems = invoiceProblems({

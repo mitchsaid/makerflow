@@ -107,6 +107,8 @@ begin
   -- An invoice draft (private working state) goes with the business.
   insert into public.invoice_drafts (organisation_id, customer_id, form) values (org_a, cust, '{"lines": []}'::jsonb);
   assert (select count(*) from public.invoice_drafts where organisation_id = org_a) = 1, 'no invoice draft';
+  -- A saved way to pay goes with the business.
+  insert into public.payment_methods (organisation_id, kind, name, details) values (org_a, 'link', 'Pay by card', '{"url":"https://pay.example.test/x"}');
 
   ----------------------------------------------------------------------
   -- Server only

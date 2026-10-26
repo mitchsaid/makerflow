@@ -68,7 +68,7 @@ export async function openMore(page: Page) {
   await expect(page.getByRole("heading", { name: "More", level: 1 })).toBeVisible();
 }
 
-export type BusinessTab = "Details" | "Logo" | "Bank details";
+export type BusinessTab = "Details" | "Logo" | "Ways to pay";
 
 /** The Business profile, on its Details tab or the one asked for. */
 export async function openBusinessProfile(page: Page, tab?: BusinessTab) {

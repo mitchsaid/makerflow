@@ -9,6 +9,7 @@ import type { QuoteSnapshot, SnapshotDiscount } from "../snapshot";
 import { vatView } from "../vat-view";
 import { extrasView, itemName, quantityPriceNote } from "../line-text";
 import { signOffBlock } from "../sign-off";
+import { howToPayGroups } from "../../payments/groups";
 
 /**
  * The quote as an A4 document, drawn from a snapshot and from nothing else (see snapshot.ts).
@@ -104,7 +105,7 @@ export function QuoteDocument({
   const vat = vatView(s);
   const inclusive = s.vat.registered && s.vat.entry === "inclusive";
   const exclusive = s.vat.registered && s.vat.entry === "exclusive";
-  const columns = s.bankDetails ? splitInTwo(s.bankDetails) : [];
+  const payGroups = howToPayGroups(s);
   const photoOf = (l: QuoteSnapshot["lines"][number]) => (l.photoImageId ? (images?.get(l.photoImageId) ?? null) : null);
   // When any item has a photo, every item keeps a photo-sized space so the names line up.
   const anyPhoto = s.lines.some((l) => photoOf(l) !== null);
@@ -536,24 +537,32 @@ export function QuoteDocument({
             </Text>
           ) : null}
 
-          {s.bankDetails && s.bankDetails.length > 0 ? (
+          {payGroups.length > 0 ? (
             <View style={styles.section}>
-              {/* The label, its rows and the other ways to pay stay together: a short block that never splits across pages. */}
+              {/* The label, its rows and the payment notes stay together: a short block that never splits across pages. */}
               <View wrap={false}>
                 <Text style={styles.sectionLabel}>How to pay</Text>
-                {/* Two columns when there are more than three short lines, so the block stays short. */}
-                <View style={styles.bankColumns}>
-                  {columns.map((column, c) => (
-                    <View key={c} style={columns.length > 1 ? styles.bankColumn : styles.bankColumnFull}>
-                      {column.map((line, i) => (
-                        <View key={i} style={styles.bankRow}>
-                          <Text style={styles.bankLabel}>{line.label}</Text>
-                          <Text style={styles.bankValue}>{line.value}</Text>
-                        </View>
-                      ))}
+                {payGroups.map((group, g) => {
+                  // The bank account in two columns when there are more than three short lines, so the block stays short.
+                  const columns = group.bank ? splitInTwo(group.lines) : [group.lines];
+                  return (
+                    <View key={g} style={g > 0 ? styles.payGroup : undefined}>
+                      {group.name ? <Text style={styles.payGroupName}>{group.name}</Text> : null}
+                      <View style={styles.bankColumns}>
+                        {columns.map((column, c) => (
+                          <View key={c} style={columns.length > 1 ? styles.bankColumn : styles.bankColumnFull}>
+                            {column.map((line, i) => (
+                              <View key={i} style={styles.bankRow}>
+                                <Text style={styles.bankLabel}>{line.label}</Text>
+                                <Text style={styles.bankValue}>{line.value}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                  ))}
-                </View>
+                  );
+                })}
                 {s.paymentInstructions ? <Text style={styles.payOther}>{s.paymentInstructions}</Text> : null}
               </View>
             </View>

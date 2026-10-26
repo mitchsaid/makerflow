@@ -107,6 +107,7 @@ function buildSample(workspace: Workspace, products: readonly ProductSummary[]):
     vat,
     locale,
     bank: workspace.bankDetails,
+    paymentMethods: workspace.paymentMethods,
   });
   return {
     ...snapshot,

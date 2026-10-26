@@ -127,10 +127,12 @@ export type QuoteFormValues = {
   description: string;
   /** "Yours in sweetness": closes the document. Optional. */
   signOff: string;
-  /** "Other ways to pay" (the country's other methods, a reference, or pay on collection). Optional. Prints under the bank details. */
+  /** "Payment notes": a line for this quote only ("Please pay within 7 days"). Optional. Prints under the ways to pay. */
   paymentInstructions: string;
   /** Show the business's bank details on this quote (when it has saved them). */
   showBankDetails: boolean;
+  /** The saved ways to pay the maker unticked on this quote (ids). An older app does not send it: the draft keeps its list. */
+  hiddenPaymentMethods?: string[];
   /** Show each product's photo beside its item. On unless switched off. */
   showPhotos: boolean;
   /** Say under an item that a quantity price set its price. Off unless switched on. */
@@ -238,6 +240,8 @@ export type ParsedQuote = {
   signOff: string | null;
   paymentInstructions: string | null;
   showBankDetails: boolean;
+  /** Undefined when an older app saved the quote: the draft keeps its list. */
+  hiddenPaymentMethods: string[] | undefined;
   /** Show each product's photo beside its item. Undefined when an older app saved the quote: the draft keeps its setting. */
   showPhotos: boolean | undefined;
   /** Say under an item that a quantity price set its price. Undefined when an older app saved the quote: the draft keeps its setting. */
@@ -289,6 +293,7 @@ export function isQuoteFormValues(value: unknown): value is QuoteFormValues {
   if (v.terms !== undefined && typeof v.terms !== "string") return false;
   // A phone still running an older version of the app does not send it: that means on.
   if (v.showBankDetails !== undefined && typeof v.showBankDetails !== "boolean") return false;
+  if (v.hiddenPaymentMethods !== undefined && !(Array.isArray(v.hiddenPaymentMethods) && v.hiddenPaymentMethods.length <= 20 && v.hiddenPaymentMethods.every((id) => typeof id === "string" && UUID.test(id)))) return false;
   if (v.showPhotos !== undefined && typeof v.showPhotos !== "boolean") return false;
   if (v.showQuantityPrices !== undefined && typeof v.showQuantityPrices !== "boolean") return false;
   if (v.signOffAs !== undefined && !isSignOffAs(v.signOffAs)) return false;
@@ -622,7 +627,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
   // Only a delivery shows the box, so only then can a too-long address be refused (it could not be fixed
   // otherwise). A quote that isn't a delivery drops one that is too long: it would never be printed.
   if (!deliveryAddress.ok && values.fulfilment === "delivery") errors.fields.deliveryAddress = deliveryAddress.error;
-  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Other ways to pay", QUOTE_PAYMENT_MAX_LINES);
+  const payment = optionalMultiline(values.paymentInstructions, QUOTE_PAYMENT_MAX, "Payment notes", QUOTE_PAYMENT_MAX_LINES);
   if (!payment.ok) errors.fields.paymentInstructions = payment.error;
 
   const deposit = parseDeposit(values, values.issueDate);
@@ -716,6 +721,7 @@ export function parseQuote(values: QuoteFormValues, vat: VatSettings): ParseQuot
       signOff: signOff.value,
       paymentInstructions: payment.value,
       showBankDetails: values.showBankDetails !== false,
+      hiddenPaymentMethods: Array.isArray(values.hiddenPaymentMethods) ? [...new Set(values.hiddenPaymentMethods)] : undefined,
       showPhotos: typeof values.showPhotos === "boolean" ? values.showPhotos : undefined,
       showQuantityPrices: typeof values.showQuantityPrices === "boolean" ? values.showQuantityPrices : undefined,
       signOffAs: isSignOffAs(values.signOffAs) ? values.signOffAs : undefined,
@@ -797,6 +803,8 @@ export function toDatabasePayload(
       sign_off: quote.signOff,
       payment_instructions: quote.paymentInstructions,
       show_bank_details: quote.showBankDetails,
+      // Absent (not empty) when an older app did not send it, so the draft keeps its list.
+      ...(quote.hiddenPaymentMethods === undefined ? {} : { hidden_payment_methods: quote.hiddenPaymentMethods }),
       // Absent (not false) when an older app did not send it, so the draft keeps its setting.
       ...(quote.showPhotos === undefined ? {} : { show_photos: quote.showPhotos }),
       ...(quote.showQuantityPrices === undefined ? {} : { show_quantity_prices: quote.showQuantityPrices }),

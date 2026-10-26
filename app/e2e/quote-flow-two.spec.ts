@@ -124,22 +124,22 @@ test("the balance can be due 'another time', in the maker's own words, and it pr
   await expect(page.getByLabel("When is the balance due?")).toHaveCount(0);
 });
 
-test("How to pay says what each part is: bank details, then notes about paying", async ({ page }) => {
+test("How to pay lists the ways to pay, then notes about paying", async ({ page }) => {
   await signUpAndOnboard(page, "qf2-pay", "Pay Co");
   await page.goto("/app/quotes/new");
   const pay = page.getByRole("group", { name: "How to pay" });
 
-  // Two parts, named: the bank details (with the way to add them), then free notes.
-  await expect(pay.getByRole("heading", { name: "Bank details", level: 3 })).toBeVisible();
-  await expect(pay.getByRole("button", { name: "Add bank details" })).toBeVisible();
-  const notes = pay.getByLabel("Other ways to pay (optional)");
+  // The ways to pay (with the way to add one), then free notes.
+  await expect(pay.getByText("No ways to pay yet")).toBeVisible();
+  await expect(pay.getByRole("button", { name: "Add a way to pay" })).toBeVisible();
+  const notes = pay.getByLabel("Payment notes (optional)");
   await expect(notes).toBeVisible();
-  await expect(pay.getByText(/Printed under your bank details, like/)).toBeVisible();
+  await expect(pay.getByText("Only for this quote, like “Please pay within 7 days”.")).toBeVisible();
   // The old name, which read as a note about the bank details, is gone.
   await expect(page.getByText("Notes about paying")).toHaveCount(0);
-  // The notes come after the bank details.
-  const [bankY, notesY] = [await pay.getByRole("heading", { name: "Bank details" }).boundingBox(), await notes.boundingBox()];
-  expect(notesY!.y).toBeGreaterThan(bankY!.y);
+  // The notes come after the ways to pay.
+  const [addY, notesY] = [await pay.getByRole("button", { name: "Add a way to pay" }).boundingBox(), await notes.boundingBox()];
+  expect(notesY!.y).toBeGreaterThan(addY!.y);
 });
 
 test("the first New quote goes straight to the form: no setup questions", async ({ page }) => {

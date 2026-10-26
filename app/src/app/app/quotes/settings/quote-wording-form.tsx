@@ -17,11 +17,11 @@ import { FormErrorScope } from "@/components/form-errors";
  */
 export function QuoteWordingForm({
   initial,
-  otherWaysHint,
+  paymentNotesHint,
   signers,
 }: {
   initial: WordingValues;
-  otherWaysHint: string;
+  paymentNotesHint: string;
   /** The names a quote can be signed with: the business's, and the owner's when one is saved. */
   signers: { business: string; owner: string | null };
 }) {
@@ -37,7 +37,7 @@ export function QuoteWordingForm({
       ["wordingDescription", "Intro", errors.description],
       ["wordingSignOff", "Sign-off", errors.signOff],
       ["wordingSignOffOther", "Name to sign with", errors.signOffOther],
-      ["wordingPayment", "Other ways to pay", errors.paymentInstructions],
+      ["wordingPayment", "Payment notes", errors.paymentInstructions],
     ] as const
   ).flatMap(([fieldId, label, message]) => (message ? [{ fieldId, label, message }] : []));
 
@@ -134,8 +134,8 @@ export function QuoteWordingForm({
         <TextAreaField
           id="wordingPayment"
           name="paymentInstructions"
-          label="Other ways to pay (optional)"
-          hint={`Printed under your bank details, like ${otherWaysHint}`}
+          label="Payment notes (optional)"
+          hint={paymentNotesHint}
           value={values.paymentInstructions}
           error={errors.paymentInstructions}
           onChange={set("paymentInstructions")}

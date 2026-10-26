@@ -8,7 +8,8 @@ import Link from "next/link";
 import { OptionalTag, Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { termName, type PolicyPackContent, type PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";
-import { BankDetailsSection } from "./bank-details-section";
+import { PaymentWaysSection } from "./payment-ways-section";
+import type { PaymentWayView } from "@/lib/payments";
 import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DeliverySection } from "./delivery-section";
@@ -89,6 +90,7 @@ export function QuoteBuilder({
   policyContent,
   canManagePolicies,
   bankDetails: initialBankDetails,
+  paymentWays: initialPaymentWays,
   canEditBankDetails,
   usuals: initialUsuals,
   canSaveUsuals,
@@ -129,7 +131,9 @@ export function QuoteBuilder({
   canManagePolicies: boolean;
   /** Which bank account is saved (never the whole number), or null when none is. */
   bankDetails: BankPreview | null;
-  /** Only the owner can add bank details (from the quote or the Business profile). */
+  /** The saved ways to pay besides the bank account. */
+  paymentWays: PaymentWayView[];
+  /** Only the owner can add ways to pay (from the quote or the Business profile). */
   canEditBankDetails: boolean;
   /** What a new quote starts with, so "Save as my usual" and "Use my usual" know what differs. */
   usuals: QuoteUsuals;
@@ -235,6 +239,7 @@ export function QuoteBuilder({
   const margins = lineMargins(values, totals, vat, products, costSettings);
   const [policyLibrary, setPolicyLibrary] = useState(initialPolicyLibrary);
   const [bankDetails, setBankDetails] = useState(initialBankDetails);
+  const [paymentWays, setPaymentWays] = useState(initialPaymentWays);
   // What new quotes start with; saving one from here moves it.
   const [usuals, setUsuals] = useState(initialUsuals);
   // The sign-off as a whole (the message and who signs), compared with the usual one.
@@ -400,7 +405,7 @@ export function QuoteBuilder({
     }
   }
   if (f.paymentInstructions) {
-    problems.push({ fieldId: "paymentInstructions", label: "Other ways to pay", message: f.paymentInstructions });
+    problems.push({ fieldId: "paymentInstructions", label: "Payment notes", message: f.paymentInstructions });
   }
   if (f.notes) problems.push({ fieldId: "notes", label: "Notes", message: f.notes });
   if (f.signOff) problems.push({ fieldId: "signOff", label: "Message", message: f.signOff });
@@ -851,27 +856,31 @@ export function QuoteBuilder({
         newKey={newKey}
       />
 
-      <BankDetailsSection
+      <PaymentWaysSection
+        document="quote"
         bank={bankDetails}
         countryCode={countryCode}
         canEdit={canEditBankDetails}
-        show={values.showBankDetails}
-        onShowChange={(showBankDetails) => update({ showBankDetails })}
+        showBank={values.showBankDetails}
+        onShowBankChange={(showBankDetails) => update({ showBankDetails })}
+        ways={paymentWays}
+        hidden={values.hiddenPaymentMethods ?? []}
+        onHiddenChange={(hiddenPaymentMethods) => update({ hiddenPaymentMethods })}
         onBankSaved={setBankDetails}
+        onWayAdded={(way) => setPaymentWays((list) => [...list, way])}
       >
         <TextAreaField
           id="paymentInstructions"
-          label="Other ways to pay (optional)"
-          hint={`Printed under your bank details, like ${getLocalePack(countryCode).payment.otherWaysHint}`}
+          label="Payment notes (optional)"
+          hint={getLocalePack(countryCode).payment.paymentNotesHint}
           value={values.paymentInstructions}
           error={f.paymentInstructions}
           onChange={(paymentInstructions) => update({ paymentInstructions })}
           maxLength={1000}
         />
         <UseOnNewQuotes
-          label="Use these ways to pay on new quotes"
-          what="ways to pay"
-          plural
+          label="Use this note on new quotes"
+          what="payment note"
           valueKey={values.paymentInstructions}
           canEdit={canSaveUsuals}
           show={normaliseText(values.paymentInstructions) !== ""}
@@ -887,7 +896,7 @@ export function QuoteBuilder({
             update({ paymentInstructions: usuals.paymentInstructions });
           }}
         />
-      </BankDetailsSection>
+      </PaymentWaysSection>
 
       <Section title="Notes for your customer" tag={<OptionalTag />}>
         <TextAreaField

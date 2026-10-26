@@ -29,6 +29,7 @@ export async function renderStatementPdf(data: StatementDocumentData, options: {
     customer: cleanParty(data.customer),
     statement: { ...data.statement, entries: data.statement.entries.map((e) => ({ ...e, description: drawable(e.description) })) },
     bank: data.bank.map((b) => ({ ...b, label: drawable(b.label), value: drawable(b.value) })),
+    ways: data.ways?.map((w) => ({ name: drawable(w.name), lines: w.lines.map((l) => ({ label: drawable(l.label), value: drawable(l.value) })) })),
   };
   const document = StatementDocument({ data: clean, logo: options.logo });
   return renderToBuffer(document as ReactElement<DocumentProps>);

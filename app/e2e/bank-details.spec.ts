@@ -17,8 +17,8 @@ async function fillBank(page: Page, scope: ReturnType<Page["locator"]> | Page, o
 
 test("the owner saves bank details in the Business profile, checked for this country", async ({ page }) => {
   await signUpAndOnboard(page, "bank-profile", "Sweet Co");
-  await openBusinessProfile(page, "Bank details");
-  const bank = page.getByRole("group", { name: "Bank details" });
+  await openBusinessProfile(page, "Ways to pay");
+  const bank = page.getByRole("group", { name: "EFT", exact: true });
   await expect(bank.getByRole("checkbox", { name: /document number as their payment reference/ })).toBeChecked();
 
   // Saving with nothing says how to fix each field, at the field and in a summary.
@@ -52,10 +52,12 @@ test("a quote shows the bank details by default, can leave them off, and the own
   await page.getByRole("link", { name: "Start your first quote" }).click();
 
   // None saved yet: the owner is offered to add them, in a sheet over the quote.
-  await expect(page.getByTestId("no-bank-details")).toContainText("No bank details yet");
+  await expect(page.getByTestId("no-bank-details")).toContainText("No ways to pay yet");
   await page.getByLabel("Intro (optional)").fill("Cake for Sarah");
-  await page.getByRole("button", { name: "Add bank details" }).click();
-  await expect(sheet(page)).toHaveAccessibleName("Add bank details");
+  await page.getByRole("button", { name: "Add a way to pay" }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add a way to pay");
+  await sheet(page).getByRole("button", { name: /^EFT/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add EFT");
   await sheet(page).getByRole("button", { name: "Save bank details" }).click();
   await expect(sheet(page).getByTestId("form-summary")).toBeVisible();
   await fillBank(page, sheet(page));
@@ -64,11 +66,11 @@ test("a quote shows the bank details by default, can leave them off, and the own
   // Back on the quote with nothing lost, and the details on by default.
   await expect(page.getByLabel("Intro (optional)")).toHaveValue("Cake for Sarah");
   await expect(page.getByTestId("bank-summary")).toHaveText("FNB, ending 6789");
-  await expect(page.getByRole("checkbox", { name: /Show my bank details on this quote/ })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /Show EFT on this quote/ })).toBeChecked();
 
   await fillItem(page, 1, "Cake", "1", "500");
   await addCustomerInSheet(page, "Sarah");
-  await page.getByLabel("Other ways to pay (optional)").fill("SnapScan also works");
+  await page.getByLabel("Payment notes (optional)").fill("SnapScan also works");
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   const text = page.getByRole("region", { name: "The quote as text" });
@@ -81,7 +83,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
 
   // The switch on this quote leaves them off, and the notes about paying still print.
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await page.getByRole("checkbox", { name: /Show my bank details on this quote/ }).uncheck();
+  await page.getByRole("checkbox", { name: /Show EFT on this quote/ }).uncheck();
   await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
   await expect(page.getByTestId("pdf-page").first()).toBeVisible();
   await expect(text).not.toContainText("62123456789");
@@ -89,7 +91,7 @@ test("a quote shows the bank details by default, can leave them off, and the own
 
   // A new quote starts with them on again.
   await page.goto("/app/quotes/new");
-  await expect(page.getByRole("checkbox", { name: /Show my bank details on this quote/ })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /Show EFT on this quote/ })).toBeChecked();
 });
 
 test("a sent quote keeps the bank details it showed when they change later", async ({ page }) => {
@@ -98,8 +100,8 @@ test("a sent quote keeps the bank details it showed when they change later", asy
   await page.getByLabel("Phone", { exact: true }).fill("011 555 0101");
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
-  await businessTab(page, "Bank details");
-  const bank = page.getByRole("group", { name: "Bank details" });
+  await businessTab(page, "Ways to pay");
+  const bank = page.getByRole("group", { name: "EFT", exact: true });
   await fillBank(page, bank);
   await page.getByRole("button", { name: "Save bank details" }).click();
   await expect(page.getByText(/Last changed /)).toBeVisible();
@@ -116,8 +118,8 @@ test("a sent quote keeps the bank details it showed when they change later", asy
   const quoteUrl = page.url().split("?")[0];
 
   // The owner changes the account afterwards.
-  await openBusinessProfile(page, "Bank details");
-  await fillBank(page, page.getByRole("group", { name: "Bank details" }), { "Bank name": "Capitec", "Account number": "1234567890" });
+  await openBusinessProfile(page, "Ways to pay");
+  await fillBank(page, page.getByRole("group", { name: "EFT", exact: true }), { "Bank name": "Capitec", "Account number": "1234567890" });
   await page.getByRole("button", { name: "Save bank details" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." }).last()).toBeVisible();
 

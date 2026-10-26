@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { BusinessProfile } from "@/lib/business-profile";
 import { businessTypesFromRow } from "@/lib/business-types";
 import { bankFromRow, type BankDetails, type BankRow } from "@/lib/bank";
+import { paymentMethodFromRow, sortPaymentMethods, type PaymentMethod, type PaymentMethodRow } from "@/lib/payments";
 import { DEFAULT_COUNTRY_CODE, getLocalePack } from "@/lib/locale";
 import { isSignOffAs } from "@/lib/quotes/sign-off";
 
@@ -27,6 +28,8 @@ export type Workspace = {
   profile: BusinessProfile;
   /** The business's bank details (one account), or null when none are saved. Everyone in the business can read them. */
   bankDetails: BankDetails | null;
+  /** The ways to pay besides the bank account, oldest first. Everyone in the business can read them. */
+  paymentMethods: PaymentMethod[];
   /** Friendly prompts this person has dismissed in this business (their own only). */
   dismissedPrompts: string[];
 };
@@ -102,6 +105,7 @@ type OrganisationRow = {
   name: string;
   business_profiles: ProfileRow | ProfileRow[] | null;
   business_bank_details: BankRow | BankRow[] | null;
+  payment_methods: PaymentMethodRow[] | null;
   prompt_dismissals: { prompt_key: string }[] | null;
 };
 type MembershipRow = { role: string; organisations: OrganisationRow | OrganisationRow[] | null };
@@ -134,6 +138,9 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
          ),
          business_bank_details (
            country_code, details, use_reference, updated_at
+         ),
+         payment_methods (
+           id, kind, name, details, on_new_quotes, sort_order, created_at, updated_at
          ),
          prompt_dismissals ( prompt_key )
        )`,
@@ -191,6 +198,12 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       targetMarginBp: p?.target_margin_bp == null ? null : Number(p.target_margin_bp),
     },
     bankDetails: bankFromRow(one(org.business_bank_details), getLocalePack(countryCode)),
+    paymentMethods: sortPaymentMethods(
+      (org.payment_methods ?? []).flatMap((row) => {
+        const method = paymentMethodFromRow(row, getLocalePack(countryCode));
+        return method ? [method] : [];
+      }),
+    ),
     dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),
   };
 });

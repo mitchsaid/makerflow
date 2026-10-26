@@ -170,6 +170,7 @@ type QuoteRow = {
   sign_off: string | null;
   payment_instructions: string | null;
   show_bank_details: boolean;
+  hidden_payment_methods: string[] | null;
   show_photos: boolean;
   show_quantity_prices: boolean;
   sign_off_as: string;
@@ -217,6 +218,8 @@ export type StoredQuote = {
   paymentInstructions: string | null;
   /** Show the business's bank details on this quote. */
   showBankDetails: boolean;
+  /** The saved ways to pay unticked on this quote (ids). */
+  hiddenPaymentMethods: string[];
   /** Show each product's photo beside its item. */
   showPhotos: boolean;
   /** Say under an item that a quantity price set its price. */
@@ -335,7 +338,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     .select(
       `id, organisation_id, number, version, updated_at, customer_id, status, issue_date,
        valid_until, needed_by, delivery_address, quote_discount_kind, quote_discount_value, notes,
-       title, description, sign_off, payment_instructions, show_bank_details, show_photos, show_quantity_prices, sign_off_as, sign_off_other, theme_id, theme_starter,
+       title, description, sign_off, payment_instructions, show_bank_details, hidden_payment_methods, show_photos, show_quantity_prices, sign_off_as, sign_off_other, theme_id, theme_starter,
        deposit_kind, deposit_value, balance_due, balance_due_date, balance_due_text, policies,
        quote_lines (
          id, sort_order, kind, product_id, name, description, quantity_milli, unit, unit_price_cents,
@@ -377,6 +380,7 @@ export async function findStoredQuote(id: string): Promise<StoredQuote | null> {
     signOff: row.sign_off,
     paymentInstructions: row.payment_instructions,
     showBankDetails: row.show_bank_details,
+    hiddenPaymentMethods: row.hidden_payment_methods ?? [],
     showPhotos: row.show_photos,
     showQuantityPrices: row.show_quantity_prices,
     signOffAs: isSignOffAs(row.sign_off_as) ? row.sign_off_as : "business",

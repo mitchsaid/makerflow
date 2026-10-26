@@ -1,7 +1,7 @@
 # Ways to pay: more than bank details and a note
 
 ## Status
-**Planned, 2026-10-26; waiting for the founder's answers (section "Questions").** Founder: "How to pay needs some restructuring. I think there may be multiple options, eg. paying by scanning a QR code or other methods. Right now it's just add bank details and notes."
+**Slice 1 built 2026-10-26 (the list, the words, the document, the PDF and the statement); the QR picture (slice 2) is next.** The founder answered the questions (section "Answers"). Founder: "How to pay needs some restructuring. I think there may be multiple options, eg. paying by scanning a QR code or other methods. Right now it's just add bank details and notes."
 
 Touches the database (a new table, a new kind of picture, the quote and invoice snapshots), the money details printed on customer documents and a security-sensitive setting (where customers send money), so it needs human review.
 
@@ -80,11 +80,18 @@ Inputs by kind: names and instructions are text; the QR is a picture (`ImageFiel
 - Unit: the pack's types and fields, the snapshot lines for each type, a quote with some ways unticked, an older snapshot.
 - Browser: add a way from the Business profile and from a quote; untick one on a quote; the preview and the sent quote print the chosen ways; a sent quote keeps what it showed after a way changes; a QR upload (slice 2); accessibility cases for the tab, the section and the sheet.
 
-## Questions for the founder
-1. **Which ways should South Africa offer at launch?** My proposal: bank transfer, QR code (SnapScan, Zapper and similar), payment link, PayShap or mobile ID, pay on collection, something else. Anything to add or drop? Which do your makers actually use?
-2. **QR as an uploaded picture first** (a link-drawn QR later). Agreed?
-3. **Should the same list also go on invoices from the first slice,** or one document at a time (quotes first)?
-4. **Is the rename of the box to *Payment note* right,** with "Other ways to pay" now meaning the saved list?
+## Answers (founder, 2026-10-26)
+1. **The South African list is fine** (EFT, QR code, payment link, PayShap or mobile ID, pay on collection, something else). **A bank transfer is called "EFT"** on screens and documents (`payment.bankTransferName` in the pack). The names and rules of each provider are still not checked against a source: the fields are plain text and only the payment link is checked (a whole https address).
+2. **QR as an uploaded picture first.** In slice 1 the QR code is listed in the add sheet as *Coming soon* and cannot be picked.
+3. **The same list and component on invoices.** The *How to pay* section (`PaymentWaysSection`) takes `document="quote" | "invoice"`. The invoice form has no How to pay section today (an invoice shows the ways its quote showed), so slice 1 puts the ways on the invoice document (current details of the ways the quote showed, matched by id) and on the statement; a section on the invoice form comes with the invoice wording settings.
+4. **The box is renamed *Payment notes*** (a line for this quote only). Its usual keeps its "Use this note on new quotes" link.
+
+## What was built in slice 1
+- `payment_methods` (owners write, members read, at most 20 a business, the restrictive `session_required` policy; `supabase/tests/payment_methods.test.sql`), `quotes.hidden_payment_methods` carried by `save_quote_draft` (a payload without the key keeps the draft's).
+- The pack's `payment.waysToPay` (kind, label, description, default name, available, fields), `bankTransferName`, `paymentNotesHint`; `lib/payments` (parse, lines, summaries, snapshots, invoice ways); `lib/payments/groups.ts` (what *How to pay* prints).
+- Business profile › **Ways to pay** (was *Bank details*; `?section=bank` still opens it): the EFT form, a card for each other way (change, remove after a question), *Add a way to pay* (kind first, then its details, in a sheet).
+- On a quote: each saved way with a tick, *Add a way to pay* for owners (the same sheet), *Payment notes*. New quotes start with the ways not kept off new quotes ticked. The document, the PDF and the statement print a block per way, with the EFT named only when other ways are shown too.
+- Sent documents keep their own copy of each way (`snapshot.paymentMethods`, with ids).
 
 ## Not planned yet
 Several bank accounts; checking a payment against the bank; taking the payment inside MakerFlow (needs a payment provider, and is a separate decision in `docs/product-brief.md`); a re-authentication step before changing where money goes.

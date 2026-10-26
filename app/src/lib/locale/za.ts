@@ -2,7 +2,7 @@ import type { PolicyPackContent } from "../policies/examples";
 import { formatPercent, type NumberStyle } from "../money/format";
 import type { BasisPoints } from "../money/primitives";
 import type { ValidationResult } from "../validation";
-import type { AddressParts, BankField, ContactFacts, LocalePack, ProfileField } from "./types";
+import type { AddressParts, BankField, ContactFacts, LocalePack, ProfileField, WayToPayKind } from "./types";
 
 /**
  * The South African locale pack (country code ZA). Applies ONLY to businesses whose
@@ -84,6 +84,114 @@ export function validateBranchCode(input: unknown): ValidationResult<string> {
   }
   return { ok: true, value };
 }
+
+/** A web address a customer can open to pay: https only, as typed from the provider's page. */
+export function validatePaymentLink(input: unknown): ValidationResult<string> {
+  const value = typeof input === "string" ? input.trim() : "";
+  let url: URL | null = null;
+  try {
+    url = new URL(value);
+  } catch {
+    url = null;
+  }
+  if (!url || url.protocol !== "https:" || !url.hostname.includes(".") || /\s/.test(value)) {
+    return { ok: false, error: "Enter the whole web address, starting with https://. Copy it from your payment provider." };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * The ways to pay a South African maker offers besides an EFT. The list is a proposal from the founder's brief (SnapScan,
+ * Zapper and similar apps give a QR; payment links come from card providers; PayShap is the bank-to-bank instant payment
+ * by number or ID): the names and rules of each provider have not been checked against a source, so the fields stay
+ * plain text and nothing is validated beyond the web address being https.
+ */
+const ZA_WAYS_TO_PAY: readonly WayToPayKind[] = [
+  {
+    kind: "qr",
+    label: "QR code",
+    description: "A code from your payment app (SnapScan, Zapper) that a customer scans.",
+    defaultName: "Scan to pay",
+    available: false,
+    fields: [],
+  },
+  {
+    kind: "link",
+    label: "Payment link",
+    description: "A web page where a customer pays by card or wallet.",
+    defaultName: "Pay online",
+    available: true,
+    fields: [
+      {
+        key: "url",
+        label: "Web address",
+        hint: "Starts with https://. Copy it from your payment provider.",
+        required: true,
+        options: null,
+        inputMode: "text",
+        maxLength: 300,
+        validate: validatePaymentLink,
+      },
+    ],
+  },
+  {
+    kind: "mobile-id",
+    label: "PayShap or mobile payment ID",
+    description: "A number or ID a customer pays to from their banking app.",
+    defaultName: "PayShap",
+    available: true,
+    fields: [
+      {
+        key: "id",
+        label: "PayShap ID or number",
+        hint: null,
+        required: true,
+        options: null,
+        inputMode: "text",
+        maxLength: 60,
+        validate: requiredText("The PayShap ID or number", 60),
+      },
+    ],
+  },
+  {
+    kind: "collection",
+    label: "Pay on collection",
+    description: "The customer pays you in person, by cash or card.",
+    defaultName: "Pay on collection",
+    available: true,
+    fields: [
+      {
+        key: "words",
+        label: "What to tell the customer",
+        hint: null,
+        required: false,
+        options: null,
+        inputMode: "text",
+        maxLength: 200,
+        validate: requiredText("The words", 200),
+      },
+    ],
+  },
+  {
+    kind: "other",
+    label: "Something else",
+    description: "Any other way, in your own words.",
+    defaultName: "",
+    available: true,
+    fields: [
+      {
+        key: "words",
+        label: "Details",
+        hint: "What the customer should do.",
+        required: true,
+        options: null,
+        inputMode: "text",
+        maxLength: 200,
+        validate: requiredText("The details", 200),
+      },
+    ],
+  },
+];
 
 /**
  * Bank details for an EFT in South Africa: who holds the account, at which bank, what kind of
@@ -317,7 +425,9 @@ export const ZA_LOCALE: LocalePack = {
   },
   payment: {
     bankFields: ZA_BANK_FIELDS,
-    otherWaysHint: "SnapScan, PayShap, or “pay on collection”.",
+    bankTransferName: "EFT",
+    waysToPay: ZA_WAYS_TO_PAY,
+    paymentNotesHint: "Only for this quote, like “Please pay within 7 days”.",
     referenceLabel: "Reference",
     methods: { eft: "EFT or bank transfer", cash: "Cash", card: "Card", other: "Something else" },
     bankSummary,

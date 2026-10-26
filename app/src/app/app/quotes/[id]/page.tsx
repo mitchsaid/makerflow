@@ -27,6 +27,7 @@ import { formatMoney } from "@/lib/money";
 import { CREATE_JOB_NUDGE_PARAM, CREATE_JOB_PROMPT, jobNumberText, shouldNudgeCreateJob } from "@/lib/jobs";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
+import { paymentWayView } from "@/lib/payments";
 import { DesignSection } from "../design-section";
 import { PdfPreview } from "../pdf-preview";
 import { ChangeAnswerButton, OutcomeButtons, QuoteAgainButton, TurnIntoJob } from "../quote-outcome";
@@ -46,7 +47,7 @@ export default async function QuotePage({
 }: PageProps<"/app/quotes/[id]">) {
   const { id } = await params;
   // The quote and the customers load beside the workspace check, not after it.
-  const [quote, allCustomers, allProducts, allMaterials, allPolicies, { organisation, profile, role, bankDetails, dismissedPrompts }, query] = await Promise.all([
+  const [quote, allCustomers, allProducts, allMaterials, allPolicies, { organisation, profile, role, bankDetails, paymentMethods, dismissedPrompts }, query] = await Promise.all([
     getStoredQuote(id),
     getCustomersWithAddresses(),
     getProducts(),
@@ -110,6 +111,7 @@ export default async function QuotePage({
           policyContent={locale.policies}
           canManagePolicies={canEditBusinessProfile(role)}
           bankDetails={bankPreview(bankDetails, locale)}
+          paymentWays={paymentMethods.map((m) => paymentWayView(m, locale))}
           canEditBankDetails={canEditBankDetails(role)}
           usuals={usualsFromProfile(profile, locale.numberStyle)}
           canSaveUsuals={canEditBusinessProfile(role)}

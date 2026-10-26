@@ -23,7 +23,7 @@ test("the Business profile is three tabs, each with one full-width Save, and hol
   await signUpAndOnboard(page, "long-business", "Long Co");
   await openBusinessProfile(page);
   const tabs = page.getByRole("navigation", { name: "Business profile" });
-  await expect(tabs.getByRole("link")).toHaveText(["Details", "Logo", "Bank details"]);
+  await expect(tabs.getByRole("link")).toHaveText(["Details", "Logo", "Ways to pay"]);
   await expect(tabs.getByRole("link", { name: "Details", exact: true })).toHaveAttribute("aria-current", "page");
 
   // Details: the business, how to reach it, the address, VAT and what you make, with one Save.
@@ -44,16 +44,15 @@ test("the Business profile is three tabs, each with one full-width Save, and hol
   await expect(visibleSaves(page)).toHaveCount(1);
   await expect(visibleSaves(page)).toHaveAccessibleName("Save logo");
 
-  await businessTab(page, "Bank details");
-  await expect(page.getByRole("group", { name: "Bank details" })).toBeVisible();
-  await expect(visibleSaves(page)).toHaveCount(1);
-  await expect(visibleSaves(page)).toHaveAccessibleName("Save bank details");
+  await businessTab(page, "Ways to pay");
+  await expect(page.getByRole("group", { name: "EFT", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a way to pay" })).toBeVisible();
 
   // Back goes to the tab before; a link to a tab opens it.
   await page.goBack();
   await expect(page.getByRole("group", { name: "Your logo" })).toBeVisible();
   await page.goto("/app/business?section=bank");
-  await expect(page.getByRole("group", { name: "Bank details" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "EFT", exact: true })).toBeVisible();
 });
 
 test("Quote settings: terms and themes at the top, then Wording, Starting values and Numbers", async ({ page }) => {

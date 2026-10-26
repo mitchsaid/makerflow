@@ -7,6 +7,7 @@ import { vatView } from "@/lib/quotes/vat-view";
 import { extrasView, itemName, quantityPriceNote } from "@/lib/quotes/line-text";
 import { themeFromStored } from "@/lib/quotes/themes";
 import { signOffBlock } from "@/lib/quotes/sign-off";
+import { howToPayGroups } from "@/lib/payments/groups";
 
 /**
  * A sent quote on screen, drawn from its frozen snapshot only (the same data the PDF uses), so
@@ -22,6 +23,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
   const extras = (l: QuoteSnapshot["lines"][number]) =>
     extrasView(l, separate, money, quantityText(l.quantityMilli, null, s.numberStyle));
   const signOff = signOffBlock(s);
+  const payGroups = howToPayGroups(s);
   const rate = s.vat.rateBp !== null ? ` (${formatPercent(s.vat.rateBp, s.numberStyle)})` : "";
 
   return (
@@ -197,19 +199,24 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
           </div>
         )}
 
-        {((s.bankDetails && s.bankDetails.length > 0) || s.paymentInstructions) && (
+        {(payGroups.length > 0 || s.paymentInstructions) && (
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase text-muted-foreground">How to pay</p>
-            {s.bankDetails && s.bankDetails.length > 0 && (
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-base">
-                {s.bankDetails.map((line, i) => (
-                  <div key={i} className="contents">
-                    <dt className="text-muted-foreground">{line.label}</dt>
-                    <dd className="font-medium">{line.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
+            {payGroups.map((group, g) => (
+              <div key={g} className="space-y-0.5" data-testid="pay-group">
+                {group.name && <p className="text-base font-medium">{group.name}</p>}
+                {group.lines.length > 0 && (
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-base">
+                    {group.lines.map((line, i) => (
+                      <div key={i} className="contents">
+                        <dt className="text-muted-foreground">{line.label}</dt>
+                        <dd className="font-medium">{line.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            ))}
             {s.paymentInstructions && <p className="whitespace-pre-line text-base">{s.paymentInstructions}</p>}
           </div>
         )}
