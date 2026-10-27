@@ -363,6 +363,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home" }).click();
       await expect(page.getByTestId("home-count-late")).toHaveText("1");
       await expectNoViolations(page, "home, with job counts");
+      // Create new: the sheet that asks what to make.
+      await page.getByRole("button", { name: "Create new" }).click();
+      await expect(page.getByRole("dialog", { name: "Create new" })).toBeVisible();
+      await expectNoViolations(page, "home, create new sheet");
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await page.getByRole("link", { name: /J-0001/ }).click();

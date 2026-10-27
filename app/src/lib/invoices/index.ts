@@ -187,6 +187,9 @@ function compareNumbers(a: string, b: string): number {
 
 export type OwedTotals = { count: number; owingCents: number; overdueCents: number };
 
+/** Home's money: what is owed, and what was paid in the calendar month so far (net of reversals, never below 0). */
+export type HomeMoney = OwedTotals & { paidThisMonthCents: number };
+
 /**
  * What customers owe: the invoices with something left to pay, the total owing, and how much of it is overdue.
  * A business has one currency, so the amounts are added as they are.

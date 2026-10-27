@@ -43,5 +43,33 @@ test("with nothing owed, waiting or due, Home says so; money owed comes first, o
   await expect(page.getByTestId("paid-in-full")).toBeVisible();
   await nav(page).getByRole("link", { name: "Home" }).click();
   await expect(page.getByTestId("home-caught-up")).toContainText("You're all caught up");
-  await expect(page.getByTestId("home-money")).toHaveCount(0);
+  // Nothing is owing, but what came in this month is shown.
+  await expect(page.getByTestId("home-owing")).toHaveCount(0);
+  await expect(page.getByTestId("home-overdue")).toHaveCount(0);
+  await expect(page.getByTestId("home-paid")).toBeVisible();
+  await expect(page.getByTestId("home-money")).toContainText("Paid this month");
+});
+
+test("Create new on Home asks what to make: a quote, an invoice or a job, each straight to its form", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "home-create", "Create Co");
+  const create = page.getByRole("button", { name: "Create new" });
+  for (const [name, path, heading] of [
+    ["Quote", /\/app\/quotes\/new$/, "New quote"],
+    ["Invoice", /\/app\/invoices\/new$/, "New invoice"],
+    ["Job", /\/app\/jobs\/new$/, "New job"],
+  ] as const) {
+    await nav(page).getByRole("link", { name: "Home" }).click();
+    await expect(create).toBeVisible();
+    // (A tap before the page wakes up does nothing: tap until the sheet is open.)
+    await expect(async () => {
+      await create.click();
+      await expect(page.getByRole("dialog", { name: "Create new" })).toBeVisible({ timeout: 1_000 });
+    }).toPass();
+    const sheet = page.getByRole("dialog", { name: "Create new" });
+    await expect(sheet.getByRole("link")).toHaveText([/Quote/, /Invoice/, /Job/]);
+    await sheet.getByRole("link", { name }).click();
+    await expect(page).toHaveURL(path);
+    await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
+  }
 });

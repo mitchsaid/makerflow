@@ -94,6 +94,8 @@ test("the deposit is the first payment, the rest follows, and a mistake is rever
   await expect(page.getByTestId("home-owing")).toHaveText(rand("1 500"));
   // Nothing overdue: the tile is left out.
   await expect(page.getByTestId("home-overdue")).toHaveCount(0);
+  // What was paid so far this month is beside it.
+  await expect(page.getByTestId("home-paid")).toBeVisible();
   await page.getByTestId("home-owing").click();
   await expect(page.getByRole("heading", { name: "Invoices", level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Unpaid/ })).toHaveAttribute("aria-pressed", "true");

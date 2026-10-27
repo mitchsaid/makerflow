@@ -187,12 +187,13 @@ begin
   perform pg_temp.as_user(a);
   set local role authenticated;
   made := public.invoice_owed_totals(org_a, date '2026-10-01');
-  assert made = '{"count": 1, "owingCents": 75000, "overdueCents": 0}'::jsonb, 'the totals owed are wrong: ' || made::text;
+  assert made - 'paidThisMonthCents' = '{"count": 1, "owingCents": 75000, "overdueCents": 0}'::jsonb, 'the totals owed are wrong: ' || made::text;
   made := public.invoice_owed_totals(org_a, date '2026-12-01');
   assert (made ->> 'overdueCents')::bigint = 75000, 'the overdue amount is wrong';
   made := public.invoice_owed_totals(org_b, date '2026-10-01');
   assert (made ->> 'count')::integer = 0, 'another business''s invoices were counted';
   reset role;
+
 
   ----------------------------------------------------------------------
   -- Nobody writes directly, changes an entry or deletes one; only the server runs the functions
@@ -262,6 +263,32 @@ begin
   select count(*) into n from public.invoice_payments;
   assert n = 0, 'a login with no active session can read payments';
   reset role;
+
+  ----------------------------------------------------------------------
+  -- Paid this month: the month's payments less the month's reversals, never below 0, only this business's.
+  -- (Dates in 2030, so only the entries made here count, whatever day the test runs on.)
+  ----------------------------------------------------------------------
+  declare c1 uuid; d1 uuid;
+  begin
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on) values (org_a, inv, 1000, date '2030-02-28') returning id into d1;
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on) values (org_a, inv, 2000, date '2030-03-02');
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on) values (org_a, inv, 500, date '2030-03-05') returning id into c1;
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on, reverses_id) values (org_a, inv, 500, date '2030-03-10', c1);
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on) values (org_a, inv, 700, date '2030-04-01') returning id into c1;
+    perform pg_temp.as_user(a);
+    set local role authenticated;
+    assert (public.invoice_owed_totals(org_a, date '2030-02-15') ->> 'paidThisMonthCents')::bigint = 1000, 'February is wrong';
+    assert (public.invoice_owed_totals(org_a, date '2030-03-31') ->> 'paidThisMonthCents')::bigint = 2000, 'March is wrong (a reversal in the month comes off)';
+    assert (public.invoice_owed_totals(org_a, date '2030-04-01') ->> 'paidThisMonthCents')::bigint = 700, 'April is wrong';
+    assert (public.invoice_owed_totals(org_b, date '2030-03-15') ->> 'paidThisMonthCents')::bigint = 0, 'another business''s payments were counted';
+    reset role;
+    -- A reversal in a later month takes that month down, never below 0.
+    insert into public.invoice_payments (organisation_id, invoice_id, amount_cents, paid_on, reverses_id) values (org_a, inv, 700, date '2030-05-10', c1);
+    set local role authenticated;
+    assert (public.invoice_owed_totals(org_a, date '2030-05-20') ->> 'paidThisMonthCents')::bigint = 0, 'a month went below 0';
+    assert (public.invoice_owed_totals(org_a, date '2030-04-20') ->> 'paidThisMonthCents')::bigint = 700, 'April changed when May had a reversal';
+    reset role;
+  end;
 
   raise notice 'invoice payment tests passed';
 end
