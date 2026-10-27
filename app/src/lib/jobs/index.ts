@@ -40,22 +40,21 @@ export type StatusTone = "neutral" | "working" | "good" | "warning";
 export const jobStatusTone = (status: JobStatus): StatusTone =>
   status === "done" ? "good" : status === "ready" || status === "out_for_delivery" ? "warning" : status === "in_progress" ? "working" : "neutral";
 
-/** Is this move allowed? The same moves as the database function. */
+/**
+ * Is this move allowed? The same moves as the database function: a job moves freely among the working statuses (Out for
+ * delivery only for a delivery); cancelling is no longer a move, and a job cancelled before that can only come back to
+ * Not started (docs/plans/ux-pass-3.md).
+ */
 export function canMoveJob(from: JobStatus, to: JobStatus, fulfilment: JobFulfilment): boolean {
-  switch (from) {
-    case "not_started":
-      return to === "in_progress" || to === "cancelled";
-    case "in_progress":
-      return to === "ready" || to === "not_started" || to === "cancelled";
-    case "ready":
-      return to === "done" || to === "in_progress" || to === "cancelled" || (to === "out_for_delivery" && fulfilment === "delivery");
-    case "out_for_delivery":
-      return to === "done" || to === "ready";
-    case "done":
-      return to === "ready";
-    case "cancelled":
-      return to === "not_started";
-  }
+  if (from === "cancelled") return to === "not_started";
+  if (to === "cancelled" || to === from) return false;
+  if (to === "out_for_delivery") return fulfilment === "delivery";
+  return true;
+}
+
+/** The statuses a job can be set to, in the order a job goes through them (Out for delivery only on a delivery). */
+export function jobStatusChoices(fulfilment: JobFulfilment): JobStatus[] {
+  return (["not_started", "in_progress", "ready", "out_for_delivery", "done"] as const).filter((s) => s !== "out_for_delivery" || fulfilment === "delivery");
 }
 
 export type JobStep = { to: JobStatus; label: string; hint?: string };
@@ -79,21 +78,11 @@ export function nextJobStep(status: JobStatus, fulfilment: JobFulfilment): JobSt
   }
 }
 
-/** The other moves, as smaller buttons: stepping back, and cancelling or restoring. */
+/** The other move a job has: a job cancelled before cancelling went can be restored. Every other move is the status dropdown. */
 export function otherJobSteps(status: JobStatus, fulfilment: JobFulfilment): JobStep[] {
-  const steps: JobStep[] = [];
-  const back: Partial<Record<JobStatus, JobStatus>> = { in_progress: "not_started", ready: "in_progress", out_for_delivery: "ready", done: "ready" };
-  const to = back[status];
-  if (to) steps.push({ to, label: `Back to ${jobStatusLabel(to, fulfilment).toLowerCase()}` });
-  // Ready can also go straight to done on a delivery (handed over some other way).
-  if (status === "ready" && fulfilment === "delivery") steps.push({ to: "done", label: "Mark done without a delivery" });
-  if (canMoveJob(status, "cancelled", fulfilment)) steps.push({ to: "cancelled", label: "Cancel this job" });
-  if (status === "cancelled") steps.push({ to: "not_started", label: "Restore this job" });
-  return steps;
+  void fulfilment;
+  return status === "cancelled" ? [{ to: "not_started", label: "Restore this job" }] : [];
 }
-
-/** Only a job that has not been started, or was cancelled, can be deleted; any other keeps its record. */
-export const canDeleteJob = (status: JobStatus): boolean => status === "not_started" || status === "cancelled";
 
 /** Active: not finished and not cancelled. */
 export const isActiveJob = (status: JobStatus): boolean => status !== "done" && status !== "cancelled";

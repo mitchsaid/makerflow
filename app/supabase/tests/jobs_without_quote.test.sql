@@ -13,6 +13,11 @@ begin
 end
 $f$;
 
+-- A job cancelled the way it was before cancelling went: set directly, as the server-only function no longer moves to it.
+create function pg_temp.legacy_cancel(j uuid) returns void language sql security definer as $f$
+  update public.jobs set status = 'cancelled' where id = j
+$f$;
+
 do $$
 declare
   a uuid := '00000000-0000-4000-8000-0000000029a1';
@@ -229,7 +234,7 @@ begin
   ----------------------------------------------------------------------
   set local role service_role;
   perform public.move_job_status(org_a, j1, a, 'in_progress');
-  perform public.move_job_status(org_a, j1, a, 'cancelled');
+  perform pg_temp.legacy_cancel(j1);
   perform public.move_job_status(org_a, j1, a, 'not_started');
   perform public.move_job_status(org_a, j1, a, 'in_progress');
   perform public.move_job_status(org_a, j1, a, 'ready');

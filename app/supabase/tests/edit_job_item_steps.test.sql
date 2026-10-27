@@ -46,6 +46,11 @@ end
 $f$;
 
 
+-- A job cancelled the way it was before cancelling went: set directly, as the server-only function no longer moves to it.
+create function pg_temp.legacy_cancel(j uuid) returns void language sql security definer as $f$
+  update public.jobs set status = 'cancelled' where id = j
+$f$;
+
 do $$
 declare
   a uuid := '00000000-0000-4000-8000-0000000033a1';
@@ -298,7 +303,7 @@ begin
     raise exception 'the service key called the internal copy';
   exception when insufficient_privilege then null;
   end;
-  perform public.move_job_status(org_a, j, a, 'cancelled');
+  perform pg_temp.legacy_cancel(j);
   begin
     perform public.add_job_item_step(org_a, i_cake, 'Late', a);
     raise exception 'a step was added to a cancelled job';

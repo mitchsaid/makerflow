@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { AddLink } from "@/components/add-button";
-import { canDeleteJob, isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
+import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
 import { PhotoThumb } from "@/components/photo-thumb";
@@ -78,7 +78,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         {job.status === "cancelled" && (
           <p className="text-muted-foreground">This job was cancelled, so nothing is counted on it. Restore it to carry on.</p>
         )}
-        <JobSteps jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
+        <JobSteps jobId={job.id} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
       </section>
 
       <section className="space-y-2" aria-labelledby="make-heading">
@@ -222,7 +222,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
       </Disclosure>
 
       {/* Last and quiet: it cannot be undone, so it is not among the everyday buttons. */}
-      {canEditBusinessProfile(role) && canDeleteJob(job.status) && (
+      {canEditBusinessProfile(role) && (
         <div className="pt-2">
           <DeleteJob jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} />
         </div>
