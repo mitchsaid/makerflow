@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
-import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
+import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab, openHistory } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -334,10 +334,8 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Start making" }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
       await page.getByLabel("Note (optional)").fill("Check the colour");
-      await page.getByRole("button", { name: "Save note" }).click();
+      // It saves itself.
       await expect(page.getByText("Note saved.")).toBeVisible();
-      // "Note saved." shows a moment before the button is back: a disabled (faded) button fails the contrast check.
-      await expect(page.getByRole("button", { name: "Save note" })).toBeEnabled();
       await expectNoViolations(page, "job, making, with a note");
       // Counting what is made, and adding an item to the job through the quote's item sheet.
       await page.getByRole("button", { name: /^One more made of/ }).first().click();
@@ -378,6 +376,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: /J-0001/ }).click();
       await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
       await expectNoViolations(page, "job, cancelled");
+      await openHistory(page);
       await page.getByRole("link", { name: "quote QT-0001" }).click();
       await expect(page.getByRole("button", { name: "Change the answer" })).toBeVisible();
       await page.getByRole("button", { name: "Change the answer" }).click();

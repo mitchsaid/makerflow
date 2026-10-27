@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { localSupabase, nextServerAction, signUpAndOnboard } from "./helpers";
+import { localSupabase, nextServerAction, openHistory, signUpAndOnboard } from "./helpers";
 import { nav, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -77,6 +77,7 @@ test("the nudge makes the job and opens it", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
 
   // The quote points to its job and never offers the card again.
+  await openHistory(page);
   await page.getByRole("link", { name: "quote QT-0001" }).click();
   await expect(page.getByTestId("create-job-nudge")).toHaveCount(0);
   await page.goto(`${page.url()}?next=job`);

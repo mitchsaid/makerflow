@@ -175,3 +175,10 @@ export async function openProductTab(page: Page, name: "Details" | "Production" 
   await page.getByRole("tab", { name: new RegExp(`^${name}`) }).click();
   await expect(page.getByRole("tab", { name: new RegExp(`^${name}`) })).toHaveAttribute("aria-selected", "true");
 }
+
+/** Opens History on a job page (where it came from and what happened), if it is closed. */
+export async function openHistory(page: Page) {
+  const history = page.getByTestId("job-history");
+  if ((await history.getAttribute("open")) === null) await history.getByText("History", { exact: true }).click();
+  await expect(history).toHaveAttribute("open", "");
+}

@@ -2,13 +2,12 @@
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { canDeleteJob, otherJobSteps, nextJobStep, type JobFulfilment, type JobStatus } from "@/lib/jobs";
+import { otherJobSteps, nextJobStep, type JobFulfilment, type JobStatus } from "@/lib/jobs";
 import { CancelJob } from "./cancel-job";
-import { DeleteJob } from "./delete-job";
 import { useMoveJob } from "./use-move-job";
 
 /** The next step as one big button, and the other moves (back, cancel, restore) as smaller ones. Each is one tap, except cancelling, which asks. */
-export function JobSteps({ jobId, jobLabel, status, fulfilment, allMade, canDelete }: { jobId: string; jobLabel: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean; canDelete: boolean }) {
+export function JobSteps({ jobId, jobLabel, status, fulfilment, allMade }: { jobId: string; jobLabel: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean }) {
   const { move, pending, message } = useMoveJob(jobId);
   const next = nextJobStep(status, fulfilment);
   const others = otherJobSteps(status, fulfilment);
@@ -30,7 +29,7 @@ export function JobSteps({ jobId, jobLabel, status, fulfilment, allMade, canDele
           {next.label}
         </Button>
       )}
-      {(others.length > 0 || (canDelete && canDeleteJob(status))) && (
+      {others.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {others.map((step) =>
             // Cancelling asks first.
@@ -42,7 +41,6 @@ export function JobSteps({ jobId, jobLabel, status, fulfilment, allMade, canDele
               </Button>
             ),
           )}
-          {canDelete && canDeleteJob(status) && <DeleteJob jobId={jobId} jobLabel={jobLabel} />}
         </div>
       )}
     </div>

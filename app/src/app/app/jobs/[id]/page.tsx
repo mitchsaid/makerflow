@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
 import { AddLink } from "@/components/add-button";
-import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
+import { canDeleteJob, isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
 import { PhotoThumb } from "@/components/photo-thumb";
@@ -20,6 +20,8 @@ import { JobProgressBar } from "../job-progress";
 import { JobStatusChip } from "../job-status-chip";
 import { JobSteps } from "../job-steps";
 import { PageHeader } from "@/components/page-header";
+import { Disclosure } from "@/components/disclosure";
+import { DeleteJob } from "../delete-job";
 
 export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   const { id } = await params;
@@ -76,7 +78,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         {job.status === "cancelled" && (
           <p className="text-muted-foreground">This job was cancelled, so nothing is counted on it. Restore it to carry on.</p>
         )}
-        <JobSteps jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} canDelete={canEditBusinessProfile(role)} />
+        <JobSteps jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} status={job.status} fulfilment={job.fulfilment} allMade={progress.allMade} />
       </section>
 
       <section className="space-y-2" aria-labelledby="make-heading">
@@ -194,6 +196,8 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         <JobNote jobId={job.id} initial={job.note ?? ""} />
       </section>
 
+      {/* Where it came from and what happened are there when asked for. */}
+      <Disclosure title="History" testId="job-history">
       <section className="space-y-2" aria-labelledby="from-heading">
         <h2 id="from-heading" className="text-base font-semibold">
           {job.quoteId ? "From the quote" : "Where it came from"}
@@ -215,6 +219,14 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
       </section>
 
       <Activity job={job} locale={locale.formatLocale} timeZone={locale.timeZone} />
+      </Disclosure>
+
+      {/* Last and quiet: it cannot be undone, so it is not among the everyday buttons. */}
+      {canEditBusinessProfile(role) && canDeleteJob(job.status) && (
+        <div className="pt-2">
+          <DeleteJob jobId={job.id} jobLabel={`Job ${jobNumberText(job.number)} · ${job.customerName}`} />
+        </div>
+      )}
     </main>
   );
 }
