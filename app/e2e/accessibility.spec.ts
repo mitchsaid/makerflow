@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
-import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab, openHistory } from "./helpers";
+import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -366,18 +366,15 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await page.getByRole("link", { name: /J-0001/ }).click();
-      await page.getByRole("button", { name: "Cancel this job" }).click();
-      await expect(page.getByRole("dialog")).toHaveAccessibleName("Cancel this job?");
-      await expectNoViolations(page, "job, asking to cancel it");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel the job" }).click();
-      await expect(page.getByTestId("job-cancelled-notice")).toBeVisible();
-      await expectNoViolations(page, "jobs, a job just cancelled");
-      await page.getByRole("button", { name: /^Cancelled/ }).click();
-      await page.getByRole("link", { name: /J-0001/ }).click();
-      await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
-      await expectNoViolations(page, "job, cancelled");
-      await openHistory(page);
-      await page.getByRole("link", { name: "quote QT-0001" }).click();
+      await page.getByRole("button", { name: "Delete this job" }).click();
+      await expect(page.getByRole("dialog")).toHaveAccessibleName("Delete this job?");
+      await expectNoViolations(page, "job, asking to delete it");
+      await page.getByRole("dialog").getByRole("button", { name: "Delete the job" }).click();
+      await expect(page.getByTestId("job-deleted-notice")).toBeVisible();
+      await expectNoViolations(page, "jobs, a job just deleted");
+      // With no job, the quote's answer can be changed again.
+      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Quotes" }).click();
+      await page.getByRole("link", { name: /QT-0001/ }).first().click();
       await expect(page.getByRole("button", { name: "Change the answer" })).toBeVisible();
       await page.getByRole("button", { name: "Change the answer" }).click();
       await expect(page.getByRole("button", { name: "They accepted" })).toBeVisible();

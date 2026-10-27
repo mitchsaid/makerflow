@@ -1,5 +1,4 @@
--- Deleting a job: only a job that has not been started, or was cancelled, can be deleted; only the server's own key can
--- do it; its items and log go with it; another business's job is not found; the newest number is free again and the
+-- Deleting a job: any status can be deleted; only the server's own key can do it; its items and log go with it; another business's job is not found; the newest number is free again and the
 -- quote can get a new job. Plain SQL, one transaction, rolled back.
 
 begin;
@@ -61,6 +60,11 @@ create function pg_temp.snapshot(delivery boolean) returns jsonb language sql as
            else jsonb_build_object('kind', 'collection', 'name', 'Collection', 'quantityMilli', 1000) end))
 $f$;
 
+-- A job cancelled the way it was before cancelling went: set directly, as the server-only function no longer moves to it.
+create function pg_temp.legacy_cancel(j uuid) returns void language sql security definer as $f$
+  update public.jobs set status = 'cancelled' where id = j
+$f$;
+
 do $$
 declare
   a uuid := '00000000-0000-4000-8000-0000000029a1';
@@ -71,6 +75,7 @@ declare
   q1 uuid; q2 uuid; q3 uuid;
   j1 uuid; j2 uuid; j3 uuid; j4 uuid;
   n integer;
+  st text;
 begin
   insert into auth.users (id, email) values (a, 'dj29a@example.test'), (b, 'dj29b@example.test');
   perform pg_temp.as_user(a);
@@ -126,29 +131,8 @@ begin
     raise exception 'FAIL: a job that does not exist was deleted';
   exception when sqlstate 'P0002' then null;
   end;
-  -- Making, ready, out for delivery and done jobs keep their record.
-  perform public.move_job_status(org_a, j1, a, 'in_progress');
-  begin
-    perform public.delete_job(org_a, j1);
-    raise exception 'FAIL: a job being made was deleted';
-  exception when sqlstate 'P0002' then null;
-  end;
-  perform public.move_job_status(org_a, j1, a, 'ready');
-  begin
-    perform public.delete_job(org_a, j1);
-    raise exception 'FAIL: a ready job was deleted';
-  exception when sqlstate 'P0002' then null;
-  end;
-  perform public.move_job_status(org_a, j1, a, 'done');
-  begin
-    perform public.delete_job(org_a, j1);
-    raise exception 'FAIL: a finished job was deleted';
-  exception when sqlstate 'P0002' then null;
-  end;
   reset role;
-  assert (select count(*) from public.jobs where id = j1) = 1, 'a finished job went';
 
-  ----------------------------------------------------------------------
   -- A job not started is deleted with its items and log; its number is free again (it was the newest)
   ----------------------------------------------------------------------
   set local role service_role;
@@ -167,13 +151,28 @@ begin
   -- A cancelled job is deleted too; an older number leaves a gap, and the next number goes on from the highest
   ----------------------------------------------------------------------
   set local role service_role;
-  perform public.move_job_status(org_a, j2, a, 'cancelled');
+  perform pg_temp.legacy_cancel(j2);
   perform public.delete_job(org_a, j2);
   j3 := public.create_job_from_quote(org_a, q2, a);
   reset role;
   assert (select count(*) from public.jobs where organisation_id = org_a) = 3, 'wrong number of jobs left';
   assert (select number from public.jobs where id = j3) = 4, 'the next number did not go on from the highest';
   assert (select array_agg(number order by number) from public.jobs where organisation_id = org_a) = array[1, 3, 4], 'unexpected numbers';
+
+  ----------------------------------------------------------------------
+  -- Any status can be deleted: making, ready and done go with their items and log, and the quote is free again
+  ----------------------------------------------------------------------
+  set local role service_role;
+  foreach st in array array['in_progress', 'ready', 'done'] loop
+    perform public.move_job_status(org_a, j3, a, st);
+    n := public.delete_job(org_a, j3);
+    assert n = 4, 'delete_job did not say which number it deleted';
+    assert (select count(*) from public.jobs where id = j3) = 0, 'a ' || st || ' job was not deleted';
+    assert (select count(*) from public.job_events where job_id = j3) = 0, 'its log stayed';
+    j3 := public.create_job_from_quote(org_a, q2, a);
+    assert (select number from public.jobs where id = j3) = 4, 'the freed number was not used again';
+  end loop;
+  reset role;
 
   raise notice 'delete job tests passed';
 end

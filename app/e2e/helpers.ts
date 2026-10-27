@@ -182,3 +182,17 @@ export async function openHistory(page: Page) {
   if ((await history.getAttribute("open")) === null) await history.getByText("History", { exact: true }).click();
   await expect(history).toHaveAttribute("open", "");
 }
+
+/**
+ * Puts a job in the cancelled state it had before cancelling went (nothing in the app cancels a job now; a few jobs made
+ * earlier are still cancelled). Set with the LOCAL server key, a demo credential.
+ */
+export async function legacyCancelJob(jobId: string) {
+  const { url, secretKey } = localSupabase();
+  const response = await fetch(`${url}/rest/v1/jobs?id=eq.${jobId}`, {
+    method: "PATCH",
+    headers: { apikey: secretKey, Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ status: "cancelled" }),
+  });
+  expect(response.ok).toBe(true);
+}

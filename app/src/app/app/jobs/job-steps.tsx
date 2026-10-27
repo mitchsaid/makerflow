@@ -1,16 +1,21 @@
 "use client";
 
+import { SelectField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { otherJobSteps, nextJobStep, type JobFulfilment, type JobStatus } from "@/lib/jobs";
-import { CancelJob } from "./cancel-job";
+import { jobStatusChoices, jobStatusLabel, nextJobStep, otherJobSteps, type JobFulfilment, type JobStatus } from "@/lib/jobs";
 import { useMoveJob } from "./use-move-job";
 
-/** The next step as one big button, and the other moves (back, cancel, restore) as smaller ones. Each is one tap, except cancelling, which asks. */
-export function JobSteps({ jobId, jobLabel, status, fulfilment, allMade }: { jobId: string; jobLabel: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean }) {
+/**
+ * Where a job stands: the next step as one big button (and, when everything is made, the prompt to take it), and the
+ * status as a dropdown to set it to any other (docs/plans/ux-pass-3.md). A job cancelled before cancelling went has one
+ * button, Restore. Deleting is at the foot of the page, not here.
+ */
+export function JobSteps({ jobId, status, fulfilment, allMade }: { jobId: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean }) {
   const { move, pending, message } = useMoveJob(jobId);
   const next = nextJobStep(status, fulfilment);
-  const others = otherJobSteps(status, fulfilment);
+  const restore = otherJobSteps(status, fulfilment);
+  const choices = jobStatusChoices(fulfilment);
 
   return (
     <div className="space-y-3">
@@ -29,18 +34,23 @@ export function JobSteps({ jobId, jobLabel, status, fulfilment, allMade }: { job
           {next.label}
         </Button>
       )}
-      {others.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {others.map((step) =>
-            // Cancelling asks first.
-            step.to === "cancelled" ? (
-              <CancelJob key="cancel" jobId={jobId} jobLabel={jobLabel} />
-            ) : (
-              <Button key={step.to + step.label} type="button" variant="outline" disabled={pending} onClick={() => move(step.to)}>
-                {step.label}
-              </Button>
-            ),
-          )}
+      {restore.map((step) => (
+        <Button key={step.to} type="button" variant="outline" disabled={pending} onClick={() => move(step.to)}>
+          {step.label}
+        </Button>
+      ))}
+      {status !== "cancelled" && (
+        <div className="max-w-xs">
+          <SelectField
+            id="job-status"
+            label="Status"
+            value={status}
+            options={choices}
+            optionLabels={Object.fromEntries(choices.map((s) => [s, jobStatusLabel(s, fulfilment)]))}
+            onChange={(value) => {
+              if (value !== status) move(value as JobStatus);
+            }}
+          />
         </div>
       )}
     </div>

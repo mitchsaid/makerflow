@@ -61,6 +61,11 @@ create function pg_temp.snapshot(delivery boolean) returns jsonb language sql as
            else jsonb_build_object('kind', 'collection', 'name', 'Collection', 'quantityMilli', 1000) end))
 $f$;
 
+-- A job cancelled the way it was before cancelling went: set directly, as the server-only function no longer moves to it.
+create function pg_temp.legacy_cancel(j uuid) returns void language sql security definer as $f$
+  update public.jobs set status = 'cancelled' where id = j
+$f$;
+
 do $$
 declare
   a uuid := '00000000-0000-4000-8000-0000000028a1';
@@ -174,7 +179,7 @@ begin
     raise exception 'FAIL: a quote with a job was reopened';
   exception when object_in_use then null;
   end;
-  perform public.move_job_status(org_a, job_col, a, 'cancelled');
+  perform pg_temp.legacy_cancel(job_col);
   perform public.record_quote_outcome(org_a, q_col, a, 'reopened', null, null, null);
   assert (select status from public.quotes where id = q_col) = 'sent', 'a quote without an active job could not be reopened';
   perform public.record_quote_outcome(org_a, q_col, a, 'accepted', date '2026-10-06', 'phone', null);
@@ -195,9 +200,12 @@ begin
   -- Status moves: allowed ones, refused ones, every move logged
   ----------------------------------------------------------------------
   set local role service_role;
+  -- The status moves freely: not started can go straight to done, and a finished job back to not started.
+  perform public.move_job_status(org_a, job_del, a, 'done');
+  perform public.move_job_status(org_a, job_del, a, 'not_started');
   begin
-    perform public.move_job_status(org_a, job_del, a, 'done');
-    raise exception 'FAIL: not started jumped to done';
+    perform public.move_job_status(org_a, job_del, a, 'not_started');
+    raise exception 'FAIL: a job moved to the status it already has';
   exception when sqlstate 'P0002' then null;
   end;
   begin
@@ -209,12 +217,13 @@ begin
   perform public.move_job_status(org_a, job_del, a, 'ready');
   perform public.move_job_status(org_a, job_del, a, 'out_for_delivery');
   perform public.move_job_status(org_a, job_del, a, 'done');
+  -- Cancelling is no longer a move at all.
   begin
     perform public.move_job_status(org_a, job_del, a, 'cancelled');
-    raise exception 'FAIL: a finished job was cancelled';
-  exception when sqlstate 'P0002' then null;
+    raise exception 'FAIL: a job was cancelled';
+  exception when sqlstate '22023' then null;
   end;
-  perform public.move_job_status(org_a, job_del, a, 'ready');   -- undo
+  perform public.move_job_status(org_a, job_del, a, 'ready');   -- back
   -- Out for delivery is for deliveries only.
   perform public.move_job_status(org_a, job2, a, 'in_progress');
   perform public.move_job_status(org_a, job2, a, 'ready');
@@ -226,15 +235,15 @@ begin
   perform public.move_job_status(org_a, job2, a, 'done');
   -- Another business cannot move it.
   begin
-    perform public.move_job_status(org_b, job_del, b, 'cancelled');
+    perform public.move_job_status(org_b, job_del, b, 'in_progress');
     raise exception 'FAIL: another business moved a job';
   exception when sqlstate 'P0002' then null;
   end;
   reset role;
-  assert (select count(*) from public.job_events where job_id = job_del and kind = 'status') = 5, 'the moves were not all logged';
+  assert (select count(*) from public.job_events where job_id = job_del and kind = 'status') = 7, 'the moves were not all logged';
   -- (Each move is its own transaction in real use, so they have their own times; here they share one, so compare as a set.)
   assert (select array_agg(from_status || '>' || to_status order by from_status || '>' || to_status) from public.job_events where job_id = job_del and kind = 'status')
-    = array['done>ready', 'in_progress>ready', 'not_started>in_progress', 'out_for_delivery>done', 'ready>out_for_delivery'], 'the log is not the path taken';
+    = array['done>not_started', 'done>ready', 'in_progress>ready', 'not_started>done', 'not_started>in_progress', 'out_for_delivery>done', 'ready>out_for_delivery'], 'the log is not the path taken';
 
   -- Restoring a cancelled job is refused while the quote has another active one.
   set local role service_role;
@@ -246,7 +255,7 @@ begin
 
   -- A job cannot be restored once its quote is no longer accepted (reopened and declined here)
   perform public.move_job_status(org_a, job2, a, 'ready');
-  perform public.move_job_status(org_a, job2, a, 'cancelled');
+  perform pg_temp.legacy_cancel(job2);
   perform public.record_quote_outcome(org_a, q_col, a, 'reopened', null, null, null);
   perform public.record_quote_outcome(org_a, q_col, a, 'declined', date '2026-10-07', 'phone', null);
   begin

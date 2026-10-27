@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openHistory, signUpAndOnboard } from "./helpers";
+import { legacyCancelJob, openHistory, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -59,7 +59,8 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Mark ready", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: "Back to making" }).click();
+  // The status is a dropdown: any status can be chosen, not only the next.
+  await page.getByLabel("Status", { exact: true }).selectOption("in_progress");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
   await openHistory(page);
   const log = page.getByTestId("job-activity");
@@ -88,48 +89,34 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(page.getByText("No jobs match “nobody”.")).toBeVisible();
 });
 
-test("a cancelled job can be restored, and frees its quote for another job", async ({ page }) => {
+test("a job cancelled before cancelling went can be restored or deleted, has its own chip, and does not block a new job", async ({ page }) => {
+  test.setTimeout(180_000);
   await signUpAndOnboard(page, "jobs-cancel", "Cancel Co");
   await sentQuote(page);
   await accept(page);
   await page.getByRole("button", { name: "Create a job" }).click();
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
+  // Nothing in the app cancels a job any more: the page offers a status and Delete, not Cancel.
+  await expect(page.getByRole("button", { name: "Cancel this job" })).toHaveCount(0);
+  await expect(page.getByLabel("Status", { exact: true })).toHaveValue("not_started");
+  const jobId = page.url().split("/").pop() ?? "";
+  await legacyCancelJob(jobId);
 
-  // Cancelling asks first; keeping the job changes nothing.
-  await page.getByRole("button", { name: "Cancel this job" }).click();
-  await expect(sheet(page)).toHaveAccessibleName("Cancel this job?");
-  await sheet(page).getByRole("button", { name: "Keep the job" }).click();
-  await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
-
-  // Cancelling goes back to the Jobs list, says so, and offers Undo; the cancelled job is not in the to-do list.
-  await page.getByRole("button", { name: "Cancel this job" }).click();
-  await sheet(page).getByRole("button", { name: "Cancel the job" }).click();
-  await expect(page).toHaveURL(/\/app\/jobs\?cancelled=/);
-  await expect(page.getByRole("heading", { name: "Jobs", level: 1 })).toBeVisible();
-  await expect(page.getByTestId("job-cancelled-notice")).toContainText("Job J-0001 cancelled.");
-  await expect(page.getByRole("link", { name: /J-0001/ })).toHaveCount(0);
-
-  // Undo puts it back.
-  await page.getByTestId("job-cancelled-notice").getByRole("button", { name: "Undo" }).click();
-  await expect(page).toHaveURL(/\/app\/jobs$/);
-  await expect(page.getByTestId("job-cancelled-notice")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
-
-  // Cancel again; the cancelled job's page says so plainly.
-  await page.getByRole("link", { name: /J-0001/ }).click();
-  await page.getByRole("button", { name: "Cancel this job" }).click();
-  await sheet(page).getByRole("button", { name: "Cancel the job" }).click();
-  await expect(page.getByTestId("job-cancelled-notice")).toBeVisible();
   // All leaves cancelled jobs out; they have a chip of their own.
+  await nav(page).getByRole("link", { name: "Jobs" }).click();
   await showAll(page);
   await expect(page.getByRole("link", { name: /J-0001/ })).toHaveCount(0);
   await showCancelled(page);
   await page.getByRole("link", { name: /J-0001/ }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
   await expect(page.getByText("This job was cancelled, so nothing is counted on it.")).toBeVisible();
+  // A cancelled job has Restore (no status choice), and Delete at the foot.
+  await expect(page.getByLabel("Status", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Restore this job" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete this job" })).toBeVisible();
   await openHistory(page);
   await page.getByRole("link", { name: "quote QT-0001" }).click();
-  // The cancelled job no longer blocks a new one.
+  // The cancelled job does not block a new one.
   await expect(page.getByRole("button", { name: "Create a job" })).toBeVisible();
   await page.getByRole("button", { name: "Create a job" }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0002 Not started$/, level: 1 })).toBeVisible();
@@ -140,6 +127,12 @@ test("a cancelled job can be restored, and frees its quote for another job", asy
   await page.getByRole("link", { name: /J-0001/ }).click();
   await page.getByRole("button", { name: "Restore this job" }).click();
   await expect(page.getByRole("region", { name: "Cancelled" }).getByRole("alert")).toContainText("another job");
+
+  // It can be deleted, and the other job is untouched.
+  await page.getByRole("button", { name: "Delete this job" }).click();
+  await sheet(page).getByRole("button", { name: "Delete the job" }).click();
+  await expect(page.getByTestId("job-deleted-notice")).toContainText("Job J-0001 deleted.");
+  await expect(page.getByRole("link", { name: /J-0002/ })).toBeVisible();
 });
 
 test("a delivery job goes out for delivery before it is done", async ({ page }) => {
@@ -278,11 +271,7 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   // It moves along like any other job, and the list offers New job once there is one.
   await page.getByRole("button", { name: "Start making" }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: "Cancel this job" }).click();
-  await sheet(page).getByRole("button", { name: "Cancel the job" }).click();
-  await page.getByTestId("job-cancelled-notice").getByRole("button", { name: "Undo" }).click();
-  await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
-  await page.getByRole("link", { name: /J-0001/ }).click();
+  await page.getByLabel("Status", { exact: true }).selectOption("not_started");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
   await nav(page).getByRole("link", { name: "Jobs" }).click();
   await expect(page.getByRole("link", { name: /Sam Jacobs/ })).toBeVisible();
@@ -364,7 +353,7 @@ test("counting what is made starts the job, and offers the next step when everyt
   await row.getByRole("link").click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("item-progress")).toHaveCount(0);
-  await page.getByRole("button", { name: "Back to making" }).click();
+  await page.getByLabel("Status", { exact: true }).selectOption("in_progress");
   await expect(page.getByTestId("item-progress").nth(1)).toContainText("All made");
 });
 
@@ -437,7 +426,7 @@ async function sentQuoteForDelivery(page: Page) {
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Sent$/, level: 1 })).toBeVisible();
 }
 
-test("a job not started, or cancelled, can be deleted for good, and its number is free again", async ({ page }) => {
+test("any job can be deleted for good, after a question, and its number is free again", async ({ page }) => {
   test.setTimeout(150_000);
   await signUpAndOnboard(page, "jobs-delete", "Delete Co");
   await sentQuote(page);
@@ -458,7 +447,6 @@ test("a job not started, or cancelled, can be deleted for good, and its number i
   await expect(page).toHaveURL(/\/app\/jobs\?deleted=1$/);
   await expect(page.getByTestId("job-deleted-notice")).toContainText("Job J-0001 deleted.");
   await expect(page.getByRole("link", { name: /J-0001/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /^Cancelled/ })).toHaveCount(0);
   await page.goto(jobUrl);
   await expect(page.getByText(/404|could not be found/i).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: /^Job J-0001/, level: 1 })).toHaveCount(0);
@@ -469,15 +457,9 @@ test("a job not started, or cancelled, can be deleted for good, and its number i
   await page.getByRole("button", { name: "Create a job" }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
 
-  // A job being made keeps its record: no Delete until it is cancelled.
+  // A job being made can be deleted too: the page offers Delete whatever the status.
   await page.getByRole("button", { name: "Start making" }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Delete this job" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Cancel this job" }).click();
-  await sheet(page).getByRole("button", { name: "Cancel the job" }).click();
-  await expect(page.getByTestId("job-cancelled-notice")).toBeVisible();
-  await showCancelled(page);
-  await page.getByRole("link", { name: /J-0001/ }).click();
   await page.getByRole("button", { name: "Delete this job" }).click();
   await sheet(page).getByRole("button", { name: "Delete the job" }).click();
   await expect(page.getByTestId("job-deleted-notice")).toContainText("Job J-0001 deleted.");

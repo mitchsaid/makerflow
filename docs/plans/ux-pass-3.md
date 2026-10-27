@@ -1,7 +1,7 @@
 # UX pass 3: Home overview and Create new, card menus, a quieter job page
 
 ## Status
-**Planned 2026-10-27; the founder answered (section "Answers"). Slice 1 (the quieter job page) built 2026-10-27.** Founder, from using the app on a phone: "Home should provide a financial overview of amounts outstanding etc. Home should also have a 'Create new...' button ... You should be able to convert a quote into a job without going to the preview stage ... the cards should have some kind of thing you can click to delete, convert etc ... Job tracking: weird hover interaction ... the three buttons just sitting there feel odd. Maybe choosing the status should be some kind of dropdown? Cancel and delete feel very prominent ... do you really need both? ... a tight/locked relationship between quotes and jobs ... Notes should auto-save ... Change steps shouldn't be so prominent ... 'Where it came from' feels like metadata."
+**Planned 2026-10-27; the founder answered (section "Answers"). Slices 1 (the quieter job page) and 2 (status dropdown, delete at any status, no Cancel) built 2026-10-27.** Founder, from using the app on a phone: "Home should provide a financial overview of amounts outstanding etc. Home should also have a 'Create new...' button ... You should be able to convert a quote into a job without going to the preview stage ... the cards should have some kind of thing you can click to delete, convert etc ... Job tracking: weird hover interaction ... the three buttons just sitting there feel odd. Maybe choosing the status should be some kind of dropdown? Cancel and delete feel very prominent ... do you really need both? ... a tight/locked relationship between quotes and jobs ... Notes should auto-save ... Change steps shouldn't be so prominent ... 'Where it came from' feels like metadata."
 
 Part of it touches the database (job moves and deleting jobs, a new total for Home), so it needs human review.
 
@@ -103,3 +103,8 @@ Inputs by kind: the status is a choice (select); the note is text; no address, q
 
 ## Not planned yet
 Several jobs on one quote; a recent-quotes list on Home; recording a payment from an invoice card; archiving (nothing is archived: deleting and the Cancelled chip cover it).
+
+## What was built in slice 2 (2026-10-27)
+- Migration `20261125100000_job_free_moves.sql` (**needs human review**): `move_job_status` lets a job move freely among Not started, Making, Ready, Out for delivery (delivery jobs only) and Done, never to the status it has, and no longer to Cancelled; a job cancelled before can still be restored to Not started; `delete_job` accepts every status. Both stay server-only. SQL tests updated (`jobs`, `delete_job`; the other job tests set up a cancelled job directly).
+- The job page: the next-step button stays the one big button; a **Status** dropdown (all statuses, Out for delivery on a delivery) sits under it for any other move; *Back to …*, *Mark done without a delivery* and *Cancel this job* are gone. A cancelled job (made earlier) has Restore, no dropdown. *Delete this job* is at the foot at every status, behind its question. The "just cancelled" note on the Jobs list is gone with Cancel.
+- Unit tests for the new move rules and the status list.

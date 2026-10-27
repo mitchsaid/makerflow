@@ -19,7 +19,7 @@ import {
   jobDueCounts,
   isDueThisWeekJob,
   parseJobFilter,
-  canDeleteJob,
+  jobStatusChoices,
   shouldNudgeCreateJob,
   shouldNudgeInvoiceJob,
   type JobFulfilment,
@@ -40,25 +40,30 @@ describe("job numbers and words", () => {
 });
 
 describe("moves", () => {
-  it("allows the moves the database allows, and only those", () => {
-    const allowed: Record<string, string[]> = {
-      not_started: ["in_progress", "cancelled"],
-      in_progress: ["ready", "not_started", "cancelled"],
-      ready: ["done", "in_progress", "cancelled"],
-      out_for_delivery: ["done", "ready"],
-      done: ["ready"],
-      cancelled: ["not_started"],
-    };
-    for (const from of JOB_STATUSES) {
-      for (const to of JOB_STATUSES) {
-        const expected = allowed[from].includes(to);
-        expect(canMoveJob(from, to, "collection"), `${from} to ${to} (collection)`).toBe(expected);
+  it("lets a job move freely among the working statuses, and never to cancelled", () => {
+    const working = ["not_started", "in_progress", "ready", "done"] as const;
+    for (const from of working) {
+      for (const to of working) {
+        expect(canMoveJob(from, to, "collection"), `${from} to ${to} (collection)`).toBe(from !== to);
       }
+      expect(canMoveJob(from, "cancelled", "collection"), `${from} to cancelled`).toBe(false);
     }
-    // Out for delivery only for a delivery.
-    expect(canMoveJob("ready", "out_for_delivery", "delivery")).toBe(true);
-    expect(canMoveJob("ready", "out_for_delivery", "collection")).toBe(false);
-    expect(canMoveJob("ready", "out_for_delivery", "none")).toBe(false);
+    // Out for delivery only for a delivery, from anywhere; and never to the status it already has.
+    for (const from of ["not_started", "in_progress", "ready", "done"] as const) {
+      expect(canMoveJob(from, "out_for_delivery", "delivery")).toBe(true);
+      expect(canMoveJob(from, "out_for_delivery", "collection")).toBe(false);
+      expect(canMoveJob(from, "out_for_delivery", "none")).toBe(false);
+    }
+    expect(canMoveJob("out_for_delivery", "out_for_delivery", "delivery")).toBe(false);
+    expect(canMoveJob("out_for_delivery", "done", "delivery")).toBe(true);
+    // A job cancelled before cancelling went can only be restored.
+    for (const to of JOB_STATUSES) expect(canMoveJob("cancelled", to, "collection"), `cancelled to ${to}`).toBe(to === "not_started");
+  });
+
+  it("lists the statuses to choose from in order, with Out for delivery only on a delivery", () => {
+    expect(jobStatusChoices("delivery")).toEqual(["not_started", "in_progress", "ready", "out_for_delivery", "done"]);
+    expect(jobStatusChoices("collection")).toEqual(["not_started", "in_progress", "ready", "done"]);
+    expect(jobStatusChoices("none")).toEqual(["not_started", "in_progress", "ready", "done"]);
   });
 
   it("offers one next step that is always an allowed move, for every status and way of fulfilling", () => {
@@ -283,11 +288,5 @@ describe("the Invoice it card on a finished job", () => {
   it("is gone for good once this person said not to ask again, and the job prompt's answer is a different one", () => {
     expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["invoice-finished-job"] })).toBe(false);
     expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["create-job", "logo"] })).toBe(true);
-  });
-});
-
-describe("deleting a job", () => {
-  it("is only for a job that has not been started or was cancelled", () => {
-    expect(JOB_STATUSES.filter(canDeleteJob)).toEqual(["not_started", "cancelled"]);
   });
 });
