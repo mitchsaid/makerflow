@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SettingsLink } from "@/components/settings-link";
 import { AddLink } from "@/components/add-button";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
@@ -31,15 +32,13 @@ export default async function QuotesPage({ searchParams }: PageProps<"/app/quote
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Quotes</h1>
         <div className="flex items-center gap-2">
-          {/* Numbering, wording, terms, themes and defaults for quotes. */}
-          <Link href="/app/quotes/settings" className={buttonVariants({ variant: "outline" })}>
-            Quote settings
-          </Link>
           {quotes.length > 0 && (
             <AddLink href="/app/quotes/new" variant="default">
               New quote
             </AddLink>
           )}
+          {/* Numbering, wording, terms, themes and defaults for quotes. */}
+          <SettingsLink href="/app/quotes/settings" label="Quote settings" />
         </div>
       </div>
 

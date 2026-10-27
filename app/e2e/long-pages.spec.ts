@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { businessTab, openBusinessProfile, openDocuments, openProductSettings, quoteSettingsTab, signUpAndOnboard } from "./helpers";
-import { addCustomerInSheet, nav, sheet } from "./quote-helpers";
+import { addCustomerInSheet, nav, sentQuote, sheet } from "./quote-helpers";
 
 /**
  * Long pages in tabs, one Save each, and "coming soon" at the end (docs/plans/ux-pass-2.md, E; review T5, T7).
@@ -149,4 +149,39 @@ test("the filter bar starts at the first chip and shows that it scrolls", async 
     await expect(bar).toHaveAttribute("data-more", "after");
     expect(await bar.evaluate((el) => getComputedStyle(el).maskImage || getComputedStyle(el).webkitMaskImage)).toContain("gradient");
   }
+});
+
+test("on Quotes, Invoices and Products the main action comes first and settings is a gear after it", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "long-gear", "Gear Co");
+  // Something in each list, so each page has its main action.
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cake");
+  await page.getByLabel("Price", { exact: true }).fill("100");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+  await sentQuote(page);
+
+  for (const [path, action, settings] of [
+    ["/app/products", "Add product", "Product settings"],
+    ["/app/quotes", "New quote", "Quote settings"],
+  ] as const) {
+    await page.goto(path);
+    const add = page.getByRole("link", { name: action, exact: true });
+    const gear = page.getByRole("link", { name: settings });
+    await expect(add).toBeVisible();
+    const [a, g] = [await add.boundingBox(), await gear.boundingBox()];
+    // The action is first (to the left), and the gear is a whole 44 px tap target with no words on it.
+    expect(a!.x).toBeLessThan(g!.x);
+    expect(g!.width).toBeGreaterThanOrEqual(44);
+    expect(g!.height).toBeGreaterThanOrEqual(44);
+    await expect(gear).toHaveText("");
+    await expect(gear).toHaveAttribute("title", settings);
+  }
+
+  // Invoices show their action once there is an invoice or a draft; the gear is there either way.
+  await page.goto("/app/invoices");
+  const gear = page.getByRole("link", { name: "Invoice settings" });
+  await expect(gear).toBeVisible();
+  expect((await gear.boundingBox())!.width).toBeGreaterThanOrEqual(44);
 });
