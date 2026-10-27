@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AddLink } from "@/components/add-button";
+import { CreateNew } from "./create-new";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getActiveJobDates } from "@/lib/jobs/data";
@@ -22,19 +23,24 @@ export default async function WorkspacePage() {
   const waiting = quotes.filter((q) => q.status === "sent").length;
   const drafts = quotes.filter((q) => q.status === "draft").length;
 
-  const firstRun = quotes.length === 0 && counts.active === 0 && owed.count === 0;
+  const firstRun = quotes.length === 0 && counts.active === 0 && owed.count === 0 && owed.paidThisMonthCents === 0;
   // What needs the maker, money first (docs/ux-review-2026-10-25.md, N7). A count of nothing is left out.
-  const showMoney = owed.count > 0;
+  // Owing and overdue as before, and what came in this month; each only when it is more than nothing.
+  const showMoney = owed.count > 0 || owed.paidThisMonthCents > 0;
   const showQuotes = waiting > 0 || drafts > 0;
   const showJobs = counts.active > 0;
-  const caughtUp = !firstRun && !showMoney && !showQuotes && !showJobs;
+  // Money paid this month is good news, not a thing to do: only what is owed, waiting or due keeps Home from being caught up.
+  const caughtUp = !firstRun && owed.count === 0 && !showQuotes && !showJobs;
   const money = (cents: number) => formatMoney(cents, profile.currencyCode, locale.numberStyle);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-xl font-semibold" data-testid="business-name">
-        {organisation.name}
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold" data-testid="business-name">
+          {organisation.name}
+        </h1>
+        <CreateNew />
+      </div>
 
       {firstRun && (
         // Nothing yet: the first thing a maker does is a quote, so say so.
@@ -78,7 +84,7 @@ export default async function WorkspacePage() {
       {showMoney && (
         <Card data-testid="home-money">
           <CardHeader>
-            <CardTitle className="text-lg">Money owed to you</CardTitle>
+            <CardTitle className="text-lg">Your money</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <ul className="grid grid-cols-2 gap-3">
@@ -88,12 +94,19 @@ export default async function WorkspacePage() {
                   <MoneyLink href="/app/invoices?show=overdue" label="Overdue" text={money(owed.overdueCents)} tone="late" testId="home-overdue" />
                 </li>
               )}
-              <li>
-                <MoneyLink href="/app/invoices?show=unpaid" label="Owing" text={money(owed.owingCents)} tone="calm" testId="home-owing" />
-              </li>
+              {owed.count > 0 && (
+                <li>
+                  <MoneyLink href="/app/invoices?show=unpaid" label="Owing" text={money(owed.owingCents)} tone="calm" testId="home-owing" />
+                </li>
+              )}
+              {owed.paidThisMonthCents > 0 && (
+                <li>
+                  <MoneyLink href="/app/invoices" label="Paid this month" text={money(owed.paidThisMonthCents)} tone="calm" testId="home-paid" />
+                </li>
+              )}
             </ul>
             <Link href="/app/invoices" className="inline-flex min-h-11 items-center font-medium underline">
-              {owed.count === 1 ? "See the invoice" : `See all ${owed.count} invoices owing`}
+              {owed.count === 0 ? "See your invoices" : owed.count === 1 ? "See the invoice" : `See all ${owed.count} invoices owing`}
             </Link>
           </CardContent>
         </Card>

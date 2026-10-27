@@ -2,7 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
 import type { QuoteSnapshot } from "../quotes/snapshot";
-import type { InvoiceSummary, OwedTotals } from "./index";
+import type { HomeMoney, InvoiceSummary } from "./index";
 import { isPaymentMethod, paidCentsOf, type PaymentEntry } from "./payments";
 import { isCreditReason, type CreditReason, type PriorCredit } from "../credit-notes";
 import type { VatGroup } from "../money";
@@ -60,12 +60,17 @@ export async function getInvoices(): Promise<InvoiceSummary[]> {
 }
 
 /** What customers owe this business, worked out in the database from the invoices and their payments. */
-export async function getOwedTotals(organisationId: string, today: string): Promise<OwedTotals> {
+export async function getOwedTotals(organisationId: string, today: string): Promise<HomeMoney> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("invoice_owed_totals", { p_org: organisationId, p_today: today });
   if (error) throw new Error(`Could not load what is owed: ${error.message}`);
-  const t = (data ?? {}) as { count?: unknown; owingCents?: unknown; overdueCents?: unknown };
-  return { count: Number(t.count ?? 0), owingCents: Number(t.owingCents ?? 0), overdueCents: Number(t.overdueCents ?? 0) };
+  const t = (data ?? {}) as { count?: unknown; owingCents?: unknown; overdueCents?: unknown; paidThisMonthCents?: unknown };
+  return {
+    count: Number(t.count ?? 0),
+    owingCents: Number(t.owingCents ?? 0),
+    overdueCents: Number(t.overdueCents ?? 0),
+    paidThisMonthCents: Number(t.paidThisMonthCents ?? 0),
+  };
 }
 
 export type StoredInvoice = InvoiceSummary & {
