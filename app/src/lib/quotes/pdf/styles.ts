@@ -239,6 +239,7 @@ export function makeStyles(theme: Theme) {
     bankLabel: { width: 94, flexShrink: 0, color: theme.muted },
     bankValue: { fontWeight: 700, flexShrink: 1 },
     payGroup: { marginTop: 6 },
+    payQr: { width: 100, height: 100, marginTop: 4, objectFit: "contain", backgroundColor: "#ffffff" },
     payGroupName: { fontWeight: 700, marginBottom: 1.5, fontFamily: heading },
     payOther: { marginTop: 6 },
     signOff: { marginTop: 20 },

@@ -40,8 +40,11 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
   const photoIds = snapshot.lines.flatMap((l) => (l.photoImageId ? [l.photoImageId] : []));
   const theme = themeFromStored(snapshot);
   const backgroundId = theme.background === "image" ? theme.backgroundImageId : null;
-  const [photos, logos, backgrounds] = await Promise.all([
+  // QR codes for paying are printed from their full-size copy, so they scan.
+  const qrIds = (snapshot.paymentMethods ?? []).flatMap((w) => (w.imageId ? [w.imageId] : []));
+  const [photos, qrs, logos, backgrounds] = await Promise.all([
     getRenditions(photoIds, "thumb"),
+    getRenditions(qrIds, "display"),
     getRenditions(snapshot.logoImageId ? [snapshot.logoImageId] : [], "display"),
     getRenditions(backgroundId ? [backgroundId] : [], "display"),
   ]);
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/quotes/[
 
   let pdf: Buffer;
   try {
-    pdf = await renderQuotePdf(snapshot, { images: photos, logo, background });
+    pdf = await renderQuotePdf(snapshot, { images: new Map([...photos, ...qrs]), logo, background });
   } catch (error) {
     // The preview shows its own message; nothing about the quote is lost.
     console.error("could not draw the quote PDF:", error);

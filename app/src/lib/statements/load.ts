@@ -71,7 +71,7 @@ export async function loadStatement(customerId: string, query: { period?: unknow
       statement,
       // The customer's name is what they quote when they pay (when the business asks for a reference).
       bank: bankLines(workspace.bankDetails, customer.name, locale),
-      ways: workspace.paymentMethods.map((m) => ({ name: m.name, lines: paymentMethodLines(m, locale) })),
+      ways: workspace.paymentMethods.map((m) => ({ name: m.name, lines: paymentMethodLines(m, locale), imageId: m.imageId })),
       words: locale.documents.statement,
     },
   };

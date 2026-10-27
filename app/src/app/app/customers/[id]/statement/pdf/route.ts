@@ -21,12 +21,13 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/customer
     return new Response("Customer not found", { status: 404 });
   }
 
-  const logos = await getRenditions(loaded.logoImageId ? [loaded.logoImageId] : [], "display");
+  const qrIds = (loaded.document.ways ?? []).flatMap((w) => (w.imageId ? [w.imageId] : []));
+  const [logos, qrs] = await Promise.all([getRenditions(loaded.logoImageId ? [loaded.logoImageId] : [], "display"), getRenditions(qrIds, "display")]);
   const logo = loaded.logoImageId ? (logos.get(loaded.logoImageId) ?? null) : null;
 
   let pdf: Buffer;
   try {
-    pdf = await renderStatementPdf(loaded.document, { logo });
+    pdf = await renderStatementPdf(loaded.document, { logo, images: qrs });
   } catch (error) {
     console.error("could not draw the statement PDF:", error);
     return new Response("The PDF could not be made. Try again in a moment.", { status: 500 });

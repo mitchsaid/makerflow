@@ -61,6 +61,8 @@ export type WayToPayKind = {
   defaultName: string;
   /** False for a kind that is planned but not built (shown as coming soon, never saved). */
   available: boolean;
+  /** The kind is a picture the customer scans (a QR code): the way needs one. */
+  picture: boolean;
   /** The details to ask for, in the order a document prints them. */
   fields: readonly BankField[];
 };

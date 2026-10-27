@@ -29,6 +29,9 @@ declare
   org_b uuid;
   pm uuid;
   pm2 uuid;
+  pm_qr uuid;
+  img_a uuid := gen_random_uuid();
+  img_b uuid := gen_random_uuid();
   q uuid;
 begin
   insert into auth.users (id, email) values
@@ -143,6 +146,33 @@ begin
   end;
   delete from public.payment_methods where id = pm2;
   assert (select count(*) from public.payment_methods where organisation_id = org_a) = 19, 'the owner could not remove a way';
+  reset role;
+
+  ----------------------------------------------------------------------
+  -- A QR picture: of this business only
+  ----------------------------------------------------------------------
+  insert into public.images (id, organisation_id, kind, content_type, width, height, display_bytes, thumb_bytes)
+  values (img_a, org_a, 'payment-qr', 'image/png', 400, 400, 1000, 500), (img_b, org_b, 'payment-qr', 'image/png', 400, 400, 1000, 500);
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  insert into public.payment_methods (organisation_id, kind, name, image_id) values (org_a, 'qr', 'SnapScan', img_a) returning id into pm_qr;
+  begin
+    update public.payment_methods set image_id = img_b where id = pm_qr;
+    raise exception 'FAIL: a way to pay pointed at another business''s picture';
+  exception when foreign_key_violation then null;
+  end;
+  reset role;
+  perform pg_temp.as_user(d);
+  set local role authenticated;
+  update public.payment_methods set image_id = null where id = pm_qr;
+  assert (select image_id from public.payment_methods where id = pm_qr) = img_a, 'an admin changed the QR picture';
+  reset role;
+  -- If a picture ever goes, the way keeps its words and loses only the pointer.
+  delete from public.images where id = img_a;
+  assert (select count(*) from public.payment_methods where id = pm_qr) = 1 and (select image_id from public.payment_methods where id = pm_qr) is null, 'the way went with its picture';
+  perform pg_temp.as_user(a);
+  set local role authenticated;
+  delete from public.payment_methods where id = pm_qr;
   reset role;
 
   ----------------------------------------------------------------------

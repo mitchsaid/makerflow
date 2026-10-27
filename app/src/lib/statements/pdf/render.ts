@@ -21,7 +21,7 @@ const cleanParty = (party: SnapshotParty): SnapshotParty => {
 };
 
 /** The PDF bytes for a statement. Text the person typed is made safe for the font (emoji dropped), as for quotes. */
-export async function renderStatementPdf(data: StatementDocumentData, options: { logo?: PdfImage | null } = {}): Promise<Buffer> {
+export async function renderStatementPdf(data: StatementDocumentData, options: { logo?: PdfImage | null; images?: ReadonlyMap<string, PdfImage> } = {}): Promise<Buffer> {
   await ensureFonts(["sans"]);
   const clean: StatementDocumentData = {
     ...data,
@@ -29,8 +29,8 @@ export async function renderStatementPdf(data: StatementDocumentData, options: {
     customer: cleanParty(data.customer),
     statement: { ...data.statement, entries: data.statement.entries.map((e) => ({ ...e, description: drawable(e.description) })) },
     bank: data.bank.map((b) => ({ ...b, label: drawable(b.label), value: drawable(b.value) })),
-    ways: data.ways?.map((w) => ({ name: drawable(w.name), lines: w.lines.map((l) => ({ label: drawable(l.label), value: drawable(l.value) })) })),
+    ways: data.ways?.map((w) => ({ imageId: w.imageId, name: drawable(w.name), lines: w.lines.map((l) => ({ label: drawable(l.label), value: drawable(l.value) })) })),
   };
-  const document = StatementDocument({ data: clean, logo: options.logo });
+  const document = StatementDocument({ data: clean, logo: options.logo, images: options.images });
   return renderToBuffer(document as ReactElement<DocumentProps>);
 }

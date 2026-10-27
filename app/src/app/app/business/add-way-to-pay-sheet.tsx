@@ -56,7 +56,7 @@ export function AddWayToPaySheet({
     pick === "eft"
       ? `Add ${bankName}`
       : picked
-        ? `Add ${picked.label.toLowerCase()}`
+        ? `Add ${/^[A-Z]{2,}/.test(picked.label) ? picked.label : picked.label.toLowerCase()}`
         : "Add a way to pay";
 
   return (

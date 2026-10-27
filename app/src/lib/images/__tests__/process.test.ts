@@ -142,3 +142,32 @@ describe("awkward but legitimate pictures", () => {
     expect(await processImage(animated, "product")).toEqual({ ok: false, error: IMAGE_ERRORS.notAPicture });
   });
 });
+
+describe("a payment QR code", () => {
+  it("is kept whole (never cropped), on white, as a lossless PNG, and not enlarged", async () => {
+    // A see-through square picture: the see-through part goes white so a scanner has a quiet zone.
+    const result = await processImage(await picture(1600, 1000, "png", { alpha: true }), "payment-qr");
+    if (!result.ok) throw new Error(result.error);
+    const { value } = result;
+    expect(value.contentType).toBe("image/png");
+    expect(value.display.length).toBeLessThanOrEqual(DISPLAY_MAX_BYTES);
+    expect(value.thumb.length).toBeLessThanOrEqual(THUMB_MAX_BYTES);
+    const display = await sharp(value.display).metadata();
+    expect(display.format).toBe("png");
+    // Fitted inside 800 across, with its own shape kept.
+    expect(Math.max(display.width!, display.height!)).toBe(800);
+    expect(display.width! / display.height!).toBeCloseTo(1.6, 1);
+    expect(display.hasAlpha).toBe(false);
+    const thumb = await sharp(value.thumb).metadata();
+    expect(Math.max(thumb.width!, thumb.height!)).toBe(300);
+    expect(thumb.width! / thumb.height!).toBeCloseTo(1.6, 1);
+  });
+
+  it("is not enlarged when it is already small, and a tiny picture is refused", async () => {
+    const small = await processImage(await picture(300, 300, "png"), "payment-qr");
+    if (!small.ok) throw new Error(small.error);
+    expect([small.value.width, small.value.height]).toEqual([300, 300]);
+    const tiny = await processImage(await picture(60, 60, "png"), "payment-qr");
+    expect(tiny).toEqual({ ok: false, error: IMAGE_ERRORS.tooSmall });
+  });
+});

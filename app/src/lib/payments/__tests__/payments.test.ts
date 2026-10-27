@@ -20,6 +20,7 @@ const row = (over: Partial<PaymentMethodRow> = {}): PaymentMethodRow => ({
   kind: "link",
   name: "Pay online",
   details: { url: "https://pay.example.test/sweet", ignored: "x" },
+  image_id: null,
   on_new_quotes: true,
   sort_order: 0,
   created_at: "2026-10-01T10:00:00Z",
@@ -40,11 +41,11 @@ const payshap = paymentMethodFromRow(
 )!;
 
 describe("South African ways to pay", () => {
-  it("offers the QR code as planned but not built, and the rest as ready", () => {
+  it("offers the QR code (a picture) and the rest, all ready", () => {
     expect(
       ZA_LOCALE.payment.waysToPay.map((k) => [k.kind, k.available]),
     ).toEqual([
-      ["qr", false],
+      ["qr", true],
       ["link", true],
       ["mobile-id", true],
       ["collection", true],
@@ -81,7 +82,7 @@ describe("paymentMethodFromRow", () => {
     expect(
       paymentMethodFromRow(row({ kind: "snapscan" }), ZA_LOCALE),
     ).toBeNull();
-    expect(paymentMethodFromRow(row({ kind: "qr" }), ZA_LOCALE)).toBeNull();
+    expect(paymentMethodFromRow(row({ kind: "bitcoin" }), ZA_LOCALE)).toBeNull();
   });
 
   it("copes with details that are not an object", () => {
@@ -99,6 +100,7 @@ describe("parsePaymentMethodForm", () => {
           kind: "link",
           name: "  Pay   online ",
           fields: { url: "https://pay.example.test/x" },
+          imageId: "",
           onNewQuotes: false,
         },
         ZA_LOCALE,
@@ -108,6 +110,7 @@ describe("parsePaymentMethodForm", () => {
       kind: "link",
       name: "Pay online",
       details: { url: "https://pay.example.test/x" },
+      imageId: null,
       onNewQuotes: false,
     });
   });
@@ -118,6 +121,7 @@ describe("parsePaymentMethodForm", () => {
         kind: "link",
         name: " ",
         fields: { url: "pay.example.test" },
+        imageId: "",
         onNewQuotes: true,
       },
       ZA_LOCALE,
@@ -131,7 +135,7 @@ describe("parsePaymentMethodForm", () => {
 
   it("asks for what a kind needs, and nothing for the optional words of pay on collection", () => {
     const empty = parsePaymentMethodForm(
-      { kind: "mobile-id", name: "PayShap", fields: {}, onNewQuotes: true },
+      { kind: "mobile-id", name: "PayShap", fields: {}, imageId: "", onNewQuotes: true },
       ZA_LOCALE,
     );
     expect(empty.ok).toBe(false);
@@ -141,6 +145,7 @@ describe("parsePaymentMethodForm", () => {
           kind: "collection",
           name: "Pay on collection",
           fields: {},
+          imageId: "",
           onNewQuotes: true,
         },
         ZA_LOCALE,
@@ -148,14 +153,34 @@ describe("parsePaymentMethodForm", () => {
     ).toBe(true);
   });
 
-  it("refuses a kind that is unknown or not built yet", () => {
-    for (const kind of ["qr", "bitcoin", ""]) {
+  it("refuses a kind that is unknown", () => {
+    for (const kind of ["bitcoin", ""]) {
       const r = parsePaymentMethodForm(
-        { kind, name: "x", fields: {}, onNewQuotes: true },
+        { kind, name: "x", fields: {}, imageId: "", onNewQuotes: true },
         ZA_LOCALE,
       );
       expect(r.ok).toBe(false);
     }
+  });
+
+  it("wants a QR code's picture, and gives other kinds none", () => {
+    const qrId = "33333333-3333-4333-8333-333333333333";
+    const without = parsePaymentMethodForm({ kind: "qr", name: "SnapScan", fields: {}, imageId: "", onNewQuotes: true }, ZA_LOCALE);
+    expect(without.ok).toBe(false);
+    if (!without.ok) expect(without.errors.image).toMatch(/Choose the QR code picture/);
+    const bad = parsePaymentMethodForm({ kind: "qr", name: "SnapScan", fields: {}, imageId: "not-an-id", onNewQuotes: true }, ZA_LOCALE);
+    expect(bad.ok).toBe(false);
+    expect(parsePaymentMethodForm({ kind: "qr", name: "SnapScan", fields: { words: "Scan to pay" }, imageId: qrId, onNewQuotes: true }, ZA_LOCALE)).toEqual({
+      ok: true,
+      kind: "qr",
+      name: "SnapScan",
+      details: { words: "Scan to pay" },
+      imageId: qrId,
+      onNewQuotes: true,
+    });
+    // A picture sent with a kind that has none is dropped.
+    const link = parsePaymentMethodForm({ kind: "link", name: "Pay", fields: { url: "https://pay.example.test/x" }, imageId: qrId, onNewQuotes: true }, ZA_LOCALE);
+    expect(link.ok && link.imageId).toBeNull();
   });
 
   it("limits the name's length", () => {
@@ -164,6 +189,7 @@ describe("parsePaymentMethodForm", () => {
         kind: "other",
         name: "x".repeat(61),
         fields: { words: "Ask me" },
+        imageId: "",
         onNewQuotes: true,
       },
       ZA_LOCALE,
@@ -218,6 +244,7 @@ describe("which ways a document shows", () => {
         lines: [
           { label: "Web address", value: "https://pay.example.test/sweet" },
         ],
+        imageId: null,
       },
     ]);
     expect(paymentWaySnapshots([link, payshap], [], ZA_LOCALE)).toHaveLength(2);
@@ -239,6 +266,23 @@ describe("which ways a document shows", () => {
     expect(onInvoice[1]).toEqual(shown[1]);
   });
 
+  it("carries a QR code's picture into the document and an invoice, and prints it under its rows", () => {
+    const qrId = "33333333-3333-4333-8333-333333333333";
+    const qr = paymentMethodFromRow(
+      row({ id: "44444444-4444-4444-8444-444444444444", kind: "qr", name: "SnapScan", details: { words: "Scan to pay" }, image_id: qrId }),
+      ZA_LOCALE,
+    )!;
+    expect(qr.imageId).toBe(qrId);
+    expect(paymentMethodSummary(qr, ZA_LOCALE)).toBe("QR code · Scan to pay");
+    const shown = paymentWaySnapshots([qr], [], ZA_LOCALE);
+    expect(shown[0].imageId).toBe(qrId);
+    expect(invoicePaymentWays(shown, [qr], ZA_LOCALE)[0].imageId).toBe(qrId);
+    const groups = howToPayGroups({ bankDetails: [], paymentMethods: shown, wording: { bankTransferName: "EFT" } as never });
+    expect(groups).toEqual([{ name: "SnapScan", lines: [{ label: "What to tell the customer", value: "Scan to pay" }], bank: false, imageId: qrId }]);
+    // A picture that is not a valid id is not used.
+    expect(paymentMethodFromRow(row({ kind: "qr", image_id: "nope" }), ZA_LOCALE)!.imageId).toBeNull();
+  });
+
   it("only the owner changes them", () => {
     expect(canEditPaymentMethods("owner")).toBe(true);
     for (const role of ["admin", "staff", null])
@@ -254,7 +298,7 @@ describe("howToPayGroups", () => {
   it("names the account only when other ways are shown with it", () => {
     expect(
       howToPayGroups({ bankDetails: bank, paymentMethods: [], wording }),
-    ).toEqual([{ name: null, lines: bank, bank: true }]);
+    ).toEqual([{ name: null, lines: bank, bank: true, imageId: null }]);
     expect(
       howToPayGroups({ bankDetails: bank, paymentMethods: ways, wording }).map(
         (g) => g.name,

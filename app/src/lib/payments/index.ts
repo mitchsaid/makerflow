@@ -1,4 +1,5 @@
 import type { BankLine } from "../bank";
+import { isImageId } from "../images";
 import type { LocalePack, WayToPayKind } from "../locale";
 
 /**
@@ -14,6 +15,8 @@ export type PaymentMethod = {
   name: string;
   /** Field key (from the pack's kind) to value. */
   details: Record<string, string>;
+  /** The QR code picture (a kind that is a picture), else null. */
+  imageId: string | null;
   onNewQuotes: boolean;
   sortOrder: number;
   /** ISO timestamps: when it was added (the order they list in) and when it last changed. */
@@ -27,6 +30,7 @@ export type PaymentMethodRow = {
   kind: string;
   name: string;
   details: unknown;
+  image_id: string | null;
   on_new_quotes: boolean;
   sort_order: number;
   created_at: string;
@@ -39,6 +43,8 @@ export type PaymentWaySnapshot = {
   kind: string;
   name: string;
   lines: BankLine[];
+  /** The QR code picture to print with it, if it has one. Absent on versions sent before QR codes existed. */
+  imageId?: string | null;
 };
 
 /** What a quote or invoice screen needs of a saved way to pay: its name and one line saying which. */
@@ -80,6 +86,7 @@ export function paymentMethodFromRow(
     kind: row.kind,
     name: row.name,
     details,
+    imageId: kind.picture && isImageId(row.image_id) ? row.image_id : null,
     onNewQuotes: row.on_new_quotes === true,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
@@ -103,12 +110,15 @@ export type PaymentMethodFormValues = {
   kind: string;
   name: string;
   fields: Record<string, string>;
+  /** The QR code picture's id, or "" for none. */
+  imageId: string;
   onNewQuotes: boolean;
 };
 
 export type PaymentMethodErrors = {
   kind?: string;
   name?: string;
+  image?: string;
   fields: Record<string, string>;
 };
 
@@ -118,6 +128,7 @@ export type ParsedPaymentMethodForm =
       kind: string;
       name: string;
       details: Record<string, string>;
+      imageId: string | null;
       onNewQuotes: boolean;
     }
   | { ok: false; errors: PaymentMethodErrors };
@@ -159,13 +170,17 @@ export function parsePaymentMethodForm(
     if (checked.ok) details[field.key] = checked.value;
     else errors.fields[field.key] = checked.error;
   }
-  if (errors.name || Object.keys(errors.fields).length > 0)
+  // A picture kind needs its picture; any other kind has none.
+  const imageId = kind.picture && isImageId(values.imageId) ? values.imageId : null;
+  if (kind.picture && !imageId) errors.image = "Choose the QR code picture. Save it from your payment app first.";
+  if (errors.name || errors.image || Object.keys(errors.fields).length > 0)
     return { ok: false, errors };
   return {
     ok: true,
     kind: kind.kind,
     name,
     details,
+    imageId,
     onNewQuotes: values.onNewQuotes !== false,
   };
 }
@@ -192,7 +207,8 @@ export function paymentMethodSummary(
 ): string {
   const kind = wayToPayKind(method.kind, locale);
   const first = kind?.fields.map((f) => method.details[f.key]).find((v) => !!v);
-  return [kind?.label, first].filter(Boolean).join(" · ");
+  const picture = kind?.picture && method.imageId ? "picture saved" : null;
+  return [kind?.label, first ?? picture].filter(Boolean).join(" · ");
 }
 
 /** The ways a new quote or invoice starts with: the ones the maker keeps on new quotes. */
@@ -218,6 +234,7 @@ export function paymentWaySnapshots(
       kind: m.kind,
       name: m.name,
       lines: paymentMethodLines(m, locale),
+      imageId: m.imageId,
     }));
 }
 
@@ -239,6 +256,7 @@ export function invoicePaymentWays(
           kind: now.kind,
           name: now.name,
           lines: paymentMethodLines(now, locale),
+          imageId: now.imageId,
         }
       : way;
   });

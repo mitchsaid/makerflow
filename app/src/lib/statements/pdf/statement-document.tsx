@@ -21,7 +21,7 @@ export type StatementDocumentData = {
   statement: Statement;
   bank: BankLine[];
   /** The business's other saved ways to pay, each with its rows. Absent in older callers. */
-  ways?: { name: string; lines: BankLine[] }[];
+  ways?: { name: string; lines: BankLine[]; imageId?: string | null }[];
   /** The wording from the country's locale pack. */
   words: {
     title: string;
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
 });
 
 /** A statement of account as an A4 document. */
-export function StatementDocument({ data, logo }: { data: StatementDocumentData; logo?: PdfImage | null }) {
+export function StatementDocument({ data, logo, images }: { data: StatementDocumentData; logo?: PdfImage | null; images?: ReadonlyMap<string, PdfImage> }) {
   const { statement: s, words } = data;
   const money = (cents: number) => formatMoney(cents, data.currencyCode, data.numberStyle);
   const day = (iso: string) => formatDay(iso, data.dateLocale);
@@ -206,6 +206,10 @@ export function StatementDocument({ data, logo }: { data: StatementDocumentData;
                       <Text>{l.value}</Text>
                     </View>
                   ))}
+                  {way.imageId && images?.get(way.imageId) ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image src={pdfSource(images.get(way.imageId)!)} style={{ width: 90, height: 90, marginTop: 3, objectFit: "contain", backgroundColor: "#ffffff" }} />
+                  ) : null}
                 </View>
               ))}
             </View>

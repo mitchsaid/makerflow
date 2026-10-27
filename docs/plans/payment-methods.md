@@ -1,7 +1,7 @@
 # Ways to pay: more than bank details and a note
 
 ## Status
-**Slice 1 built 2026-10-26 (the list, the words, the document, the PDF and the statement); the QR picture (slice 2) is next.** The founder answered the questions (section "Answers"). Founder: "How to pay needs some restructuring. I think there may be multiple options, eg. paying by scanning a QR code or other methods. Right now it's just add bank details and notes."
+**Slice 1 built 2026-10-26 (the list, the words, the document, the PDF and the statement). Slice 2 built 2026-10-27: the QR code picture.** The founder answered the questions (section "Answers"). Founder: "How to pay needs some restructuring. I think there may be multiple options, eg. paying by scanning a QR code or other methods. Right now it's just add bank details and notes."
 
 Touches the database (a new table, a new kind of picture, the quote and invoice snapshots), the money details printed on customer documents and a security-sensitive setting (where customers send money), so it needs human review.
 
@@ -82,7 +82,7 @@ Inputs by kind: names and instructions are text; the QR is a picture (`ImageFiel
 
 ## Answers (founder, 2026-10-26)
 1. **The South African list is fine** (EFT, QR code, payment link, PayShap or mobile ID, pay on collection, something else). **A bank transfer is called "EFT"** on screens and documents (`payment.bankTransferName` in the pack). The names and rules of each provider are still not checked against a source: the fields are plain text and only the payment link is checked (a whole https address).
-2. **QR as an uploaded picture first.** In slice 1 the QR code is listed in the add sheet as *Coming soon* and cannot be picked.
+2. **QR as an uploaded picture first.** Slice 1 listed it as *Coming soon*; slice 2 (2026-10-27) builds it.
 3. **The same list and component on invoices.** The *How to pay* section (`PaymentWaysSection`) takes `document="quote" | "invoice"`. The invoice form has no How to pay section today (an invoice shows the ways its quote showed), so slice 1 puts the ways on the invoice document (current details of the ways the quote showed, matched by id) and on the statement; a section on the invoice form comes with the invoice wording settings.
 4. **The box is renamed *Payment notes*** (a line for this quote only). Its usual keeps its "Use this note on new quotes" link.
 
@@ -95,3 +95,11 @@ Inputs by kind: names and instructions are text; the QR is a picture (`ImageFiel
 
 ## Not planned yet
 Several bank accounts; checking a payment against the bank; taking the payment inside MakerFlow (needs a payment provider, and is a separate decision in `docs/product-brief.md`); a re-authentication step before changing where money goes.
+
+## What was built in slice 2 (2026-10-27)
+- Migration `20261124100000_payment_qr.sql` (**needs human review: a QR code sends money**): `images.kind` gains `payment-qr`; `payment_methods.image_id` points at a picture of the same business (composite foreign key, `on delete set null (image_id)` so a way keeps its words if a picture ever goes). Tests in `payment_methods.test.sql` and `delete_account.test.sql`.
+- Pack: the *QR code* kind is ready (`picture: true`), with an optional *What to tell the customer* line and the default name *Scan to pay*.
+- Picture: `ImageField` with the new kind; the browser keeps it a lossless PNG on white (no JPEG blur), the server keeps it whole (never cropped), fitted inside 800 across, never enlarged, with a 300 thumbnail (`lib/images/process.ts`).
+- Printing: on screen 160 px on white; in the PDF about 3.5 cm on white, from the full-size copy (quote, invoice and statement PDFs). The snapshot's way carries the `imageId`, so a sent quote keeps its picture and an invoice shows the current picture of the same way.
+- A QR is required for the QR kind (error at the field); other kinds have none.
+- Still later: a QR drawn from a payment link (needs a QR library, which needs approval) and clickable links in the PDF.

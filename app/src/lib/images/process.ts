@@ -11,6 +11,8 @@ import {
   LOGO_THUMB_PX,
   PRODUCT_DISPLAY_PX,
   PRODUCT_THUMB_PX,
+  QR_DISPLAY_PX,
+  QR_THUMB_PX,
   THUMB_MAX_BYTES,
   type ImageKind,
 } from "./index";
@@ -88,6 +90,23 @@ export async function processImage(
 
     // A product photo: white behind anything see-through, JPEG at the best quality that fits.
     const flat = () => base().rotate().flatten({ background: "#ffffff" });
+
+    if (kind === "payment-qr") {
+      // A QR code must stay sharp: kept whole (never cropped), on white, as a lossless PNG (a palette PNG when it is big).
+      const make = (px: number, palette: boolean) =>
+        flat()
+          .resize({ width: px, height: px, fit: "inside", withoutEnlargement: true })
+          .png(palette ? { palette: true, quality: 100, compressionLevel: 9 } : { compressionLevel: 9 })
+          .toBuffer({ resolveWithObject: true });
+      let display = await make(QR_DISPLAY_PX, false);
+      if (display.data.length > DISPLAY_MAX_BYTES) display = await make(QR_DISPLAY_PX, true);
+      const thumb = await make(QR_THUMB_PX, true);
+      if (display.data.length > DISPLAY_MAX_BYTES || thumb.data.length > THUMB_MAX_BYTES) return { ok: false, error: IMAGE_ERRORS.tooBig };
+      return {
+        ok: true,
+        value: { contentType: "image/png", width: display.info.width, height: display.info.height, display: display.data, thumb: thumb.data },
+      };
+    }
 
     if (kind === "background") {
       // Fills a page, so it keeps its own shape (fitted inside an A4 page's size); the thumbnail is the whole picture, small.

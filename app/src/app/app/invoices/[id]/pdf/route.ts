@@ -24,8 +24,11 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
   const photoIds = snapshot.lines.flatMap((l) => (l.photoImageId ? [l.photoImageId] : []));
   const theme = themeFromStored(snapshot);
   const backgroundId = theme.background === "image" ? theme.backgroundImageId : null;
-  const [photos, logos, backgrounds] = await Promise.all([
+  // QR codes for paying are printed from their full-size copy, so they scan.
+  const qrIds = (snapshot.paymentMethods ?? []).flatMap((w) => (w.imageId ? [w.imageId] : []));
+  const [photos, qrs, logos, backgrounds] = await Promise.all([
     getRenditions(photoIds, "thumb"),
+    getRenditions(qrIds, "display"),
     getRenditions(snapshot.logoImageId ? [snapshot.logoImageId] : [], "display"),
     getRenditions(backgroundId ? [backgroundId] : [], "display"),
   ]);
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
     const locale = getLocalePack(workspace.profile.countryCode);
     const words = locale.documents.invoice;
     pdf = await renderQuotePdf(snapshot, {
-      images: photos,
+      images: new Map([...photos, ...qrs]),
       logo,
       background,
       payments: {

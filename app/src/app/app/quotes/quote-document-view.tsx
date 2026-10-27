@@ -8,6 +8,7 @@ import { extrasView, itemName, quantityPriceNote } from "@/lib/quotes/line-text"
 import { themeFromStored } from "@/lib/quotes/themes";
 import { signOffBlock } from "@/lib/quotes/sign-off";
 import { howToPayGroups } from "@/lib/payments/groups";
+import { imageUrl } from "@/lib/images";
 
 /**
  * A sent quote on screen, drawn from its frozen snapshot only (the same data the PDF uses), so
@@ -214,6 +215,16 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
                       </div>
                     ))}
                   </dl>
+                )}
+                {group.imageId && (
+                  // A QR code on white at a size a phone camera reads from a screen.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageUrl(group.imageId)}
+                    alt={`QR code for ${group.name ?? "paying"}`}
+                    data-testid="pay-qr"
+                    className="mt-1 size-40 rounded-md bg-white object-contain ring-1 ring-foreground/10"
+                  />
                 )}
               </div>
             ))}

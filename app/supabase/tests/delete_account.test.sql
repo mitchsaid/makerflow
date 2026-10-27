@@ -109,6 +109,7 @@ begin
   assert (select count(*) from public.invoice_drafts where organisation_id = org_a) = 1, 'no invoice draft';
   -- A saved way to pay goes with the business.
   insert into public.payment_methods (organisation_id, kind, name, details) values (org_a, 'link', 'Pay by card', '{"url":"https://pay.example.test/x"}');
+  insert into public.payment_methods (organisation_id, kind, name, image_id) values (org_a, 'qr', 'SnapScan', img);
 
   ----------------------------------------------------------------------
   -- Server only

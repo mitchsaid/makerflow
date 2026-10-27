@@ -83,7 +83,7 @@ export function ImageField({
             className={
               shape === "square"
                 ? "size-24 shrink-0 rounded-lg object-cover ring-1 ring-foreground/10"
-                : kind === "background" ? "max-h-28 max-w-32 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10" : "max-h-20 max-w-48 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10"
+                : kind === "background" ? "max-h-28 max-w-32 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10" : kind === "payment-qr" ? "size-28 shrink-0 rounded-lg bg-white object-contain ring-1 ring-foreground/10" : "max-h-20 max-w-48 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10"
             }
           />
         ) : (
