@@ -31,8 +31,11 @@ export function JobList({
   formatLocale,
   numberStyle,
   initialFilter = "active",
+  canDelete = false,
 }: {
   initialFilter?: JobFilter;
+  /** Owners and admins can delete a job from its card. */
+  canDelete?: boolean;
   jobs: JobSummary[];
   /** Today, as YYYY-MM-DD, in the business's time zone. */
   today: string;
@@ -119,7 +122,7 @@ export function JobList({
       ) : (
         <ul className="space-y-2">
           {visible.map((j) => (
-            <JobRow key={j.id} job={j} today={today} formatLocale={formatLocale} numberStyle={numberStyle} />
+            <JobRow key={j.id} job={j} today={today} formatLocale={formatLocale} numberStyle={numberStyle} canDelete={canDelete} />
           ))}
         </ul>
       )}

@@ -350,6 +350,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await expectNoViolations(page, "jobs list");
+      // A job's ⋯ menu: its sheet.
+      await page.getByRole("button", { name: /^More for .*, job J-0001/ }).click();
+      await expect(page.getByRole("dialog", { name: /Job J-0001/ })).toBeVisible();
+      await expectNoViolations(page, "jobs list, a job's menu");
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await page.getByRole("button", { name: /^This week/ }).click();
       await expectNoViolations(page, "jobs list, this week filter");
       // A late job, so the red Late number is checked for contrast too (the local server key is a demo credential).

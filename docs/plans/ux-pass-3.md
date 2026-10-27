@@ -111,3 +111,6 @@ Several jobs on one quote; a recent-quotes list on Home; recording a payment fro
 
 ## What was built in slice 3 (2026-10-27)
 Home shows *Your money* (owed, waiting, due, paid this month; `invoice_owed_totals` gained `paidThisMonthCents`, payments less reversals in the business's current month) and a *Create new* button in the header that opens an `ActionSheet` with Quote, Invoice and Job. Caught up now means nothing owed, waiting or due; *Paid this month* is still shown.
+
+## What was built in slice 4 (2026-10-27)
+Cards on Quotes and Jobs have a ⋯ button (`RowMenu`, an `ActionSheet`). What it offers comes from `quoteRowActions` (draft: delete; sent or accepted without a live job: turn into a job, using the quote's own `TurnIntoJobSheet`) and, for a job, delete behind a `ConfirmSheet`. A quote whose job was deleted or cancelled can be turned into a job again.

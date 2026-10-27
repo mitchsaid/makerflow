@@ -296,12 +296,33 @@ export function TurnIntoJob({ quoteId, number, today }: { quoteId: string; numbe
       <Button type="button" size="lg" variant="default" id="turn-into-job" onClick={() => setOpen(true)}>
         Turn into a job
       </Button>
-      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && setOpen(false)}>
-        <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => document.getElementById("turn-into-job") ?? true}>
-          {/* Mounted only while open, so every opening starts with an empty form. */}
-          {open && <OutcomeForm kind="accepted" quoteId={quoteId} number={number} today={today} askToCreateJob={false} thenCreateJob onDone={() => setOpen(false)} />}
-        </SheetContent>
-      </Sheet>
+      <TurnIntoJobSheet quoteId={quoteId} number={number} today={today} open={open} onOpenChange={setOpen} finalFocus={() => document.getElementById("turn-into-job") ?? true} />
     </>
+  );
+}
+
+/** The same sheet, controlled: a quote's card in a list opens it too (docs/plans/ux-pass-3.md). */
+export function TurnIntoJobSheet({
+  quoteId,
+  number,
+  today,
+  open,
+  onOpenChange,
+  finalFocus,
+}: {
+  quoteId: string;
+  number: string;
+  today: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  finalFocus?: () => HTMLElement | null | true;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onOpenChange(false)}>
+      <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={finalFocus}>
+        {/* Mounted only while open, so every opening starts with an empty form. */}
+        {open && <OutcomeForm kind="accepted" quoteId={quoteId} number={number} today={today} askToCreateJob={false} thenCreateJob onDone={() => onOpenChange(false)} />}
+      </SheetContent>
+    </Sheet>
   );
 }
