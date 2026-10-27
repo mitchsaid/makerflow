@@ -31,6 +31,8 @@ export type QuoteSummary = {
   grossCents: number;
   currencyCode: string;
   updatedAt: string;
+  /** The job being made from this quote (not a cancelled one), or null. Undefined where the list did not load jobs. */
+  liveJob?: { id: string; number: number } | null;
 };
 
 type SummaryRow = {
@@ -53,7 +55,7 @@ export const QUOTE_SUMMARY_COLUMNS = "id, organisation_id, number, version, stat
 export type QuoteSummaryColumns = Omit<SummaryRow, "customers">;
 
 /** A quote row as a list shows it. */
-export const quoteSummaryOf = (row: QuoteSummaryColumns, customerName: string | null): QuoteSummary => ({
+export const quoteSummaryOf = (row: QuoteSummaryColumns, customerName: string | null, liveJob?: { id: string; number: number } | null): QuoteSummary => ({
   id: row.id,
   organisationId: row.organisation_id,
   number: row.number,
@@ -65,6 +67,7 @@ export const quoteSummaryOf = (row: QuoteSummaryColumns, customerName: string | 
   grossCents: Number(row.gross_cents),
   currencyCode: row.currency_code,
   updatedAt: row.updated_at,
+  ...(liveJob === undefined ? {} : { liveJob }),
 });
 
 /** Every quote of the business, newest changes first. One query. */
@@ -72,13 +75,14 @@ export async function getQuotes(): Promise<QuoteSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select(`${QUOTE_SUMMARY_COLUMNS}, customers(name)`)
+    .select(`${QUOTE_SUMMARY_COLUMNS}, customers(name), jobs(id, number, status)`)
     .order("updated_at", { ascending: false })
     .limit(500);
   if (error) throw new Error(`Could not load quotes: ${error.message}`);
-  return (data as unknown as SummaryRow[]).map((row) => {
+  return (data as unknown as (SummaryRow & { jobs: { id: string; number: number; status: string }[] | null })[]).map((row) => {
     const customer = Array.isArray(row.customers) ? row.customers[0] : row.customers;
-    return quoteSummaryOf(row, customer?.name ?? null);
+    const live = (row.jobs ?? []).find((j) => j.status !== "cancelled");
+    return quoteSummaryOf(row, customer?.name ?? null, live ? { id: live.id, number: live.number } : null);
   });
 }
 

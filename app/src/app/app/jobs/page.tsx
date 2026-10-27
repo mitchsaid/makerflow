@@ -1,4 +1,5 @@
 import { AddLink } from "@/components/add-button";
+import { canEditBusinessProfile } from "@/lib/business-profile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getJobs } from "@/lib/jobs/data";
@@ -10,7 +11,7 @@ import { JobList } from "./job-list";
 
 export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">) {
   // The jobs query runs beside the workspace check, not after it.
-  const [allJobs, { organisation, profile }, query] = await Promise.all([getJobs(), requireOrganisation(), searchParams]);
+  const [allJobs, { organisation, profile, role }, query] = await Promise.all([getJobs(), requireOrganisation(), searchParams]);
   const locale = getLocalePack(profile.countryCode);
   const jobs = forOrganisation(allJobs, organisation.id);
   // Just deleted: say so (the number only, which is checked, never text from the address).
@@ -31,7 +32,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
           <AlertDescription>Job {jobNumberText(deleted)} deleted.</AlertDescription>
         </Alert>
       )}
-      <JobList key={parseJobFilter(query.show) ?? "active"} jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} initialFilter={parseJobFilter(query.show) ?? "active"} />
+      <JobList key={parseJobFilter(query.show) ?? "active"} jobs={jobs} today={todayIn(locale.timeZone)} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} initialFilter={parseJobFilter(query.show) ?? "active"} canDelete={canEditBusinessProfile(role)} />
     </main>
   );
 }
