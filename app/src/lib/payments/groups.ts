@@ -5,7 +5,10 @@ import type { QuoteSnapshot } from "../quotes/snapshot";
 export type HowToPayGroup = {
   name: string | null;
   lines: BankLine[];
-  /** The bank account (printed in columns when long). */ bank: boolean;
+  /** The bank account (printed in columns when long). */
+  bank: boolean;
+  /** The QR code picture to print under the rows, if the way has one. */
+  imageId: string | null;
 };
 
 /**
@@ -23,9 +26,10 @@ export function howToPayGroups(
       name: ways.length > 0 ? (s.wording.bankTransferName ?? null) : null,
       lines: s.bankDetails,
       bank: true,
+      imageId: null,
     });
   }
   for (const way of ways)
-    groups.push({ name: way.name, lines: way.lines, bank: false });
+    groups.push({ name: way.name, lines: way.lines, bank: false, imageId: way.imageId ?? null });
   return groups;
 }

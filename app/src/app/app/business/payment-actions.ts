@@ -22,13 +22,13 @@ export type PaymentMethodSaveState =
 export type PaymentMethodRemoveState = { status: "removed" } | { status: "error"; message: string };
 
 const GENERIC_ERROR = "Something went wrong saving that. Please try again.";
-const ROW = "id, kind, name, details, on_new_quotes, sort_order, created_at, updated_at";
+const ROW = "id, kind, name, details, image_id, on_new_quotes, sort_order, created_at, updated_at";
 const NOT_ALLOWED = "Only the owner can change the ways to pay. Ask them.";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isValues(v: unknown): v is PaymentMethodFormValues {
   const x = v as Partial<PaymentMethodFormValues> | null;
-  if (!x || typeof x.kind !== "string" || typeof x.name !== "string" || typeof x.onNewQuotes !== "boolean") return false;
+  if (!x || typeof x.kind !== "string" || typeof x.name !== "string" || typeof x.onNewQuotes !== "boolean" || typeof x.imageId !== "string") return false;
   if (typeof x.fields !== "object" || x.fields === null) return false;
   return Object.values(x.fields).every((value) => typeof value === "string");
 }
@@ -47,7 +47,7 @@ export async function savePaymentMethod(id: string | null, values: PaymentMethod
   if (!parsed.ok) return { status: "error", errors: parsed.errors };
 
   const supabase = await createClient();
-  const changes = { kind: parsed.kind, name: parsed.name, details: parsed.details, on_new_quotes: parsed.onNewQuotes };
+  const changes = { kind: parsed.kind, name: parsed.name, details: parsed.details, image_id: parsed.imageId, on_new_quotes: parsed.onNewQuotes };
   let row: PaymentMethodRow | null = null;
   if (id) {
     const { data, error } = await supabase.from("payment_methods").update(changes).eq("id", id).eq("organisation_id", organisation.id).select(ROW);

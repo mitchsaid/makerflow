@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { FormErrorScope } from "@/components/form-errors";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextField } from "@/components/form-fields";
+import { ImageField } from "@/components/image-field";
 import { SaveButton } from "@/components/save-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function PaymentMethodForm({
     kind: method?.kind ?? kindKey,
     name: method?.name ?? kind?.defaultName ?? "",
     fields: method?.details ?? {},
+    imageId: method?.imageId ?? "",
     onNewQuotes: method?.onNewQuotes ?? true,
   });
   const [errors, setErrors] = useState<PaymentMethodErrors>({ fields: {} });
@@ -64,9 +66,11 @@ export function PaymentMethodForm({
   const [tries, setTries] = useState(0);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [pending, startTransition] = useTransition();
+  // A QR picture on its way counts as busy too: a sheet must not close under it.
+  const [uploading, setUploading] = useState(false);
   const fid = (key: string) => `${idPrefix}pay-${method?.id ?? "new"}-${key}`;
 
-  useEffect(() => embedded?.onPendingChange(pending), [pending, embedded]);
+  useEffect(() => embedded?.onPendingChange(pending || uploading), [pending, uploading, embedded]);
   if (!kind) return null;
 
   const setField = (key: string) => (value: string) => {
@@ -77,6 +81,9 @@ export function PaymentMethodForm({
   const problems: FormProblem[] = [
     ...(errors.name
       ? [{ fieldId: fid("name"), label: "Name", message: errors.name }]
+      : []),
+    ...(errors.image
+      ? [{ fieldId: fid("image"), label: "QR code picture", message: errors.image }]
       : []),
     ...kind.fields.flatMap((f) =>
       errors.fields[f.key]
@@ -166,6 +173,23 @@ export function PaymentMethodForm({
               setValues((v) => ({ ...v, name }));
             }}
           />
+          {kind.picture && (
+            <ImageField
+              id={fid("image")}
+              label="QR code picture"
+              hint="Save the QR code from your payment app, then choose it here."
+              kind="payment-qr"
+              shape="free"
+              value={values.imageId}
+              alt={`QR code for ${values.name || kind.label}`}
+              error={errors.image}
+              onPendingChange={setUploading}
+              onChange={(imageId) => {
+                setSaved(false);
+                setValues((v) => ({ ...v, imageId }));
+              }}
+            />
+          )}
           {kind.fields.map((field) => (
             <TextField
               key={field.key}

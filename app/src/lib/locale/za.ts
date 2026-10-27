@@ -112,8 +112,20 @@ const ZA_WAYS_TO_PAY: readonly WayToPayKind[] = [
     label: "QR code",
     description: "A code from your payment app (SnapScan, Zapper) that a customer scans.",
     defaultName: "Scan to pay",
-    available: false,
-    fields: [],
+    available: true,
+    picture: true,
+    fields: [
+      {
+        key: "words",
+        label: "What to tell the customer",
+        hint: "Like “Scan with your banking app”.",
+        required: false,
+        options: null,
+        inputMode: "text",
+        maxLength: 200,
+        validate: requiredText("The words", 200),
+      },
+    ],
   },
   {
     kind: "link",
@@ -121,6 +133,7 @@ const ZA_WAYS_TO_PAY: readonly WayToPayKind[] = [
     description: "A web page where a customer pays by card or wallet.",
     defaultName: "Pay online",
     available: true,
+    picture: false,
     fields: [
       {
         key: "url",
@@ -140,6 +153,7 @@ const ZA_WAYS_TO_PAY: readonly WayToPayKind[] = [
     description: "A number or ID a customer pays to from their banking app.",
     defaultName: "PayShap",
     available: true,
+    picture: false,
     fields: [
       {
         key: "id",
@@ -159,6 +173,7 @@ const ZA_WAYS_TO_PAY: readonly WayToPayKind[] = [
     description: "The customer pays you in person, by cash or card.",
     defaultName: "Pay on collection",
     available: true,
+    picture: false,
     fields: [
       {
         key: "words",
@@ -178,6 +193,7 @@ const ZA_WAYS_TO_PAY: readonly WayToPayKind[] = [
     description: "Any other way, in your own words.",
     defaultName: "",
     available: true,
+    picture: false,
     fields: [
       {
         key: "words",

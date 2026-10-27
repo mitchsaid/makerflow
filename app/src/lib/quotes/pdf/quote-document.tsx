@@ -560,6 +560,11 @@ export function QuoteDocument({
                           </View>
                         ))}
                       </View>
+                      {/* A QR code on white, big enough to scan from paper (about 3.5 cm). */}
+                      {group.imageId && images?.get(group.imageId) ? (
+                        // eslint-disable-next-line jsx-a11y/alt-text
+                        <Image src={pdfSource(images.get(group.imageId)!)} style={styles.payQr} />
+                      ) : null}
                     </View>
                   );
                 })}

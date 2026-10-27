@@ -3,10 +3,10 @@
  * server's picture-making is in ./process.ts. See docs/plans/quote-looks.md for the decisions.
  */
 
-export type ImageKind = "product" | "logo" | "background";
+export type ImageKind = "product" | "logo" | "background" | "payment-qr";
 export type ImageSize = "thumb" | "display";
 
-export const IMAGE_KINDS: readonly ImageKind[] = ["product", "logo", "background"];
+export const IMAGE_KINDS: readonly ImageKind[] = ["product", "logo", "background", "payment-qr"];
 
 /** What the browser sends: it shrinks the picture first (phone photos are far bigger than a host accepts). */
 export const UPLOAD_MAX_BYTES = 4_000_000;
@@ -26,11 +26,15 @@ export const LOGO_THUMB_PX = 300;
 export const BACKGROUND_DISPLAY_WIDTH_PX = 1240;
 export const BACKGROUND_DISPLAY_HEIGHT_PX = 1754;
 export const BACKGROUND_THUMB_PX = 300;
+/** A payment QR code is kept whole (never cropped), on white, as a PNG: big enough to scan from a screen or a printed page. */
+export const QR_DISPLAY_PX = 800;
+export const QR_THUMB_PX = 300;
 
 /** The browser shrinks to this before uploading. */
 export const CLIENT_PRODUCT_PX = 1600;
 export const CLIENT_LOGO_PX = 1000;
 export const CLIENT_BACKGROUND_PX = 2000;
+export const CLIENT_QR_PX = 1200;
 
 export const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const ACCEPT_ATTRIBUTE = "image/jpeg,image/png,image/webp";

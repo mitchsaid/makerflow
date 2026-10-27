@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import sharp from "sharp";
 import { businessTab, openBusinessProfile, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, fillItem, sheet } from "./quote-helpers";
 
@@ -11,11 +12,10 @@ test("the owner adds, changes and removes a payment link in the Business profile
   await signUpAndOnboard(page, "pm-profile", "Sweet Co");
   await openBusinessProfile(page, "Ways to pay");
 
-  // The list of kinds: the QR code is planned (coming soon); the rest can be picked.
+  // The list of kinds, each one a choice.
   await page.getByRole("button", { name: "Add a way to pay" }).click();
   const kinds = sheet(page).getByRole("list", { name: "Ways to pay" });
-  await expect(kinds.getByTestId("coming-soon")).toContainText("QR code");
-  await expect(kinds.getByRole("button")).toHaveText([/Payment link/, /PayShap or mobile payment ID/, /Pay on collection/, /Something else/]);
+  await expect(kinds.getByRole("button")).toHaveText([/QR code/, /Payment link/, /PayShap or mobile payment ID/, /Pay on collection/, /Something else/]);
   await kinds.getByRole("button", { name: /^Payment link/ }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add payment link");
 
@@ -145,4 +145,65 @@ test("a way to pay can be added from a quote, without losing what was typed, and
   await openBusinessProfile(page);
   await businessTab(page, "Ways to pay");
   await expect(page.getByRole("group", { name: "Cash deposit" })).toBeVisible();
+});
+
+/** A square picture with a chequered pattern, standing in for a QR code. */
+async function qrFile() {
+  const size = 200;
+  const raw = Buffer.alloc(size * size * 3, 255);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (((x >> 3) + (y >> 3)) % 2 === 0) raw.fill(0, (y * size + x) * 3, (y * size + x) * 3 + 3);
+    }
+  }
+  return sharp(raw, { raw: { width: size, height: size, channels: 3 } }).png().toBuffer();
+}
+
+test("a QR code is an uploaded picture: needed, saved, shown on the quote and its PDF, and a sent quote keeps it", async ({ page }) => {
+  test.setTimeout(240_000);
+  await signUpAndOnboard(page, "pm-qr", "Sweet Co");
+  await openBusinessProfile(page, "Ways to pay");
+
+  // The picture is needed: saying so, at the field.
+  await page.getByRole("button", { name: "Add a way to pay" }).click();
+  await sheet(page).getByRole("button", { name: /^QR code/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Add QR code");
+  await expect(sheet(page).getByLabel("Name", { exact: true })).toHaveValue("Scan to pay");
+  await sheet(page).getByLabel("Name", { exact: true }).fill("SnapScan");
+  await sheet(page).getByRole("button", { name: "Save way to pay" }).click();
+  await expect(sheet(page).getByTestId("form-summary")).toContainText("Choose the QR code picture");
+
+  // Choosing one shows it; saving adds the card.
+  await sheet(page).locator('input[type="file"]').setInputFiles({ name: "qr.png", mimeType: "image/png", buffer: await qrFile() });
+  await expect(sheet(page).getByRole("img", { name: "QR code for SnapScan" })).toBeVisible();
+  await sheet(page).getByLabel("What to tell the customer").fill("Scan with your banking app");
+  await sheet(page).getByRole("button", { name: "Save way to pay" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "SnapScan" }).getByRole("img", { name: "QR code for SnapScan" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("group", { name: "SnapScan" }).getByRole("img", { name: "QR code for SnapScan" })).toBeVisible();
+
+  // On a quote: ticked, printed with its words, and the PDF draws it.
+  await page.goto("/app/quotes/new");
+  const pay = page.getByRole("group", { name: "How to pay" });
+  await expect(pay.getByRole("checkbox", { name: /Show SnapScan on this quote/ })).toBeChecked();
+  await expect(pay.getByText("QR code · Scan with your banking app")).toBeVisible();
+  await fillItem(page, 1, "Cake", "1", "500");
+  await addCustomerInSheet(page, "Sarah");
+  await page.getByRole("button", { name: "Continue to preview", exact: true }).click();
+  await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+  await expect(text(page)).toContainText("Scan with your banking app");
+  // (The text version of the quote is for screen readers: the picture is there, with its description, and really loads.)
+  const qr = text(page).getByRole("img", { name: "QR code for SnapScan" });
+  await expect(qr).toBeAttached();
+  await expect.poll(async () => qr.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(100);
+  const pdf = await page.request.get(page.url().replace(/\/preview.*$/, "/pdf"));
+  expect(pdf.status()).toBe(200);
+  expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
+
+  // Sent: the picture stays with the quote.
+  await page.getByRole("button", { name: "Mark as sent", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
+  await expect(page.getByTestId("sent-banner")).toBeVisible();
+  await expect(page.getByTestId("quote-document").getByTestId("pay-qr")).toBeAttached();
 });

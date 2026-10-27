@@ -562,6 +562,16 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(page.getByRole("group", { name: "Pay online" })).toBeVisible();
       await expectNoViolations(page, "business profile, a payment link added");
+      // The QR code kind asks for a picture: its sheet, with the error.
+      await page.getByRole("button", { name: "Add a way to pay" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /^QR code/ }).click();
+      await expectNoViolations(page, "business profile, add QR code sheet");
+      await page.getByRole("dialog").getByRole("button", { name: "Save way to pay" }).click();
+      await expect(page.getByRole("dialog").getByTestId("form-summary")).toContainText("Choose the QR code picture");
+      await expectNoViolations(page, "business profile, add QR code sheet with errors");
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
 
       // A VAT-registered business gets the VAT choice on each item.
       await businessTab(page, "Details");

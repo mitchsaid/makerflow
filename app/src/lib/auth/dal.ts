@@ -140,7 +140,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
            country_code, details, use_reference, updated_at
          ),
          payment_methods (
-           id, kind, name, details, on_new_quotes, sort_order, created_at, updated_at
+           id, kind, name, details, image_id, on_new_quotes, sort_order, created_at, updated_at
          ),
          prompt_dismissals ( prompt_key )
        )`,

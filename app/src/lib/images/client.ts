@@ -5,6 +5,7 @@ import {
   CLIENT_BACKGROUND_PX,
   CLIENT_LOGO_PX,
   CLIENT_PRODUCT_PX,
+  CLIENT_QR_PX,
   IMAGE_ERRORS,
   UPLOAD_MAX_BYTES,
   type ImageKind,
@@ -41,7 +42,7 @@ async function decode(file: File): Promise<{ source: CanvasImageSource; width: n
 }
 
 async function shrink(file: File, kind: ImageKind): Promise<Blob> {
-  const max = kind === "logo" ? CLIENT_LOGO_PX : kind === "background" ? CLIENT_BACKGROUND_PX : CLIENT_PRODUCT_PX;
+  const max = kind === "logo" ? CLIENT_LOGO_PX : kind === "background" ? CLIENT_BACKGROUND_PX : kind === "payment-qr" ? CLIENT_QR_PX : CLIENT_PRODUCT_PX;
   const decoded = await decode(file);
   if (!decoded) {
     // This browser can't read it (or it isn't a picture): send it as it is and let the server say.
@@ -65,9 +66,10 @@ async function shrink(file: File, kind: ImageKind): Promise<Blob> {
     return file;
   }
   // A logo that can have a see-through background (PNG or WebP) keeps it, as a PNG; a photo goes on
-  // white as a JPEG.
-  const asPng = kind === "logo" && (file.type === "image/png" || file.type === "image/webp");
-  if (!asPng) {
+  // white as a JPEG. A payment QR code goes on white too, but stays a lossless PNG: JPEG blur can stop it scanning.
+  const keepsAlpha = kind === "logo" && (file.type === "image/png" || file.type === "image/webp");
+  const asPng = keepsAlpha || kind === "payment-qr";
+  if (!keepsAlpha) {
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, width, height);
   }
