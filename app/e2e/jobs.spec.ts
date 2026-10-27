@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { openHistory, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, sentQuote } from "./quote-helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -43,6 +43,7 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("job-items")).toContainText("Wedding cake");
   await expect(page.getByText("Thandi Nkosi")).toBeVisible();
+  await openHistory(page);
   await expect(page.getByTestId("job-activity")).toContainText("Job created");
 
   // The quote now points to its job instead of offering to make another.
@@ -60,13 +61,14 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Back to making" }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+  await openHistory(page);
   const log = page.getByTestId("job-activity");
   await expect(log.getByRole("listitem")).toHaveCount(4);
   await expect(log).toContainText("Moved to making");
 
-  // A note is saved, and kept.
+  // A note saves itself (no Save button), and is kept.
+  await expect(page.getByRole("button", { name: "Save note" })).toHaveCount(0);
   await page.getByLabel("Note (optional)").fill("Lemon sponge, no nuts");
-  await page.getByRole("button", { name: "Save note" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Note saved." })).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Note (optional)")).toHaveValue("Lemon sponge, no nuts");
@@ -125,6 +127,7 @@ test("a cancelled job can be restored, and frees its quote for another job", asy
   await page.getByRole("link", { name: /J-0001/ }).click();
   await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
   await expect(page.getByText("This job was cancelled, so nothing is counted on it.")).toBeVisible();
+  await openHistory(page);
   await page.getByRole("link", { name: "quote QT-0001" }).click();
   // The cancelled job no longer blocks a new one.
   await expect(page.getByRole("button", { name: "Create a job" })).toBeVisible();
@@ -267,6 +270,9 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   await expect(page.getByText("14 Oak Road")).toBeVisible();
   await expect(page.getByTestId("job-needed-by")).toContainText("delivery");
   await expect(page.getByLabel("Note (optional)")).toHaveValue("Match the desk");
+  // Where it came from is in History, closed until asked for.
+  await expect(page.getByText("Added by hand.")).toBeHidden();
+  await openHistory(page);
   await expect(page.getByText("Added by hand.")).toBeVisible();
 
   // It moves along like any other job, and the list offers New job once there is one.
@@ -319,6 +325,7 @@ test("counting what is made starts the job, and offers the next step when everyt
   await shelf.getByRole("button", { name: "One more made of Shelf" }).click();
   await expect(shelf).toContainText("Made 1 of 2");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+  await openHistory(page);
   await expect(page.getByTestId("job-activity")).toContainText("Moved to making");
   await shelf.getByRole("button", { name: "One more made of Shelf" }).click();
   await expect(progress).toContainText("1 of 2 items made");
@@ -391,7 +398,9 @@ test("an item can be added to a job that exists, the way a quote's items are add
   await expect(items).toContainText("3 m Ribbon");
   await expect(items).toContainText("Added later");
   await expect(page.getByTestId("job-progress")).toContainText("0 of 2 items made");
+  await openHistory(page);
   await expect(page.getByTestId("job-activity")).toContainText("Added Ribbon");
+  await openHistory(page);
   await expect(page.getByTestId("job-activity")).toContainText("Moved to making");
 
   // The new item is counted like the others.

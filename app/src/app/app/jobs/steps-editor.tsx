@@ -92,13 +92,13 @@ export function StepsEditor({
   if (!open) {
     return (
       steps.length > 0 ? (
-        <Button ref={openButton} type="button" variant="outline" onClick={() => setOpen(true)}>
+        <Button ref={openButton} type="button" variant="link" className="h-auto min-h-11 justify-start px-0 underline text-muted-foreground text-sm" onClick={() => setOpen(true)}>
           Change steps
           <span className="sr-only"> for {name}</span>
         </Button>
       ) : (
         // Adding something has the plus, like every add action (docs/adr/0008-add-actions.md).
-        <AddButton ref={openButton} onClick={() => setOpen(true)}>
+        <AddButton ref={openButton} variant="link" className="h-auto min-h-11 justify-start px-0 underline text-muted-foreground text-sm" onClick={() => setOpen(true)}>
           Add steps
           <span className="sr-only"> for {name}</span>
         </AddButton>

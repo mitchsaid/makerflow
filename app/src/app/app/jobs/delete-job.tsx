@@ -32,7 +32,7 @@ export function DeleteJob({ jobId, jobLabel }: { jobId: string; jobLabel: string
 
   return (
     <>
-      <Button id="delete-job" type="button" variant="danger" onClick={() => setOpen(true)}>
+      <Button id="delete-job" type="button" variant="link" className="h-auto min-h-11 justify-start px-0 text-destructive underline text-sm" onClick={() => setOpen(true)}>
         Delete this job
       </Button>
       <Sheet open={open} onOpenChange={(isOpen) => !pending && setOpen(isOpen)}>

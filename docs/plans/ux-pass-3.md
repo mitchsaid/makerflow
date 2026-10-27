@@ -1,7 +1,7 @@
 # UX pass 3: Home overview and Create new, card menus, a quieter job page
 
 ## Status
-**Planned, 2026-10-27; waiting for the founder's answers (section "Questions").** Founder, from using the app on a phone: "Home should provide a financial overview of amounts outstanding etc. Home should also have a 'Create new...' button ... You should be able to convert a quote into a job without going to the preview stage ... the cards should have some kind of thing you can click to delete, convert etc ... Job tracking: weird hover interaction ... the three buttons just sitting there feel odd. Maybe choosing the status should be some kind of dropdown? Cancel and delete feel very prominent ... do you really need both? ... a tight/locked relationship between quotes and jobs ... Notes should auto-save ... Change steps shouldn't be so prominent ... 'Where it came from' feels like metadata."
+**Planned 2026-10-27; the founder answered (section "Answers"). Slice 1 (the quieter job page) built 2026-10-27.** Founder, from using the app on a phone: "Home should provide a financial overview of amounts outstanding etc. Home should also have a 'Create new...' button ... You should be able to convert a quote into a job without going to the preview stage ... the cards should have some kind of thing you can click to delete, convert etc ... Job tracking: weird hover interaction ... the three buttons just sitting there feel odd. Maybe choosing the status should be some kind of dropdown? Cancel and delete feel very prominent ... do you really need both? ... a tight/locked relationship between quotes and jobs ... Notes should auto-save ... Change steps shouldn't be so prominent ... 'Where it came from' feels like metadata."
 
 Part of it touches the database (job moves and deleting jobs, a new total for Home), so it needs human review.
 
@@ -95,11 +95,11 @@ Inputs by kind: the status is a choice (select); the note is text; no address, q
 - Unit: filters and status lists, the autosave timing, the totals' wording.
 - Browser: each slice; accessibility cases for the sheets, the dropdown and the closed History; a phone-width check of the job page and Home.
 
-## Questions for the founder
-1. **Drop Cancel and keep only Delete?** (Decision 1.)
-2. **Status moves free (as in the prototype), or only the allowed next and previous steps?** (Decision 2.)
-3. **Can you tell me what you did when a cancelled job blocked a new one?** (Decision 3.) Which status did the job have, and which quote?
-4. **"Paid this month" on Home?** (Decision 4.)
+## Answers (founder, 2026-10-27)
+1. **Delete only, with a confirmation** (no Cancel). Jobs already cancelled stay under the Cancelled chip until deleted.
+2. **Status moves freely** (as in the prototype).
+3. **Paid this month on Home: yes.**
+4. *Not answered:* what was done when a cancelled job blocked a new one (decision 3). Deleting a job frees its quote either way.
 
 ## Not planned yet
 Several jobs on one quote; a recent-quotes list on Home; recording a payment from an invoice card; archiving (nothing is archived: deleting and the Cancelled chip cover it).

@@ -1,45 +1,32 @@
 "use client";
 
 import { PrivateTag } from "@/components/private-tag";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { TextAreaField } from "@/components/form-fields";
-import { Button } from "@/components/ui/button";
+import { useAutoSave, type AutoSaveResult } from "@/components/use-auto-save";
 import { saveJobNote } from "./actions";
 
-const OFFLINE = "Couldn't reach the server. Check your connection and try again.";
 const MAX = 2000;
 
-/** The maker's own note on a job: how it is made, what to remember. Never shown to the customer. */
+/**
+ * The maker's own note on a job: how it is made, what to remember. Never shown to the customer. It saves itself (no
+ * Save button): a moment after the typing stops and when the box is left.
+ */
 export function JobNote({ jobId, initial }: { jobId: string; initial: string }) {
   const [text, setText] = useState(initial);
-  const [saved, setSaved] = useState(initial);
-  const [error, setError] = useState<string | undefined>();
-  const [pending, startTransition] = useTransition();
-  const [justSaved, setJustSaved] = useState(false);
-
-  function save(event: React.FormEvent) {
-    event.preventDefault();
-    setJustSaved(false);
-    if (text.trim().length > MAX) {
-      setError(`Keep the note to ${MAX} characters or fewer. It is ${text.trim().length} now.`);
-      return;
-    }
-    setError(undefined);
-    startTransition(async () => {
-      try {
-        const result = await saveJobNote(jobId, text);
-        if (result.status === "saved") {
-          setSaved(text.trim());
-          setJustSaved(true);
-        } else if (result.status === "error") setError(result.message);
-      } catch {
-        setError(OFFLINE);
-      }
-    });
-  }
+  const { state, touch, flush } = useAutoSave({
+    value: text,
+    initial: initial.trim(),
+    save: async (value): Promise<AutoSaveResult> => {
+      const trimmed = value.trim();
+      if (trimmed.length > MAX) return { ok: false, message: `Keep the note to ${MAX} characters or fewer. It is ${trimmed.length} now.` };
+      const result = await saveJobNote(jobId, trimmed);
+      return result.status === "error" ? { ok: false, message: result.message } : { ok: true };
+    },
+  });
 
   return (
-    <form onSubmit={save} noValidate className="space-y-3">
+    <div className="space-y-2" onBlur={flush}>
       <TextAreaField
         id="job-note"
         label="Note (optional)"
@@ -47,19 +34,14 @@ export function JobNote({ jobId, initial }: { jobId: string; initial: string }) 
         value={text}
         onChange={(value) => {
           setText(value);
-          setJustSaved(false);
+          touch();
         }}
-        error={error}
+        error={state.status === "error" ? state.message : undefined}
         rows={4}
       />
-      <div className="flex items-center gap-3">
-        <Button type="submit" variant="outline" disabled={pending}>
-          {pending ? "Saving…" : "Save note"}
-        </Button>
-        <p role="status" className="text-sm text-muted-foreground">
-          {justSaved ? (saved === "" ? "Note cleared." : "Note saved.") : ""}
-        </p>
-      </div>
-    </form>
+      <p role="status" className="text-sm text-muted-foreground">
+        {state.status === "saving" ? "Saving…" : state.status === "saved" ? (text.trim() === "" ? "Note cleared." : "Note saved.") : ""}
+      </p>
+    </div>
   );
 }
