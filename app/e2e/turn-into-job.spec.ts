@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { openHistory, signUpAndOnboard } from "./helpers";
 import { sentQuote } from "./quote-helpers";
 
 /** "Turn into a job" right after Mark as sent (docs/plans/turn-into-job.md). */
@@ -29,6 +29,7 @@ test("right after Mark as sent, a quote that was already a yes becomes a job in 
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: /^Job J-0001 Not started$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("job-items")).toContainText("Wedding cake");
+  await openHistory(page);
   await page.getByRole("link", { name: "quote QT-0001" }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open the job" })).toBeVisible();
