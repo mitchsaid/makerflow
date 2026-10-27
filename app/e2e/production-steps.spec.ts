@@ -140,6 +140,8 @@ test("steps come from the product into the job, each counted on its own, and the
   await expect(rows.nth(1)).toContainText("Ice: 0 of 12");
   await expect(rows.nth(2)).toContainText("Box: 0 of 12");
   await expect(rows.nth(3)).toContainText("Deliver: 0 of 12");
+  // Hidden labels stay one pixel wide: a long one would stretch the page sideways on a phone.
+  expect(await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll("label.sr-only")).map((l) => l.getBoundingClientRect().width)))).toBeLessThanOrEqual(2);
 
   // The first unit through any step starts the job.
   await page.getByRole("button", { name: "One more Bake for Cupcakes" }).click();
