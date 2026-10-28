@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { withBack } from "@/lib/back-link";
 import type { SendProblem, SendProblemCode } from "@/lib/quotes/send-checks";
 import { checkQuoteForSending, sendQuote, type SendSheetState } from "./issue-actions";
 
@@ -170,7 +171,7 @@ function SendFlow({
             {view.noContact && (
               <p className="text-sm text-muted-foreground" data-testid="no-contact-note">
                 Your quote shows no phone number or email for customers to reach you.{" "}
-                <Link href="/app/business" className="underline">
+                <Link href={withBack("/app/business", `/app/quotes/${quoteId}/preview`)} className="underline">
                   Add one in your Business profile
                 </Link>
                 .

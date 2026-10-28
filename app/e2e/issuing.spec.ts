@@ -159,7 +159,8 @@ test("marking as sent needs no phone number or email, mentions it, and locks the
   // The maker may have sent the quote some other way, so a missing phone or email does not stop the record: it is said, once.
   await expect(sheet(page)).toHaveAccessibleName("Mark this quote as sent");
   await expect(sheet(page).getByTestId("no-contact-note")).toContainText("no phone number or email");
-  await expect(sheet(page).getByRole("link", { name: "Add one in your Business profile" })).toHaveAttribute("href", "/app/business");
+  // The link has the way back to this preview.
+  await expect(sheet(page).getByRole("link", { name: "Add one in your Business profile" })).toHaveAttribute("href", /^\/app\/business\?back=%2Fapp%2Fquotes%2F[0-9a-f-]{36}%2Fpreview$/);
   await expect(sheet(page)).toContainText("QT-0001 for Thandi Nkosi");
   await expect(sheet(page)).toContainText(/R\s?800,00/);
 
