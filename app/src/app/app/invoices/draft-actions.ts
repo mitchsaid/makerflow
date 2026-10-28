@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireOrganisation, type Workspace } from "@/lib/auth/dal";
 import { blankInvoiceForm, differsFromQuote, isInvoiceDraftForm, type InvoiceDraftErrors } from "@/lib/invoices/draft";
 import { findInvoiceDraft } from "@/lib/invoices/draft-data";
-import type { InvoiceProblem } from "@/lib/invoices";
+import { parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
 import { prepareInvoiceDraft } from "@/lib/invoices/prepare-draft";
 import { findJob } from "@/lib/jobs/data";
 import { findStoredQuote } from "@/lib/quotes/data";
@@ -238,42 +238,57 @@ export async function startInvoiceFromJob(jobId: string): Promise<{ status: "err
   redirect(`/app/invoices/drafts/${(data as { id: string }).id}`);
 }
 
+type Started = { ok: true; id: string } | { ok: false; message: string };
+
 /**
- * "Adjust before issuing" on an accepted quote: a draft invoice that starts as the quote was agreed (its customer,
- * items, delivery, discount and note), to change before it is issued. The quote itself is left as it is. A quote has at
- * most one draft, so asking again reopens the one in progress. Opens the draft.
+ * A draft invoice that starts as the accepted quote was agreed (its customer, items, delivery, discount and note). A quote
+ * has at most one draft, so asking again reopens the one in progress. With `chosen` (what the Create invoice sheet
+ * asked: the dates and a note) those go into the draft, new or reopened; the items stay as they are.
  */
-export async function startInvoiceFromQuote(quoteId: string): Promise<{ status: "error"; message: string }> {
+async function draftFromQuote(quoteId: string, chosen?: { issueDate: string; dueDate: string; note: string | null }): Promise<Started> {
   const { organisation, profile, user } = await requireOrganisation();
-  if (!UUID.test(quoteId)) return { status: "error", message: "That quote could not be found." };
+  if (!UUID.test(quoteId)) return { ok: false, message: "That quote could not be found." };
   const stored = await findStoredQuote(quoteId);
-  if (!stored || stored.organisationId !== organisation.id) return { status: "error", message: "That quote could not be found." };
-  if (stored.invoice) return { status: "error", message: "This quote already has an invoice. Refresh the page to see it." };
+  if (!stored || stored.organisationId !== organisation.id) return { ok: false, message: "That quote could not be found." };
+  if (stored.invoice) return { ok: false, message: "This quote already has an invoice. Refresh the page to see it." };
   if (stored.status !== "accepted" || stored.versions.length === 0) {
-    return { status: "error", message: "Only an accepted quote can be invoiced. Refresh the page to see where it stands." };
+    return { ok: false, message: "Only an accepted quote can be invoiced. Refresh the page to see where it stands." };
   }
 
   const supabase = await createClient();
   const version = stored.versions[0].version;
-  const { data: existing } = await supabase.from("invoice_drafts").select("id, quote_version").eq("quote_id", quoteId).eq("organisation_id", organisation.id).maybeSingle();
+  const { data: existing } = await supabase.from("invoice_drafts").select("id, quote_version, form").eq("quote_id", quoteId).eq("organisation_id", organisation.id).maybeSingle();
   if (existing) {
-    const draft = existing as { id: string; quote_version: number | null };
+    const draft = existing as { id: string; quote_version: number | null; form: unknown };
     // A draft that started from an older version of the quote (it was reopened and sent again) is stale: start afresh.
-    if (draft.quote_version === version) redirect(`/app/invoices/drafts/${draft.id}`);
+    if (draft.quote_version === version) {
+      if (chosen && isInvoiceDraftForm(draft.form)) {
+        const form = { ...draft.form, issueDate: chosen.issueDate, dueDate: chosen.dueDate, notes: chosen.note ?? draft.form.notes };
+        const { error } = await supabase.from("invoice_drafts").update({ form }).eq("id", draft.id).eq("organisation_id", organisation.id);
+        if (error) {
+          console.error("could not update the invoice draft:", error.code, error.message);
+          return { ok: false, message: GENERIC_ERROR };
+        }
+      }
+      return { ok: true, id: draft.id };
+    }
     await supabase.from("invoice_drafts").delete().eq("id", draft.id).eq("organisation_id", organisation.id);
   }
 
   const locale = getLocalePack(profile.countryCode);
   const asQuoted = toFormValues(stored, locale.numberStyle);
+  const blank = blankInvoiceForm({ today: todayIn(locale.timeZone), dueDays: locale.documents.invoice.dueDays, customerId: stored.customerId ?? "" });
   const form = {
-    ...blankInvoiceForm({ today: todayIn(locale.timeZone), dueDays: locale.documents.invoice.dueDays, customerId: stored.customerId ?? "" }),
+    ...blank,
+    issueDate: chosen?.issueDate ?? blank.issueDate,
+    dueDate: chosen?.dueDate ?? blank.dueDate,
     lines: asQuoted.lines,
     fulfilment: asQuoted.fulfilment,
     deliveryFee: asQuoted.deliveryFee,
     deliveryAddress: asQuoted.deliveryAddress,
     discountKind: asQuoted.discountKind,
     discountValue: asQuoted.discountValue,
-    notes: asQuoted.notes,
+    notes: chosen?.note ?? asQuoted.notes,
     showPhotos: asQuoted.showPhotos,
   };
   const { data, error } = await supabase
@@ -282,11 +297,36 @@ export async function startInvoiceFromQuote(quoteId: string): Promise<{ status: 
     .select("id")
     .single();
   if (error || !data) {
-    if (error?.code === "23505") return { status: "error", message: "This quote already has an invoice draft. Refresh the page." };
-    if (error?.code === "54000") return { status: "error", message: "You can keep up to 100 invoice drafts. Issue or discard one first." };
+    if (error?.code === "23505") return { ok: false, message: "This quote already has an invoice draft. Refresh the page." };
+    if (error?.code === "54000") return { ok: false, message: "You can keep up to 100 invoice drafts. Issue or discard one first." };
     console.error("could not start an invoice from a quote:", error?.code, error?.message);
-    return { status: "error", message: GENERIC_ERROR };
+    return { ok: false, message: GENERIC_ERROR };
   }
   revalidatePath("/app/invoices");
-  redirect(`/app/invoices/drafts/${(data as { id: string }).id}`);
+  return { ok: true, id: (data as { id: string }).id };
+}
+
+/**
+ * "Adjust before issuing" on an accepted quote: a draft invoice that starts as the quote was agreed, to change before it
+ * is issued. The quote itself is left as it is. Opens the draft.
+ */
+export async function startInvoiceFromQuote(quoteId: string): Promise<{ status: "error"; message: string }> {
+  const started = await draftFromQuote(quoteId);
+  if (!started.ok) return { status: "error", message: started.message };
+  redirect(`/app/invoices/drafts/${started.id}`);
+}
+
+export type PreviewFromQuoteResult = { status: "error"; message: string } | { status: "invalid"; errors: InvoiceFormErrors };
+
+/**
+ * "Continue to preview" on an accepted quote's Create invoice sheet: the dates and the note are checked, a draft is made
+ * from the quote as agreed (or the one in progress is given those dates and note), and the preview opens. Nothing is
+ * issued here: the preview is where that happens, so the maker sees the invoice first.
+ */
+export async function previewInvoiceFromQuote(quoteId: string, values: InvoiceFormValues): Promise<PreviewFromQuoteResult> {
+  const parsed = parseInvoiceForm(values);
+  if (!parsed.ok) return { status: "invalid", errors: parsed.errors };
+  const started = await draftFromQuote(quoteId, { issueDate: parsed.issueDate, dueDate: parsed.dueDate, note: parsed.note });
+  if (!started.ok) return { status: "error", message: started.message };
+  redirect(`/app/invoices/drafts/${started.id}/preview`);
 }

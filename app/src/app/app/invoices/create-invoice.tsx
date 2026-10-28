@@ -13,12 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { INVOICE_NOTE_MAX, parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
-import { issueInvoice } from "./actions";
-import { startInvoiceFromQuote } from "./draft-actions";
+import { previewInvoiceFromQuote, startInvoiceFromQuote } from "./draft-actions";
 
 const OFFLINE = "Couldn't reach the server. Open the quote to see if it went through before trying again.";
 
-/** On an accepted quote: turns it into a numbered invoice that can't be changed. Opens the invoice when it is made. */
+/** On an accepted quote: starts its invoice and opens the preview, where it is issued (numbered, and never changed after). */
 export function CreateInvoice({
   quoteId,
   documentTitle,
@@ -110,7 +109,7 @@ function InvoiceForm({
 }) {
   const [values, setValues] = useState<InvoiceFormValues>(defaults);
   const [errors, setErrors] = useState<InvoiceFormErrors>({});
-  const [problems, setProblems] = useState<InvoiceProblem[]>(initialProblems);
+  const problems = initialProblems;
   const [message, setMessage] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
   const [pending, startTransition] = useTransition();
@@ -139,20 +138,20 @@ function InvoiceForm({
     event.stopPropagation();
     setMessage(null);
     setTries((n) => n + 1);
-    // Fix what is missing first: nothing is asked of the server until the invoice could be issued.
+    // Fix the dates first: nothing is asked of the server until they are fine. What the invoice still needs (the
+    // business's address, say) is shown on the preview and again when it is issued, so it does not stop the preview.
     const checked = parseInvoiceForm(values);
     setErrors(checked.ok ? {} : checked.errors);
-    if (problems.length > 0 || !checked.ok) return;
+    if (!checked.ok) return;
     onBusyChange(true);
     startTransition(async () => {
       try {
-        const result = await issueInvoice(quoteId, values);
+        const result = await previewInvoiceFromQuote(quoteId, values);
         onBusyChange(false);
         if (result.status === "invalid") setErrors(result.errors);
-        else if (result.status === "problems") setProblems(result.problems);
         else setMessage(result.message);
       } catch (error) {
-        // Issuing ends by opening the invoice: that is a redirect, not a failure.
+        // Starting the preview ends by opening it: that is a redirect, not a failure.
         const digest = (error as { digest?: unknown } | null)?.digest;
         if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
         onBusyChange(false);
@@ -163,7 +162,6 @@ function InvoiceForm({
 
   const summary: FormProblem[] = [
     // The list below shows what is missing from the start; the summary joins in once the button has been pressed.
-    ...(tries === 0 ? [] : problems).map((p) => ({ fieldId: `invoice-problem-${p.code}`, label: "Before you can issue it", message: p.message })),
     ...(errors.issueDate ? [{ fieldId: "invoice-issue-date", label: "Invoice date", message: errors.issueDate }] : []),
     ...(errors.dueDate ? [{ fieldId: "invoice-due-date", label: "Due date", message: errors.dueDate }] : []),
     ...(errors.note ? [{ fieldId: "invoice-note", label: "Note", message: errors.note }] : []),
@@ -241,10 +239,10 @@ function InvoiceForm({
             <p className="text-sm text-muted-foreground">Change items or prices first, as a draft. The quote stays as it was agreed.</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            It gets the next invoice number and can&apos;t be changed after that. A mistake is fixed with a credit note.
+            You see it first. It gets the next invoice number when you issue it, and can&apos;t be changed after that. A mistake is fixed with a credit note.
           </p>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
-            {pending ? "Issuing…" : `Issue ${documentTitle.toLowerCase()}`}
+            {pending ? "Opening the preview…" : "Continue to preview"}
           </Button>
           <Button type="button" size="lg" variant="outline" className="w-full" disabled={pending} onClick={onCancel}>
             Cancel
