@@ -252,6 +252,11 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Add new product" }).click();
       await expect(page.getByRole("dialog", { name: "Add a product" })).toBeVisible();
       await expectNoViolations(page, "item sheet, add product");
+      // Its other tabs: steps and what it costs to make.
+      await page.getByRole("dialog").getByRole("tab", { name: /^Production/ }).click();
+      await expectNoViolations(page, "item sheet, add product, production tab");
+      await page.getByRole("dialog").getByRole("tab", { name: /^Inputs/ }).click();
+      await expectNoViolations(page, "item sheet, add product, inputs tab");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
       await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
       await expect(page.getByRole("dialog", { name: "One-off item" })).toBeVisible();

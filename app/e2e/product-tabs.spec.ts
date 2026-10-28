@@ -160,7 +160,7 @@ test("editing a product from a quote has the same tabs: steps and costs can be c
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await page.getByTestId("quote-line").first().getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
-  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Production/, /^Inputs 1/]);
+  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Production1/, /^Inputs1/]);
   await sheet(page).getByLabel("Price", { exact: true }).fill("250");
   await sheet(page).getByRole("tab", { name: /^Production/ }).click();
   await sheet(page).getByRole("button", { name: "Add another step" }).click();
