@@ -130,7 +130,8 @@ test("what an invoice still needs is said, the draft is kept meanwhile, and it c
   await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
   const draftUrl = page.url().replace(/\/preview$/, "");
   // Issuing anyway is stopped, and the question closes.
-  await issueFromDraft(page);
+  await issueButton(page).click();
+  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
 
