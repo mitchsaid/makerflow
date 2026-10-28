@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { acceptedQuote, issueFromQuoteSheet } from "./invoice-helpers";
+import { setJobStatus } from "./helpers";
 import { sheet } from "./quote-helpers";
 
 /** The prompt to invoice a finished job (docs/plans/invoice-i3.md, slice I3a). */
@@ -10,10 +11,10 @@ async function finishedJob(page: Page, label: string) {
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
   // Nothing to invoice yet while it is being made.
   await expect(page.getByTestId("invoice-job-nudge")).toHaveCount(0);
-  await page.getByRole("button", { name: "Start making" }).click();
-  await page.getByRole("button", { name: "Mark ready", exact: true }).click();
+  await setJobStatus(page, "Making");
+  await setJobStatus(page, "Ready");
   await expect(page.getByTestId("invoice-job-nudge")).toHaveCount(0);
-  await page.getByRole("button", { name: "Mark done", exact: true }).click();
+  await setJobStatus(page, "Done");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Done$/, level: 1 })).toBeVisible();
 }
 
@@ -81,9 +82,9 @@ test("a finished job made by hand has no quote, and offers to start an invoice i
   await expect(sheet(page)).toHaveCount(0);
   await page.getByRole("button", { name: "Create job" }).click();
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
-  await page.getByRole("button", { name: "Start making" }).click();
-  await page.getByRole("button", { name: "Mark ready", exact: true }).click();
-  await page.getByRole("button", { name: "Mark done", exact: true }).click();
+  await setJobStatus(page, "Making");
+  await setJobStatus(page, "Ready");
+  await setJobStatus(page, "Done");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Done$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("invoice-job-nudge")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Start an invoice" })).toBeVisible();

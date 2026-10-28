@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issueFromQuoteSheet, issuedInvoice } from "./invoice-helpers";
-import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
+import { businessTab, setJobStatus, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -336,7 +336,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { name: /^Job J-0001/, level: 1 })).toBeVisible();
       const jobId = page.url().split("/").pop() ?? "";
       await expectNoViolations(page, "job, not started");
-      await page.getByRole("button", { name: "Start making" }).click();
+      await setJobStatus(page, "Making");
       await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
       await page.getByLabel("Note (optional)").fill("Check the colour");
       // It saves itself.
@@ -345,6 +345,11 @@ for (const scheme of ["light", "dark"] as const) {
       // Counting what is made, and adding an item to the job through the quote's item sheet.
       await page.getByRole("button", { name: /^One more made of/ }).first().click();
       await expect(page.getByTestId("job-progress")).toContainText("made");
+      // The only item is made, so the page asks whether to mark the job ready (Not yet leaves it as it is).
+      await expect(page.getByRole("dialog", { name: "Everything is made" })).toBeVisible();
+      await expectNoViolations(page, "job, everything is made question");
+      await page.getByRole("dialog").getByRole("button", { name: "Not yet" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await expectNoViolations(page, "job, making, with counts");
       await page.getByRole("link", { name: "Add an item" }).click();
       await expect(page.getByRole("dialog")).toHaveAccessibleName("Add an item");
@@ -1068,7 +1073,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "the invoice preview");
       await page.locator("#issue-invoice").click();
-      await expect(page.getByRole("dialog", { name: "Mark this invoice as issued?" })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "Mark this invoice as sent?" })).toBeVisible();
       await expectNoViolations(page, "the issue confirmation");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
       await page.getByRole("link", { name: "Edit", exact: true }).click();
@@ -1086,9 +1091,9 @@ for (const scheme of ["light", "dark"] as const) {
       test.setTimeout(300_000);
       await acceptedQuote(page, `a11y-job-invoice-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
       await page.getByRole("button", { name: "Create a job" }).click();
-      await page.getByRole("button", { name: "Start making" }).click();
-      await page.getByRole("button", { name: "Mark ready", exact: true }).click();
-      await page.getByRole("button", { name: "Mark done", exact: true }).click();
+      await setJobStatus(page, "Making");
+      await setJobStatus(page, "Ready");
+      await setJobStatus(page, "Done");
       await expect(page.getByTestId("invoice-job-nudge")).toBeVisible();
       await expectNoViolations(page, "a finished job, with the invoice card");
       await page.getByTestId("invoice-job-nudge").getByRole("button", { name: "Not now" }).click();

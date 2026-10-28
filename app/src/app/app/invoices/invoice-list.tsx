@@ -119,7 +119,7 @@ export function InvoiceList({
           />
         ) : (
           // Nothing issued yet, but drafts are waiting: say so instead of "none", and go to them.
-          <NoMatches message="No invoices issued yet. Your drafts are waiting." clearLabel={`Show drafts (${drafts.length})`} onClear={() => setFilter("drafts")} />
+          <NoMatches message="No invoices sent yet. Your drafts are waiting." clearLabel={`Show drafts (${drafts.length})`} onClear={() => setFilter("drafts")} />
         )
       ) : (
         <ul className="space-y-2">

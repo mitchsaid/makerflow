@@ -31,7 +31,7 @@ export function InvoiceDraftRow({
           {d.quoteNumber ? ` · from quote ${d.quoteNumber}` : ""} · changed {formatDay(d.updatedAt.slice(0, 10), formatLocale)}
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not issued</span>
+          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not sent</span>
         </span>
       </Link>
     </li>

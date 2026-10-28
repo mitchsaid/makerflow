@@ -67,7 +67,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
             )}
             <dt className="text-muted-foreground">Owing</dt>
             <dd data-testid="invoice-owing">{money(owingCents)}</dd>
-            <dt className="text-muted-foreground">Issued</dt>
+            <dt className="text-muted-foreground">Invoice date</dt>
             <dd>{formatDay(invoice.issueDate, locale.formatLocale)}</dd>
             <dt className="text-muted-foreground">Due</dt>
             <dd>{formatDay(invoice.dueDate, locale.formatLocale)}</dd>
@@ -79,7 +79,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
                 <Link href={`/app/quotes/${invoice.quote.id}`} className="font-medium underline">
                   quote {invoice.quote.number}
                 </Link>
-                {invoice.adjusted && ", and changed before it was issued"}
+                {invoice.adjusted && ", and changed before it was sent"}
               </>
             ) : (
               "Made without a quote"
@@ -155,7 +155,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
             <ol className="space-y-2" data-testid="activity">
               {invoice.events.map((e) => (
                 <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-x-4 text-base">
-                  <span>Issued as {invoice.number}</span>
+                  <span>Sent as {invoice.number}</span>
                   <span className="text-sm text-muted-foreground">{formatMoment(e.at, locale.formatLocale, locale.timeZone)}</span>
                 </li>
               ))}

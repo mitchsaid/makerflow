@@ -114,3 +114,9 @@ Home shows *Your money* (owed, waiting, due, paid this month; `invoice_owed_tota
 
 ## What was built in slice 4 (2026-10-27)
 Cards on Quotes and Jobs have a ⋯ button (`RowMenu`, an `ActionSheet`). What it offers comes from `quoteRowActions` (draft: delete; sent or accepted without a live job: turn into a job, using the quote's own `TurnIntoJobSheet`) and, for a job, delete behind a `ConfirmSheet`. A quote whose job was deleted or cancelled can be turned into a job again.
+
+## Job status, again (2026-10-28)
+Founder: the next-step button and the status dropdown "feel awkward" together; "things are going to happen outside the software" (a job can go from started straight to ready for delivery), so flexible control makes sense; "there are sometimes clear next actions, like once everything is marked as made. Maybe those could be contextual? Show up when needed, maybe as a modal?" Left to me: "choose the best interface".
+
+**Built:** a job's status is a **row of chips** (Not started, Making, Ready, Out for delivery on a delivery, Done), the current one filled, and a tap on any sets it, in any order. It is the list's own `FilterBar` chip row with a `wrap` mode (every chip in view, none scrolled off), so there is one chip pattern. The dropdown and the always-on "next step" button are gone; the heading's status chip is the only other place that says where the job is.
+**The clear next step is contextual:** when the last item is counted while the page is open, a question opens ("Everything is made. Mark ready for collection?" with *Mark ready…* and *Not yet*, the app's `ConfirmSheet`). A job that is already all made when the page opens shows the same offer as a card ("Everything is made." with the button). Nothing moves by itself, and the chips always work, so ignoring the question loses nothing. A job cancelled before cancelling went keeps its one button, **Restore this job**. The job list's rows keep their one-tap next step. No database change.

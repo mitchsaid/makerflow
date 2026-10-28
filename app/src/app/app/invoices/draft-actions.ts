@@ -26,7 +26,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GENERIC_ERROR = "Something went wrong. Please try again.";
-const NOT_SET_UP = "Invoices aren't switched on for this version of MakerFlow yet, so nothing was issued. We've been told.";
+const NOT_SET_UP = "Invoices aren't switched on for this version of MakerFlow yet, so nothing was sent. We've been told.";
 
 export type SaveDraftResult =
   | { status: "saved"; draftId: string; savedAt: number }
@@ -50,7 +50,7 @@ async function writeDraft(draftId: string | null, form: unknown): Promise<Saved>
       .select("id")
       .single();
     if (error || !data) {
-      if (error?.code === "54000") return { ok: false, message: "You can keep up to 100 invoice drafts. Issue or discard one first." };
+      if (error?.code === "54000") return { ok: false, message: "You can keep up to 100 invoice drafts. Send or discard one first." };
       if (error?.code === "23503") return { ok: false, message: "That customer isn't on your list. Choose one again." };
       console.error("could not save invoice draft:", error?.code, error?.message);
       return { ok: false, message: GENERIC_ERROR };
@@ -65,7 +65,7 @@ async function writeDraft(draftId: string | null, form: unknown): Promise<Saved>
     .select("id");
   if (error || !data || data.length !== 1) {
     if (error?.code === "23503") return { ok: false, message: "That customer isn't on your list. Choose one again." };
-    if (!error) return { ok: false, message: "This draft can't be found any more. It may have been issued or discarded." };
+    if (!error) return { ok: false, message: "This draft can't be found any more. It may have been sent or discarded." };
     console.error("could not save invoice draft:", error.code, error.message);
     return { ok: false, message: GENERIC_ERROR };
   }
@@ -100,7 +100,7 @@ export async function discardInvoiceDraft(draftId: string): Promise<DiscardResul
   const { data, error } = await supabase.from("invoice_drafts").delete().eq("id", draftId).eq("organisation_id", organisation.id).select("id");
   if (error || !data || data.length !== 1) {
     console.error("could not discard invoice draft:", error?.message);
-    return { status: "error", message: "Couldn't discard that draft. It may already be gone, or it was issued." };
+    return { status: "error", message: "Couldn't discard that draft. It may already be gone, or it was sent." };
   }
   revalidatePath("/app/invoices");
   redirect("/app/invoices?show=drafts");
@@ -129,7 +129,7 @@ async function issueStored(workspace: Workspace, id: string): Promise<IssueDraft
   // Read back under the person's own session: it proves the draft is theirs, and notes when it was last changed.
   const stored = await findInvoiceDraft(id);
   if (!stored || stored.organisationId !== organisation.id || !stored.form) {
-    return { status: "error", message: "This draft can't be found any more. It may have been issued or discarded.", draftId: id };
+    return { status: "error", message: "This draft can't be found any more. It may have been sent or discarded.", draftId: id };
   }
 
   const prepared = await prepareInvoiceDraft(
@@ -146,7 +146,7 @@ async function issueStored(workspace: Workspace, id: string): Promise<IssueDraft
     const quote = await findStoredQuote(stored.quoteId);
     const agreed = quote?.versions[0];
     if (!quote || quote.organisationId !== organisation.id || quote.status !== "accepted" || !agreed || agreed.version !== stored.quoteVersion) {
-      return { status: "error", message: "The quote has changed since this draft was started, so it can't be issued. Discard the draft and start again from the quote.", draftId: id };
+      return { status: "error", message: "The quote has changed since this draft was started, so it can't be sent. Discard the draft and start again from the quote.", draftId: id };
     }
     adjusted = differsFromQuote(prepared.value.snapshot, agreed.snapshot);
   }
@@ -172,13 +172,13 @@ async function issueStored(workspace: Workspace, id: string): Promise<IssueDraft
     p_reference_label: prepared.value.referenceLabel,
   });
   if (error?.code === "40001") {
-    return { status: "error", message: "This draft was changed while it was being issued. Check it and issue it again.", draftId: id };
+    return { status: "error", message: "This draft was changed while it was being sent. Check it and try again.", draftId: id };
   }
   if (error?.code === "23505") {
     return { status: "error", message: "This quote already has an invoice. Discard this draft and open that invoice.", draftId: id };
   }
   if (error?.code === "P0002") {
-    return { status: "error", message: "This draft can't be issued any more: it was issued or discarded, or its quote is no longer accepted or has changed. Refresh the page.", draftId: id };
+    return { status: "error", message: "This draft can't be sent any more: it was sent or discarded, or its quote is no longer accepted or has changed. Refresh the page.", draftId: id };
   }
   if (error?.code === "22023" || error?.code === "23514") {
     return { status: "error", message: "This invoice could not be made: check the items, the customer and the dates.", draftId: id };
@@ -230,7 +230,7 @@ export async function startInvoiceFromJob(jobId: string): Promise<{ status: "err
     .select("id")
     .single();
   if (error || !data) {
-    if (error?.code === "54000") return { status: "error", message: "You can keep up to 100 invoice drafts. Issue or discard one first." };
+    if (error?.code === "54000") return { status: "error", message: "You can keep up to 100 invoice drafts. Send or discard one first." };
     console.error("could not start an invoice from a job:", error?.code, error?.message);
     return { status: "error", message: GENERIC_ERROR };
   }
@@ -298,7 +298,7 @@ async function draftFromQuote(quoteId: string, chosen?: { issueDate: string; due
     .single();
   if (error || !data) {
     if (error?.code === "23505") return { ok: false, message: "This quote already has an invoice draft. Refresh the page." };
-    if (error?.code === "54000") return { ok: false, message: "You can keep up to 100 invoice drafts. Issue or discard one first." };
+    if (error?.code === "54000") return { ok: false, message: "You can keep up to 100 invoice drafts. Send or discard one first." };
     console.error("could not start an invoice from a quote:", error?.code, error?.message);
     return { ok: false, message: GENERIC_ERROR };
   }
