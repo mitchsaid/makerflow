@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { businessTab, openBusinessProfile, signUpAndOnboard } from "./helpers";
 import { acceptedQuote, businessWithAddress } from "./invoice-helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
@@ -290,7 +290,7 @@ test("fixing what an invoice needs has a way back to the invoice, kept as a draf
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   // The tabs keep the way back too.
-  await page.getByRole("tab", { name: "Logo" }).click();
+  await businessTab(page, "Logo");
   await expect(page.getByTestId("back-link")).toHaveAccessibleName("Back to invoice draft");
   await page.getByTestId("back-link").click();
 
