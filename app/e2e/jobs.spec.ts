@@ -146,7 +146,7 @@ test("a delivery job goes out for delivery before it is done", async ({ page }) 
   await setJobStatus(page, "Making");
   await setJobStatus(page, "Ready for delivery");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready for delivery$/, level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: "Out for delivery" }).click();
+  await setJobStatus(page, "Out for delivery");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Out for delivery$/, level: 1 })).toBeVisible();
   await setJobStatus(page, "Done");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Done$/, level: 1 })).toBeVisible();
@@ -391,7 +391,8 @@ test("an item can be added to a job that exists, the way a quote's items are add
   const items = page.getByTestId("job-items");
   await expect(items).toContainText("3 m Ribbon");
   await expect(items).toContainText("Added later");
-  await expect(page.getByTestId("job-progress")).toContainText("0 of 2 items made");
+  // (The job was Ready, so its first item counted as made; the new one is not.)
+  await expect(page.getByTestId("job-progress")).toContainText("1 of 2 items made");
   await openHistory(page);
   await expect(page.getByTestId("job-activity")).toContainText("Added Ribbon");
   await openHistory(page);
