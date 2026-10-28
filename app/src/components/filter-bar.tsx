@@ -16,12 +16,18 @@ export function FilterBar<K extends string>({
   options,
   value,
   onChange,
+  wrap = false,
 }: {
   /** Names the group for screen readers: "Show jobs". */
   label: string;
   options: readonly FilterOption<K>[];
   value: K;
   onChange: (key: K) => void;
+  /**
+   * Every chip in view, wrapping onto more lines instead of scrolling: for a short, fixed set the maker picks one of (a job's
+   * status), where hiding one off the edge would hide a choice.
+   */
+  wrap?: boolean;
 }) {
   const row = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState({ before: false, after: false });
@@ -41,6 +47,19 @@ export function FilterBar<K extends string>({
       window.removeEventListener("resize", measure);
     };
   }, []);
+
+  if (wrap) {
+    return (
+      <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <Button key={o.key} type="button" variant={value === o.key ? "default" : "outline"} aria-pressed={value === o.key} onClick={() => onChange(o.key)}>
+            {o.label}
+            {o.count !== undefined ? ` (${o.count})` : ""}
+          </Button>
+        ))}
+      </div>
+    );
+  }
 
   const fade = `linear-gradient(to right, ${more.before ? "transparent, black 2.5rem" : "black, black"}, ${more.after ? "black calc(100% - 2.5rem), transparent" : "black, black"})`;
 

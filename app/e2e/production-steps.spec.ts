@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openProductTab, signUpAndOnboard } from "./helpers";
+import { openBusinessProfile, openProductTab, setJobStatus, signUpAndOnboard } from "./helpers";
 import { addCustomerInSheet, nav, openQuotes, sheet, startSend } from "./quote-helpers";
 
 async function addProductWithSteps(page: Page, name: string, price: string, steps: string[]) {
@@ -179,7 +179,7 @@ test("steps come from the product into the job, each counted on its own, and the
   await page.keyboard.press("Enter");
   await expect(steps.getByTestId("item-made")).toHaveText("Made 11 of 12");
   await page.getByRole("button", { name: /^All done.*Deliver/ }).click();
-  await page.getByRole("button", { name: "Mark ready", exact: true }).click();
+  await setJobStatus(page, "Ready");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
 });
 

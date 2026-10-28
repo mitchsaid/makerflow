@@ -11,8 +11,8 @@ import { issueStoredInvoiceDraft } from "../../../draft-actions";
 const OFFLINE = "Couldn't reach the server. Open the invoice draft to see if it went through before trying again.";
 
 /**
- * Stays in view above the tab bar: back to editing, a copy to download (a draft, with no number), or mark it as issued.
- * Marking it asks once ("It gets the next invoice number and can't be changed after this"), then opens the invoice, where
+ * Stays in view above the tab bar: back to editing, a copy to download (a draft, with no number), or mark it as sent.
+ * Marking it as sent asks once ("It gets the next invoice number and can't be changed after this"), then opens the invoice, where
  * its numbered PDF is shared or downloaded. If something stops it, it says what, here.
  */
 export function InvoicePreviewBar({ draftId, customerName, totalText }: { draftId: string; customerName: string; totalText: string }) {
@@ -31,7 +31,7 @@ export function InvoicePreviewBar({ draftId, customerName, totalText }: { draftI
           setOpen(false);
           router.refresh();
         } else if (result.status === "invalid") {
-          setMessage("This invoice needs a change before it can be issued. Go back and edit it.");
+          setMessage("This invoice needs a change before it can be sent. Go back and edit it.");
         } else {
           setMessage(result.message);
         }
@@ -50,18 +50,18 @@ export function InvoicePreviewBar({ draftId, customerName, totalText }: { draftI
         <Link href={`/app/invoices/drafts/${draftId}`} className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}>
           Edit
         </Link>
-        {/* A copy to check or show: it is a draft, with no number. The numbered PDF is on the invoice once it is issued. */}
+        {/* A copy to check or show: it is a draft, with no number. The numbered PDF is on the invoice once it is sent. */}
         <a href={`/app/invoices/drafts/${draftId}/pdf?download=1`} className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}>
           Download
         </a>
         <Button id="issue-invoice" type="button" size="lg" className="col-span-2 px-3 sm:col-span-1 sm:flex-1" onClick={() => setOpen(true)}>
-          Mark as issued
+          Mark as sent
         </Button>
       </div>
       <Sheet open={open} onOpenChange={(isOpen) => !pending && setOpen(isOpen)}>
         <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => document.getElementById("issue-invoice") ?? true}>
           <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
-            <SheetTitle className="text-lg">Mark this invoice as issued?</SheetTitle>
+            <SheetTitle className="text-lg">Mark this invoice as sent?</SheetTitle>
             <SheetDescription className="text-base">
               {customerName} · {totalText}
             </SheetDescription>
@@ -72,9 +72,9 @@ export function InvoicePreviewBar({ draftId, customerName, totalText }: { draftI
                 <AlertDescription>{message}</AlertDescription>
               </Alert>
             )}
-            <p className="text-base">It gets the next invoice number and can&apos;t be changed after this. Then you can share or download the numbered PDF. If something is wrong, a credit note corrects it.</p>
+            <p className="text-base">It gets the next invoice number and can&apos;t be changed after this. Then you can share or download the numbered PDF to send. If something is wrong, a credit note corrects it.</p>
             <Button type="button" size="lg" className="w-full" disabled={pending} onClick={issue}>
-              {pending ? "Issuing…" : "Mark as issued"}
+              {pending ? "Saving…" : "Mark as sent"}
             </Button>
             <Button type="button" variant="outline" size="lg" className="w-full" disabled={pending} onClick={() => setOpen(false)}>
               Cancel

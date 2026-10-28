@@ -38,9 +38,9 @@ export default async function InvoiceDraftPreviewPage({ params }: PageProps<"/ap
       <PageHeader back={{ href: `/app/invoices/drafts/${id}`, label: "invoice draft" }}>
         <h1 id="preview-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
           <span>Preview of invoice</span>
-          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not issued</span>
+          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not sent</span>
         </h1>
-        <p className="text-base text-muted-foreground">It gets its number when you mark it as issued.</p>
+        <p className="text-base text-muted-foreground">It gets its number when you mark it as sent.</p>
       </PageHeader>
 
       {problems.length > 0 && (

@@ -196,3 +196,10 @@ export async function legacyCancelJob(jobId: string) {
   });
   expect(response.ok).toBe(true);
 }
+
+/** Sets a job's status from the chips on its page ("Making", "Ready", "Ready for delivery", "Done"...). */
+export async function setJobStatus(page: Page, label: string) {
+  const chip = page.getByRole("group", { name: "Status", exact: true }).getByRole("button", { name: label, exact: true });
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+}

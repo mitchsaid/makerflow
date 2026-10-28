@@ -234,12 +234,12 @@ function InvoiceForm({
           />
           <div className="space-y-1">
             <Button type="button" variant="outline" size="lg" className="w-full" disabled={pending || adjusting} onClick={adjust}>
-              {adjusting ? "Starting the draft…" : "Adjust before issuing"}
+              {adjusting ? "Starting the draft…" : "Adjust before sending"}
             </Button>
             <p className="text-sm text-muted-foreground">Change items or prices first, as a draft. The quote stays as it was agreed.</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            You see it first. It gets the next invoice number when you mark it as issued, and can&apos;t be changed after that. A mistake is fixed with a credit note.
+            You see it first. It gets the next invoice number when you mark it as sent, and can&apos;t be changed after that. A mistake is fixed with a credit note.
           </p>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
             {pending ? "Opening the preview…" : "Continue to preview"}
@@ -260,7 +260,7 @@ export function InvoiceMade({ id, number }: { id: string; number: string }) {
       <CardContent className="space-y-1">
         <h3 className="text-base font-medium">Invoice {number}</h3>
         <p className="text-sm text-muted-foreground">
-          Issued from this quote, so its answer is locked.{" "}
+          Sent from this quote, so its answer is locked.{" "}
           <Link href={`/app/invoices/${id}`} className="inline-flex min-h-11 items-center font-medium underline">
             Open the invoice
           </Link>

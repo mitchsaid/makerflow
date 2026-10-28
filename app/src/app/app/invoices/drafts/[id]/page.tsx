@@ -41,7 +41,7 @@ export default async function InvoiceDraftPage({ params, searchParams }: PagePro
       <PageHeader back={{ href: "/app/invoices?show=drafts", label: "Invoices" }}>
         <h1 className="flex flex-wrap items-center gap-3 text-xl font-semibold">
           <span>Invoice draft</span>
-          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not issued</span>
+          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not sent</span>
         </h1>
       </PageHeader>
       {unreadable && (

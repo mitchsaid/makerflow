@@ -71,7 +71,7 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   await expect(page.getByTestId("invoice-total")).toHaveText(/^R\s?800,00$/);
   await expect(page.getByTestId("invoice-owing")).toHaveText(/^R\s?800,00$/);
   await expect(page.getByText("Thandi Nkosi").first()).toBeVisible();
-  await expect(page.getByTestId("activity")).toContainText("Issued as INV-0041");
+  await expect(page.getByTestId("activity")).toContainText("Sent as INV-0041");
   await expect(page.getByRole("link", { name: "quote QT-0001" })).toBeVisible();
 
   // The document is a real PDF; the page has no way to edit or delete it, and shows what is still to come.

@@ -52,7 +52,7 @@ export async function issueFromQuoteSheet(page: Page) {
   await sheet(page).getByRole("button", { name: "Continue to preview" }).click();
   await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\/preview$/);
   await page.locator("#issue-invoice").click();
-  await sheet(page).getByRole("button", { name: "Mark as issued", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
 }
 
 /**
