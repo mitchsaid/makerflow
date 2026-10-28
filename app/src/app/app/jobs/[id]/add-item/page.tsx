@@ -3,15 +3,17 @@ import { requireOrganisation } from "@/lib/auth/dal";
 import { jobNumberText, MAX_JOB_ITEMS, takesNewItems } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
+import { getMaterials } from "@/lib/materials/data";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
+import { productCosting } from "../../../products/product-costing";
 import { AddJobItemForm } from "./add-item-form";
 import { PageHeader } from "@/components/page-header";
 
 export default async function AddJobItemPage({ params }: PageProps<"/app/jobs/[id]/add-item">) {
   const { id } = await params;
   // The job and the products load beside the workspace check, not after it.
-  const [job, allProducts, { organisation, profile }] = await Promise.all([getJob(id), getProducts(), requireOrganisation()]);
+  const [job, allProducts, allMaterials, { organisation, profile }] = await Promise.all([getJob(id), getProducts(), getMaterials(), requireOrganisation()]);
   if (job.organisationId !== organisation.id) notFound();
   const locale = getLocalePack(profile.countryCode);
   const number = jobNumberText(job.number);
@@ -38,6 +40,7 @@ export default async function AddJobItemPage({ params }: PageProps<"/app/jobs/[i
           taxName={locale.tax.name}
           vatStatuses={locale.tax.statuses}
           businessTypes={profile.businessTypes}
+          costing={productCosting(allMaterials, organisation.id, profile, locale)}
         />
       )}
     </main>

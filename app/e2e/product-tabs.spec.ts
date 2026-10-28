@@ -136,7 +136,7 @@ test("a service's middle tab is Steps; the tab bar stays at the top while a tab 
   await expect(bar).toBeInViewport();
 });
 
-test("editing a product from a quote shows no tabs, and keeps the product's steps and costs", async ({ page }) => {
+test("editing a product from a quote has the same tabs: steps and costs can be changed there too", async ({ page }) => {
   test.setTimeout(240_000);
   await signUpAndOnboard(page, "tabs-sheet", "Tab Sheet Co");
   await page.goto("/app/products/new");
@@ -153,27 +153,36 @@ test("editing a product from a quote shows no tabs, and keeps the product's step
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toBeVisible();
 
-  // From a quote: the price changes in the sheet, which has only the Details.
+  // From a quote: the price, a step and a cost are changed in the sheet.
   await page.goto("/app/quotes/new");
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /Sheet cake/ }).click();
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await page.getByTestId("quote-line").first().getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
-  await expect(sheet(page).getByRole("tab")).toHaveCount(0);
-  await expect(sheet(page).getByLabel(/^Step \d$/)).toHaveCount(0);
+  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Production1/, /^Inputs1/]);
   await sheet(page).getByLabel("Price", { exact: true }).fill("250");
+  await sheet(page).getByRole("tab", { name: /^Production/ }).click();
+  await sheet(page).getByRole("button", { name: "Add another step" }).click();
+  await sheet(page).getByLabel("Step 2", { exact: true }).fill("Ice");
+  await sheet(page).getByRole("tab", { name: /^Inputs/ }).click();
+  await sheet(page).getByRole("button", { name: "Add other cost", exact: true }).click();
+  const added = sheet(page).getByRole("list", { name: "What it costs to make" }).getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Other cost 2", exact: true }) });
+  await added.getByLabel("What is it").fill("Ribbon");
+  await added.getByLabel("What it costs").fill("5");
   await sheet(page).getByRole("button", { name: "Save changes" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Edit item");
 
-  // The product has its new price, its step and its cost.
+  // The product has its new price, both steps and both costs.
   await page.goto("/app/products");
   await page.getByRole("link", { name: /Sheet cake/ }).click();
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("250");
-  await expect(page.getByRole("tab", { name: /^Production/ })).toContainText("1");
-  await expect(page.getByRole("tab", { name: /^Inputs/ })).toContainText("1");
+  await expect(page.getByRole("tab", { name: /^Production/ })).toContainText("2");
+  await expect(page.getByRole("tab", { name: /^Inputs/ })).toContainText("2");
   await openProductTab(page, "Production");
   await expect(page.getByLabel("Step 1", { exact: true })).toHaveValue("Bake");
+  await expect(page.getByLabel("Step 2", { exact: true })).toHaveValue("Ice");
   await openProductTab(page, "Inputs");
   await expect(costRow(page, "Other cost 1").getByLabel("What it costs")).toHaveValue("10");
+  await expect(costRow(page, "Other cost 2").getByLabel("What it costs")).toHaveValue("5");
 });

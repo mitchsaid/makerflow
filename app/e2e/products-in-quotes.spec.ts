@@ -105,10 +105,9 @@ test("a product's new price never moves a line, but is offered", async ({ page }
   await line(page, 1).getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Edit product");
-  // Only what a quote needs: no tabs, no steps or costs, and a line about where the rest is.
-  await expect(sheet(page).getByRole("tab")).toHaveCount(0);
+  // The same three tabs as on the Products page, with nothing marked "coming soon".
+  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Production/, /^Inputs/]);
   await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(0);
-  await expect(sheet(page).getByText("Add the steps and what it costs to make later, under Products.")).toBeVisible();
   await sheet(page).getByLabel("Price", { exact: true }).fill("900");
   await sheet(page).getByRole("button", { name: "Save changes" }).click();
 
@@ -136,10 +135,9 @@ test("add a new service from inside a quote, then straight on to configuring it"
   await expect(sheet(page).getByRole("button", { name: /One-off item/ })).toBeVisible();
   await sheet(page).getByRole("button", { name: "Add new service" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add a service");
-  // The service's details only: no tabs, and the line about where the steps and costs are.
-  await expect(sheet(page).getByRole("tab")).toHaveCount(0);
+  // A service's tabs: Details, Steps and Inputs.
+  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Steps/, /^Inputs/]);
   await expect(sheet(page).getByTestId("coming-soon")).toHaveCount(0);
-  await expect(sheet(page).getByText("Add the steps and what it costs to make later, under Products.")).toBeVisible();
   // On a phone the sheet is the whole screen, with Save in reach.
   const box = (await sheet(page).boundingBox())!;
   expect(box.width).toBeGreaterThan(page.viewportSize()!.width - 2);

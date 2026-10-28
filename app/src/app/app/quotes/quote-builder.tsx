@@ -148,7 +148,7 @@ export function QuoteBuilder({
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;
   /** What costs are worked out with (the materials and the hourly rate), for the private margin on the draft. */
-  costing: { materials: Pick<Material, "id" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null; targetMarginBp: number | null };
+  costing: { materials: Pick<Material, "id" | "name" | "archived" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null; targetMarginBp: number | null };
   /** The names a quote can be signed with: the business's, and the owner's when one is saved (lib/quotes/sign-off). */
   signers: { business: string; owner: string | null };
   /** The page's heading, shown above the form. On a new quote it carries the cancel button. */
@@ -675,6 +675,7 @@ export function QuoteBuilder({
           priceLabel={priceLabel}
           vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
           pricing={{ targetBp: costing.targetMarginBp, vat }}
+          costing={{ ...costing, vat, taxName }}
           businessTypes={businessTypes}
           newKey={newKey}
           onView={openSheet}

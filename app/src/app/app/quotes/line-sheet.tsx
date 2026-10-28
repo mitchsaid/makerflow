@@ -107,6 +107,7 @@ export function LineSheet({
   priceLabel,
   vatChoices,
   pricing,
+  costing,
   businessTypes,
   newKey,
   onView,
@@ -134,6 +135,8 @@ export function LineSheet({
   vatChoices: VatChoice[] | null;
   /** The margin the business aims for and how it enters prices, for the "charge R…" hint on a one-off item's cost. */
   pricing?: { targetBp: number | null; vat: VatSettings };
+  /** What the product form's Inputs tab needs (materials, the hourly rate), when the page has loaded it. */
+  costing?: React.ComponentProps<typeof ProductForm>["costing"];
   /** What the business makes, to suggest names for a new product's variations. */
   businessTypes: BusinessType[] | null;
   /** A fresh key for a line that is about to be added. */
@@ -262,6 +265,7 @@ export function LineSheet({
               currencyCode={currencyCode}
               numberStyle={numberStyle}
               idPrefix="product-sheet-"
+              costing={costing}
               embedded={{
                 onPendingChange: setSaving,
                 onCancel: () =>

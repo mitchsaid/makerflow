@@ -123,6 +123,18 @@ function guarded(action: Action): Action {
   };
 }
 
+/** What the Inputs tab (what it costs to make) is worked out with. */
+export type ProductFormCosting = {
+  materials: MaterialOption[];
+  /** What an hour of the maker's time is worth, or null when it is not set in Product settings. */
+  hourlyRateCents: Cents | null;
+  vat: VatSettings;
+  /** The margin the business aims for (basis points), or null when it has not said. */
+  targetMarginBp: number | null;
+  /** The country's word for the tax ("VAT"), for the new material form. */
+  taxName: string;
+};
+
 /** Add or edit a product. The basics work; the later layers are shown as "coming soon". */
 export function ProductForm({
   action,
@@ -156,19 +168,10 @@ export function ProductForm({
   idPrefix?: string;
   embedded?: EmbeddedProductForm;
   /**
-   * What the "What it costs to make" section needs. Absent in a sheet over a quote: the section is not shown there,
+   * What the "What it costs to make" section needs. When a page has not loaded it, the Inputs tab says it is coming
    * and what is saved for the costs is left as it is.
    */
-  costing?: {
-    materials: MaterialOption[];
-    /** What an hour of the maker's time is worth, or null when it is not set in Product settings. */
-    hourlyRateCents: Cents | null;
-    vat: VatSettings;
-    /** The margin the business aims for (basis points), or null when it has not said. */
-    targetMarginBp: number | null;
-    /** The country's word for the tax ("VAT"), for the new material form. */
-    taxName: string;
-  };
+  costing?: ProductFormCosting;
 }) {
   // Materials added from a cost line while the form is open (it is not reloaded, so what is typed stays).
   const [addedMaterials, setAddedMaterials] = useState<MaterialOption[]>([]);
@@ -227,7 +230,7 @@ export function ProductForm({
   }, [pending, uploadingAny]);
   const [, startTransition] = useTransition();
   const [values, setValues] = useState<ProductFormValues>(initial);
-  // Which of the three tabs is open (not in the address: it is a view of one unsaved form). A sheet over a quote has none.
+  // Which of the three tabs is open (not in the address: it is a view of one unsaved form).
   const [tab, setTab] = useState<ProductTab>("details");
   // Steps are tracked step by step only when the product has some (the usual is as a whole); the rows typed are kept when it is switched back.
   const [trackedAsSteps, setTrackedAsSteps] = useState(initial.steps.length > 0);
@@ -416,7 +419,7 @@ export function ProductForm({
   const [seenForTab, setSeenForTab] = useState(state);
   if (state !== seenForTab) {
     setSeenForTab(state);
-    if (!embedded && state.status === "error" && problemTabs.length > 0 && !problemTabs.some((p) => p.tab === tab)) setTab(problemTabs[0].tab);
+    if (state.status === "error" && problemTabs.length > 0 && !problemTabs.some((p) => p.tab === tab)) setTab(problemTabs[0].tab);
   }
 
   // Whether it comes in any variations is one yes/no question about the product, asked before the price. The
@@ -526,21 +529,17 @@ export function ProductForm({
     startTransition(() => formAction(formData));
   }
 
-  // Tabs, except in a sheet over a quote: there only the Details part is shown, with a line about the rest.
-  const tabbed = !embedded;
-  const panel = (key: ProductTab, children: React.ReactNode) =>
-    tabbed ? (
-      <TabPanel id={fid(`panel-${key}`)} tabId={fid(`tab-${key}`)} open={tab === key}>
-        {children}
-      </TabPanel>
-    ) : key === "details" ? (
-      children
-    ) : null;
+  // The same three tabs in a sheet over a quote: a step or a cost that is wrong is found while quoting.
+  const panel = (key: ProductTab, children: React.ReactNode) => (
+    <TabPanel id={fid(`panel-${key}`)} tabId={fid(`tab-${key}`)} open={tab === key}>
+      {children}
+    </TabPanel>
+  );
 
   return (
     <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
-      {tabbed && <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} steps={trackedAsSteps ? values.steps.length : 0} inputs={costing ? values.costLines.length : 0} fid={fid} />}
+      <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} steps={trackedAsSteps ? values.steps.length : 0} inputs={costing ? values.costLines.length : 0} fid={fid} />
       {panel("details", (
       <>
       <Section title="Basics">
@@ -741,13 +740,12 @@ export function ProductForm({
           setValues((v) => ({ ...v, extras }));
         }}
       />
-      {tabbed && COMING_SOON[values.kind].filter(([title]) => title === "Stock").map(([title, description]) => (
+      {!embedded && COMING_SOON[values.kind].filter(([title]) => title === "Stock").map(([title, description]) => (
         <ComingSoonSection key={title} title={title} description={description} />
       ))}
       </>
       ))}
-      {embedded && <p className="text-sm text-muted-foreground">Add the steps and what it costs to make later, under Products.</p>}
-      {panel("production", tabbed && (
+      {panel("production", (
       <StepsSection
         title={values.kind === "service" ? "Steps" : "Production steps"}
         tracked={trackedAsSteps}
@@ -791,7 +789,7 @@ export function ProductForm({
       <input type="hidden" name="variationLabel" value={values.variationLabel} />
       <input type="hidden" name="variations" value={JSON.stringify(values.variations)} />
 
-      {panel("inputs", tabbed && (costing ? (
+      {panel("inputs", (costing ? (
         <>
           <CostsSection
             title={values.kind === "service" ? "What it costs" : "What it costs to make"}

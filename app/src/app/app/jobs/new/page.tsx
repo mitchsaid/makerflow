@@ -1,17 +1,20 @@
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
+import { getMaterials } from "@/lib/materials/data";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
 import { customerOptions } from "../../quotes/builder-data";
+import { productCosting } from "../../products/product-costing";
 import { NewJobForm } from "./new-job-form";
 import { PageHeader } from "@/components/page-header";
 
 export default async function NewJobPage({ searchParams }: PageProps<"/app/jobs/new">) {
   // The customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, { organisation, profile }, query] = await Promise.all([
+  const [allCustomers, allProducts, allMaterials, { organisation, profile }, query] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
+    getMaterials(),
     requireOrganisation(),
     searchParams,
   ]);
@@ -40,6 +43,7 @@ export default async function NewJobPage({ searchParams }: PageProps<"/app/jobs/
         taxName={locale.tax.name}
         vatStatuses={locale.tax.statuses}
         businessTypes={profile.businessTypes}
+        costing={productCosting(allMaterials, organisation.id, profile, locale)}
       />
     </main>
   );

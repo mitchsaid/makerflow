@@ -28,6 +28,7 @@ import { LineSheet, type LineSheetView } from "../../quotes/line-sheet";
 import { useItemSheetProducts } from "../../quotes/use-item-sheet-products";
 import { createManualJob } from "../actions";
 import { FormErrorScope } from "@/components/form-errors";
+import type { ProductFormCosting } from "../../products/product-form";
 
 const OFFLINE = "Couldn't reach the server, so the job may not have been made. Check the Jobs list, then try again.";
 
@@ -48,6 +49,7 @@ export function NewJobForm({
   taxName,
   vatStatuses,
   businessTypes,
+  costing,
 }: {
   customers: CustomerOption[];
   /** The customer chosen when the form opens (from a customer's page). */
@@ -61,6 +63,8 @@ export function NewJobForm({
   taxName: string;
   vatStatuses: LocalePack["tax"]["statuses"];
   businessTypes: BusinessType[] | null;
+  /** What the product form's Inputs tab needs, for editing a product in the sheet. */
+  costing: ProductFormCosting;
 }) {
   const [customers, setCustomers] = useState(initialCustomers);
   const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
@@ -264,6 +268,7 @@ export function NewJobForm({
           priceLabel={priceEntryLabel(vat, taxName)}
           vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
           businessTypes={businessTypes}
+          costing={costing}
           newKey={newKey}
           onView={openSheet}
           onClose={() => setSheetOpen(false)}
