@@ -6,7 +6,17 @@ import { addCustomerInSheet, sheet } from "./quote-helpers";
 /** Invoices with no quote, and drafts (docs/plans/invoice-i3.md, slice I3b). */
 
 const rand = (whole: string, cents = "00") => new RegExp(`R\\s?${whole.replace(/ /g, "\\s?")},${cents}`);
+const previewButton = (page: Page) => page.locator("#preview-invoice");
+/** On the preview page. */
 const issueButton = (page: Page) => page.locator("#issue-invoice");
+
+/** From the draft: Continue to preview, then issue from the preview (it asks once). */
+async function issueFromDraft(page: Page) {
+  await previewButton(page).click();
+  await expect(page).toHaveURL(/\/preview$/);
+  await issueButton(page).click();
+  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+}
 
 /** Adds a one-off item through the item sheet the way a quote does. */
 async function addItem(page: Page, name: string, quantity: string, price: string) {
@@ -28,8 +38,8 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   await page.getByRole("link", { name: "New invoice" }).click();
   await expect(page.getByRole("heading", { name: "New invoice", level: 1 })).toBeVisible();
 
-  // Nothing filled in: the problems are named at the fields and in a summary, and nothing is kept or issued.
-  await issueButton(page).click();
+  // Nothing filled in: the problems are named at the fields and in a summary, and nothing is kept or previewed.
+  await previewButton(page).click();
   const summary = page.getByTestId("form-summary");
   await expect(summary).toBeVisible();
   await expect(summary).toContainText("Choose who the invoice is for.");
@@ -72,7 +82,14 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   await page.getByLabel("Note (optional)").fill("Thanks for your business");
   await page.getByLabel("Due date").fill("2031-01-31");
 
-  // Issuing asks once, says what happens, and then numbers it.
+  // Continue to preview shows the invoice as it will look, not yet numbered; issuing asks once, says what happens, and then numbers it.
+  await previewButton(page).click();
+  await expect(page).toHaveURL(/\/preview$/);
+  await expect(page.getByRole("heading", { name: "Preview of invoice", level: 1 })).toBeVisible();
+  const previewText = page.getByRole("region", { name: "The invoice as text" });
+  await expect(previewText).toContainText("Not yet numbered");
+  await expect(previewText).toContainText("Shelf");
+  await expect(previewText).toContainText("Thanks for your business");
   await issueButton(page).click();
   await expect(sheet(page)).toHaveAccessibleName("Issue this invoice?");
   await expect(sheet(page)).toContainText("can't be changed");
@@ -107,14 +124,15 @@ test("what an invoice still needs is said, the draft is kept meanwhile, and it c
   await page.goto("/app/invoices/new");
   await addCustomerInSheet(page, "Thandi Nkosi");
   await addItem(page, "Shelf", "1", "100");
-  await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await previewButton(page).click();
+  // The preview is kept as a draft, and says what is missing before anything is asked.
+  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
-  await expect(page.getByTestId("form-summary")).toContainText("Before you can issue it");
+  const draftUrl = page.url().replace(/\/preview$/, "");
+  // Issuing anyway is stopped, and the question closes.
+  await issueFromDraft(page);
   await expect(sheet(page)).toHaveCount(0);
-  // The draft was kept all the same, so nothing typed is lost.
-  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
-  const draftUrl = page.url();
+  await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
 
   await openBusinessProfile(page);
   await page.getByLabel("Street address").fill("12 Long Street");
@@ -124,8 +142,7 @@ test("what an invoice still needs is said, the draft is kept meanwhile, and it c
 
   await page.goto(draftUrl);
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
-  await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await issueFromDraft(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
 });
 
@@ -190,14 +207,13 @@ test("a finished job made by hand starts an invoice with its customer and items,
   await expect(page.getByRole("button", { name: /Edit Brackets/ })).toContainText("4 pair");
 
   // No price yet: it says which item needs one, and nothing is issued.
-  await issueButton(page).click();
+  await previewButton(page).click();
   await expect(page.getByTestId("form-summary")).toContainText("Brackets");
   await page.getByRole("button", { name: /Edit Brackets/ }).click();
   await sheet(page).getByLabel(/^Price/).fill("25");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(page.getByTestId("sticky-total")).toContainText(rand("100"));
-  await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await issueFromDraft(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
 });
 
@@ -234,8 +250,7 @@ test("Adjust before issuing starts a draft from the accepted quote, changed and 
   await sheet(page).getByLabel("Quantity").fill("8");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(page.getByTestId("sticky-total")).toContainText(rand("2 000"));
-  await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await issueFromDraft(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("invoice-total")).toHaveText(rand("2 000"));
   const origin = page.getByTestId("invoice-origin");
@@ -277,13 +292,11 @@ test("fixing what an invoice needs has a way back to the invoice, kept as a draf
   await page.goto("/app/invoices/new");
   await addCustomerInSheet(page, "Thandi Nkosi");
   await addItem(page, "Shelf", "1", "100");
-  await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await previewButton(page).click();
   await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
-  await expect(page.getByText("Draft saved.")).toBeVisible();
 
-  // The link goes to the business profile, which has the way back; fixing it there keeps everything.
-  await page.getByTestId("invoice-problems").getByRole("button", { name: "Open your business profile" }).click();
+  // The link goes to the business profile, which has the way back to the preview; fixing it there keeps everything.
+  await page.getByTestId("invoice-problems").getByRole("link", { name: "Open your business profile" }).click();
   await expect(page).toHaveURL(/\/app\/business\?back=/);
   await page.getByLabel("Street address").fill("12 Long Street");
   await page.getByLabel("City or town").fill("Cape Town");
@@ -291,11 +304,10 @@ test("fixing what an invoice needs has a way back to the invoice, kept as a draf
   await expect(page.getByText("Saved.")).toBeVisible();
   // The tabs keep the way back too.
   await businessTab(page, "Logo");
-  await expect(page.getByTestId("back-link")).toHaveAccessibleName("Back to invoice draft");
+  await expect(page.getByTestId("back-link")).toHaveAccessibleName("Back to invoice preview");
   await page.getByTestId("back-link").click();
 
-  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
-  await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByTestId("invoice-problems")).toHaveCount(0);
   await issueButton(page).click();
   await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();

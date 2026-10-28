@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireOrganisation } from "@/lib/auth/dal";
+import { requireOrganisation, type Workspace } from "@/lib/auth/dal";
 import { blankInvoiceForm, differsFromQuote, isInvoiceDraftForm, type InvoiceDraftErrors } from "@/lib/invoices/draft";
 import { findInvoiceDraft } from "@/lib/invoices/draft-data";
 import type { InvoiceProblem } from "@/lib/invoices";
@@ -112,17 +112,19 @@ export type IssueDraftResult =
   | { status: "problems"; problems: InvoiceProblem[]; draftId: string };
 
 /**
- * Saves what is on the screen, checks it as an invoice, and issues it: the next number, a document that never changes.
- * Returns only when something stopped it; success opens the invoice. It needs the draft's id: an invoice that has not
- * been kept yet is kept first (saveInvoiceDraft), so that asking again after a lost reply cannot issue a second one.
+ * Checks the kept draft as an invoice and issues it: the next number, a document that never changes. Returns only when
+ * something stopped it; success opens the invoice. It is the preview's button: what the maker has just looked at is what
+ * is issued, because the preview is drawn from the same kept draft (`prepareInvoiceDraft`), and a draft that exists
+ * before it is issued means trying again after a lost reply cannot issue a second invoice.
  */
-export async function issueInvoiceDraft(draftId: string, form: unknown): Promise<IssueDraftResult> {
+export async function issueStoredInvoiceDraft(draftId: string): Promise<IssueDraftResult> {
   const workspace = await requireOrganisation();
-  const { organisation, user } = workspace;
+  if (!UUID.test(draftId)) return { status: "error", message: GENERIC_ERROR };
+  return issueStored(workspace, draftId);
+}
 
-  const saved = await writeDraft(draftId, form);
-  if (!saved.ok) return { status: "error", message: saved.message };
-  const id = saved.id;
+async function issueStored(workspace: Workspace, id: string): Promise<IssueDraftResult> {
+  const { organisation, user } = workspace;
 
   // Read back under the person's own session: it proves the draft is theirs, and notes when it was last changed.
   const stored = await findInvoiceDraft(id);
