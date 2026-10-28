@@ -345,6 +345,11 @@ for (const scheme of ["light", "dark"] as const) {
       // Counting what is made, and adding an item to the job through the quote's item sheet.
       await page.getByRole("button", { name: /^One more made of/ }).first().click();
       await expect(page.getByTestId("job-progress")).toContainText("made");
+      // The only item is made, so the page asks whether to mark the job ready (Not yet leaves it as it is).
+      await expect(page.getByRole("dialog", { name: "Everything is made" })).toBeVisible();
+      await expectNoViolations(page, "job, everything is made question");
+      await page.getByRole("dialog").getByRole("button", { name: "Not yet" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await expectNoViolations(page, "job, making, with counts");
       await page.getByRole("link", { name: "Add an item" }).click();
       await expect(page.getByRole("dialog")).toHaveAccessibleName("Add an item");
