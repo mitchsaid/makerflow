@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageHeader } from "@/components/page-header";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { withBack } from "@/lib/back-link";
+import { asDraftCopy } from "@/lib/invoices/draft-copy";
 import { getInvoiceDraft } from "@/lib/invoices/draft-data";
 import { prepareInvoiceDraft } from "@/lib/invoices/prepare-draft";
 import { getLocalePack } from "@/lib/locale";
@@ -30,7 +31,7 @@ export default async function InvoiceDraftPreviewPage({ params }: PageProps<"/ap
   const { snapshot, problems } = prepared.value;
   const locale = getLocalePack(workspace.profile.countryCode);
   const here = `/app/invoices/drafts/${id}/preview`;
-  const shown = { ...snapshot, number: "Not yet numbered" };
+  const shown = asDraftCopy(snapshot, locale);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -39,7 +40,7 @@ export default async function InvoiceDraftPreviewPage({ params }: PageProps<"/ap
           <span>Preview of invoice</span>
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not issued</span>
         </h1>
-        <p className="text-base text-muted-foreground">It gets its number when you issue it.</p>
+        <p className="text-base text-muted-foreground">It gets its number when you mark it as issued.</p>
       </PageHeader>
 
       {problems.length > 0 && (

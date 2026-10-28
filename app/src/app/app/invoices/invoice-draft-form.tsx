@@ -37,8 +37,8 @@ const OFFLINE = "Couldn't reach the server, so nothing may have been saved. Chec
  * An invoice that is not issued yet (docs/plans/invoice-i3.md): who it is for, what is on it, delivery or collection, a
  * discount, the dates and a note, with the totals as they stand. It is built from the same pieces as a quote (the
  * customer picker, the item sheet, the delivery and discount fields), and its totals are worked out by the same money code.
- * "Save draft" keeps it for later; "Issue invoice" checks it as an invoice, asks once, and gives it its number, after
- * which it never changes. Both buttons are always enabled: pressing one with something missing lists what to fix, at the
+ * "Save draft" keeps it for later; "Continue to preview" checks it as an invoice and opens the preview, where marking it as
+ * issued gives it its number, after which it never changes. Both buttons are always enabled: pressing one with something missing lists what to fix, at the
  * fields and in a summary that jumps to the first one, and nothing typed is lost.
  */
 export function InvoiceDraftForm({

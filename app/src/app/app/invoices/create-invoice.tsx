@@ -239,7 +239,7 @@ function InvoiceForm({
             <p className="text-sm text-muted-foreground">Change items or prices first, as a draft. The quote stays as it was agreed.</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            You see it first. It gets the next invoice number when you issue it, and can&apos;t be changed after that. A mistake is fixed with a credit note.
+            You see it first. It gets the next invoice number when you mark it as issued, and can&apos;t be changed after that. A mistake is fixed with a credit note.
           </p>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
             {pending ? "Opening the preview…" : "Continue to preview"}
