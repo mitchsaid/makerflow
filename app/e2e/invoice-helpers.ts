@@ -45,6 +45,17 @@ export async function acceptedQuote(
 }
 
 /**
+ * With the Create invoice sheet open on an accepted quote: Continue to preview, then issue from the preview (it asks once).
+ * Ends on the issued invoice's page.
+ */
+export async function issueFromQuoteSheet(page: Page) {
+  await sheet(page).getByRole("button", { name: "Continue to preview" }).click();
+  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\/preview$/);
+  await page.locator("#issue-invoice").click();
+  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+}
+
+/**
  * A new business with an issued invoice INV-0001 for one item (quantity x price), optionally asking a deposit first. Ends
  * on the invoice's page.
  */
@@ -55,6 +66,6 @@ export async function issuedInvoice(
 ) {
   await acceptedQuote(page, label, item);
   await page.getByRole("button", { name: "Create invoice" }).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
+  await issueFromQuoteSheet(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
 }

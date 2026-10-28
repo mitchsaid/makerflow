@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openBusinessProfile, openDocuments, openInvoiceSettings, openMore, signUpAndOnboard } from "./helpers";
+import { issueFromQuoteSheet } from "./invoice-helpers";
 import { sentQuote } from "./quote-helpers";
 
 /** Invoices, slice I1 (docs/plans/invoices-and-payments.md). */
@@ -26,12 +27,11 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   await page.getByRole("button", { name: "Create invoice" }).click();
   await expect(sheet(page).getByText(/Add your business address/)).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Open your business profile" })).toBeVisible();
-  await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
-  await expect(sheet(page)).toBeVisible();
+  // It can still be previewed: the preview says again what is missing, and nothing is issued.
+  await sheet(page).getByRole("button", { name: "Continue to preview" }).click();
+  await expect(page).toHaveURL(/\/preview$/);
+  await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
   await expect(page.getByRole("heading", { name: /^Invoice INV-/ })).toHaveCount(0);
-
-  await page.keyboard.press("Escape");
-  await expect(sheet(page)).toHaveCount(0);
   await openBusinessProfile(page);
   await page.getByLabel("Street address").fill("12 Long Street");
   await page.getByLabel("City or town").fill("Cape Town");
@@ -56,12 +56,12 @@ test("an accepted quote becomes a numbered invoice that cannot be changed", asyn
   await sheet(page).getByLabel("Invoice date").fill("2026-10-20");
   await sheet(page).getByLabel("Due date").fill("2026-10-10");
   await sheet(page).getByLabel("Note (optional)").fill("Thanks for your order!");
-  await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
+  await sheet(page).getByRole("button", { name: "Continue to preview" }).click();
   await expect(sheet(page).getByText("The due day can't be before the invoice date.").first()).toBeVisible();
   await expect(sheet(page).getByLabel("Note (optional)")).toHaveValue("Thanks for your order!");
 
   await sheet(page).getByLabel("Due date").fill("2026-11-03");
-  await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
+  await issueFromQuoteSheet(page);
   await expect(page).toHaveURL(/\/app\/invoices\/[0-9a-f-]{36}$/);
   const url = page.url();
 

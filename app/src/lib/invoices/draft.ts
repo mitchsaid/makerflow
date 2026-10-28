@@ -116,12 +116,21 @@ export function draftRowsOf(drafts: readonly Pick<StoredInvoiceDraft, "id" | "cu
  * quantity, price or total, or the totals. Anything that differs counts (so an invoice is never described as the
  * agreed quote when it is not); an exact match does not.
  */
+/** JSON with the keys of every object in sorted order, so two equal documents give the same text. */
+function canonicalJson(value: unknown): string {
+  const sorted = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(sorted) : v !== null && typeof v === "object" ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, x]) => [k, sorted(x)])) : v;
+  return JSON.stringify(sorted(value));
+}
+
 export function differsFromQuote(
   invoice: { lines: readonly unknown[]; totals: unknown; quoteDiscount?: unknown },
   quoted: { lines: readonly unknown[]; totals: unknown; quoteDiscount?: unknown },
 ): boolean {
+  // Compared as values, whatever order the keys came in: the quote's snapshot is read back from the database, which
+  // keeps the keys of a stored document in an order of its own.
   const key = (s: typeof invoice) =>
-    JSON.stringify({
+    canonicalJson({
       lines: s.lines.map((l) => {
         const x = l as Record<string, unknown>;
         return [x.kind, x.name, x.description ?? null, x.quantityMilli, x.unit ?? null, x.unitPriceCents, x.discount ?? null, x.lineTotalCents, x.vatStatus ?? null];

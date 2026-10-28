@@ -146,6 +146,14 @@ describe("differsFromQuote", () => {
     expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], photoImageId: "x" }] }, agreed)).toBe(false);
     expect(differsFromQuote(agreed, structuredClone(agreed))).toBe(false);
   });
+  it("is false when the same document comes back with its keys in another order (the database keeps its own order)", () => {
+    const reordered = {
+      quoteDiscount: null,
+      totals: { grossCents: 50000, vatCents: 6522, netCents: 43478 },
+      lines: [{ vatStatus: "standard", lineTotalCents: 50000, discount: null, unitPriceCents: 50000, unit: null, quantityMilli: 1000, description: null, name: "Cake", kind: "custom" }],
+    };
+    expect(differsFromQuote(agreed, reordered)).toBe(false);
+  });
   it("is true for any change an invoice could carry: quantity, price, name, an extra item, a discount, the totals", () => {
     expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], quantityMilli: 2000 }] }, agreed)).toBe(true);
     expect(differsFromQuote({ ...agreed, lines: [{ ...agreed.lines[0], unitPriceCents: 40000, lineTotalCents: 40000 }] }, agreed)).toBe(true);

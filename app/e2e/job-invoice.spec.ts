@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { acceptedQuote } from "./invoice-helpers";
+import { acceptedQuote, issueFromQuoteSheet } from "./invoice-helpers";
 import { sheet } from "./quote-helpers";
 
 /** The prompt to invoice a finished job (docs/plans/invoice-i3.md, slice I3a). */
@@ -30,8 +30,8 @@ test("a finished job offers to invoice its quote, and the invoice is then shown 
   // Create invoice opens the quote with its own sheet ready; issuing makes the invoice.
   await card.getByRole("link", { name: "Create invoice" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?next=invoice$/);
-  await expect(sheet(page).getByRole("button", { name: "Issue invoice" })).toBeVisible();
-  await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
+  await expect(sheet(page).getByRole("button", { name: "Continue to preview" })).toBeVisible();
+  await issueFromQuoteSheet(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
 
   // The job now says it is invoiced, and no longer asks.
