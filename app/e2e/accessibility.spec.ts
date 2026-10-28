@@ -1045,7 +1045,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: "New invoice" }).click();
       await expect(page.getByRole("heading", { name: "New invoice", level: 1 })).toBeVisible();
       await expectNoViolations(page, "a new invoice");
-      await page.locator("#issue-invoice").click();
+      await page.locator("#preview-invoice").click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "a new invoice, with problems");
       await addCustomerInSheet(page, "Thandi Nkosi");
@@ -1061,10 +1061,18 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount (%)").fill("10");
       await expectNoViolations(page, "a new invoice, with an item and a discount");
+      // Continue to preview keeps the draft and shows the invoice, with the question that issues it.
+      await page.locator("#preview-invoice").click();
+      await expect(page).toHaveURL(/\/preview$/);
+      await expect(page.getByRole("heading", { name: "Preview of invoice", level: 1 })).toBeVisible();
+      await expect(page.getByTestId("pdf-page").first()).toBeVisible();
+      await expectNoViolations(page, "the invoice preview");
       await page.locator("#issue-invoice").click();
       await expect(page.getByRole("dialog", { name: "Issue this invoice?" })).toBeVisible();
       await expectNoViolations(page, "the issue confirmation");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("link", { name: "Edit", exact: true }).click();
+      await expect(page.getByTestId("invoice-draft-form")).toBeVisible();
       await page.getByRole("button", { name: "Save draft" }).click();
       await expect(page.getByText("Draft saved.")).toBeVisible();
       await expectNoViolations(page, "an invoice draft");

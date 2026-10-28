@@ -10,12 +10,10 @@ import { OptionalTag, Section, TextAreaField, TextField } from "@/components/for
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { withBack } from "@/lib/back-link";
 import type { BusinessType } from "@/lib/business-types";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { parseInvoiceDraft, type InvoiceDraftErrors, type InvoiceDraftForm } from "@/lib/invoices/draft";
-import { INVOICE_NOTE_MAX, type InvoiceProblem } from "@/lib/invoices";
+import { INVOICE_NOTE_MAX } from "@/lib/invoices";
 import { priceEntryLabel } from "@/lib/locale";
 import type { LocalePack } from "@/lib/locale";
 import { currencySymbol, formatMoney, formatPercent, type NumberStyle, type VatSettings } from "@/lib/money";
@@ -30,7 +28,7 @@ import { LineRow } from "../quotes/line-row";
 import { LineSheet, type LineSheetView } from "../quotes/line-sheet";
 import { useItemSheetProducts } from "../quotes/use-item-sheet-products";
 import { withoutEmptyOptionals } from "@/lib/quotes/optional";
-import { discardInvoiceDraft, issueInvoiceDraft, saveInvoiceDraft } from "./draft-actions";
+import { discardInvoiceDraft, saveInvoiceDraft } from "./draft-actions";
 import type { ProductFormCosting } from "../products/product-form";
 
 const OFFLINE = "Couldn't reach the server, so nothing may have been saved. Check your connection and try again. Nothing you typed is lost.";
@@ -83,12 +81,10 @@ export function InvoiceDraftForm({
   const [customers, setCustomers] = useState(initialCustomers);
   const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
   const [errors, setErrors] = useState<InvoiceDraftErrors>({ fields: {}, lines: {} });
-  const [problems, setProblems] = useState<InvoiceProblem[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(justSaved);
   const [tried, setTried] = useState(0);
   const [pending, startTransition] = useTransition();
-  const [confirming, setConfirming] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [showDiscount, setShowDiscount] = useState(initial.discountKind !== "none");
 
@@ -116,7 +112,6 @@ export function InvoiceDraftForm({
   }
   function chooseCustomer(customerId: string, next: SavedAddress[]) {
     clear("customerId");
-    setProblems([]);
     update({ customerId, deliveryAddress: addressWhenCustomerChanges(values.deliveryAddress, savedAddresses, next) });
   }
   /** The picker adds or edits customers; when the chosen one's saved addresses change, the address typed here follows. */
@@ -175,7 +170,6 @@ export function InvoiceDraftForm({
 
   function save() {
     setMessage(null);
-    setProblems([]);
     const sent = tidy();
     startTransition(async () => {
       try {
@@ -193,80 +187,34 @@ export function InvoiceDraftForm({
     });
   }
 
-  /** "Issue invoice": check it as an invoice here first, so a missing thing is named without a round trip, then ask once. */
-  function askToIssue() {
+  /**
+   * "Continue to preview": check it as an invoice here first, so a missing thing is named where it is missing, then keep
+   * it as a draft and open the preview (what is previewed is what is kept).
+   */
+  function preview() {
     setMessage(null);
-    const checked = parseInvoiceDraft(tidy(), vat);
+    const sent = tidy();
+    const checked = parseInvoiceDraft(sent, vat);
     setTried((n) => n + 1);
     if (!checked.ok) {
       setErrors(checked.errors);
       return;
     }
     setErrors({ fields: {}, lines: {} });
-    setConfirming(true);
-  }
-
-  function issue() {
-    setMessage(null);
+    if (draftId && saved) {
+      router.push(`/app/invoices/drafts/${draftId}/preview`);
+      return;
+    }
     startTransition(async () => {
       try {
-        // An invoice that has not been kept yet is kept first, so that trying again after a lost reply asks about the
-        // same draft and cannot issue a second invoice.
-        let id = draftId;
-        if (id === null) {
-          const kept = await saveInvoiceDraft(null, values, { stay: true });
-          if (kept.status === "error") {
-            setConfirming(false);
-            setMessage(kept.message);
-            setTried((n) => n + 1);
-            return;
-          }
-          id = kept.draftId;
-          adopt(id);
-        }
-        const result = await issueInvoiceDraft(id, values);
-        setConfirming(false);
-        setTried((n) => n + 1);
-        // Whatever stopped it, what is on the screen was kept as the draft first.
-        setSaved(true);
-        if (result.status === "invalid") {
-          adopt(result.draftId);
-          setErrors(result.errors);
-        } else if (result.status === "problems") {
-          adopt(result.draftId);
-          setProblems(result.problems);
-        } else {
-          adopt(result.draftId);
-          setMessage(result.message);
-        }
-      } catch (error) {
-        // Issuing ends by opening the invoice: that is a redirect, not a failure.
-        const digest = (error as { digest?: unknown } | null)?.digest;
-        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
-        setConfirming(false);
-        setMessage(OFFLINE);
-        setTried((n) => n + 1);
-      }
-    });
-  }
-
-  /**
-   * Going to fix something elsewhere (the business profile, the customer) keeps this invoice first: it is saved as a
-   * draft, and the page it opens has a way back to it, so nothing typed is lost and the maker can find it again.
-   */
-  function fixFirst(href: string) {
-    setMessage(null);
-    const sent = tidy();
-    startTransition(async () => {
-      try {
-        const result = await saveInvoiceDraft(draftId, sent, { stay: true });
-        if (result.status !== "saved") {
-          setMessage(result.message);
+        const kept = await saveInvoiceDraft(draftId, sent, { stay: true });
+        if (kept.status === "error") {
+          setMessage(kept.message);
           return;
         }
-        adopt(result.draftId);
+        adopt(kept.draftId);
         setSaved(true);
-        router.push(withBack(href, `/app/invoices/drafts/${result.draftId ?? draftId}`));
+        router.push(`/app/invoices/drafts/${kept.draftId}/preview`);
       } catch (error) {
         const digest = (error as { digest?: unknown } | null)?.digest;
         if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
@@ -307,8 +255,7 @@ export function InvoiceDraftForm({
   if (f.deliveryAddress) summary.push({ fieldId: "deliveryAddress", label: "Deliver to", message: f.deliveryAddress });
   if (f.discountValue) summary.push({ fieldId: "discountValue", label: "Discount", message: f.discountValue });
   if (f.notes) summary.push({ fieldId: "notes", label: "Note", message: f.notes });
-  for (const p of problems) summary.push({ fieldId: `invoice-problem-${p.code}`, label: "Before you can issue it", message: p.message });
-  if (message) summary.push({ fieldId: "issue-invoice", label: "Invoice", message });
+  if (message) summary.push({ fieldId: "preview-invoice", label: "Invoice", message });
 
   return (
     <FormErrorScope epoch={tried}>
@@ -487,29 +434,6 @@ export function InvoiceDraftForm({
         </Section>
         )}
 
-        {problems.length > 0 && (
-          <Alert variant="destructive" data-testid="invoice-problems">
-            <AlertDescription>
-              <ul className="space-y-1">
-                {problems.map((p) => (
-                  <li key={p.code} id={`invoice-problem-${p.code}`}>
-                    {p.message}{" "}
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="h-auto min-h-11 justify-start px-0 underline text-sm"
-                      disabled={pending}
-                      onClick={() => fixFirst(p.code === "customer-address" && values.customerId ? `/app/customers/${values.customerId}?section=details` : "/app/business")}
-                    >
-                      {p.code === "customer-address" ? "Open the customer" : "Open your business profile"}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
-
         {draftId && (
           <div className="space-y-2">
             {discarding ? (
@@ -551,7 +475,7 @@ export function InvoiceDraftForm({
             </p>
           </div>
           <Button type="submit" form="invoice-draft-form" variant="outline" disabled={pending} size="lg">
-            {pending && !confirming ? (
+            {pending ? (
               "Saving…"
             ) : (
               <>
@@ -559,31 +483,12 @@ export function InvoiceDraftForm({
               </>
             )}
           </Button>
-          <Button id="issue-invoice" type="button" disabled={pending} size="lg" className="col-span-2 sm:col-span-1" onClick={askToIssue}>
-            Issue invoice
+          <Button id="preview-invoice" type="button" disabled={pending} size="lg" className="col-span-2 sm:col-span-1" onClick={preview}>
+            Continue to preview
           </Button>
         </div>
       </div>
 
-      <Sheet open={confirming} onOpenChange={(isOpen) => !pending && setConfirming(isOpen)}>
-        <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => document.getElementById("issue-invoice") ?? true}>
-          <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
-            <SheetTitle className="text-lg">Issue this invoice?</SheetTitle>
-            <SheetDescription className="text-base">
-              {customers.find((c) => c.id === values.customerId)?.name ?? ""} · {totals ? money(totals.grossCents) : ""}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4 px-4 py-4">
-            <p className="text-base">It gets the next invoice number and can&apos;t be changed after this. If something is wrong, a credit note corrects it.</p>
-            <Button type="button" size="lg" className="w-full" disabled={pending} onClick={issue}>
-              {pending ? "Issuing…" : "Issue invoice"}
-            </Button>
-            <Button type="button" variant="outline" size="lg" className="w-full" disabled={pending} onClick={() => setConfirming(false)}>
-              Cancel
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
     </FormErrorScope>
   );
 }

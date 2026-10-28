@@ -1,0 +1,82 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { issueStoredInvoiceDraft } from "../../../draft-actions";
+
+const OFFLINE = "Couldn't reach the server. Open the invoice draft to see if it went through before trying again.";
+
+/**
+ * Stays in view above the tab bar: back to editing, or issue. Issuing asks once ("It gets the next invoice number and
+ * can't be changed after this"), then opens the invoice. If something stops it, it says what, here.
+ */
+export function InvoicePreviewBar({ draftId, customerName, totalText }: { draftId: string; customerName: string; totalText: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function issue() {
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const result = await issueStoredInvoiceDraft(draftId);
+        if (result.status === "problems") {
+          // The page lists what is missing, with the way to fix it.
+          setOpen(false);
+          router.refresh();
+        } else if (result.status === "invalid") {
+          setMessage("This invoice needs a change before it can be issued. Go back and edit it.");
+        } else {
+          setMessage(result.message);
+        }
+      } catch (error) {
+        // Issuing ends by opening the invoice: that is a redirect, not a failure.
+        const digest = (error as { digest?: unknown } | null)?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
+        setMessage(OFFLINE);
+      }
+    });
+  }
+
+  return (
+    <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-3 md:bottom-0">
+      <div className="mx-auto grid max-w-2xl grid-cols-[auto_1fr] gap-2 sm:flex sm:items-center">
+        <Link href={`/app/invoices/drafts/${draftId}`} className={buttonVariants({ variant: "outline", size: "lg" }) + " px-4"}>
+          Edit
+        </Link>
+        <Button id="issue-invoice" type="button" size="lg" className="px-3 sm:flex-1" onClick={() => setOpen(true)}>
+          Issue invoice
+        </Button>
+      </div>
+      <Sheet open={open} onOpenChange={(isOpen) => !pending && setOpen(isOpen)}>
+        <SheetContent side="right" className="h-dvh gap-0 overflow-y-auto" finalFocus={() => document.getElementById("issue-invoice") ?? true}>
+          <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
+            <SheetTitle className="text-lg">Issue this invoice?</SheetTitle>
+            <SheetDescription className="text-base">
+              {customerName} · {totalText}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 px-4 py-4">
+            {message && (
+              <Alert variant="destructive" role="alert">
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
+            )}
+            <p className="text-base">It gets the next invoice number and can&apos;t be changed after this. If something is wrong, a credit note corrects it.</p>
+            <Button type="button" size="lg" className="w-full" disabled={pending} onClick={issue}>
+              {pending ? "Issuing…" : "Issue invoice"}
+            </Button>
+            <Button type="button" variant="outline" size="lg" className="w-full" disabled={pending} onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

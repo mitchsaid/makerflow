@@ -81,3 +81,9 @@ No database change. The preview page reads the stored draft and runs `prepareInv
 
 ## Not planned yet
 A theme strip for invoices; a watermarked draft copy; emailing the invoice (with the quote's Email, when it is built).
+
+## Built, slice 1 (2026-10-28, PR 144)
+The way back (`lib/back-link.ts`, `?back=`), the business profile and customer pages showing it across their tabs, the invoice draft saving before it follows a fix link, and the same on the Create invoice sheet and the quote's no-contact note. No database change.
+
+## Built, slice 2 (2026-10-28)
+The invoice draft form's bar is **Save** and **Continue to preview** (checks it as an invoice, keeps it as a draft, opens `/app/invoices/drafts/[id]/preview`). The preview draws the invoice with `LivePdfPreview` from `prepareInvoiceDraft` (number shown as "Not yet numbered"), lists anything still missing with links that carry the way back to the preview, and has **Edit** and **Issue invoice** (`issueStoredInvoiceDraft`, which reads the kept draft, so what was previewed is what is issued). The "Issue this invoice?" question moved from the form to the preview; the form's old issue path and `issueInvoiceDraft` are gone. No database change.
