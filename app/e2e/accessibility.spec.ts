@@ -1068,7 +1068,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("pdf-page").first()).toBeVisible();
       await expectNoViolations(page, "the invoice preview");
       await page.locator("#issue-invoice").click();
-      await expect(page.getByRole("dialog", { name: "Issue this invoice?" })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "Mark this invoice as issued?" })).toBeVisible();
       await expectNoViolations(page, "the issue confirmation");
       await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
       await page.getByRole("link", { name: "Edit", exact: true }).click();

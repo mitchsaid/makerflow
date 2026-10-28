@@ -15,7 +15,7 @@ async function issueFromDraft(page: Page) {
   await previewButton(page).click();
   await expect(page).toHaveURL(/\/preview$/);
   await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as issued", exact: true }).click();
 }
 
 /** Adds a one-off item through the item sheet the way a quote does. */
@@ -90,13 +90,21 @@ test("an invoice with no quote is kept as a draft, changed, and issued", async (
   await expect(previewText).toContainText("Not yet numbered");
   await expect(previewText).toContainText("Shelf");
   await expect(previewText).toContainText("Thanks for your business");
+  await expect(previewText).toContainText("Draft copy");
+  // A copy can be downloaded before it is issued: a draft, drawn from the kept draft the way the preview is.
+  const download = page.getByRole("link", { name: "Download", exact: true });
+  await expect(download).toHaveAttribute("href", /\/app\/invoices\/drafts\/[0-9a-f-]{36}\/pdf\?download=1$/);
+  const copy = await page.request.get(page.url().replace(/\/preview$/, "/pdf"));
+  expect(copy.status()).toBe(200);
+  expect(copy.headers()["content-type"]).toBe("application/pdf");
+  expect((await copy.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
   await issueButton(page).click();
-  await expect(sheet(page)).toHaveAccessibleName("Issue this invoice?");
+  await expect(sheet(page)).toHaveAccessibleName("Mark this invoice as issued?");
   await expect(sheet(page)).toContainText("can't be changed");
   await sheet(page).getByRole("button", { name: "Cancel" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as issued", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("invoice-total")).toHaveText(rand("270"));
   await expect(page.getByTestId("invoice-origin")).toContainText("Made without a quote");
@@ -131,7 +139,7 @@ test("what an invoice still needs is said, the draft is kept meanwhile, and it c
   const draftUrl = page.url().replace(/\/preview$/, "");
   // Issuing anyway is stopped, and the question closes.
   await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as issued", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
 
@@ -311,6 +319,6 @@ test("fixing what an invoice needs has a way back to the invoice, kept as a draf
   await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\/preview$/);
   await expect(page.getByTestId("invoice-problems")).toHaveCount(0);
   await issueButton(page).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await sheet(page).getByRole("button", { name: "Mark as issued", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
 });

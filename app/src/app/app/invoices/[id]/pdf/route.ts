@@ -1,11 +1,10 @@
 import type { NextRequest } from "next/server";
 import { requireOrganisation } from "@/lib/auth/dal";
-import { getRenditions } from "@/lib/images/data";
 import { findInvoice } from "@/lib/invoices/data";
+import { pdfImagesFor } from "@/lib/invoices/pdf-images";
 import { owingCentsOf, paidCentsOf } from "@/lib/invoices/payments";
 import { getLocalePack } from "@/lib/locale";
 import { renderQuotePdf } from "@/lib/quotes/pdf/render";
-import { themeFromStored } from "@/lib/quotes/themes";
 
 /**
  * The invoice as a PDF, drawn from its stored document only (the same drawing code as a quote, with the invoice's words).
@@ -20,20 +19,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
   if (!invoice || invoice.organisationId !== workspace.organisation.id) return notFound();
   const snapshot = invoice.snapshot;
 
-  // The pictures the document names (the product photos' small copies, the logo and the theme's background).
-  const photoIds = snapshot.lines.flatMap((l) => (l.photoImageId ? [l.photoImageId] : []));
-  const theme = themeFromStored(snapshot);
-  const backgroundId = theme.background === "image" ? theme.backgroundImageId : null;
-  // QR codes for paying are printed from their full-size copy, so they scan.
-  const qrIds = (snapshot.paymentMethods ?? []).flatMap((w) => (w.imageId ? [w.imageId] : []));
-  const [photos, qrs, logos, backgrounds] = await Promise.all([
-    getRenditions(photoIds, "thumb"),
-    getRenditions(qrIds, "display"),
-    getRenditions(snapshot.logoImageId ? [snapshot.logoImageId] : [], "display"),
-    getRenditions(backgroundId ? [backgroundId] : [], "display"),
-  ]);
-  const logo = snapshot.logoImageId ? (logos.get(snapshot.logoImageId) ?? null) : null;
-  const background = backgroundId ? (backgrounds.get(backgroundId) ?? null) : null;
+  const { images, logo, background } = await pdfImagesFor(snapshot);
 
   let pdf: Buffer;
   try {
@@ -42,7 +28,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
     const locale = getLocalePack(workspace.profile.countryCode);
     const words = locale.documents.invoice;
     pdf = await renderQuotePdf(snapshot, {
-      images: new Map([...photos, ...qrs]),
+      images,
       logo,
       background,
       payments: {

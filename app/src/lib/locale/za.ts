@@ -500,6 +500,8 @@ export const ZA_LOCALE: LocalePack = {
       paidLabel: "Paid so far",
       amountDueLabel: "Amount due",
       depositNote: "Deposit",
+      draftNumber: "Not yet numbered",
+      draftNotice: "Draft copy: not issued yet, so it has no invoice number and is not a final invoice.",
       dueDays: 14,
       needsCustomerAddress: (grossCents, taxRegistered) => taxRegistered && grossCents >= FULL_INVOICE_THRESHOLD_CENTS,
     },

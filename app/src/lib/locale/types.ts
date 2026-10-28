@@ -181,6 +181,10 @@ export type LocalePack = {
       amountDueLabel: string;
       /** The note on a payment recorded from the quote's deposit. */
       depositNote: string;
+      /** In place of the number on a draft that has not been issued yet (a copy to check, never to send as the invoice). */
+      draftNumber: string;
+      /** Printed on that copy, where a finished invoice has nothing. */
+      draftNotice: string;
       /** The usual days between the invoice and its due day. */
       dueDays: number;
       /** Whether this invoice must carry the customer's address (a full tax invoice, not an abridged one). */
