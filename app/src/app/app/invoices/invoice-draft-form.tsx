@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormErrorScope } from "@/components/form-errors";
@@ -10,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { withBack } from "@/lib/back-link";
 import type { BusinessType } from "@/lib/business-types";
 import type { CustomerOption, SavedAddress } from "@/lib/customers";
 import { parseInvoiceDraft, type InvoiceDraftErrors, type InvoiceDraftForm } from "@/lib/invoices/draft";
@@ -75,6 +77,7 @@ export function InvoiceDraftForm({
   /** What the product form's Inputs tab needs, for editing a product in the sheet. */
   costing: ProductFormCosting;
 }) {
+  const router = useRouter();
   const [values, setValues] = useState<InvoiceDraftForm>(initial);
   const [draftId, setDraftId] = useState(initialDraftId);
   const [customers, setCustomers] = useState(initialCustomers);
@@ -224,6 +227,8 @@ export function InvoiceDraftForm({
         const result = await issueInvoiceDraft(id, values);
         setConfirming(false);
         setTried((n) => n + 1);
+        // Whatever stopped it, what is on the screen was kept as the draft first.
+        setSaved(true);
         if (result.status === "invalid") {
           adopt(result.draftId);
           setErrors(result.errors);
@@ -241,6 +246,31 @@ export function InvoiceDraftForm({
         setConfirming(false);
         setMessage(OFFLINE);
         setTried((n) => n + 1);
+      }
+    });
+  }
+
+  /**
+   * Going to fix something elsewhere (the business profile, the customer) keeps this invoice first: it is saved as a
+   * draft, and the page it opens has a way back to it, so nothing typed is lost and the maker can find it again.
+   */
+  function fixFirst(href: string) {
+    setMessage(null);
+    const sent = tidy();
+    startTransition(async () => {
+      try {
+        const result = await saveInvoiceDraft(draftId, sent, { stay: true });
+        if (result.status !== "saved") {
+          setMessage(result.message);
+          return;
+        }
+        adopt(result.draftId);
+        setSaved(true);
+        router.push(withBack(href, `/app/invoices/drafts/${result.draftId ?? draftId}`));
+      } catch (error) {
+        const digest = (error as { digest?: unknown } | null)?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
+        setMessage(OFFLINE);
       }
     });
   }
@@ -464,9 +494,15 @@ export function InvoiceDraftForm({
                 {problems.map((p) => (
                   <li key={p.code} id={`invoice-problem-${p.code}`}>
                     {p.message}{" "}
-                    <Link href={p.code === "customer-address" && values.customerId ? `/app/customers/${values.customerId}?section=details` : "/app/business"} className="inline-flex min-h-11 items-center font-medium underline">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto min-h-11 justify-start px-0 underline text-sm"
+                      disabled={pending}
+                      onClick={() => fixFirst(p.code === "customer-address" && values.customerId ? `/app/customers/${values.customerId}?section=details` : "/app/business")}
+                    >
                       {p.code === "customer-address" ? "Open the customer" : "Open your business profile"}
-                    </Link>
+                    </Button>
                   </li>
                 ))}
               </ul>

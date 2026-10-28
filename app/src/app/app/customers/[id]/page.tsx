@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddLink } from "@/components/add-button";
 import { PageHeader } from "@/components/page-header";
+import { backLabelFor, safeBackPath, withBack } from "@/lib/back-link";
 import { SectionTabs, type SectionLink } from "@/components/section-switch";
 import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -51,12 +52,17 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   const wanted = typeof query.section === "string" ? query.section : "quotes";
   const section: Section = (SECTIONS as readonly string[]).includes(wanted) ? (wanted as Section) : "quotes";
   const base = `/app/customers/${customer.id}`;
-  const items: SectionLink<Section>[] = SECTIONS.map((key) => ({ key, label: LABELS[key], href: key === "quotes" ? base : `${base}?section=${key}` }));
+  // Sent here from a document to fix something: the way back to it replaces the way to the list, and stays across tabs.
+  const back = safeBackPath(query.back);
+  const items: SectionLink<Section>[] = SECTIONS.map((key) => {
+    const href = key === "quotes" ? base : `${base}?section=${key}`;
+    return { key, label: LABELS[key], href: back ? withBack(href, back) : href };
+  });
   const rowProps = { today, formatLocale: locale.formatLocale, numberStyle: locale.numberStyle, hideCustomer: true };
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <PageHeader back={{ href: "/app/customers", label: "Customers" }}>
+      <PageHeader back={back ? { href: back, label: backLabelFor(back) } : { href: "/app/customers", label: "Customers" }}>
         <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
           <span>{customer.name}</span>
           {customer.kind === "business" && <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Business</span>}

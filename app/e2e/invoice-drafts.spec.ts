@@ -270,3 +270,34 @@ test("a quote invoiced the plain way leaves no draft behind to issue twice", asy
   await page.goto(draftUrl);
   await expect(page.getByText("This page could not be found")).toBeVisible();
 });
+
+test("fixing what an invoice needs has a way back to the invoice, kept as a draft", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signUpAndOnboard(page, "invoice-way-back", "Way Back Co");
+  await page.goto("/app/invoices/new");
+  await addCustomerInSheet(page, "Thandi Nkosi");
+  await addItem(page, "Shelf", "1", "100");
+  await issueButton(page).click();
+  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await expect(page.getByTestId("invoice-problems")).toContainText("Add your business address");
+  await expect(page.getByText("Draft saved.")).toBeVisible();
+
+  // The link goes to the business profile, which has the way back; fixing it there keeps everything.
+  await page.getByTestId("invoice-problems").getByRole("button", { name: "Open your business profile" }).click();
+  await expect(page).toHaveURL(/\/app\/business\?back=/);
+  await page.getByLabel("Street address").fill("12 Long Street");
+  await page.getByLabel("City or town").fill("Cape Town");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  // The tabs keep the way back too.
+  await page.getByRole("tab", { name: "Logo" }).click();
+  await expect(page.getByTestId("back-link")).toHaveAccessibleName("Back to invoice draft");
+  await page.getByTestId("back-link").click();
+
+  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+  await expect(page.getByTestId("invoice-problems")).toHaveCount(0);
+  await issueButton(page).click();
+  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
+});

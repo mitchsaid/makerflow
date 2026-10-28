@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
+import { withBack } from "@/lib/back-link";
 import { FormErrorScope } from "@/components/form-errors";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { TextAreaField, TextField } from "@/components/form-fields";
@@ -196,7 +197,7 @@ function InvoiceForm({
                   ) : (
                     <Link
                       id={`invoice-problem-${p.code}`}
-                      href={p.code === "business" ? "/app/business" : customerId ? `/app/customers/${customerId}` : "/app/customers"}
+                      href={withBack(p.code === "business" ? "/app/business" : customerId ? `/app/customers/${customerId}` : "/app/customers", `/app/quotes/${quoteId}`)}
                       className="inline-flex min-h-11 items-center font-medium underline"
                     >
                       {p.code === "business" ? "Open your business profile" : "Open the customer"}

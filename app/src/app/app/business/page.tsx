@@ -1,6 +1,8 @@
+import { PageHeader } from "@/components/page-header";
 import { SectionTabs, type SectionLink } from "@/components/section-switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { backLabelFor, safeBackPath, withBack } from "@/lib/back-link";
 import { bankLines, bankSummary } from "@/lib/bank";
 import { canEditPaymentMethods, paymentMethodLines, paymentMethodSummary } from "@/lib/payments";
 import { canEditBusinessProfile } from "@/lib/business-profile";
@@ -43,6 +45,9 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
   const wanted = asked === "bank" ? "pay" : asked;
   const section: Section = (SECTIONS as readonly string[]).includes(wanted) ? (wanted as Section) : "details";
   const canEdit = canEditBusinessProfile(role);
+  // Sent here from a document to fix something: the way back to it stays with the page (and its tabs).
+  const back = safeBackPath(query.back);
+  const items = back ? ITEMS.map((item) => ({ ...item, href: withBack(item.href, back) })) : ITEMS;
 
   const locale = getLocalePack(profile.countryCode);
   const initial: FormValues = {
@@ -63,11 +68,17 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-xl font-semibold">Business profile</h1>
+      {back ? (
+        <PageHeader back={{ href: back, label: backLabelFor(back) }}>
+          <h1 className="text-xl font-semibold">Business profile</h1>
+        </PageHeader>
+      ) : (
+        <h1 className="text-xl font-semibold">Business profile</h1>
+      )}
 
       <SectionTabs
         label="Business profile"
-        items={ITEMS}
+        items={items}
         initial={section}
         panels={{
           details: canEdit ? (
