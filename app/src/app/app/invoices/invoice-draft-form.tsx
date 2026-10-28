@@ -29,6 +29,7 @@ import { LineSheet, type LineSheetView } from "../quotes/line-sheet";
 import { useItemSheetProducts } from "../quotes/use-item-sheet-products";
 import { withoutEmptyOptionals } from "@/lib/quotes/optional";
 import { discardInvoiceDraft, issueInvoiceDraft, saveInvoiceDraft } from "./draft-actions";
+import type { ProductFormCosting } from "../products/product-form";
 
 const OFFLINE = "Couldn't reach the server, so nothing may have been saved. Check your connection and try again. Nothing you typed is lost.";
 
@@ -54,6 +55,7 @@ export function InvoiceDraftForm({
   taxName,
   vatStatuses,
   businessTypes,
+  costing,
 }: {
   /** Null for a new invoice that has not been kept yet. */
   draftId: string | null;
@@ -70,6 +72,8 @@ export function InvoiceDraftForm({
   taxName: string;
   vatStatuses: LocalePack["tax"]["statuses"];
   businessTypes: BusinessType[] | null;
+  /** What the product form's Inputs tab needs, for editing a product in the sheet. */
+  costing: ProductFormCosting;
 }) {
   const [values, setValues] = useState<InvoiceDraftForm>(initial);
   const [draftId, setDraftId] = useState(initialDraftId);
@@ -357,6 +361,7 @@ export function InvoiceDraftForm({
             priceLabel={priceEntryLabel(vat, taxName)}
             vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
             businessTypes={businessTypes}
+            costing={costing}
             newKey={newKey}
             onView={openSheet}
             onClose={() => setSheetOpen(false)}

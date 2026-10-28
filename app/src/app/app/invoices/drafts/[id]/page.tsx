@@ -6,20 +6,23 @@ import { getCustomersWithAddresses } from "@/lib/customers/data";
 import { blankInvoiceForm } from "@/lib/invoices/draft";
 import { getInvoiceDraft } from "@/lib/invoices/draft-data";
 import { getLocalePack, vatSettingsFor } from "@/lib/locale";
+import { getMaterials } from "@/lib/materials/data";
 import { getProducts } from "@/lib/products/data";
 import { todayIn } from "@/lib/quotes/dates";
 import { forOrganisation } from "@/lib/scope";
 import { customerOptions } from "../../../quotes/builder-data";
+import { productCosting } from "../../../products/product-costing";
 import { InvoiceDraftForm } from "../../invoice-draft-form";
 
 /** An invoice draft: opened for changes, kept, discarded or issued. */
 export default async function InvoiceDraftPage({ params, searchParams }: PageProps<"/app/invoices/drafts/[id]">) {
   const { id } = await params;
   // The draft, the customers and the products load beside the workspace check, not after it.
-  const [draft, allCustomers, allProducts, { organisation, profile }, query] = await Promise.all([
+  const [draft, allCustomers, allProducts, allMaterials, { organisation, profile }, query] = await Promise.all([
     getInvoiceDraft(id),
     getCustomersWithAddresses(),
     getProducts(),
+    getMaterials(),
     requireOrganisation(),
     searchParams,
   ]);
@@ -61,6 +64,7 @@ export default async function InvoiceDraftPage({ params, searchParams }: PagePro
         taxName={locale.tax.name}
         vatStatuses={locale.tax.statuses}
         businessTypes={profile.businessTypes}
+        costing={productCosting(allMaterials, organisation.id, profile, locale)}
       />
     </main>
   );

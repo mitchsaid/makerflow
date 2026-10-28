@@ -14,6 +14,7 @@ import { vatChoicesFor } from "@/lib/quotes/vat-choices";
 import { LineSheet, type LineSheetView } from "../../../quotes/line-sheet";
 import { useItemSheetProducts } from "../../../quotes/use-item-sheet-products";
 import { addJobItem } from "../../actions";
+import type { ProductFormCosting } from "../../../products/product-form";
 
 const OFFLINE = "Couldn't reach the server, so the item may not have been added. Check the job, then try again.";
 
@@ -31,6 +32,7 @@ export function AddJobItemForm({
   taxName,
   vatStatuses,
   businessTypes,
+  costing,
 }: {
   jobId: string;
   products: ProductSummary[];
@@ -40,6 +42,8 @@ export function AddJobItemForm({
   taxName: string;
   vatStatuses: LocalePack["tax"]["statuses"];
   businessTypes: BusinessType[] | null;
+  /** What the product form's Inputs tab needs, for editing a product in the sheet. */
+  costing: ProductFormCosting;
 }) {
   const { products, productSaved, newKey } = useItemSheetProducts(initialProducts);
   const [sheetView, setSheetView] = useState<LineSheetView | null>({ kind: "pick" });
@@ -106,6 +110,7 @@ export function AddJobItemForm({
         priceLabel={priceEntryLabel(vat, taxName)}
         vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
         businessTypes={businessTypes}
+        costing={costing}
         newKey={newKey}
         onView={openSheet}
         onClose={() => setSheetOpen(false)}
