@@ -190,7 +190,8 @@ begin
   exception when sqlstate '55006' then null;
   end;
   reset role;
-  assert (select made_milli = 4000 from public.job_items where id = i1), 'a refused count changed the item';
+  -- (Moving to Ready made every item complete; the refused counts changed nothing after that.)
+  assert (select made_milli = 5000 from public.job_items where id = i1), 'a refused count changed the item';
 
   ----------------------------------------------------------------------
   -- Adding an item
@@ -266,7 +267,7 @@ begin
   perform public.set_job_item_made(org_a, j1, new_item, 1000, a);
   reset role;
   assert (select made_milli = 1000 from public.job_items where id = new_item), 'the added item could not be counted';
-  assert (select made_milli = 4000 from public.job_items where id = i1), 'adding an item changed another item''s count';
+  assert (select made_milli = 5000 from public.job_items where id = i1), 'adding an item changed another item''s count';
 
   -- A Not started job takes one and stays Not started; Out for delivery, Done and Cancelled do not
   set local role service_role;

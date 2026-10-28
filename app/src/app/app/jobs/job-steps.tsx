@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ConfirmSheet } from "@/components/confirm-sheet";
-import { FilterBar } from "@/components/filter-bar";
+import { SelectField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { jobStatusChoices, jobStatusLabel, nextJobStep, otherJobSteps, type JobFulfilment, type JobStatus } from "@/lib/jobs";
@@ -10,11 +10,11 @@ import { moveJob } from "./actions";
 import { useMoveJob } from "./use-move-job";
 
 /**
- * Where a job stands (docs/plans/ux-pass-3.md, "Job status, again"): every status as a chip, the current one filled, and a
- * tap on any other sets it. Things happen outside the app (a job can go from started straight to ready for delivery), so no
- * order is forced. The one clear next step is offered when it is clear, not all the time: when the last item is counted a
- * question opens ("Everything is made. Mark it ready?"), and a job that is already all made says so with the button. A job
- * cancelled before cancelling went has one button, Restore. Deleting is at the foot of the page, not here.
+ * Where a job stands (docs/plans/ux-pass-3.md, "Job status, again"): the status as a dropdown, to set it to any other
+ * (things happen outside the app: a job can go from started straight to ready for delivery, so no order is forced). The
+ * one clear next step is offered when it is clear, not all the time: when the last item is counted a question opens
+ * ("Everything is made. Mark it ready?"), and a job that is already all made says so with the button. A job cancelled
+ * before cancelling went has one button, Restore. Deleting is at the foot of the page, not here.
  */
 export function JobSteps({ jobId, status, fulfilment, allMade }: { jobId: string; status: JobStatus; fulfilment: JobFulfilment; allMade: boolean }) {
   const { move, pending, message, router } = useMoveJob(jobId);
@@ -38,15 +38,18 @@ export function JobSteps({ jobId, status, fulfilment, allMade }: { jobId: string
         </Alert>
       )}
       {status !== "cancelled" && (
-        <FilterBar
-          wrap
-          label="Status"
-          value={status}
-          options={choices.map((s) => ({ key: s, label: jobStatusLabel(s, fulfilment) }))}
-          onChange={(next) => {
-            if (!pending && next !== status) move(next);
-          }}
-        />
+        <div className="max-w-xs">
+          <SelectField
+            id="job-status"
+            label="Status"
+            value={status}
+            options={choices}
+            optionLabels={Object.fromEntries(choices.map((s) => [s, jobStatusLabel(s, fulfilment)]))}
+            onChange={(value) => {
+              if (!pending && value !== status) move(value as JobStatus);
+            }}
+          />
+        </div>
       )}
       {status === "in_progress" && allMade && ready && (
         <div className="space-y-2 rounded-xl bg-card p-4 ring-1 ring-foreground/10" data-testid="all-made-prompt">

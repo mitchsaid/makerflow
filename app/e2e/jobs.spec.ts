@@ -59,7 +59,7 @@ test("an accepted quote becomes a job, which moves along one tap at a time", asy
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
   await setJobStatus(page, "Ready");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
-  // The status is a row of chips: any status can be chosen, not only the next (things happen outside the app).
+  // The status is a dropdown: any status can be chosen, not only the next (things happen outside the app).
   await setJobStatus(page, "Making");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
   await openHistory(page);
@@ -98,7 +98,7 @@ test("a job cancelled before cancelling went can be restored or deleted, has its
   await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
   // Nothing in the app cancels a job any more: the page offers a status and Delete, not Cancel.
   await expect(page.getByRole("button", { name: "Cancel this job" })).toHaveCount(0);
-  await expect(page.getByRole("group", { name: "Status", exact: true }).getByRole("button", { name: "Not started" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Status", { exact: true })).toHaveValue("not_started");
   const jobId = page.url().split("/").pop() ?? "";
   await legacyCancelJob(jobId);
 
@@ -111,7 +111,7 @@ test("a job cancelled before cancelling went can be restored or deleted, has its
   await expect(page.getByRole("heading", { name: /^Job J-0001 Cancelled$/, level: 1 })).toBeVisible();
   await expect(page.getByText("This job was cancelled, so nothing is counted on it.")).toBeVisible();
   // A cancelled job has Restore (no status choice), and Delete at the foot.
-  await expect(page.getByRole("group", { name: "Status", exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Status", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Restore this job" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Delete this job" })).toBeVisible();
   await openHistory(page);
@@ -479,4 +479,21 @@ test("the last item counted asks whether to mark the job ready, and Mark ready d
   await sheet(page).getByRole("button", { name: "Mark ready", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
+});
+
+test("moving a job to Ready, Out for delivery or Done counts every item as made", async ({ page }) => {
+  test.setTimeout(180_000);
+  await signUpAndOnboard(page, "jobs-ready-made", "Ready Made Co");
+  await jobWithItems(page, [["Shelf", "5", ""], ["Brackets", "4", "pair"]]);
+  // Only part of one item is counted, then the job is set to Ready from the dropdown.
+  await page.getByRole("button", { name: "One more made of Shelf" }).click();
+  await expect(page.getByTestId("job-progress")).toContainText("0 of 2 items made");
+  await setJobStatus(page, "Ready");
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
+  // Back to Making: everything is counted as made.
+  await setJobStatus(page, "Making");
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("job-progress")).toContainText("All 2 items made");
+  await expect(page.getByTestId("item-progress").nth(0)).toContainText("All made");
+  await expect(page.getByTestId("item-progress").nth(1)).toContainText("All made");
 });
