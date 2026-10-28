@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { businessTab, openBusinessProfile, signUpAndOnboard } from "./helpers";
-import { acceptedQuote, businessWithAddress } from "./invoice-helpers";
+import { acceptedQuote, businessWithAddress, issueFromQuoteSheet } from "./invoice-helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
 /** Invoices with no quote, and drafts (docs/plans/invoice-i3.md, slice I3b). */
@@ -280,7 +280,7 @@ test("a quote invoiced the plain way leaves no draft behind to issue twice", asy
   // The quote is invoiced as agreed instead.
   await page.goto(quoteUrl);
   await page.getByRole("button", { name: "Create invoice" }).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice", exact: true }).click();
+  await issueFromQuoteSheet(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("invoice-origin")).not.toContainText("changed before");
   await page.goto(draftUrl);

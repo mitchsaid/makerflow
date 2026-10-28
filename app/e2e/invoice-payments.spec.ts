@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openBusinessProfile, signUpAndOnboard } from "./helpers";
+import { issueFromQuoteSheet } from "./invoice-helpers";
 import { addCustomerInSheet, fillItem, nav, openQuotes, sheet, startSend } from "./quote-helpers";
 
 /** Invoice payments, slice I2 (docs/plans/invoices-and-payments.md). */
@@ -31,7 +32,7 @@ async function invoiceWithDeposit(page: Page) {
   await sheet(page).getByRole("button", { name: "Save answer" }).click();
   await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Create invoice" }).click();
-  await sheet(page).getByRole("button", { name: "Issue invoice" }).click();
+  await issueFromQuoteSheet(page);
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
 }
 

@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
-import { acceptedQuote, businessWithAddress, issuedInvoice } from "./invoice-helpers";
+import { acceptedQuote, businessWithAddress, issueFromQuoteSheet, issuedInvoice } from "./invoice-helpers";
 import { businessTab, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
@@ -909,13 +909,13 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: /QT-0001/ }).first().click();
       await page.getByRole("button", { name: "Create invoice" }).click();
       await page.getByRole("dialog").getByLabel("Due date").fill("2000-01-01");
-      await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Continue to preview" }).click();
       await expect(page.getByTestId("form-summary")).toBeVisible();
       await expectNoViolations(page, "create invoice, with a problem");
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "Create invoice" }).click();
       await expectNoViolations(page, "create invoice, ready");
-      await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
+      await issueFromQuoteSheet(page);
       await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
       await expectNoViolations(page, "an invoice");
 
@@ -941,7 +941,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Save answer" }).click();
       await expect(page.getByRole("heading", { name: /^Quote QT-0001 Accepted$/, level: 1 })).toBeVisible();
       await page.getByRole("button", { name: "Create invoice" }).click();
-      await page.getByRole("dialog").getByRole("button", { name: "Issue invoice" }).click();
+      await issueFromQuoteSheet(page);
       await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
       await expectNoViolations(page, "an invoice with no payments");
 
