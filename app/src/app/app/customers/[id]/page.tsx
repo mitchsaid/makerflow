@@ -24,7 +24,7 @@ import { CustomerForm } from "../customer-form";
 import { valuesFromCustomer } from "../customer-values";
 import { ArchiveButton } from "./archive-button";
 
-const SECTIONS = ["quotes", "jobs", "invoices", "details"] as const;
+const SECTIONS = ["details", "quotes", "jobs", "invoices"] as const;
 type Section = (typeof SECTIONS)[number];
 const LABELS: Record<Section, string> = { quotes: "Quotes", jobs: "Jobs", invoices: "Invoices", details: "Details" };
 
@@ -49,13 +49,13 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   const overview = customerOverview({ quotes, jobs, invoices, today });
   const money = (cents: number) => formatMoney(cents, profile.currencyCode, locale.numberStyle);
 
-  const wanted = typeof query.section === "string" ? query.section : "quotes";
-  const section: Section = (SECTIONS as readonly string[]).includes(wanted) ? (wanted as Section) : "quotes";
+  const wanted = typeof query.section === "string" ? query.section : "details";
+  const section: Section = (SECTIONS as readonly string[]).includes(wanted) ? (wanted as Section) : "details";
   const base = `/app/customers/${customer.id}`;
   // Sent here from a document to fix something: the way back to it replaces the way to the list, and stays across tabs.
   const back = safeBackPath(query.back);
   const items: SectionLink<Section>[] = SECTIONS.map((key) => {
-    const href = key === "quotes" ? base : `${base}?section=${key}`;
+    const href = key === "details" ? base : `${base}?section=${key}`;
     return { key, label: LABELS[key], href: back ? withBack(href, back) : href };
   });
   const rowProps = { today, formatLocale: locale.formatLocale, numberStyle: locale.numberStyle, hideCustomer: true };
@@ -127,7 +127,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
       </Card>
 
       <SectionTabs
-        label={`${customer.name}: quotes, jobs, invoices or details`}
+        label={`${customer.name}: details, quotes, jobs or invoices`}
         items={items}
         initial={section}
         panels={{

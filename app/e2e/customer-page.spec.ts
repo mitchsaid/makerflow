@@ -5,7 +5,7 @@ import { issuedInvoice } from "./invoice-helpers";
 /** A customer's page in sections (docs/plans/customer-page.md). */
 
 const rand = (whole: string, cents = "00") => new RegExp(`R\\s?${whole.replace(/ /g, "\\s?")},${cents}`);
-const switchOf = (page: Page) => page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ });
+const switchOf = (page: Page) => page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ });
 
 async function openCustomer(page: Page, name: string) {
   await openMore(page);
@@ -33,8 +33,11 @@ test("a customer's page says what they owe and lists their quotes, jobs and invo
   await expect(page.getByTestId("customer-jobs-in-progress")).toHaveText("1");
   await expect(page.getByRole("link", { name: "Statement of account" })).toBeVisible();
 
-  // It opens on their quotes; each section lists its rows, which open the document.
-  await expect(switchOf(page).getByRole("link", { name: "Quotes" })).toHaveAttribute("aria-current", "page");
+  // Details come first and it opens on them; each other section lists its rows, which open the document.
+  await expect(switchOf(page).getByRole("link").first()).toHaveText("Details");
+  await expect(switchOf(page).getByRole("link", { name: "Details" })).toHaveAttribute("aria-current", "page");
+  await switchOf(page).getByRole("link", { name: "Quotes" }).click();
+  await expect(page).toHaveURL(/section=quotes$/);
   await expect(page.getByRole("link", { name: /QT-0001/ })).toBeVisible();
   await switchOf(page).getByRole("link", { name: "Jobs" }).click();
   await expect(page).toHaveURL(/section=jobs$/);
@@ -76,6 +79,7 @@ test("a customer with nothing yet has plain empty sections, and Details still sa
   await page.getByRole("link", { name: /Newcomer Dlamini/ }).click();
 
   await expect(page.getByTestId("customer-overview")).toHaveText("Nothing owing, waiting or being made.");
+  await switchOf(page).getByRole("link", { name: "Quotes" }).click();
   await expect(page.getByText("No quotes yet")).toBeVisible();
   await switchOf(page).getByRole("link", { name: "Jobs" }).click();
   await expect(page.getByText("No jobs yet")).toBeVisible();

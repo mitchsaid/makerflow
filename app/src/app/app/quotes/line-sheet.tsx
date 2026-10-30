@@ -734,7 +734,7 @@ function ConfigureView({
                 </Button>
               </div>
             )}
-            {/* The product's photo, as it is on file; the quote shows it only if this is ticked (a setting of the whole quote). */}
+            {/* The product's photo, as it is on file; the quote shows it only if this is ticked (a setting of the whole document). */}
             {product?.photoImageId && !job && (
               <div className="space-y-2" data-testid="item-photo">
                 <PhotoThumb imageId={product.photoImageId} size="xl" className="self-start" />
@@ -746,7 +746,7 @@ function ConfigureView({
                       onCheckedChange={(checked) => setShows((s) => ({ ...s, photos: checked === true }))}
                     />
                     <FieldLabel htmlFor={id("showPhoto")} className="text-base">
-                      Show product photos on this quote
+                      Show product photos on this {subject}
                     </FieldLabel>
                   </Field>
                 )}
@@ -813,7 +813,7 @@ function ConfigureView({
             onChange={set("unitPrice")}
           />
         )}
-        {/* Where the quantity price shows it is applied: the quote can say so under the item (a setting of the whole quote). */}
+        {/* Where the quantity price shows it is applied: the quote can say so under the item (a setting of the whole document). */}
         {!job && quoteShows && applied && !priceDiffers && (
           <Field orientation="horizontal" className="items-start py-1" data-testid="show-quantity-price">
             <Checkbox
@@ -822,7 +822,7 @@ function ConfigureView({
               onCheckedChange={(checked) => setShows((s) => ({ ...s, quantityPrices: checked === true }))}
             />
             <FieldLabel htmlFor={id("showQuantityPrice")} className="text-base">
-              Show quantity prices on this quote
+              Show quantity prices on this {subject}
             </FieldLabel>
           </Field>
         )}
