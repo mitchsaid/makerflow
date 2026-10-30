@@ -4,6 +4,7 @@ import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getProducts } from "@/lib/products/data";
 import { sampleSnapshot } from "@/lib/quotes/sample";
 import { getThemes } from "@/lib/quotes/theme-data";
+import { themeTargetFromQuery } from "@/lib/quotes/theme-target";
 import { ThemeStudio } from "../theme-studio";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -16,11 +17,11 @@ export default async function EditThemePage({ params, searchParams }: PageProps<
   if (!canEditBusinessProfile(workspace.role)) redirect("/app/quotes/settings/themes");
   const theme = saved.find((t) => t.id === id);
   if (!theme) notFound();
-  const quoteId = typeof query.quote === "string" && UUID.test(query.quote) ? query.quote : undefined;
+  const target = themeTargetFromQuery(query);
 
   return (
     <main className="flex flex-1 flex-col">
-      <ThemeStudio snapshot={sampleSnapshot(workspace, products)} initial={{ id: theme.id, name: theme.name, spec: theme.spec }} quoteId={quoteId} />
+      <ThemeStudio snapshot={sampleSnapshot(workspace, products)} initial={{ id: theme.id, name: theme.name, spec: theme.spec }} target={target} />
     </main>
   );
 }

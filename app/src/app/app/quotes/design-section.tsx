@@ -9,11 +9,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { STARTERS, chooseTheme, resolveTheme, sameRef, type SavedTheme, type Theme, type ThemeRef } from "@/lib/quotes/themes";
 import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
 import { LivePdfPreview } from "./live-preview";
+import { saveInvoiceDraftTheme } from "../invoices/draft-actions";
+import { themeTargetParam, type ThemeTarget } from "@/lib/quotes/theme-target";
 import { saveQuoteTheme } from "./design-actions";
 import { scheduleDesignSave } from "./design-saves";
 
-/** The theme a sent version went out with, as it was (read-only). */
-export function DesignSection({ theme }: { theme: Theme }) {
+/** The theme a sent version went out with, as it was (read-only). `what`: what it went out as ("version" of a quote, "invoice"). */
+export function DesignSection({ theme, what = "version" }: { theme: Theme; what?: string }) {
   return (
     <section className="space-y-3" aria-labelledby="design-heading">
       <h2 id="design-heading" className="text-base font-semibold">
@@ -28,10 +30,10 @@ export function DesignSection({ theme }: { theme: Theme }) {
             <p className="text-base font-medium" data-testid="current-design">
               {theme.name || "Classic"}
             </p>
-            <p className="text-sm text-muted-foreground">The look this version was sent with.</p>
+            <p className="text-sm text-muted-foreground">The look this {what} was sent with.</p>
           </div>
           <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-            Used for this version
+            Used for this {what}
           </span>
         </CardContent>
       </Card>
@@ -48,18 +50,19 @@ type Entry = { key: string; ref: ThemeRef; name: string; theme: Theme };
  */
 export function DraftPreview({
   snapshot,
-  quoteId,
+  target,
   label,
   saved,
   initialOwn,
   canEdit,
 }: {
   snapshot: QuoteSnapshot;
-  quoteId: string;
+  /** The draft quote or draft invoice the theme is for (one library of themes for both). */
+  target: ThemeTarget;
   label: string;
   /** The business's own themes. */
   saved: readonly SavedTheme[];
-  /** This quote's theme (one is chosen for it when it is made; an old quote may have none). */
+  /** This document's theme (one is chosen for it when it is made; an old one may have none). */
   initialOwn: ThemeRef;
   /** Owners and admins can edit and remix themes. */
   canEdit: boolean;
@@ -90,9 +93,9 @@ export function DraftPreview({
     setMessage(null);
     setState("saving");
     const ticket = ++latest.current;
-    scheduleDesignSave(quoteId, async () => {
+    scheduleDesignSave(target.id, async () => {
       try {
-        const result = await saveQuoteTheme(quoteId, next.id, next.starter);
+        const result = target.kind === "quote" ? await saveQuoteTheme(target.id, next.id, next.starter) : await saveInvoiceDraftTheme(target.id, next.id, next.starter);
         // A newer tap carries the whole state, so only the latest tap may put the screen back.
         if (result.status === "error") return ticket === latest.current ? revert(result.message) : undefined;
         if (ticket === latest.current) setMessage(null);
@@ -127,7 +130,7 @@ export function DraftPreview({
           Theme
         </h2>
         <p className="text-base text-muted-foreground">
-          Pick a theme for this quote. New quotes start with the last one you pick.
+          Pick a theme for this {target.kind}. New quotes and invoices start with the last one you pick.
         </p>
         {message && (
           <Alert variant="destructive" role="alert">
@@ -158,7 +161,7 @@ export function DraftPreview({
           })}
           {canEdit && (
             <Link
-              href={`/app/quotes/settings/themes/new?quote=${quoteId}`}
+              href={`/app/quotes/settings/themes/new?${themeTargetParam(target)}`}
               className="flex w-28 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl p-1.5 text-center text-sm ring-1 ring-foreground/15 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <span aria-hidden="true" className="text-2xl leading-none">
@@ -173,12 +176,12 @@ export function DraftPreview({
         </p>
         <div className="flex flex-wrap gap-2">
           {canEdit && ownTheme && (
-            <Link href={`/app/quotes/settings/themes/${chosen.ref.id}?quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
+            <Link href={`/app/quotes/settings/themes/${chosen.ref.id}?${themeTargetParam(target)}`} className={buttonVariants({ variant: "outline" })}>
               Edit this theme
             </Link>
           )}
           {canEdit && (
-            <Link href={`/app/quotes/settings/themes/new?from=${from}&quote=${quoteId}`} className={buttonVariants({ variant: "outline" })}>
+            <Link href={`/app/quotes/settings/themes/new?from=${from}&${themeTargetParam(target)}`} className={buttonVariants({ variant: "outline" })}>
               Remix this theme
             </Link>
           )}

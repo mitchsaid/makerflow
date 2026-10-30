@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { waitForDesignSave } from "../../../../quotes/design-saves";
 import { issueStoredInvoiceDraft } from "../../../draft-actions";
 
 const OFFLINE = "Couldn't reach the server. Open the invoice draft to see if it went through before trying again.";
@@ -51,10 +52,25 @@ export function InvoicePreviewBar({ draftId, customerName, totalText }: { draftI
           Edit
         </Link>
         {/* A copy to check or show: it is a draft, with no number. The numbered PDF is on the invoice once it is sent. */}
-        <a href={`/app/invoices/drafts/${draftId}/pdf?download=1`} className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}>
+        <a
+          href={`/app/invoices/drafts/${draftId}/pdf?download=1`}
+          onClick={async (event) => {
+            event.preventDefault();
+            // Read it now: the event is cleared once this handler's first step is over.
+            const href = event.currentTarget.href;
+            // Never download a look that is a tap behind: the server reads what is saved.
+            await waitForDesignSave();
+            window.location.assign(href);
+          }}
+          className={buttonVariants({ variant: "outline", size: "lg" }) + " px-3"}
+        >
           Download
         </a>
-        <Button id="issue-invoice" type="button" size="lg" className="col-span-2 px-3 sm:col-span-1 sm:flex-1" onClick={() => setOpen(true)}>
+        <Button id="issue-invoice" type="button" size="lg" className="col-span-2 px-3 sm:col-span-1 sm:flex-1" onClick={async () => {
+            // The numbered invoice is drawn in what is saved: never one that is a tap behind.
+            await waitForDesignSave();
+            setOpen(true);
+          }}>
           Mark as sent
         </Button>
       </div>

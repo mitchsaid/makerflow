@@ -352,3 +352,40 @@ test("an invoice shows a quantity price when the maker turns it on, on the item,
   await expect(page).toHaveURL(/\/preview$/);
   await expect(page.getByRole("region", { name: "The invoice as text" })).toContainText(/Quantity price: 10 or more: 10% off \(usually R\s?100,00\)/);
 });
+
+test("an invoice picks a theme on its preview, the next invoice starts with it, and the sent invoice keeps it", async ({ page }) => {
+  test.setTimeout(300_000);
+  await businessWithAddress(page, "invoice-theme", "Invoice Theme Co");
+
+  // A first draft, previewed: it starts on Classic, and the strip is the quote's.
+  await page.goto("/app/invoices/new");
+  await addCustomerInSheet(page, "Thandi Nkosi");
+  await addItem(page, "Shelf", "1", "100");
+  await previewButton(page).click();
+  await expect(page).toHaveURL(/\/preview$/);
+  const warm = page.getByRole("button", { name: "Warm", exact: true });
+  await expect(page.getByTestId("current-design")).toHaveText("Classic");
+  await warm.click();
+  await expect(warm).toHaveAttribute("aria-pressed", "true");
+  // It is saved quietly: it is still chosen after a reload.
+  await expect(page.getByTestId("design-save-status")).toHaveText("");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Warm", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const firstPreview = page.url();
+
+  // A new invoice starts with the theme chosen last (one default for quotes and invoices).
+  await page.goto("/app/invoices/new");
+  await addCustomerInSheet(page, "Sipho Dlamini");
+  await addItem(page, "Table", "1", "200");
+  await previewButton(page).click();
+  await expect(page).toHaveURL(/\/preview$/);
+  await expect(page.getByRole("button", { name: "Warm", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  // Sent from the first one: the invoice page says which theme it is locked to.
+  await page.goto(firstPreview);
+  await issueButton(page).click();
+  await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/invoices\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("current-design")).toHaveText("Warm");
+  await expect(page.getByText("The look this invoice was sent with.")).toBeVisible();
+});
