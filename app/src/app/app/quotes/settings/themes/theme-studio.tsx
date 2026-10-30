@@ -13,9 +13,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { themeTargetBack, themeTargetParam, type ThemeTarget } from "@/lib/quotes/theme-target";
 import { BOOLEAN_PARTS, THEME_NAME_MAX, normaliseColour, resolveTheme, sameSpec, type ChoiceName, type ThemeSpec } from "@/lib/quotes/themes";
 import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
 import { LivePdfPreview } from "../../live-preview";
+import { saveInvoiceDraftTheme } from "../../../invoices/draft-actions";
 import { saveQuoteTheme } from "../../design-actions";
 import { createTheme, saveTheme } from "../theme-actions";
 
@@ -69,15 +71,15 @@ export function ThemeStudio({
   snapshot,
   initial,
   basedOn,
-  quoteId,
+  target,
 }: {
   /** A sample quote (or a real one) to draw the theme on. */
   snapshot: QuoteSnapshot;
   initial: { id: string | null; name: string; spec: ThemeSpec };
   /** Said when this is a copy of another theme, not yet saved. */
   basedOn?: string;
-  /** Set when the maker came from a quote: Save can also use the theme on it. */
-  quoteId?: string;
+  /** Set when the maker came from a draft quote or invoice: Save can also use the theme on it. */
+  target?: ThemeTarget;
 }) {
   const router = useRouter();
   const [id, setId] = useState(initial.id);
@@ -138,12 +140,12 @@ export function ThemeStudio({
         if (id === null) {
           setId(result.id);
           // The address of a theme that exists now (a reload opens it, not a new copy), without reloading the studio.
-          window.history.replaceState(null, "", `/app/quotes/settings/themes/${result.id}${quoteId ? `?quote=${quoteId}` : ""}`);
+          window.history.replaceState(null, "", `/app/quotes/settings/themes/${result.id}${target ? `?${themeTargetParam(target)}` : ""}`);
         }
-        if (thenUse && quoteId) {
-          const used = await saveQuoteTheme(quoteId, result.id, null);
-          if (used.status === "error") return setError(`The theme is saved, but it couldn't be put on the quote: ${used.message}`);
-          router.push(`/app/quotes/${quoteId}/preview`);
+        if (thenUse && target) {
+          const used = target.kind === "quote" ? await saveQuoteTheme(target.id, result.id, null) : await saveInvoiceDraftTheme(target.id, result.id, null);
+          if (used.status === "error") return setError(`The theme is saved, but it couldn't be put on the ${target.kind}: ${used.message}`);
+          router.push(themeTargetBack(target).href);
         }
       } catch {
         setError("Couldn't reach the server, so nothing was saved. Try again.");
@@ -154,8 +156,9 @@ export function ThemeStudio({
   const leave = (event: React.MouseEvent) => {
     if (dirty && !window.confirm("You have changes that aren't saved. Leave without saving?")) event.preventDefault();
   };
-  const backHref = quoteId ? `/app/quotes/${quoteId}/preview` : "/app/quotes/settings/themes";
-  const backLabel = quoteId ? "the quote preview" : "Themes";
+  const back = target ? themeTargetBack(target) : { href: "/app/quotes/settings/themes", label: "Themes" };
+  const backHref = back.href;
+  const backLabel = back.label;
 
   const colourRow = (part: "accent" | "paper" | "gradientTo", label: string, options: readonly (readonly [string, string])[]) => (
     <fieldset className="space-y-2">
@@ -336,10 +339,10 @@ export function ThemeStudio({
 
       <div data-testid="action-bar" className="sticky bottom-14 z-10 border-t border-border bg-card px-4 py-3 md:bottom-0">
         <div className="flex flex-wrap items-center gap-2">
-          {quoteId ? (
+          {target ? (
             <>
               <Button type="button" size="lg" className="flex-1" disabled={pending} onClick={() => save(true)}>
-                {pending ? "Saving…" : "Save and use on this quote"}
+                {pending ? "Saving…" : `Save and use on this ${target.kind}`}
               </Button>
               <Button type="button" size="lg" variant="outline" disabled={pending} onClick={() => save(false)}>
                 Save

@@ -58,7 +58,7 @@ export default async function QuotePreviewPage({ params }: PageProps<"/app/quote
       {/* The document is drawn in the browser from this snapshot and the theme chosen below, so a choice shows at once. */}
       <DraftPreview
         snapshot={snapshot}
-        quoteId={id}
+        target={{ kind: "quote", id }}
         label={`Quote ${quote.number}`}
         saved={saved}
         initialOwn={{ id: quote.themeId, starter: quote.themeStarter }}

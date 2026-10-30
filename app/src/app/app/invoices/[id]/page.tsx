@@ -17,6 +17,8 @@ import { QuoteDocumentView } from "../../quotes/quote-document-view";
 import { InvoiceStatusChip } from "../invoice-status-chip";
 import { CreditNotesSection } from "../credit-notes-section";
 import { PaymentsSection } from "../payments-section";
+import { DesignSection } from "../../quotes/design-section";
+import { themeFromStored } from "@/lib/quotes/themes";
 import { ShareInvoice } from "../share-invoice";
 
 /** An issued invoice: read-only, drawn from its stored document. Nothing on this page changes it. */
@@ -139,6 +141,9 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
       <section className="space-y-3" aria-label="Coming soon">
         <ComingSoonSection title="Email it to your customer" description="Send it from MakerFlow and see when it was sent." />
       </section>
+
+      {/* A sent invoice is locked to the theme it went out with. */}
+      <DesignSection theme={themeFromStored(invoice.snapshot)} what="invoice" />
 
       <PdfPreview url={`/app/invoices/${invoice.id}/pdf?v=${invoice.payments.length}-${paidCents}-${creditedCents}`} label={`${title} ${invoice.number}`} />
       {/* The same document as text, for people who can't read the pictures of the pages. */}

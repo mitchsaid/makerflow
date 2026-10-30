@@ -3,13 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageHeader } from "@/components/page-header";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { canEditBusinessProfile } from "@/lib/business-profile";
 import { withBack } from "@/lib/back-link";
 import { asDraftCopy } from "@/lib/invoices/draft-copy";
 import { getInvoiceDraft } from "@/lib/invoices/draft-data";
 import { prepareInvoiceDraft } from "@/lib/invoices/prepare-draft";
 import { getLocalePack } from "@/lib/locale";
+import { getThemes } from "@/lib/quotes/theme-data";
 import { formatMoney } from "@/lib/money";
-import { LivePdfPreview } from "../../../../quotes/live-preview";
+import { DraftPreview } from "../../../../quotes/design-section";
 import { QuoteDocumentView } from "../../../../quotes/quote-document-view";
 import { InvoicePreviewBar } from "./invoice-preview-bar";
 
@@ -25,7 +27,10 @@ export default async function InvoiceDraftPreviewPage({ params }: PageProps<"/ap
   if (draft.organisationId !== workspace.organisation.id) notFound();
   // A draft that can't be read as an invoice, or isn't complete enough to draw, is fixed on its own page.
   if (!draft.form) redirect(`/app/invoices/drafts/${id}`);
-  const prepared = await prepareInvoiceDraft(draft.form, workspace, draft.quoteNumber ? { number: draft.quoteNumber, theme: draft.quoteTheme } : null);
+  const [prepared, saved] = await Promise.all([
+    prepareInvoiceDraft(draft.form, workspace, draft.quoteNumber ? { number: draft.quoteNumber } : null, draft.theme),
+    getThemes(),
+  ]);
   if (!prepared.ok) redirect(`/app/invoices/drafts/${id}`);
 
   const { snapshot, problems } = prepared.value;
@@ -67,7 +72,15 @@ export default async function InvoiceDraftPreviewPage({ params }: PageProps<"/ap
       <section className="sr-only" aria-label="The invoice as text">
         <QuoteDocumentView snapshot={shown} />
       </section>
-      <LivePdfPreview snapshot={shown} label="Invoice preview" />
+      {/* Drawn in the browser from this snapshot and the theme chosen below, so a choice shows at once (as on a quote). */}
+      <DraftPreview
+        snapshot={shown}
+        target={{ kind: "invoice", id }}
+        label="Invoice preview"
+        saved={saved}
+        initialOwn={draft.theme}
+        canEdit={canEditBusinessProfile(workspace.role)}
+      />
 
       <InvoicePreviewBar
         draftId={id}

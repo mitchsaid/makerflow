@@ -1,6 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "../supabase/server";
+import { isStarterKey, type ThemeRef } from "../quotes/themes";
 import { isInvoiceDraftForm, type InvoiceDraftForm } from "./draft";
 
 /**
@@ -16,6 +17,8 @@ type Row = {
   quote_id: string | null;
   quote_version: number | null;
   customer_id: string | null;
+  theme_id: string | null;
+  theme_starter: string | null;
   form: unknown;
   created_at: string;
   updated_at: string;
@@ -40,13 +43,16 @@ export type StoredInvoiceDraft = InvoiceDraftSummary & {
   quoteNumber: string | null;
   /** The version of that quote it started from. */
   quoteVersion: number | null;
-  /** The design the quote uses, which an invoice made from it keeps. */
-  quoteTheme: { id: string | null; starter: string | null } | null;
+  /**
+   * The theme the invoice is drawn in: the one chosen for the draft, else (an older draft) the design its quote uses,
+   * else none (Classic). It is copied from the quote when a draft is made from one, so it stays put after that.
+   */
+  theme: ThemeRef;
   /** Read when the draft was read: issuing checks nothing has changed since. */
   stamp: string;
 };
 
-const COLUMNS = "id, organisation_id, quote_id, quote_version, customer_id, form, created_at, updated_at, customers ( name ), quotes ( number, theme_id, theme_starter )";
+const COLUMNS = "id, organisation_id, quote_id, quote_version, customer_id, theme_id, theme_starter, form, created_at, updated_at, customers ( name ), quotes ( number, theme_id, theme_starter )";
 
 const one = <T,>(value: T | T[] | null): T | null => (Array.isArray(value) ? (value[0] ?? null) : value);
 
@@ -60,9 +66,10 @@ function summaryOf(row: Row): StoredInvoiceDraft {
     updatedAt: row.updated_at,
     quoteNumber: one(row.quotes)?.number ?? null,
     quoteVersion: row.quote_version,
-    quoteTheme: (() => {
+    theme: (() => {
+      if (row.theme_id !== null || isStarterKey(row.theme_starter)) return { id: row.theme_id, starter: isStarterKey(row.theme_starter) ? row.theme_starter : null };
       const q = one(row.quotes);
-      return q ? { id: q.theme_id, starter: q.theme_starter } : null;
+      return q ? { id: q.theme_id, starter: isStarterKey(q.theme_starter) ? q.theme_starter : null } : { id: null, starter: null };
     })(),
     stamp: row.updated_at,
   };

@@ -6,6 +6,7 @@ import { canEditBusinessProfile } from "@/lib/business-profile";
 import { getProducts } from "@/lib/products/data";
 import { sampleSnapshot } from "@/lib/quotes/sample";
 import { getThemes } from "@/lib/quotes/theme-data";
+import { themeTargetBack, themeTargetFromQuery, themeTargetParam } from "@/lib/quotes/theme-target";
 import { BLANK_SPEC, STARTERS, isStarterKey, resolveTheme, starter, themeName } from "@/lib/quotes/themes";
 import { ThemeStudio } from "../theme-studio";
 import { PageHeader } from "@/components/page-header";
@@ -15,7 +16,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * Creating a theme. First, how to start: a blank page, a copy of a starter, or a copy of one of your
  * own (shown as pictures). Then the studio (`?from=starter:warm`, `?from=theme:<id>` or `?from=blank`),
- * where nothing is saved until Save is pressed. `?quote=<id>` carries on from a quote's preview.
+ * where nothing is saved until Save is pressed. `?quote=<id>` or `?invoice=<id>` carries on from a draft's preview.
  */
 export default async function NewThemePage({ searchParams }: PageProps<"/app/quotes/settings/themes/new">) {
   const query = await searchParams;
@@ -23,10 +24,11 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/quo
   const [workspace, saved, products] = await Promise.all([requireOrganisation(), getThemes(), typeof query.from === "string" ? getProducts() : Promise.resolve([])]);
   if (!canEditBusinessProfile(workspace.role)) redirect("/app/quotes/settings/themes");
 
-  const quoteParam = typeof query.quote === "string" && UUID.test(query.quote) ? `&quote=${query.quote}` : "";
+  const target = themeTargetFromQuery(query);
+  const quoteParam = target ? `&${themeTargetParam(target)}` : "";
   if (typeof query.from !== "string") {
     // Step one: how to start.
-    const back = quoteParam ? `/app/quotes/${query.quote as string}/preview` : "/app/quotes/settings/themes";
+    const back = target ? themeTargetBack(target) : { href: "/app/quotes/settings/themes", label: "Themes" };
     const card = (href: string, name: string, theme: ReturnType<typeof resolveTheme>, note?: string) => (
       <li key={href}>
         <Link
@@ -41,7 +43,7 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/quo
     );
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-        <PageHeader back={{ href: back, label: quoteParam ? "the quote preview" : "Themes" }}>
+        <PageHeader back={{ href: back.href, label: back.label }}>
           <h1 className="text-xl font-semibold">Create a new theme</h1>
           <p className="text-base text-muted-foreground">How do you want to start? You can change everything afterwards.</p>
         </PageHeader>
@@ -84,7 +86,6 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/quo
   } else if (from !== "blank") {
     notFound();
   }
-  const quoteId = typeof query.quote === "string" && UUID.test(query.quote) ? query.quote : undefined;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -92,7 +93,7 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/quo
         snapshot={sampleSnapshot(workspace, products)}
         initial={{ id: null, name: base.name, spec: base.spec }}
         basedOn={base.basedOn}
-        quoteId={quoteId}
+        target={target}
       />
     </main>
   );

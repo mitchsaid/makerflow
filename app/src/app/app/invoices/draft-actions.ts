@@ -13,6 +13,7 @@ import { toFormValues } from "@/lib/quotes/form-values";
 import { getLocalePack } from "@/lib/locale";
 import { quantityToInput } from "@/lib/money";
 import { todayIn } from "@/lib/quotes/dates";
+import { isStarterKey } from "@/lib/quotes/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -135,7 +136,8 @@ async function issueStored(workspace: Workspace, id: string): Promise<IssueDraft
   const prepared = await prepareInvoiceDraft(
     stored.form,
     workspace,
-    stored.quoteNumber ? { number: stored.quoteNumber, theme: stored.quoteTheme } : null,
+    stored.quoteNumber ? { number: stored.quoteNumber } : null,
+    stored.theme,
   );
   if (!prepared.ok) return { status: "invalid", errors: prepared.errors, draftId: id };
   if (prepared.value.problems.length > 0) return { status: "problems", problems: prepared.value.problems, draftId: id };
@@ -294,7 +296,17 @@ async function draftFromQuote(quoteId: string, chosen?: { issueDate: string; due
   };
   const { data, error } = await supabase
     .from("invoice_drafts")
-    .insert({ organisation_id: organisation.id, quote_id: quoteId, quote_version: version, customer_id: stored.customerId ?? null, form, created_by: user.id })
+    .insert({
+      organisation_id: organisation.id,
+      quote_id: quoteId,
+      quote_version: version,
+      customer_id: stored.customerId ?? null,
+      // The quote's look, copied: the invoice keeps it if the quote's changes later. (None: the last theme chosen.)
+      theme_id: stored.themeId,
+      theme_starter: stored.themeStarter,
+      form,
+      created_by: user.id,
+    })
     .select("id")
     .single();
   if (error || !data) {
@@ -330,4 +342,32 @@ export async function previewInvoiceFromQuote(quoteId: string, values: InvoiceFo
   const started = await draftFromQuote(quoteId, { issueDate: parsed.issueDate, dueDate: parsed.dueDate, note: parsed.note });
   if (!started.ok) return { status: "error", message: started.message };
   redirect(`/app/invoices/drafts/${started.id}/preview`);
+}
+
+export type InvoiceThemeState = { status: "saved" } | { status: "error"; message: string };
+
+/**
+ * Chooses the theme for an invoice draft: one of the business's own (an id) or a starter. The same library as a
+ * quote's. An issued invoice is not a draft, so it cannot be changed: it keeps the look it was sent in.
+ */
+export async function saveInvoiceDraftTheme(draftId: string, id: string | null, starter: string | null): Promise<InvoiceThemeState> {
+  const { organisation } = await requireOrganisation();
+  if (!UUID.test(draftId) || (id !== null && !UUID.test(id)) || (starter !== null && !isStarterKey(starter)) || (id !== null && starter !== null)) {
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoice_drafts")
+    .update({ theme_id: id, theme_starter: starter })
+    .eq("id", draftId)
+    .eq("organisation_id", organisation.id)
+    .select("id");
+  if (error?.code === "23503") return { status: "error", message: "That theme isn't there any more. Pick another." };
+  if (error || !data || data.length !== 1) {
+    if (!error) return { status: "error", message: "This draft can't be found any more. It may have been sent or discarded." };
+    console.error("could not save the invoice draft's theme:", error.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  revalidatePath(`/app/invoices/drafts/${draftId}/preview`);
+  return { status: "saved" };
 }

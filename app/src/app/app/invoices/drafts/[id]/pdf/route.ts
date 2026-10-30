@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/app/invoices
 
   const draft = await findInvoiceDraft(id);
   if (!draft || draft.organisationId !== workspace.organisation.id || !draft.form) return notFound();
-  const prepared = await prepareInvoiceDraft(draft.form, workspace, draft.quoteNumber ? { number: draft.quoteNumber, theme: draft.quoteTheme } : null);
+  const prepared = await prepareInvoiceDraft(draft.form, workspace, draft.quoteNumber ? { number: draft.quoteNumber } : null, draft.theme);
   if (!prepared.ok) return new Response("This draft isn't complete enough to make a copy. Open it and finish it first.", { status: 409 });
 
   let pdf: Buffer;

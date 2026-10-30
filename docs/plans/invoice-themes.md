@@ -1,6 +1,6 @@
 # Plan: invoices get themes and the quote's display settings
 
-Status: **planned 2026-10-30**. Founder, 2026-10-30: "invoices should have themes, just like quotes, same settings for showing images, quantity discounts etc."
+Status: **planned 2026-10-30; the three slices built the same day** (see "Built" at the end; slice 2 **needs human review**, migration `20261129100000_invoice_draft_themes.sql`). Founder, 2026-10-30: "invoices should have themes, just like quotes, same settings for showing images, quantity discounts etc."
 
 Three slices, one pull request each. Slice 1 has no database change; slice 2 changes the database (`invoice_drafts`) and **needs human review**.
 1. **The display settings on an invoice draft**: show product photos, show quantity prices (the two the quote has), set on the item sheet exactly as on a quote.
@@ -61,9 +61,15 @@ Inputs by kind: none new (checkboxes and the existing strip).
 - SQL: as above.
 - Browser: the two checkboxes on an invoice draft's item sheet (the preview shows or hides photos and the quantity-price line; Cancel changes nothing); the strip on the invoice preview (a tap changes the preview and survives a reload; "Create new theme" returns to the invoice preview); the numbered invoice carries the theme; the accessibility walk covers the invoice preview strip and the issued invoice's card.
 
-## Questions for the founder
-- One default theme for quotes and invoices, or a separate default for invoices?
-- Should changing an invoice's theme also be possible on a **sent** invoice's page for the next PDF you download? (Recommended: no; an issued invoice never changes. Share the PDF you have.)
+## Questions for the founder (answered 2026-10-30)
+- One default theme for quotes and invoices, or a separate default for invoices? **Shared.** A new quote or invoice starts with the theme chosen last, on either.
+- Should a sent invoice be locked to its theme? **Yes.** It carries the look it went out with and cannot be changed.
 
 ## Not planned yet
 Different theme parts for invoices (a "paid" stamp, a payment panel layout); per-customer themes.
+
+## Built (2026-10-30)
+- **Slice 1:** `LineSheet`'s `quoteShows` is passed by the invoice draft form (labels say "invoice"); an invoice made from a quote also starts with the quote's quantity-price choice.
+- **Slice 2:** migration `20261129100000_invoice_draft_themes.sql` (`invoice_drafts.theme_id`, `theme_starter`, `theme_picked_at`, a pick trigger, an inherit trigger, and `quotes_inherit_theme` replaced so the last pick counts across quotes AND invoice drafts); `saveInvoiceDraftTheme`; the invoice preview uses `DraftPreview` (now taking a `ThemeTarget`, `lib/quotes/theme-target.ts`, so the studio's `?quote=` and new `?invoice=` both work and "Save and use on this invoice" returns to the invoice preview); Download and Mark as sent wait for a pending theme save; `prepareInvoiceDraft` takes the theme as its own argument. A draft made from a quote copies the quote's theme. SQL test `invoice_draft_themes.test.sql`; browser test in `e2e/invoice-drafts.spec.ts`.
+- **Slice 3:** a sent invoice's page has the read-only Theme card (`DesignSection` with `what="invoice"`).
+- **Known edge:** a draft's pick stops counting as "the last chosen" once the draft is sent (the draft is removed); the sent invoice keeps its look, and quotes keep theirs.
