@@ -44,7 +44,7 @@ export function MaterialList({
 
   if (all.length === 0) {
     return (
-      <EmptyState title="No materials yet" line="Save what you buy and what you paid, to work out what each product costs.">
+      <EmptyState title="No materials yet" line="Save what you buy and what you pay, to work out what each product costs.">
         <AddLink href="/app/materials/new" variant="default">
           Add your first material
         </AddLink>

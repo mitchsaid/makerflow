@@ -111,7 +111,7 @@ describe("parseMaterialForm", () => {
     if (r.ok) return;
     expect(r.errors.name).toMatch(/name/);
     expect(r.errors.unit).toMatch(/unit/);
-    expect(r.errors.quantity).toMatch(/how much you bought/);
+    expect(r.errors.quantity).toMatch(/how much you buy/);
     expect(r.errors.price).toBeTruthy();
     expect(r.errors.vatTreatment).toMatch(/includes VAT/);
   });

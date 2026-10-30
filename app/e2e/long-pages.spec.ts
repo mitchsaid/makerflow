@@ -104,15 +104,11 @@ test("Product settings hold the hourly rate and the margin, saved together, and 
   await expect(page.getByLabel("Margin you aim for (%)")).toHaveValue("40");
 });
 
-test("what is coming later sits at the end of the quote form and of the term form, never between the fields", async ({ page }) => {
+test("what is coming later sits at the end of the term form, never between the fields", async ({ page }) => {
   await signUpAndOnboard(page, "long-later", "Later Co");
+  // The quote form has no "coming later" at all (the online-acceptance card was taken out, founder 2026-10-30).
   await page.goto("/app/quotes/new");
-  const later = page.getByTestId("coming-later");
-  await expect(later).toContainText("Customer agrees to the terms");
-  // Nothing coming soon inside the Terms section; the group is the last thing in the form.
-  await expect(page.getByRole("group", { name: "Terms and conditions" }).getByTestId("coming-soon")).toHaveCount(0);
-  const last = await page.locator("form").first().evaluate((form) => form.lastElementChild?.getAttribute("data-testid"));
-  expect(last).toBe("coming-later");
+  await expect(page.getByTestId("coming-later")).toHaveCount(0);
 
   await page.goto("/app/quotes/settings/policies/new");
   const laterOnTerm = page.getByTestId("coming-later");

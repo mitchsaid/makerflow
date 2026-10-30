@@ -284,8 +284,8 @@ export function NewJobForm({
           {(
             [
               ["none", "Not decided yet"],
-              ["collection", "Collection (the customer collects)"],
-              ["delivery", "Delivery (you deliver)"],
+              ["collection", "Collection"],
+              ["delivery", "Delivery"],
             ] as const
           ).map(([option, label]) => (
             <Field key={option} orientation="horizontal" className="items-start py-2.5">

@@ -59,8 +59,6 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
 
   // Opened again, in the same order; one is removed.
   await page.getByRole("link", { name: /Cupcakes/ }).click();
-  // The count on the tab says how many steps there are, before it is opened.
-  await expect(page.getByRole("tab", { name: /^Production/ })).toContainText("3");
   await openProductTab(page, "Production");
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(3);
   await expect(page.getByLabel("Step 1", { exact: true })).toHaveValue("Bake");

@@ -110,7 +110,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Add to job" }).click();
       await expect(page.getByTestId("job-form-item")).toHaveCount(1);
       await expectNoViolations(page, "new job, with an item");
-      await page.getByRole("radio", { name: "Delivery (you deliver)" }).check();
+      await page.getByRole("radio", { name: "Delivery", exact: true }).check();
       await expectNoViolations(page, "new job, delivery");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
 
@@ -190,7 +190,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add a needed-by date" }).click();
       await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
-      await page.getByRole("radio", { name: /^Delivery \(you deliver/ }).check();
+      await page.getByRole("radio", { name: "Delivery", exact: true }).check();
       await expectNoViolations(page, "new quote, all sections open");
       // Delivery with addresses on file: the choices, and "a different address".
       await page.getByRole("button", { name: /Edit details/ }).click();
@@ -452,8 +452,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new material, with problems");
       await page.getByLabel("Name", { exact: true }).fill("Cake flour");
       await page.getByLabel("Unit", { exact: true }).selectOption("kg");
-      await page.getByLabel("How much you bought").fill("12,5");
-      await page.getByLabel("What you paid for it").fill("187,50");
+      await page.getByLabel("How much you buy").fill("12,5");
+      await page.getByLabel("What you pay for it").fill("187,50");
       await page.getByRole("button", { name: "Add material" }).click();
       await expect(page.getByTestId("material-added")).toBeVisible();
       await expectNoViolations(page, "materials, with a material");

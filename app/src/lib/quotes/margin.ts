@@ -144,3 +144,6 @@ export function parsedLineCosting(
     materialNames,
   });
 }
+
+/** The friendly "Want to know your profit margin?" card on a draft quote with no costs yet (remembered in prompt_dismissals when dismissed for good). */
+export const MARGIN_PROMPT = "quote-margin";

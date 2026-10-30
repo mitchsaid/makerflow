@@ -11,15 +11,13 @@ import type { BankPreview } from "@/lib/bank";
 import { PaymentWaysSection } from "./payment-ways-section";
 import type { PaymentWayView } from "@/lib/payments";
 import { addressWhenCustomerChanges, addressWhenSavedAddressesChange } from "@/lib/quotes/delivery";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DeliverySection } from "./delivery-section";
 import { DepositSection } from "./deposit-section";
 import { withoutEmptyOptionals } from "@/lib/quotes/optional";
 import { TermsSection } from "./terms-section";
-import { ComingLater, ComingSoonSection } from "@/components/coming-soon";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { FieldError } from "@/components/ui/field";
 import {
   formatMoney,
   currencySymbol,
@@ -98,6 +96,7 @@ export function QuoteBuilder({
   numbering: initialNumbering,
   canChangeNumbering = false,
   askForDeposit = false,
+  askAboutMargin = false,
   costing,
   signers,
   header,
@@ -147,6 +146,8 @@ export function QuoteBuilder({
   canChangeNumbering?: boolean;
   /** The business decides the deposit on every quote: a new quote asks. */
   askForDeposit?: boolean;
+  /** The friendly "want to know your profit margin?" card has not been dismissed for good (shown while no item has a cost). */
+  askAboutMargin?: boolean;
   /** What costs are worked out with (the materials and the hourly rate), for the private margin on the draft. */
   costing: { materials: Pick<Material, "id" | "name" | "archived" | "unit" | "boughtQuantityMilli" | "priceCents" | "vatTreatment">[]; hourlyRateCents: number | null; targetMarginBp: number | null };
   /** The names a quote can be signed with: the business's, and the owner's when one is saved (lib/quotes/sign-off). */
@@ -638,34 +639,6 @@ export function QuoteBuilder({
           Add item
         </AddButton>
         {f.lines && <FieldError id="items-error">{f.lines}</FieldError>}
-        {/* Only when an item has a photo to show; nothing to decide otherwise. */}
-        {values.lines.some((l) => photoOf(l)) && (
-          <Field orientation="horizontal" className="items-start py-2.5">
-            <Checkbox
-              id="showPhotos"
-              name="showPhotos"
-              checked={values.showPhotos}
-              onCheckedChange={(checked) => update({ showPhotos: checked === true })}
-            />
-            <FieldLabel htmlFor="showPhotos" className="text-base">
-              Show product photos on this quote
-            </FieldLabel>
-          </Field>
-        )}
-        {/* Only when an item's price came from a quantity price; nothing to decide otherwise. */}
-        {(values.showQuantityPrices === true || values.lines.some((l) => l.quantityPriceText)) && (
-          <Field orientation="horizontal" className="items-start py-2.5">
-            <Checkbox
-              id="showQuantityPrices"
-              name="showQuantityPrices"
-              checked={values.showQuantityPrices === true}
-              onCheckedChange={(checked) => update({ showQuantityPrices: checked === true })}
-            />
-            <FieldLabel htmlFor="showQuantityPrices" className="text-base">
-              Show quantity prices on this quote
-            </FieldLabel>
-          </Field>
-        )}
         <LineSheet
           open={sheetOpen}
           view={sheetView}
@@ -675,6 +648,12 @@ export function QuoteBuilder({
           priceLabel={priceLabel}
           vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
           pricing={{ targetBp: costing.targetMarginBp, vat }}
+          // The photo and the quantity price are decided on the item itself (founder, 2026-10-30), but they are the quote's own settings.
+          quoteShows={{
+            photos: values.showPhotos,
+            quantityPrices: values.showQuantityPrices === true,
+            onChange: ({ photos, quantityPrices }) => update({ showPhotos: photos, showQuantityPrices: quantityPrices }),
+          }}
           costing={{ ...costing, vat, taxName }}
           businessTypes={businessTypes}
           newKey={newKey}
@@ -997,11 +976,11 @@ export function QuoteBuilder({
             />
           )}
         </dl>
-        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} vatRegistered={vat.registered} />
+        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} vatRegistered={vat.registered} askAboutMargin={askAboutMargin} />
       </Section>
       )}
       {!(discountsCents > 0 || vat.registered) && margins.length > 0 && (
-        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} vatRegistered={vat.registered} />
+        <MarginPanel items={margins} currencyCode={currencyCode} numberStyle={numberStyle} targetBp={costing.targetMarginBp} vatRegistered={vat.registered} askAboutMargin={askAboutMargin} />
       )}
 
       {state.status === "error" && state.message && (
@@ -1015,12 +994,6 @@ export function QuoteBuilder({
           Draft saved.
         </p>
       )}
-      <ComingLater>
-        <ComingSoonSection
-          title="Customer agrees to the terms"
-          description="With online quotes, customers agree to the terms when they accept."
-        />
-      </ComingLater>
     </form>
     </FormErrorScope>
 

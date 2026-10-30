@@ -5,6 +5,7 @@ import { ChevronDownIcon, ChevronUpIcon, Trash2Icon } from "lucide-react";
 import { AddButton } from "@/components/add-button";
 import { ChoiceCards } from "@/components/choice-cards";
 import { Section, TextField } from "@/components/form-fields";
+import { PrivateTag } from "@/components/private-tag";
 import { Button } from "@/components/ui/button";
 import { moveStep, STEPS_MAX, type StepErrors, type StepFormRow } from "@/lib/products/steps";
 import { ConditionsEditor, type ChoiceOption } from "./conditions-editor";
@@ -59,7 +60,7 @@ export function StepsSection({
   const setRow = (key: string, change: Partial<StepFormRow>) => onChange(rows.map((r) => (r.key === key ? { ...r, ...change } : r)));
 
   return (
-    <Section title={title}>
+    <Section title={title} tag={<PrivateTag />}>
       <ChoiceCards
         legend="How do you track it on a job?"
         value={tracked ? "steps" : "whole"}

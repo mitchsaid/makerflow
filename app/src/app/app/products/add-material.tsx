@@ -49,7 +49,7 @@ export function AddMaterial({
             <>
               <SheetHeader className="sticky top-0 z-10 border-b border-border bg-popover pr-14">
                 <SheetTitle className="text-lg">Add a material</SheetTitle>
-                <SheetDescription className="text-base">What you buy and what you paid.</SheetDescription>
+                <SheetDescription className="text-base">What you buy and what you pay.</SheetDescription>
               </SheetHeader>
               <div className="px-4 py-4">
                 <MaterialForm

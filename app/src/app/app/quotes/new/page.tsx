@@ -14,10 +14,11 @@ import { usualsFromProfile } from "@/lib/quotes/usuals";
 import { addDays, DEFAULT_VALID_DAYS, todayIn } from "@/lib/quotes/dates";
 import { customerOptions } from "../builder-data";
 import { QuoteBuilder } from "../quote-builder";
+import { MARGIN_PROMPT } from "@/lib/quotes/margin";
 
 export default async function NewQuotePage({ searchParams }: PageProps<"/app/quotes/new">) {
   // Customers and products load beside the workspace check, not after it.
-  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails, paymentMethods }, query] = await Promise.all([
+  const [allCustomers, allProducts, allMaterials, allPolicies, sequences, { organisation, profile, role, bankDetails, paymentMethods, dismissedPrompts }, query] = await Promise.all([
     getCustomersWithAddresses(),
     getProducts(),
     getMaterials(),
@@ -107,6 +108,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
         }}
         canChangeNumbering={canEditBusinessProfile(role)}
         askForDeposit={profile.defaultDepositKind === "ask"}
+        askAboutMargin={!dismissedPrompts.includes(MARGIN_PROMPT)}
         customers={customerOptions(customers, locale)}
         products={forOrganisation(allProducts, organisation.id)}
         vat={vatSettingsFor(profile, locale)}

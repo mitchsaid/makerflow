@@ -185,15 +185,16 @@ test("the customer's quote shows a quantity price only when the maker turns it o
   await addProductWithQuantityPrices(page);
 
   await page.goto("/app/quotes/new");
-  // Nothing to decide until an item's price came from a quantity price.
-  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toHaveCount(0);
+  // Nothing to decide until an item's price came from a quantity price; then it is asked on the item, under its price.
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
+  await expect(sheet(page).getByRole("checkbox", { name: "Show quantity prices on this quote" })).toHaveCount(0);
   await sheet(page).getByLabel("Quantity").fill("12");
+  await expect(sheet(page).getByRole("checkbox", { name: "Show quantity prices on this quote" })).not.toBeChecked();
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(sheet(page)).toHaveCount(0);
-  const show = page.getByRole("checkbox", { name: "Show quantity prices on this quote" });
-  await expect(show).not.toBeChecked();
+  // (Not on the quote form itself.)
+  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toHaveCount(0);
   await addCustomerInSheet(page, "Thandi Nkosi");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
@@ -207,14 +208,19 @@ test("the customer's quote shows a quantity price only when the maker turns it o
 
   // On: it says which quantity price applied and what the price usually is. Kept when the quote is opened again.
   await page.goto(quoteUrl);
-  await page.getByRole("checkbox", { name: "Show quantity prices on this quote" }).check();
-  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  await item(page, 1).getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("checkbox", { name: "Show quantity prices on this quote" }).check();
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   // (By keyboard: a button below the fold of the headless phone emulation can be reported as covered when pressed with a pointer.)
   await page.getByRole("button", { name: "Save draft" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText("Draft saved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  await item(page, 1).getByRole("button", { name: /Edit/ }).click();
+  await expect(sheet(page).getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await page.goto(`${quoteUrl}/preview`);
   await expect(text).toContainText(/Quantity price: 10 or more: 10% off \(usually R\s?100,00\)/);
 
@@ -224,8 +230,6 @@ test("the customer's quote shows a quantity price only when the maker turns it o
   await sheet(page).getByLabel(/^Price/).fill("80");
   await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(sheet(page)).toHaveCount(0);
-  // (The tick stays while it is on, so it never turns itself off out of sight.)
-  await expect(page.getByRole("checkbox", { name: "Show quantity prices on this quote" })).toBeChecked();
   await page.getByRole("button", { name: "Save draft" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText("Draft saved.")).toBeVisible();

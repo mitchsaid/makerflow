@@ -86,8 +86,8 @@ export function MaterialForm({
     [
       [fid("name"), "Name", errors.name],
       [fid("unit"), "Unit", errors.unit],
-      [fid("quantity"), "How much you bought", errors.quantity],
-      [fid("price"), "What you paid", errors.price],
+      [fid("quantity"), "How much you buy", errors.quantity],
+      [fid("price"), "What you pay", errors.price],
       [fid("vat-included"), `Does the price include ${taxName}`, errors.vatTreatment],
       [fid("supplier"), "Supplier", errors.supplier],
     ] as const
@@ -130,7 +130,7 @@ export function MaterialForm({
         />
       </Section>
 
-      <Section title="What you bought">
+      <Section title="How you buy it">
         <SelectField
           id={fid("unit")}
           name="unit"
@@ -146,7 +146,7 @@ export function MaterialForm({
         <QuantityField
           id={fid("quantity")}
           name="quantity"
-          label="How much you bought"
+          label="How much you buy"
           hint="In that unit, like 12,5 for 12,5 kg."
           unit={previewUnit || undefined}
           value={values.quantity}
@@ -156,7 +156,7 @@ export function MaterialForm({
         <TextField
           id={fid("price")}
           name="price"
-          label="What you paid for it"
+          label="What you pay for it"
           hint="The whole price for that much."
           startText={currencySymbol}
           inputMode="decimal"
@@ -182,7 +182,7 @@ export function MaterialForm({
         )}
         <p className="text-base" data-testid="cost-preview">
           {preview === null
-            ? "Fill in the unit, how much and what you paid to see what one costs."
+            ? "Fill in the unit, how much and what you pay to see what one costs."
             : `That works out at ${preview === 0 && price.ok && price.value > 0 ? `less than ${formatMoney(1, currencyCode, numberStyle)}` : formatMoney(preview, currencyCode, numberStyle)} per ${previewUnit}${vatRegistered ? ` (without ${taxName})` : ""}.`}
         </p>
       </Section>
