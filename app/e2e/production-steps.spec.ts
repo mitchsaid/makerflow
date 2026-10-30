@@ -210,7 +210,7 @@ test("a job made by hand, and an item added later, take the product's steps too;
   await expect(page.getByTestId("item-progress")).toContainText("Made 0 of 20");
 
   // An item added to the job later takes the steps too.
-  await page.getByRole("link", { name: "Add an item" }).click();
+  await page.getByRole("button", { name: "Add an item" }).click();
   await sheet(page).getByRole("button", { name: /Candles/ }).click();
   await sheet(page).getByLabel("Quantity").fill("3");
   await sheet(page).getByRole("button", { name: "Add to job" }).click();

@@ -351,12 +351,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Not yet" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expectNoViolations(page, "job, making, with counts");
-      await page.getByRole("link", { name: "Add an item" }).click();
+      await page.getByRole("button", { name: "Add an item" }).click();
       await expect(page.getByRole("dialog")).toHaveAccessibleName("Add an item");
       await expectNoViolations(page, "job, add an item");
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expectNoViolations(page, "job, add an item page");
+      await expectNoViolations(page, "job, after closing the item sheet");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await expectNoViolations(page, "jobs list");
