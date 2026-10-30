@@ -38,19 +38,19 @@ test("quantity prices: set on a product, followed by the quote's price, left alo
   await expect(sheet(page).getByText(/Quantity price:/)).toHaveCount(0);
 
   // The price follows the quantity, and says why (the hint sits under the label).
-  await sheet(page).getByLabel("Quantity").fill("12");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("12");
   await expect(price).toHaveValue("90");
   await expect(sheet(page).getByText("Quantity price: 10 or more: 10% off.")).toBeVisible();
-  await sheet(page).getByLabel("Quantity").fill("60");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("60");
   await expect(price).toHaveValue("75");
   await expect(sheet(page).getByText("Quantity price: 50 or more: 25% off.")).toBeVisible();
-  await sheet(page).getByLabel("Quantity").fill("9");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("9");
   await expect(price).toHaveValue("100");
   await expect(sheet(page).getByText(/Quantity price:/)).toHaveCount(0);
 
   // A price typed by hand is left alone as the quantity changes; the quantity price is offered back.
   await price.fill("80");
-  await sheet(page).getByLabel("Quantity").fill("12");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("12");
   await expect(price).toHaveValue("80");
   await expect(sheet(page).getByTestId("product-price-hint")).toContainText(/R\s?90,00/);
   await sheet(page).getByRole("button", { name: /Use R/ }).click();
@@ -142,13 +142,13 @@ test("quantity prices sit with each variation's price, as a percent or an amount
   const choose = sheet(page).getByRole("group", { name: "Choose a size" });
   await choose.getByRole("radio", { name: /Large/ }).check();
   await expect(price).toHaveValue("600");
-  await sheet(page).getByLabel("Quantity").fill("2");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("2");
   await expect(price).toHaveValue("500");
   await expect(sheet(page).getByText(/Quantity price: 2 or more: R\s?100,00 off\./)).toBeVisible();
   await choose.getByRole("radio", { name: /Small/ }).check();
   await expect(price).toHaveValue("270");
   await expect(sheet(page).getByText("Quantity price: 2 or more: 10% off.")).toBeVisible();
-  await sheet(page).getByLabel("Quantity").fill("1");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("1");
   await expect(price).toHaveValue("300");
 });
 
@@ -189,7 +189,7 @@ test("the customer's quote shows a quantity price only when the maker turns it o
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
   await expect(sheet(page).getByRole("checkbox", { name: "Show quantity prices on this quote" })).toHaveCount(0);
-  await sheet(page).getByLabel("Quantity").fill("12");
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("12");
   await expect(sheet(page).getByRole("checkbox", { name: "Show quantity prices on this quote" })).not.toBeChecked();
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(sheet(page)).toHaveCount(0);
