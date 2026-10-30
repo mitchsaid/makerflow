@@ -56,7 +56,7 @@ test("a customer's page says what they owe and lists their quotes, jobs and invo
   await expect(page.getByRole("link", { name: /INV-0001/ })).toBeVisible();
 
   // A quote or a job started from here has the customer chosen already.
-  await page.goto(`${customerUrl}`);
+  await page.goto(`${customerUrl}?section=quotes`);
   await page.getByRole("link", { name: "New quote" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/new\?customer=/);
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
@@ -90,7 +90,8 @@ test("a customer with nothing yet has plain empty sections, and Details still sa
   await page.getByLabel("Phone", { exact: true }).fill("021 555 0101");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
-  await expect(page).toHaveURL(/section=details$/);
+  // (Details are the first tab, so they are the customer's own address.)
+  await expect(page).toHaveURL(/\/app\/customers\/[0-9a-f-]{36}$/);
   // The number is a tap-to-call link at the top.
   await expect(page.getByRole("link", { name: "021 555 0101" })).toHaveAttribute("href", "tel:0215550101");
 });
