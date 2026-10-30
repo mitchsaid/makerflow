@@ -43,7 +43,6 @@ function ProductTabBar({
   active,
   onChange,
   problemTabs,
-  steps,
   inputs,
   fid,
 }: {
@@ -52,8 +51,6 @@ function ProductTabBar({
   onChange: (tab: ProductTab) => void;
   /** The tab each problem is on, with the id of its field. */
   problemTabs: readonly { fieldId: string; tab: ProductTab }[];
-  /** How many steps, when the product is tracked as steps. */
-  steps: number;
   /** How many cost lines. */
   inputs: number;
   fid: (key: string) => string;
@@ -72,7 +69,7 @@ function ProductTabBar({
         panelId={(tab) => fid(`panel-${tab}`)}
         tabs={[
           { key: "details", label: "Details", note: note("details") },
-          { key: "production", label: kind === "service" ? "Steps" : "Production", count: steps, note: note("production") },
+          { key: "production", label: kind === "service" ? "Steps" : "Production", note: note("production") },
           { key: "inputs", label: "Inputs", count: inputs, note: note("inputs") },
         ]}
       />
@@ -334,6 +331,9 @@ export function ProductForm({
       const ve = e.rows[v.key];
       if (ve?.name) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-name`), label: `${title}: choice ${vi + 1}`, message: ve.name });
       if (ve?.price) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price`), label: `${title}: choice ${vi + 1} price`, message: ve.price });
+      if (ve?.offered && values.variations.length > 0) {
+        problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-in-${values.variations[0].key}`), label: `${title}: choice ${vi + 1} comes in`, message: ve.offered });
+      }
       for (const [vk, message] of values.variations.length > 0 ? Object.entries(ve?.prices ?? {}) : []) {
         const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
         problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price-${vk}`), label: `${title}: choice ${vi + 1} for ${variationName}`, message });
@@ -480,8 +480,22 @@ export function ProductForm({
     changeVariations({ label: aside && aside.rows.length > 0 ? aside.label : values.variationLabel, rows });
     focusAfter.current = null;
   }
+  // Answering the variations question rebuilds a big part of the form under the person's finger. In a sheet on a desktop
+  // browser the sheet's scroll was seen going back to the top (founder, 2026-10-30), so where it was is put back if it did.
+  function keepScroll() {
+    const sheet = document.getElementById(fid("pricing-one"))?.closest<HTMLElement>('[data-slot="sheet-content"]');
+    if (!sheet) return;
+    const top = sheet.scrollTop;
+    if (top === 0) return;
+    for (const ms of [0, 50, 150, 400]) {
+      setTimeout(() => {
+        if (sheet.isConnected && sheet.scrollTop < top / 2) sheet.scrollTop = top;
+      }, ms);
+    }
+  }
   function choosePricing(yes: boolean) {
     if (yes === hasVariations) return;
+    keepScroll();
     if (yes) {
       // Two empty choices to start (nothing pre-filled), or what was put aside.
       startFirstVariation();
@@ -539,7 +553,7 @@ export function ProductForm({
   return (
     <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
-      <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} steps={trackedAsSteps ? values.steps.length : 0} inputs={costing ? values.costLines.length : 0} fid={fid} />
+      <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} inputs={costing ? values.costLines.length : 0} fid={fid} />
       {panel("details", (
       <>
       <Section title="Basics">

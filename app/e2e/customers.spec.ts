@@ -8,9 +8,9 @@ async function openCustomers(page: Page) {
   await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
 }
 
-/** A customer's page opens on their quotes; the form is in Details. */
+/** A customer's page opens on Details, the first tab. */
 async function openDetails(page: Page) {
-  await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Details" }).click();
+  await page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ }).getByRole("link", { name: "Details" }).click();
   await expect(page.getByRole("button", { name: /Save changes|Archive customer|Restore customer/ }).first()).toBeVisible();
 }
 

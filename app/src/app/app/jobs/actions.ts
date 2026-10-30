@@ -8,7 +8,15 @@ import { CREATE_JOB_PROMPT, INVOICE_JOB_PROMPT, isJobStatus } from "@/lib/jobs";
 import type { LineFormValues } from "@/lib/quotes";
 import { parseJobLine, parseNewJob, type NewJobErrors, type NewJobValues } from "@/lib/jobs/new-job";
 import { jobItemPhoto } from "@/lib/jobs/photos";
+import { getLocalePack, vatSettingsFor, type LocalePack } from "@/lib/locale";
+import { getMaterials } from "@/lib/materials/data";
+import type { BusinessType } from "@/lib/business-types";
+import type { VatSettings } from "@/lib/money";
+import type { NumberStyle } from "@/lib/money/format";
 import { getProducts } from "@/lib/products/data";
+import type { ProductSummary } from "@/lib/products";
+import { productCosting } from "../products/product-costing";
+import type { ProductFormCosting } from "../products/product-form";
 import { forOrganisation } from "@/lib/scope";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -370,6 +378,44 @@ export async function resetItemSteps(jobId: string, itemId: string): Promise<Job
 }
 
 export type AddJobItemResult = { status: "error"; message: string };
+
+/** What the item sheet needs on a job's page, fetched when "Add an item" is pressed so the page itself stays light. */
+export type JobItemSheetData = {
+  products: ProductSummary[];
+  numberStyle: NumberStyle;
+  currencyCode: string;
+  vat: VatSettings;
+  taxName: string;
+  vatStatuses: LocalePack["tax"]["statuses"];
+  businessTypes: BusinessType[] | null;
+  costing: ProductFormCosting;
+};
+
+export async function loadJobItemSheet(): Promise<{ status: "done"; data: JobItemSheetData } | { status: "error"; message: string }> {
+  try {
+    const [{ organisation, profile }, allProducts, allMaterials] = await Promise.all([requireOrganisation(), getProducts(), getMaterials()]);
+    const locale = getLocalePack(profile.countryCode);
+    return {
+      status: "done",
+      data: {
+        products: forOrganisation(allProducts, organisation.id),
+        numberStyle: locale.numberStyle,
+        currencyCode: profile.currencyCode,
+        vat: vatSettingsFor(profile, locale),
+        taxName: locale.tax.name,
+        vatStatuses: locale.tax.statuses,
+        businessTypes: profile.businessTypes,
+        costing: productCosting(allMaterials, organisation.id, profile, locale),
+      },
+    };
+  } catch (error) {
+    // Not signed in: that is a redirect, not a failure.
+    const digest = (error as { digest?: unknown } | null)?.digest;
+    if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
+    console.error("could not load the item sheet:", error);
+    return { status: "error", message: "Couldn't open the item sheet. Check your connection, then try again." };
+  }
+}
 
 /**
  * Adds one item to a job that exists, checked the way a job's items are when it is made. Its picture comes from the

@@ -3,13 +3,13 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
-import { AddLink } from "@/components/add-button";
 import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
 import { PhotoThumb } from "@/components/photo-thumb";
 import { quantityText } from "@/lib/quotes/units";
 import { formatDay, formatMoment, todayIn } from "@/lib/quotes/dates";
+import { AddJobItem } from "./add-job-item";
 import { ItemProgress } from "../item-progress";
 import { ItemSteps } from "../item-steps";
 import { StepsEditor } from "../steps-editor";
@@ -143,7 +143,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
         </Card>
         {takesNewItems(job.status) &&
           (job.fullItems.length < MAX_JOB_ITEMS ? (
-            <AddLink href={`/app/jobs/${job.id}/add-item`}>Add an item</AddLink>
+            <AddJobItem jobId={job.id} />
           ) : (
             <p className="text-sm text-muted-foreground">A job can have up to {MAX_JOB_ITEMS} items.</p>
           ))}

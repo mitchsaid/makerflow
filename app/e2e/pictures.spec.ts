@@ -173,13 +173,16 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   await page.goto("/app/quotes/new");
   await page.getByRole("button", { name: "Add item" }).click();
   await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
+  // The item sheet shows the product's photo, with the switch for the quote under it.
+  await expect(sheet(page).getByTestId("item-photo").locator("img")).toBeVisible();
+  await expect(sheet(page).getByRole("checkbox", { name: "Show product photos on this quote" })).toBeChecked();
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await expect(sheet(page)).toHaveCount(0);
   await addCustomerInSheet(page, "Thandi Nkosi");
   const line = page.getByTestId("quote-line");
   await expect(line.locator("img")).toHaveCount(1);
-  const switchBox = page.getByRole("checkbox", { name: "Show product photos on this quote" });
-  await expect(switchBox).toBeChecked();
+  // (The quote form itself no longer has the switch: it is on the item.)
+  await expect(page.getByRole("checkbox", { name: "Show product photos on this quote" })).toHaveCount(0);
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
   const quoteUrl = page.url().split("?")[0];
@@ -190,8 +193,11 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   const bothCount = await imagesIn(withPhotos);
   expect(bothCount).toBeGreaterThanOrEqual(2);
 
-  // Switched off: the photo goes (the logo stays), and it is saved.
-  await switchBox.uncheck();
+  // Switched off, on the item: the photo goes (the logo stays), and it is saved.
+  await line.getByRole("button", { name: /Edit/ }).click();
+  await sheet(page).getByRole("checkbox", { name: "Show product photos on this quote" }).uncheck();
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await expect(line.locator("img")).toHaveCount(0);
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();
@@ -199,8 +205,11 @@ test("the photo and the logo go on the quote, the switch turns photos off, and a
   // The logo is still there; the photo is not.
   expect(await imagesIn(without)).toBe(bothCount - 1);
   await page.reload();
-  await expect(page.getByRole("checkbox", { name: "Show product photos on this quote" })).not.toBeChecked();
-  await page.getByRole("checkbox", { name: "Show product photos on this quote" }).check();
+  await page.getByTestId("quote-line").getByRole("button", { name: /Edit/ }).click();
+  await expect(sheet(page).getByRole("checkbox", { name: "Show product photos on this quote" })).not.toBeChecked();
+  await sheet(page).getByRole("checkbox", { name: "Show product photos on this quote" }).check();
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();
 

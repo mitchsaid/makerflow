@@ -55,8 +55,8 @@ export function HandoverDefaultForm({ initial }: { initial: "none" | "collection
             }}
           >
             <NativeSelectOption value="none">Not decided yet</NativeSelectOption>
-            <NativeSelectOption value="collection">Collection (the customer collects)</NativeSelectOption>
-            <NativeSelectOption value="delivery">Delivery (you deliver, with a fee)</NativeSelectOption>
+            <NativeSelectOption value="collection">Collection</NativeSelectOption>
+            <NativeSelectOption value="delivery">Delivery</NativeSelectOption>
           </NativeSelect>
         </Field>
       </Section>

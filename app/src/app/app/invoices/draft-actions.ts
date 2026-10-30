@@ -290,6 +290,7 @@ async function draftFromQuote(quoteId: string, chosen?: { issueDate: string; due
     discountValue: asQuoted.discountValue,
     notes: chosen?.note ?? asQuoted.notes,
     showPhotos: asQuoted.showPhotos,
+    showQuantityPrices: asQuoted.showQuantityPrices,
   };
   const { data, error } = await supabase
     .from("invoice_drafts")

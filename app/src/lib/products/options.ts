@@ -17,8 +17,11 @@ export const OPTION_VALUES_MAX = 50;
  */
 export type OptionKind = "one" | "any" | "text";
 
-/** `prices`: by variation id, when the option's price depends on the variation (else empty). */
-export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean; prices: Record<string, Cents>; imageId: string | null };
+/**
+ * `prices`: by variation id, when the option's price depends on the variation (else empty).
+ * `notOffered`: the ids of the variations this choice does not come in (none: it comes in every one).
+ */
+export type OptionValue = { id: string; name: string; priceCents: Cents; usual: boolean; prices: Record<string, Cents>; imageId: string | null; notOffered?: string[] };
 export type OptionGroup = {
   id: string;
   name: string;
@@ -29,26 +32,38 @@ export type OptionGroup = {
 };
 
 /** One list on the form while it is being filled in. Ids are "" for new ones. `prices`: by the variation row's key, when the choice's price depends on the variation. */
-export type OptionValueFormRow = { key: string; id: string; name: string; price: string; usual: boolean; prices?: Record<string, string>; imageId?: string };
+export type OptionValueFormRow = {
+  key: string;
+  id: string;
+  name: string;
+  price: string;
+  usual: boolean;
+  prices?: Record<string, string>;
+  imageId?: string;
+  /** The variation rows' keys this choice does not come in (used while the list is "limited by variation"). */
+  notOffered?: string[];
+};
 export type OptionGroupFormRow = {
   key: string;
   id: string;
   name: string;
   kind: "one";
   priceByVariation?: boolean;
+  /** Some choices do not come in every variation: each choice then says which it comes in. */
+  limitedByVariation?: boolean;
   values: OptionValueFormRow[];
 };
 
 export type ParsedOptionGroup = Omit<OptionGroup, "id" | "values"> & {
   id: string | null;
-  values: { id: string | null; name: string; priceCents: Cents; usual: boolean; prices: { variationIndex: number; priceCents: Cents }[]; imageId?: string | null }[];
+  values: { id: string | null; name: string; priceCents: Cents; usual: boolean; prices: { variationIndex: number; priceCents: Cents }[]; notOffered: number[]; imageId?: string | null }[];
 };
 
 export type OptionGroupErrors = {
   name?: string;
   /** About the values as a whole ("add at least one"). */
   values?: string;
-  rows: Record<string, { name?: string; price?: string; prices?: Record<string, string> }>;
+  rows: Record<string, { name?: string; price?: string; prices?: Record<string, string>; offered?: string }>;
 };
 export type OptionErrors = { list?: string; groups: Record<string, OptionGroupErrors> };
 
@@ -59,7 +74,8 @@ function isValueRow(value: unknown): value is OptionValueFormRow {
   const pricesOk =
     v.prices === undefined ||
     (typeof v.prices === "object" && v.prices !== null && !Array.isArray(v.prices) && Object.values(v.prices).every((p) => typeof p === "string"));
-  return typeof v.key === "string" && typeof v.id === "string" && typeof v.name === "string" && typeof v.price === "string" && typeof v.usual === "boolean" && (v.imageId === undefined || typeof v.imageId === "string") && pricesOk;
+  const notOfferedOk = v.notOffered === undefined || (Array.isArray(v.notOffered) && v.notOffered.every((k) => typeof k === "string"));
+  return typeof v.key === "string" && typeof v.id === "string" && typeof v.name === "string" && typeof v.price === "string" && typeof v.usual === "boolean" && (v.imageId === undefined || typeof v.imageId === "string") && pricesOk && notOfferedOk;
 }
 
 function isGroupRow(value: unknown): value is OptionGroupFormRow {
@@ -71,6 +87,7 @@ function isGroupRow(value: unknown): value is OptionGroupFormRow {
     typeof v.name === "string" &&
     v.kind === "one" &&
     (v.priceByVariation === undefined || typeof v.priceByVariation === "boolean") &&
+    (v.limitedByVariation === undefined || typeof v.limitedByVariation === "boolean") &&
     Array.isArray(v.values) &&
     v.values.length <= OPTION_VALUES_MAX &&
     v.values.every(isValueRow)
@@ -81,11 +98,13 @@ const tidy = (text: string) => text.trim().replace(/\s+/g, " ");
 
 /**
  * Checks the options, saying how to fix each problem where it is. `variationKeys` are the product's variation
- * rows in order (a price by variation is stored by the variation's place in that list).
+ * rows in order (a price by variation is stored by the variation's place in that list); `variationNames` are
+ * their names, for the messages.
  */
 export function parseOptionGroups(
   input: unknown,
   variationKeys: readonly string[] = [],
+  variationNames: readonly string[] = [],
 ): { ok: true; groups: ParsedOptionGroup[] } | { ok: false; errors: OptionErrors } {
   const errors: OptionErrors = { groups: {} };
   if (!Array.isArray(input)) return { ok: false, errors: { ...errors, list: "The variations could not be read. Open the product again." } };
@@ -106,10 +125,12 @@ export function parseOptionGroups(
     if (row.values.length === 0) e.values = "Add at least one choice.";
     // Prices by variation only make sense when there are variations to price by.
     const byVariation = row.priceByVariation === true && variationKeys.length > 0;
+    const limited = row.limitedByVariation === true && variationKeys.length > 0;
+    const offeredIn = variationKeys.map(() => 0);
     const valueNames = new Set<string>();
     let usualTaken = false;
     for (const v of row.values) {
-      const ve: { name?: string; price?: string } = {};
+      const ve: { name?: string; price?: string; offered?: string } = {};
       const vName = tidy(v.name);
       if (vName === "") ve.name = "Give it a name, like “Vanilla”.";
       else if (vName.length > OPTION_NAME_MAX) ve.name = `Keep the name to ${OPTION_NAME_MAX} characters or fewer.`;
@@ -122,6 +143,8 @@ export function parseOptionGroups(
       let price: ReturnType<typeof amount>;
       if (byVariation) {
         variationKeys.forEach((vk, index) => {
+          // A variation the choice does not come in has no price to enter.
+          if (limited && v.notOffered?.includes(vk)) return;
           const text = v.prices?.[vk] ?? "";
           // Left empty, a size would quietly cost nothing: say so (0 is fine when typed).
           if (text.trim() === "") {
@@ -139,7 +162,12 @@ export function parseOptionGroups(
         if (!price.ok) ve.price = price.error;
       }
       if (Object.keys(priceErrors).length > 0) (ve as { prices?: Record<string, string> }).prices = priceErrors;
-      if (ve.name || ve.price || Object.keys(priceErrors).length > 0) e.rows[v.key] = ve;
+      const notOffered = limited ? variationKeys.flatMap((vk, index) => (v.notOffered?.includes(vk) ? [index] : [])) : [];
+      variationKeys.forEach((_, index) => {
+        if (!notOffered.includes(index)) offeredIn[index] += 1;
+      });
+      if (limited && notOffered.length === variationKeys.length) ve.offered = "Offer it in at least one, or remove it.";
+      if (ve.name || ve.price || ve.offered || Object.keys(priceErrors).length > 0) e.rows[v.key] = ve;
       else if (price.ok) {
         const usual = v.usual && !usualTaken;
         if (usual) usualTaken = true;
@@ -149,12 +177,17 @@ export function parseOptionGroups(
           priceCents: price.value,
           usual,
           prices,
+          notOffered,
           ...(v.imageId === undefined ? {} : { imageId: isImageId(v.imageId) ? v.imageId : null }),
         });
       }
     }
 
-
+    // One is always chosen, so every variation needs at least one choice to pick.
+    if (limited && !e.values && row.values.length > 0) {
+      const none = offeredIn.findIndex((n) => n === 0);
+      if (none >= 0) e.values = `Nothing here is offered for ${variationNames[none]?.trim() || "one of them"}. Offer at least one choice in each.`;
+    }
     if (e.name || e.values || Object.keys(e.rows).length > 0) errors.groups[row.key] = e;
     else {
       groups.push({
@@ -185,6 +218,7 @@ export function optionsPayload(groups: readonly ParsedOptionGroup[]) {
       price_cents: v.priceCents,
       usual: v.usual,
       ...(v.imageId === undefined ? {} : { image_id: v.imageId ?? "" }),
+      not_offered: v.notOffered,
       ...(g.priceByVariation ? { prices: v.prices.map((p) => ({ variation_index: p.variationIndex, price_cents: p.priceCents })) } : {}),
     })),
   }));

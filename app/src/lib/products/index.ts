@@ -205,7 +205,10 @@ export function parseProductForm(
     const variationKeys = Array.isArray(variationRows)
       ? variationRows.flatMap((r) => (typeof r === "object" && r !== null && typeof (r as { key?: unknown }).key === "string" ? [(r as { key: string }).key] : []))
       : [];
-    const parsed = parseOptionGroups(rows, variationKeys);
+    const variationNames = Array.isArray(variationRows)
+      ? variationRows.flatMap((r) => (typeof r === "object" && r !== null && typeof (r as { key?: unknown }).key === "string" ? [String((r as { name?: unknown }).name ?? "")] : []))
+      : [];
+    const parsed = parseOptionGroups(rows, variationKeys, variationNames);
     if (parsed.ok) options = parsed.groups;
     else errors.options = parsed.errors;
   }

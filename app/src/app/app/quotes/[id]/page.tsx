@@ -40,6 +40,7 @@ import { CreateInvoice, InvoiceMade } from "../../invoices/create-invoice";
 import { DeleteDraftButton } from "./delete-draft-button";
 import { DiscardRevisionButton } from "./discard-revision-button";
 import { PageHeader } from "@/components/page-header";
+import { MARGIN_PROMPT } from "@/lib/quotes/margin";
 
 export default async function QuotePage({
   params,
@@ -117,6 +118,7 @@ export default async function QuotePage({
           canSaveUsuals={canEditBusinessProfile(role)}
         startingText={locale.documents.quoteStart}
           askForDeposit={profile.defaultDepositKind === "ask"}
+          askAboutMargin={!dismissedPrompts.includes(MARGIN_PROMPT)}
           signers={{ business: organisation.name, owner: profile.ownerName }}
         >
           {/* A quote that has been sent can never be deleted, and neither can its revision. */}

@@ -165,7 +165,7 @@ test("a draft can be discarded, and a customer's page starts an invoice for them
   await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
   await expect(page).toHaveURL(/\/app\/customers\/[0-9a-f-]{36}$/);
   const customerUrl = page.url();
-  await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Invoices" }).click();
+  await page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ }).getByRole("link", { name: "Invoices" }).click();
   await page.getByRole("link", { name: "New invoice" }).click();
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
 
@@ -321,4 +321,34 @@ test("fixing what an invoice needs has a way back to the invoice, kept as a draf
   await issueButton(page).click();
   await sheet(page).getByRole("button", { name: "Mark as sent", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Invoice INV-0001/, level: 1 })).toBeVisible();
+});
+
+test("an invoice shows a quantity price when the maker turns it on, on the item, as a quote does", async ({ page }) => {
+  test.setTimeout(240_000);
+  await businessWithAddress(page, "invoice-qprice", "Invoice Quantity Co");
+  await page.goto("/app/products/new");
+  await page.getByLabel("Name", { exact: true }).fill("Cupcakes");
+  await page.getByLabel("Price", { exact: true }).fill("100");
+  await page.getByRole("button", { name: "Add a quantity price" }).click();
+  await page.getByLabel("From (quantity)").fill("10");
+  await page.getByLabel("Percent off (%)").fill("10");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByTestId("product-added")).toBeVisible();
+
+  await page.goto("/app/invoices/new");
+  await addCustomerInSheet(page, "Thandi Nkosi");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /Cupcakes/ }).click();
+  // Nothing to decide until the price came from a quantity price; then it is asked under the price, and says "invoice".
+  await expect(sheet(page).getByRole("checkbox", { name: "Show quantity prices on this invoice" })).toHaveCount(0);
+  await sheet(page).getByLabel("Quantity", { exact: true }).fill("12");
+  const show = sheet(page).getByRole("checkbox", { name: "Show quantity prices on this invoice" });
+  await expect(show).not.toBeChecked();
+  await show.check();
+  await sheet(page).getByRole("button", { name: "Add to invoice" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+
+  await previewButton(page).click();
+  await expect(page).toHaveURL(/\/preview$/);
+  await expect(page.getByRole("region", { name: "The invoice as text" })).toContainText(/Quantity price: 10 or more: 10% off \(usually R\s?100,00\)/);
 });

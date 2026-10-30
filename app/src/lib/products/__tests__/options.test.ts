@@ -70,8 +70,8 @@ describe("parseOptionGroups (the lists you pick one from)", () => {
         required: true,
         price_by_variation: false,
         values: [
-          { id: ID, name: "Vanilla", price_cents: 0, usual: true },
-          { name: "Red velvet", price_cents: 5000, usual: false },
+          { id: ID, name: "Vanilla", price_cents: 0, usual: true, not_offered: [] },
+          { name: "Red velvet", price_cents: 5000, usual: false, not_offered: [] },
         ],
       },
     ]);
@@ -117,5 +117,66 @@ describe("a list priced by variation", () => {
     expect(parseOptionGroups([byVariation({ small: "0", large: "120" })], ["small", "large"]).ok).toBe(true);
     const none = parseOptionGroups([byVariation({})], []);
     expect(none.ok && none.groups[0].priceByVariation).toBe(false);
+  });
+});
+
+describe("choices not offered for some variations", () => {
+  const sizes = ["s", "l"];
+  const limited = (notOfferedByValue: string[][], over: Partial<OptionGroupFormRow> = {}) =>
+    group({
+      limitedByVariation: true,
+      values: [
+        { key: "v1", id: ID, name: "Vanilla", price: "", usual: true, notOffered: notOfferedByValue[0] },
+        { key: "v2", id: "", name: "Red velvet", price: "50", usual: false, notOffered: notOfferedByValue[1] },
+      ],
+      ...over,
+    });
+
+  it("reads which variations each choice is not offered for, by their place in the list", () => {
+    const r = parseOptionGroups([limited([[], ["s"]])], sizes, ["Small", "Large"]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.groups[0].values.map((v) => v.notOffered)).toEqual([[], [0]]);
+    expect(optionsPayload(r.groups)[0].values.map((v) => v.not_offered)).toEqual([[], [0]]);
+  });
+
+  it("ignores what was ticked when the list is not limited, or has no variations", () => {
+    const off = parseOptionGroups([limited([[], ["s"]], { limitedByVariation: false })], sizes, ["Small", "Large"]);
+    expect(off.ok && off.groups[0].values.map((v) => v.notOffered)).toEqual([[], []]);
+    const none = parseOptionGroups([limited([[], ["s"]])], [], []);
+    expect(none.ok && none.groups[0].values.map((v) => v.notOffered)).toEqual([[], []]);
+  });
+
+  it("asks for a choice to come in at least one variation", () => {
+    const r = parseOptionGroups([limited([[], ["s", "l"]])], sizes, ["Small", "Large"]);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.groups.g1.rows.v2.offered).toMatch(/at least one/);
+  });
+
+  it("asks for every variation to have a choice, naming the one that has none", () => {
+    const r = parseOptionGroups([limited([["s"], ["s"]])], sizes, ["Small", "Large"]);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.groups.g1.values).toMatch(/Small/);
+  });
+
+  it("asks no price for a variation a priced choice is not offered in", () => {
+    const r = parseOptionGroups(
+      [
+        limited([[], ["s"]], {
+          priceByVariation: true,
+          values: [
+            { key: "v1", id: "", name: "Vanilla", price: "", usual: true, prices: { s: "0", l: "0" } },
+            { key: "v2", id: "", name: "Red velvet", price: "", usual: false, prices: { l: "40" }, notOffered: ["s"] },
+          ],
+        }),
+      ],
+      sizes,
+      ["Small", "Large"],
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.groups[0].values[1].prices).toEqual([{ variationIndex: 1, priceCents: 4000 }]);
   });
 });

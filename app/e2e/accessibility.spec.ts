@@ -110,7 +110,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Add to job" }).click();
       await expect(page.getByTestId("job-form-item")).toHaveCount(1);
       await expectNoViolations(page, "new job, with an item");
-      await page.getByRole("radio", { name: "Delivery (you deliver)" }).check();
+      await page.getByRole("radio", { name: "Delivery", exact: true }).check();
       await expectNoViolations(page, "new job, delivery");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
 
@@ -190,7 +190,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Add a needed-by date" }).click();
       await page.getByRole("button", { name: "Add a discount" }).click();
       await page.getByLabel("Discount on the whole quote").selectOption("percent");
-      await page.getByRole("radio", { name: /^Delivery \(you deliver/ }).check();
+      await page.getByRole("radio", { name: "Delivery", exact: true }).check();
       await expectNoViolations(page, "new quote, all sections open");
       // Delivery with addresses on file: the choices, and "a different address".
       await page.getByRole("button", { name: /Edit details/ }).click();
@@ -351,12 +351,12 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("dialog").getByRole("button", { name: "Not yet" }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expectNoViolations(page, "job, making, with counts");
-      await page.getByRole("link", { name: "Add an item" }).click();
+      await page.getByRole("button", { name: "Add an item" }).click();
       await expect(page.getByRole("dialog")).toHaveAccessibleName("Add an item");
       await expectNoViolations(page, "job, add an item");
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expectNoViolations(page, "job, add an item page");
+      await expectNoViolations(page, "job, after closing the item sheet");
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByRole("link", { name: /J-0001/ })).toBeVisible();
       await expectNoViolations(page, "jobs list");
@@ -452,8 +452,8 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "new material, with problems");
       await page.getByLabel("Name", { exact: true }).fill("Cake flour");
       await page.getByLabel("Unit", { exact: true }).selectOption("kg");
-      await page.getByLabel("How much you bought").fill("12,5");
-      await page.getByLabel("What you paid for it").fill("187,50");
+      await page.getByLabel("How much you buy").fill("12,5");
+      await page.getByLabel("What you pay for it").fill("187,50");
       await page.getByRole("button", { name: "Add material" }).click();
       await expect(page.getByTestId("material-added")).toBeVisible();
       await expectNoViolations(page, "materials, with a material");
@@ -1107,14 +1107,17 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("link", { name: /^Customers/ }).click();
       await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
       await expect(page.getByTestId("customer-owing")).toBeVisible();
+      await expectNoViolations(page, "a customer, details (the first tab)");
+      await page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ }).getByRole("link", { name: "Quotes" }).click();
+      await expect(page.getByRole("link", { name: /QT-0001/ })).toBeVisible();
       await expectNoViolations(page, "a customer, quotes");
-      await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Jobs" }).click();
+      await page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ }).getByRole("link", { name: "Jobs" }).click();
       await expect(page.getByText("No jobs yet")).toBeVisible();
       await expectNoViolations(page, "a customer, jobs (none)");
-      await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Invoices" }).click();
+      await page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ }).getByRole("link", { name: "Invoices" }).click();
       await expect(page.getByRole("link", { name: /INV-0001/ })).toBeVisible();
       await expectNoViolations(page, "a customer, invoices");
-      await page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ }).getByRole("link", { name: "Details" }).click();
+      await page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ }).getByRole("link", { name: "Details" }).click();
       await expect(page.getByRole("button", { name: "Save changes" })).toBeVisible();
       await expectNoViolations(page, "a customer, details");
     });

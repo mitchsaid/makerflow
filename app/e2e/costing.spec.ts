@@ -22,8 +22,8 @@ async function addFlour(page: Page) {
   await page.goto("/app/materials/new");
   await page.getByLabel("Name", { exact: true }).fill("Cake flour");
   await page.getByLabel("Unit", { exact: true }).selectOption("kg");
-  await page.getByLabel("How much you bought").fill("12,5");
-  await page.getByLabel("What you paid for it").fill("187,50");
+  await page.getByLabel("How much you buy").fill("12,5");
+  await page.getByLabel("What you pay for it").fill("187,50");
   await page.getByRole("button", { name: "Add material" }).click();
   await expect(page.getByTestId("material-added")).toBeVisible();
 }
@@ -55,8 +55,8 @@ test("a material can be added from a cost line without leaving the product", asy
   await expect(dialog.getByTestId("form-summary")).toBeVisible();
   await dialog.getByLabel("Name", { exact: true }).fill("Cake flour");
   await dialog.getByLabel("Unit", { exact: true }).selectOption("kg");
-  await dialog.getByLabel("How much you bought").fill("12,5");
-  await dialog.getByLabel("What you paid for it").fill("187,50");
+  await dialog.getByLabel("How much you buy").fill("12,5");
+  await dialog.getByLabel("What you pay for it").fill("187,50");
   await expect(dialog.getByTestId("cost-preview")).toContainText(/R\s?15,00/);
   await dialog.getByRole("button", { name: "Add material" }).click();
   await expect(dialog).toHaveCount(0);
@@ -76,8 +76,8 @@ test("a material can be added from a cost line without leaving the product", asy
   await tap(row.getByRole("button", { name: "Add a new material" }));
   await dialog.getByLabel("Name", { exact: true }).fill("Silver wire");
   await dialog.getByLabel("Unit", { exact: true }).selectOption("m");
-  await dialog.getByLabel("How much you bought").fill("10");
-  await dialog.getByLabel("What you paid for it").fill("100");
+  await dialog.getByLabel("How much you buy").fill("10");
+  await dialog.getByLabel("What you pay for it").fill("100");
   await dialog.getByRole("button", { name: "Add material" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(row.getByLabel("Material", { exact: true }).locator("option:checked")).toHaveText("Silver wire");
@@ -88,8 +88,8 @@ test("a material can be added from a cost line without leaving the product", asy
   await tap(costRow(page, "Material 3").getByRole("button", { name: "Add a new material" }));
   await dialog.getByLabel("Name", { exact: true }).fill("Cake flour");
   await dialog.getByLabel("Unit", { exact: true }).selectOption("kg");
-  await dialog.getByLabel("How much you bought").fill("1");
-  await dialog.getByLabel("What you paid for it").fill("10");
+  await dialog.getByLabel("How much you buy").fill("1");
+  await dialog.getByLabel("What you pay for it").fill("10");
   await dialog.getByRole("button", { name: "Add material" }).click();
   await expect(dialog.getByText(/already have a material with that name/).first()).toBeVisible();
   await page.keyboard.press("Escape");
@@ -386,5 +386,44 @@ test("an extra has its own costs, counted for each one on the quote, and kept", 
   await sheet(page).getByRole("checkbox", { name: /Gift wrap/ }).uncheck();
   await sheet(page).getByRole("button", { name: /Save|Update|Add to quote/ }).first().click();
   await expect(sheet(page)).toHaveCount(0);
-  await expect(page.getByTestId("margin-panel")).toContainText("Add what a product costs");
+  // With no costs on the quote the page asks, in a card, whether to see the margin; it says where the costs go.
+  const prompt = page.getByTestId("margin-prompt");
+  await expect(prompt).toContainText("Want to know your profit margin on this quote?");
+  await expect(prompt.getByRole("link", { name: "Go to your products" })).toBeVisible();
+  // Not now: for this visit; one quiet line still says where to add costs.
+  await prompt.getByRole("button", { name: "Not now" }).click();
+  await expect(prompt).toHaveCount(0);
+  await expect(page.getByTestId("margin-panel")).toContainText("To see your margin here, add what a product costs to make");
+});
+
+test("the profit margin card can be dismissed for good, and the quiet line stays", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "costing-margin-prompt", "Margin Prompt Co");
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /One-off item/ }).click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Candle");
+  await sheet(page).getByLabel("Quantity").fill("1");
+  await sheet(page).getByLabel(/^Price/).fill("80");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  const prompt = page.getByTestId("margin-prompt");
+  await expect(prompt).toBeVisible();
+  // The card closes at once and the choice is saved quietly: wait for that before leaving the page.
+  const saved = page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/app/quotes/new"));
+  await prompt.getByRole("button", { name: "Don't ask me again" }).click();
+  await saved;
+  await expect(prompt).toHaveCount(0);
+  await expect(page.getByTestId("margin-panel")).toContainText("To see your margin here");
+  // Remembered: a new quote, in a fresh page load, shows only the quiet line.
+  await page.goto("/app/quotes/new");
+  await page.getByRole("button", { name: "Add item" }).click();
+  await sheet(page).getByRole("button", { name: /One-off item/ }).click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Candle");
+  await sheet(page).getByLabel("Quantity").fill("1");
+  await sheet(page).getByLabel(/^Price/).fill("80");
+  await sheet(page).getByRole("button", { name: "Add to quote" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByTestId("margin-panel")).toContainText("To see your margin here");
+  await expect(page.getByTestId("margin-prompt")).toHaveCount(0);
 });

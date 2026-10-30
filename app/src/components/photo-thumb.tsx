@@ -1,7 +1,7 @@
 import { imageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
-const SIZES = { sm: "size-10", md: "size-12", lg: "size-14" } as const;
+const SIZES = { sm: "size-10", md: "size-12", lg: "size-14", xl: "size-28" } as const;
 
 /**
  * A product's (or a choice's) photo, shown small in a list or row: the thumbnail copy, square, rounded. With no photo it

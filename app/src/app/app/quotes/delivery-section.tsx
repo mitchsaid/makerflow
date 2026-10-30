@@ -55,8 +55,8 @@ export function DeliverySection({
         {(
           [
             ["none", "Not decided yet"],
-            ["collection", "Collection (the customer collects)"],
-            ["delivery", "Delivery (you deliver, with a fee)"],
+            ["collection", "Collection"],
+            ["delivery", "Delivery"],
           ] as const
         ).map(([option, label]) => (
           <Field key={option} orientation="horizontal" className="items-start py-2.5">

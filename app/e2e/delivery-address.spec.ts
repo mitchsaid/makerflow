@@ -47,7 +47,7 @@ test("a delivery uses the customer's saved address, or another one, and it print
 
   // Nothing about where to until it is a delivery.
   await expect(page.getByText("Delivery address on file")).toHaveCount(0);
-  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await page.getByRole("radio", { name: "Delivery", exact: true }).check();
 
   // Their saved delivery address is picked for them; their main address is the other choice.
   const onFile = page.getByRole("radio", { name: /Delivery address on file/ });
@@ -83,9 +83,9 @@ test("a delivery uses the customer's saved address, or another one, and it print
   await expect(page.getByTestId("delivery-address-fields")).toHaveCount(0);
 
   // Collection hides it (the text stays on the draft but is not printed).
-  await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
+  await page.getByRole("radio", { name: "Collection", exact: true }).check();
   await expect(page.getByTestId("delivery-address")).toHaveCount(0);
-  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await page.getByRole("radio", { name: "Delivery", exact: true }).check();
   await expect(thisQuote).toBeChecked();
 
   // Send it: the address is on the frozen document.
@@ -117,7 +117,7 @@ test("a customer with nothing saved gets the address fields, a too-long address 
 
   await newQuote(page);
   await addCustomer(page, "Sipho Dlamini");
-  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await page.getByRole("radio", { name: "Delivery", exact: true }).check();
 
   // Nothing saved for this customer: the address fields, and they can be left empty.
   await expect(page.getByRole("radio", { name: /on file/ })).toHaveCount(0);
@@ -143,7 +143,7 @@ test("changing the customer moves the saved address along, but never replaces on
   await signUpAndOnboard(page, "del-change", "Change Co");
   await newQuote(page);
   await addCustomer(page, "Thandi Nkosi", { deliverTo: "The gate at the back" });
-  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await page.getByRole("radio", { name: "Delivery", exact: true }).check();
   await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeChecked();
 
   // Another customer with their own address: the quote's address follows.
@@ -178,14 +178,14 @@ test("one customer's saved address never ends up on another customer's quote", a
   await signUpAndOnboard(page, "del-carry", "Carry Co");
   await newQuote(page);
   await addCustomer(page, "Thandi Nkosi", { deliverTo: "The gate at the back" });
-  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await page.getByRole("radio", { name: "Delivery", exact: true }).check();
   await expect(page.getByRole("radio", { name: /Delivery address on file/ })).toBeChecked();
 
   // Collection in between, then another customer, then delivery again: Thandi's address is gone.
-  await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
+  await page.getByRole("radio", { name: "Collection", exact: true }).check();
   await page.getByRole("button", { name: "Change customer" }).click();
   await addCustomer(page, "Sipho Dlamini");
-  await page.getByRole("radio", { name: "Delivery (you deliver, with a fee)" }).check();
+  await page.getByRole("radio", { name: "Delivery", exact: true }).check();
   await expect(page.getByText("The gate at the back")).toHaveCount(0);
   await expect(page.getByTestId("delivery-address-fields").getByLabel("Street address")).toHaveValue("");
 
@@ -207,7 +207,7 @@ test("one customer's saved address never ends up on another customer's quote", a
   // A too-long address typed and then hidden by choosing Collection does not block saving.
   await page.getByRole("radio", { name: "A different address" }).check();
   await page.getByTestId("delivery-address-fields").getByLabel("Street address").fill("x".repeat(450));
-  await page.getByRole("radio", { name: "Collection (the customer collects)" }).check();
+  await page.getByRole("radio", { name: "Collection", exact: true }).check();
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
 });

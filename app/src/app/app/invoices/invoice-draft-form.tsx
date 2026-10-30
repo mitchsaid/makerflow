@@ -339,6 +339,12 @@ export function InvoiceDraftForm({
             vatChoices={vatChoicesFor(vat, vatStatuses, numberStyle)}
             businessTypes={businessTypes}
             costing={costing}
+            // The photo and the quantity price are the invoice's own settings, decided on the item as on a quote.
+            quoteShows={{
+              photos: values.showPhotos,
+              quantityPrices: values.showQuantityPrices === true,
+              onChange: ({ photos, quantityPrices }) => update({ showPhotos: photos, showQuantityPrices: quantityPrices }),
+            }}
             newKey={newKey}
             onView={openSheet}
             onClose={() => setSheetOpen(false)}

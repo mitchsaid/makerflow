@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PrivateTag } from "@/components/private-tag";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
 import { quoteMargin } from "@/lib/costing";
+import { MarginPrompt } from "./margin-prompt";
 import { priceForMarginCents, targetStanding } from "@/lib/costing/target";
 import type { LineMargin } from "@/lib/quotes/margin";
 
@@ -21,6 +22,7 @@ export function MarginPanel({
   targetBp = null,
   frozen = false,
   vatRegistered = false,
+  askAboutMargin = false,
 }: {
   items: LineMargin[];
   currencyCode: string;
@@ -33,6 +35,8 @@ export function MarginPanel({
   frozen?: boolean;
   /** Said once, and only to a business that is VAT registered: that costs and margins are worked out without VAT. */
   vatRegistered?: boolean;
+  /** No costs yet and the friendly card has not been dismissed for good: show it, not just the quiet line. */
+  askAboutMargin?: boolean;
 }) {
   if (items.length === 0) return null;
   const money = (cents: number) => formatMoney(cents, currencyCode, numberStyle);
@@ -40,14 +44,7 @@ export function MarginPanel({
   // Items with no costs are not counted at all, so the figure is for the costed ones.
   const costed = total.costedItems;
   if (costed === 0 && !frozen) {
-    return (
-      <p className="text-sm text-muted-foreground" data-testid="margin-panel">
-        <PrivateTag /> Add what a product costs to make, or what a one-off item costs you, to see your margin here.{" "}
-        <Link href="/app/products" className="underline underline-offset-4">
-          Go to your products
-        </Link>
-      </p>
-    );
+    return <MarginPrompt asking={askAboutMargin} />;
   }
   const partial = costed < items.length;
   const target = targetBp === null ? null : formatPercent(targetBp, numberStyle);

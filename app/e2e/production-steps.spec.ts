@@ -59,8 +59,6 @@ test("a product's steps are kept in the order they are moved to, and a blank ste
 
   // Opened again, in the same order; one is removed.
   await page.getByRole("link", { name: /Cupcakes/ }).click();
-  // The count on the tab says how many steps there are, before it is opened.
-  await expect(page.getByRole("tab", { name: /^Production/ })).toContainText("3");
   await openProductTab(page, "Production");
   await expect(page.getByLabel(/^Step \d$/)).toHaveCount(3);
   await expect(page.getByLabel("Step 1", { exact: true })).toHaveValue("Bake");
@@ -212,7 +210,7 @@ test("a job made by hand, and an item added later, take the product's steps too;
   await expect(page.getByTestId("item-progress")).toContainText("Made 0 of 20");
 
   // An item added to the job later takes the steps too.
-  await page.getByRole("link", { name: "Add an item" }).click();
+  await page.getByRole("button", { name: "Add an item" }).click();
   await sheet(page).getByRole("button", { name: /Candles/ }).click();
   await sheet(page).getByLabel("Quantity").fill("3");
   await sheet(page).getByRole("button", { name: "Add to job" }).click();

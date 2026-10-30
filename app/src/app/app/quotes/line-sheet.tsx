@@ -7,6 +7,7 @@ import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,7 +35,7 @@ import type { VatChoice } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
 import { VariationChoice } from "./variation-choice";
-import { missingOptions, OptionChoices, optionValueAmount, repriceOptions } from "./option-choices";
+import { missingOptions, OptionChoices, offeredValues, optionValueAmount, repriceOptions } from "./option-choices";
 import { extraAmount } from "@/lib/products/extras";
 import { optionsFixed, optionsPerItem, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
@@ -44,6 +45,13 @@ import { listPriceOf, priceBreakText, referencePrice } from "@/lib/products/pric
 import { emptyOfKind, KIND_WORDS, valuesFromProduct } from "../products/product-values";
 import { AddButton } from "@/components/add-button";
 import { ErrorScopeBridge, FormErrorScope, type ErrorScopeHandle } from "@/components/form-errors";
+
+/** What a quote shows of an item, as the quote has it now, and how to change it. */
+export type QuoteShows = {
+  photos: boolean;
+  quantityPrices: boolean;
+  onChange: (change: { photos: boolean; quantityPrices: boolean }) => void;
+};
 
 /**
  * Where the item sheet is: choosing what to add, configuring one line, or the product form
@@ -88,7 +96,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     variationName: usual?.name ?? "",
     // Each "choose one" option starts with its usual value, if it has one.
     options: product.options.flatMap((g) => {
-      const v = g.kind === "one" ? g.values.find((x) => x.usual) : undefined;
+      const v = g.kind === "one" ? offeredValues(g, usual?.id).find((x) => x.usual) : undefined;
       return v
         ? [{ groupId: g.id, group: g.name, kind: g.kind, valueId: v.id, value: v.name, text: "", amountCents: optionValueAmount(g, v, usual?.id) }]
         : [];
@@ -107,6 +115,7 @@ export function LineSheet({
   priceLabel,
   vatChoices,
   pricing,
+  quoteShows,
   costing,
   businessTypes,
   newKey,
@@ -135,6 +144,12 @@ export function LineSheet({
   vatChoices: VatChoice[] | null;
   /** The margin the business aims for and how it enters prices, for the "charge R…" hint on a one-off item's cost. */
   pricing?: { targetBp: number | null; vat: VatSettings };
+  /**
+   * What the quote shows of this item, decided on the item itself (founder, 2026-10-30): the product's photo, and the
+   * quantity price that set its price. They are the quote's own settings; the item sheet shows them where they apply and
+   * hands the choice back when the item is saved. Absent for a job or an invoice.
+   */
+  quoteShows?: QuoteShows;
   /** What the product form's Inputs tab needs (materials, the hourly rate), when the page has loaded it. */
   costing?: React.ComponentProps<typeof ProductForm>["costing"];
   /** What the business makes, to suggest names for a new product's variations. */
@@ -241,6 +256,7 @@ export function LineSheet({
               priceLabel={priceLabel}
               vatChoices={vatChoices}
               pricing={pricing}
+              quoteShows={quoteShows}
               currencySymbol={symbol}
               numberStyle={numberStyle}
               money={money}
@@ -333,7 +349,7 @@ function followOptions(chosen: readonly LineOption[], after: ProductSummary, var
   for (const o of chosen) {
     if (o.kind === "one") {
       const g = after.options.find((x) => x.id === o.groupId);
-      const v = g?.values.find((x) => x.id === o.valueId);
+      const v = g ? offeredValues(g, variationId).find((x) => x.id === o.valueId) : undefined;
       if (!g || !v || next.some((x) => x.groupId === g.id)) continue;
       next.push({ ...o, group: g.name, value: v.name, amountCents: optionValueAmount(g, v, variationId) });
       continue;
@@ -344,7 +360,7 @@ function followOptions(chosen: readonly LineOption[], after: ProductSummary, var
   }
   for (const g of after.options) {
     if (next.some((x) => x.groupId === g.id)) continue;
-    const usual = g.values.find((x) => x.usual);
+    const usual = offeredValues(g, variationId).find((x) => x.usual);
     if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", valueId: usual.id, value: usual.name, text: "", amountCents: optionValueAmount(g, usual, variationId) });
   }
   return next;
@@ -500,6 +516,7 @@ function ConfigureView({
   priceLabel,
   vatChoices,
   pricing,
+  quoteShows,
   currencySymbol: symbol,
   numberStyle,
   money,
@@ -518,6 +535,7 @@ function ConfigureView({
   priceLabel: string;
   vatChoices: VatChoice[] | null;
   pricing?: { targetBp: number | null; vat: VatSettings };
+  quoteShows?: QuoteShows;
   currencySymbol: string;
   numberStyle: NumberStyle;
   money: (cents: number) => string;
@@ -528,6 +546,8 @@ function ConfigureView({
   onEditProduct: (product: ProductSummary, line: LineFormValues) => void;
 }) {
   const [line, setLine] = useState(initialLine);
+  // What the quote shows of this item, held here until Save (cancelling leaves the quote as it was).
+  const [shows, setShows] = useState({ photos: quoteShows?.photos ?? true, quantityPrices: quoteShows?.quantityPrices ?? false });
   // The line as it stands, for the save below (which works on a tidied copy of it under the same name).
   const lineNow = line;
   const [errors, setErrors] = useState<LineErrors>({});
@@ -633,7 +653,7 @@ function ConfigureView({
     // A product with variations needs one chosen, and its required options answered (the database cannot
     // know: lines keep their own copy).
     const mustChoose = variations.length > 0 && !line.variationName ? { variation: `Choose a ${word.toLowerCase()}.` } : {};
-    const missing = missingOptions(optionGroups, productExtras, line.options ?? []);
+    const missing = missingOptions(optionGroups, productExtras, line.options ?? [], line.variationId);
     setOptionErrors(missing);
     if (!result.ok || Object.keys(mustChoose).length > 0 || Object.keys(missing).length > 0) {
       // An extra ticked without its wording is also "options that cannot be used": say it once, at the extra.
@@ -649,7 +669,10 @@ function ConfigureView({
       before !== undefined && applied
         ? { ...line, listPrice: moneyToInput(before, numberStyle), quantityPriceText: priceBreakText(applied, line.unit.trim() || null, numberStyle, money) }
         : { ...line, listPrice: undefined, quantityPriceText: undefined };
-    startTransition(() => onSave(saved));
+    startTransition(() => {
+      if (quoteShows && (shows.photos !== quoteShows.photos || shows.quantityPrices !== quoteShows.quantityPrices)) quoteShows.onChange(shows);
+      onSave(saved);
+    });
   }
 
   const problems: FormProblem[] = (
@@ -709,6 +732,24 @@ function ConfigureView({
                 >
                   Use the new name
                 </Button>
+              </div>
+            )}
+            {/* The product's photo, as it is on file; the quote shows it only if this is ticked (a setting of the whole document). */}
+            {product?.photoImageId && !job && (
+              <div className="space-y-2" data-testid="item-photo">
+                <PhotoThumb imageId={product.photoImageId} size="xl" className="self-start" />
+                {quoteShows && (
+                  <Field orientation="horizontal" className="items-start py-1">
+                    <Checkbox
+                      id={id("showPhoto")}
+                      checked={shows.photos}
+                      onCheckedChange={(checked) => setShows((s) => ({ ...s, photos: checked === true }))}
+                    />
+                    <FieldLabel htmlFor={id("showPhoto")} className="text-base">
+                      Show product photos on this {subject}
+                    </FieldLabel>
+                  </Field>
+                )}
               </div>
             )}
             {product && (
@@ -771,6 +812,19 @@ function ConfigureView({
             error={errors.unitPrice}
             onChange={set("unitPrice")}
           />
+        )}
+        {/* Where the quantity price shows it is applied: the quote can say so under the item (a setting of the whole document). */}
+        {!job && quoteShows && applied && !priceDiffers && (
+          <Field orientation="horizontal" className="items-start py-1" data-testid="show-quantity-price">
+            <Checkbox
+              id={id("showQuantityPrice")}
+              checked={shows.quantityPrices}
+              onCheckedChange={(checked) => setShows((s) => ({ ...s, quantityPrices: checked === true }))}
+            />
+            <FieldLabel htmlFor={id("showQuantityPrice")} className="text-base">
+              Show quantity prices on this {subject}
+            </FieldLabel>
+          </Field>
         )}
         {!job && !line.productId && (
           <TextField
@@ -899,7 +953,7 @@ function ConfigureView({
             onChange={(options) => {
               setLine((l) => ({ ...l, options }));
               // A problem goes away once it is fixed.
-              setOptionErrors((e) => Object.fromEntries(Object.entries(e).filter(([gid]) => missingOptions(optionGroups, productExtras, options)[gid])));
+              setOptionErrors((e) => Object.fromEntries(Object.entries(e).filter(([gid]) => missingOptions(optionGroups, productExtras, options, line.variationId)[gid])));
             }}
           />
           {errors.options && (

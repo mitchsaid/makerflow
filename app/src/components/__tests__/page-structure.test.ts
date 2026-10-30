@@ -31,7 +31,6 @@ describe("back navigation", () => {
     const under = [
       "jobs/new/page.tsx",
       "jobs/[id]/page.tsx",
-      "jobs/[id]/add-item/page.tsx",
       "customers/new/page.tsx",
       "customers/[id]/page.tsx",
       "products/new/page.tsx",

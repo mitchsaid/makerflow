@@ -12,8 +12,8 @@ async function openMaterials(page: Page) {
 async function fillMaterial(page: Page, m: { name: string; unit: string; quantity: string; price: string; supplier?: string }) {
   await page.getByLabel("Name", { exact: true }).fill(m.name);
   await page.getByLabel("Unit", { exact: true }).selectOption(m.unit);
-  await page.getByLabel("How much you bought").fill(m.quantity);
-  await page.getByLabel("What you paid for it").fill(m.price);
+  await page.getByLabel("How much you buy").fill(m.quantity);
+  await page.getByLabel("What you pay for it").fill(m.price);
   if (m.supplier) await page.getByLabel("Supplier (optional)").fill(m.supplier);
 }
 
@@ -39,8 +39,8 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
   await page.getByRole("button", { name: "Add material" }).click();
   await expect(page.getByTestId("form-summary")).toContainText("3 things need fixing");
   await expect(page.getByTestId("form-summary")).toContainText("Choose a unit");
-  await expect(page.getByTestId("form-summary")).toContainText("Enter how much you bought");
-  await expect(page.getByTestId("form-summary")).toContainText("Enter what you paid");
+  await expect(page.getByTestId("form-summary")).toContainText("Enter how much you buy");
+  await expect(page.getByTestId("form-summary")).toContainText("Enter what you pay");
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Cake flour");
 
   // The cost of one unit appears as soon as it can be worked out.
@@ -76,14 +76,14 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
 
   // Edit: saved and kept, and the cost follows.
   await page.getByRole("link", { name: /Cake flour/ }).click();
-  await expect(page.getByLabel("How much you bought")).toHaveValue("12,5");
-  await expect(page.getByLabel("What you paid for it")).toHaveValue("187,50");
-  await page.getByLabel("What you paid for it").fill("250");
+  await expect(page.getByLabel("How much you buy")).toHaveValue("12,5");
+  await expect(page.getByLabel("What you pay for it")).toHaveValue("187,50");
+  await page.getByLabel("What you pay for it").fill("250");
   await expect(page.getByTestId("cost-preview")).toContainText(/R\s?20,00 per kg/);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("What you paid for it")).toHaveValue("250");
+  await expect(page.getByLabel("What you pay for it")).toHaveValue("250");
 
   // Archive hides it from the list, and it can be shown and restored.
   await page.getByRole("button", { name: "Archive material" }).click();

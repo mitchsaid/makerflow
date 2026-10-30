@@ -28,11 +28,14 @@ test("a customer's sections switch at once, without asking the server, and back 
   await openMore(page);
   await page.getByRole("link", { name: /^Customers/ }).click();
   await page.getByRole("link", { name: /Thandi Nkosi/ }).click();
-  const tabs = page.getByRole("navigation", { name: /quotes, jobs, invoices or details/ });
-  await expect(tabs.getByRole("link", { name: "Quotes" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByText("No quotes yet")).toBeVisible();
+  const tabs = page.getByRole("navigation", { name: /details, quotes, jobs or invoices/ });
+  // Details are the first tab, and it opens on them.
+  await expect(tabs.getByRole("link", { name: "Details" })).toHaveAttribute("aria-current", "page");
 
   const requests = pageRequests(page);
+  await tabs.getByRole("link", { name: "Quotes" }).click();
+  await expect(tabs.getByRole("link", { name: "Quotes" })).toHaveAttribute("aria-current", "page", { timeout: 300 });
+  await expect(page.getByText("No quotes yet")).toBeVisible({ timeout: 300 });
   await tabs.getByRole("link", { name: "Jobs" }).click();
   // Answered in the page: the tab is marked and its contents shown straight away.
   await expect(tabs.getByRole("link", { name: "Jobs" })).toHaveAttribute("aria-current", "page", { timeout: 300 });

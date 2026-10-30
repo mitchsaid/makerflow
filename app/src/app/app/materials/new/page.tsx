@@ -14,7 +14,7 @@ export default async function NewMaterialPage() {
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader close={{ href: "/app/materials", label: "Materials" }}>
         <h1 className="text-xl font-semibold">Add a material</h1>
-        <p className="text-muted-foreground">What you buy and what you paid.</p>
+        <p className="text-muted-foreground">What you buy and what you pay.</p>
       </PageHeader>
       <MaterialForm
         mode="add"

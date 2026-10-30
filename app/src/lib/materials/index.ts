@@ -129,16 +129,16 @@ export function parseMaterialForm(
   if (!isUnitCode(unitText)) errors.unit = "Choose a unit, like kg or each.";
 
   const quantity = parseQuantity(text("quantity"));
-  if (!quantity.ok) errors.quantity = text("quantity").trim() === "" ? "Enter how much you bought, like 12,5." : quantity.error;
+  if (!quantity.ok) errors.quantity = text("quantity").trim() === "" ? "Enter how much you buy, like 12,5." : quantity.error;
 
   const price = parseMoney(text("price"));
-  if (!price.ok) errors.price = text("price").trim() === "" ? "Enter what you paid. Use 0 if it cost nothing." : price.error;
+  if (!price.ok) errors.price = text("price").trim() === "" ? "Enter what you pay. Use 0 if it costs nothing." : price.error;
 
   let vatTreatment: VatTreatment = "none";
   if (options.vatRegistered) {
     const sent = text("vatTreatment");
     if ((VAT_TREATMENTS as readonly string[]).includes(sent)) vatTreatment = sent as VatTreatment;
-    else errors.vatTreatment = "Say whether the price you paid includes VAT.";
+    else errors.vatTreatment = "Say whether the price you pay includes VAT.";
   }
 
   const supplier = tidy(text("supplier"));

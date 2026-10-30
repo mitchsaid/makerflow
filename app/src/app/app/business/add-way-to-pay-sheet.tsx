@@ -74,7 +74,7 @@ export function AddWayToPaySheet({
               : "Pick how customers can pay you."}
           </SheetDescription>
         </SheetHeader>
-        <div className="space-y-3 px-4 pt-4">
+        <div className="space-y-3 px-4 py-4">
           {pick === null && (
             <ul className="space-y-3" aria-label="Ways to pay">
               {!hasBank && (

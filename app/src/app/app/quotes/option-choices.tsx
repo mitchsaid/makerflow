@@ -66,7 +66,7 @@ export function OptionChoices({
   // under "Kept as they were", and is never hidden.
   const shownIn = (g: OptionGroup): LineOption[] => {
     const mine = chosen.filter((o) => o.groupId === g.id && o.kind === "one");
-    return mine.filter((o) => g.values.some((v) => v.id === o.valueId)).slice(0, 1);
+    return mine.filter((o) => offeredValues(g, variationId).some((v) => v.id === o.valueId)).slice(0, 1);
   };
   const shown = new Set([...groups.flatMap(shownIn), ...extras.flatMap((x) => entryOf(x) ?? [])]);
   // Everything but what this list shows: changing a choice never drops another.
@@ -118,7 +118,7 @@ export function OptionChoices({
               }}
               className="gap-2"
             >
-              {g.values.map((v, i) => (
+              {offeredValues(g, variationId).map((v, i) => (
                 <Field
                   key={v.id}
                   orientation="horizontal"
@@ -256,6 +256,11 @@ export function OptionChoices({
   );
 }
 
+/** The choices of a list that come in the item's variation (all of them while none is chosen). */
+export function offeredValues(g: OptionGroup, variationId: string | undefined): OptionGroup["values"] {
+  return variationId ? g.values.filter((v) => !v.notOffered?.includes(variationId)) : g.values;
+}
+
 /** What a choice adds on an item: its price for the item's variation when the list is priced by variation. */
 export function optionValueAmount(g: OptionGroup, v: OptionGroup["values"][number], variationId: string | undefined): number {
   if (g.priceByVariation && variationId && v.prices[variationId] !== undefined) return v.prices[variationId];
@@ -269,22 +274,38 @@ export function repriceOptions(
   chosen: readonly LineOption[],
   variationId: string | undefined,
 ): LineOption[] {
-  return chosen.map((o) => {
+  const repriced = chosen.flatMap((o): LineOption[] => {
     if (o.kind === "one") {
       const g = groups.find((x) => x.id === o.groupId);
-      const v = g?.priceByVariation ? g.values.find((x) => x.id === o.valueId) : undefined;
-      return g && v ? { ...o, amountCents: optionValueAmount(g, v, variationId) } : o;
+      const stored = g?.values.find((x) => x.id === o.valueId);
+      // A choice the new variation does not come in goes (its list gets the usual choice below, if it comes in).
+      if (g && stored && !offeredValues(g, variationId).includes(stored)) return [];
+      const v = g?.priceByVariation ? stored : undefined;
+      return [g && v ? { ...o, amountCents: optionValueAmount(g, v, variationId) } : o];
     }
     const x = extras.find((e) => e.id === o.valueId && (o.kind === "text") === e.asksForWording);
-    return x?.priceByVariation ? { ...o, amountCents: extraAmount(x, variationId ?? "") } : o;
+    return [x?.priceByVariation ? { ...o, amountCents: extraAmount(x, variationId ?? "") } : o];
   });
+  // A list left without a choice starts with its usual one, when that comes in this variation.
+  for (const g of groups) {
+    if (repriced.some((o) => o.groupId === g.id && o.kind === "one")) continue;
+    if (!chosen.some((o) => o.groupId === g.id && o.kind === "one")) continue;
+    const usual = offeredValues(g, variationId).find((v) => v.usual);
+    if (usual) repriced.push({ groupId: g.id, group: g.name, kind: "one", valueId: usual.id, value: usual.name, text: "", amountCents: optionValueAmount(g, usual, variationId) });
+  }
+  return repriced;
 }
 
 /** What is missing on an item: each list with nothing chosen, each ticked extra that asks for wording with none typed. */
-export function missingOptions(groups: readonly OptionGroup[], extras: readonly ExtraSummary[], chosen: readonly LineOption[]): Record<string, string> {
+export function missingOptions(
+  groups: readonly OptionGroup[],
+  extras: readonly ExtraSummary[],
+  chosen: readonly LineOption[],
+  variationId?: string,
+): Record<string, string> {
   const missing: Record<string, string> = {};
   for (const g of groups) {
-    const has = chosen.some((o) => o.groupId === g.id && o.kind === "one" && g.values.some((v) => v.id === o.valueId));
+    const has = chosen.some((o) => o.groupId === g.id && o.kind === "one" && offeredValues(g, variationId).some((v) => v.id === o.valueId));
     if (!has) missing[g.id] = `Choose a ${g.name.toLowerCase()}.`;
   }
   for (const x of extras) {
