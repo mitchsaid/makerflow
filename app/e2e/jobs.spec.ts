@@ -370,11 +370,15 @@ test("an item can be added to a job that exists, the way a quote's items are add
   await setJobStatus(page, "Ready");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
 
-  await page.getByRole("link", { name: "Add an item" }).click();
-  // (The sheet is open over the page, so the heading is found by its tag.)
-  await expect(page.locator("h1")).toHaveText("Add an item to job J-0001");
-  // The same sheet as a quote's: pick, or a one-off item. No prices.
+  // The sheet opens over the job (no page of its own), and closing it leaves the job as it was.
+  await page.getByRole("button", { name: "Add an item" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add an item");
+  await expect(page).toHaveURL(/\/app\/jobs\/[0-9a-f-]{36}$/);
+  await sheet(page).getByRole("button", { name: "Close" }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "Add an item" }).click();
+  // The same sheet as a quote's: pick, or a one-off item. No prices.
   await sheet(page).getByRole("button", { name: "One-off item (just for this job)" }).click();
   await expect(sheet(page).getByLabel(/^Price/)).toHaveCount(0);
   // Asking for nothing is refused, at the field and in a summary.
@@ -406,9 +410,7 @@ test("an item can be added to a job that exists, the way a quote's items are add
   await setJobStatus(page, "Ready");
   await setJobStatus(page, "Done");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Done$/, level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add an item" })).toHaveCount(0);
-  await page.goto(`${new URL(page.url()).pathname}/add-item`);
-  await expect(page.getByText("This job has moved on, so it can’t take new items now.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add an item" })).toHaveCount(0);
 });
 
 /** A sent quote for delivery, with the address typed on the quote. */

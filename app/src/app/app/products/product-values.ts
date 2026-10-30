@@ -104,6 +104,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
       name: g.name,
       kind: "one" as const,
       priceByVariation: g.priceByVariation,
+      limitedByVariation: g.values.some((x) => (x.notOffered ?? []).length > 0),
       values: g.values.map((x) => ({
         key: x.id,
         id: x.id,
@@ -114,6 +115,7 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
         // By the variation's row key (a saved variation's key is its id). A zero is kept as "0": left empty, a
         // size asks what it adds.
         prices: Object.fromEntries(Object.entries(x.prices).map(([vid, cents]) => [vid, moneyToInput(cents, style)])),
+        notOffered: x.notOffered ?? [],
       })),
     })),
     // A saved variation's key is its id.

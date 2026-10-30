@@ -105,6 +105,7 @@ export function ListsSection({
             const e = errors?.groups[g.key];
             const open = openKey === g.key || e !== undefined;
             const byVariation = g.priceByVariation === true && variations.length > 0;
+            const limited = g.limitedByVariation === true && variations.length > 0;
             const title = g.name.trim() || `Variation ${gi + firstNumber}`;
             const summary = `${g.values.length} ${g.values.length === 1 ? "choice" : "choices"} · can add to the price`;
             return (
@@ -161,6 +162,23 @@ export function ListsSection({
                         />
                         <FieldLabel htmlFor={fid(`option-${g.key}-byVariation`)} className="text-base">
                           Price depends on the {variationWord.toLowerCase()}
+                        </FieldLabel>
+                      </Field>
+                    )}
+                    {variations.length > 0 && (
+                      <Field orientation="horizontal" className="items-start py-1">
+                        <Checkbox
+                          id={fid(`option-${g.key}-limited`)}
+                          checked={g.limitedByVariation === true}
+                          onCheckedChange={(checked) =>
+                            setGroup(g.key, {
+                              limitedByVariation: checked === true,
+                              values: checked === true ? g.values : g.values.map((x) => ({ ...x, notOffered: [] })),
+                            })
+                          }
+                        />
+                        <FieldLabel htmlFor={fid(`option-${g.key}-limited`)} className="text-base">
+                          Not every choice comes in every {variationWord.toLowerCase()}
                         </FieldLabel>
                       </Field>
                     )}
@@ -226,7 +244,7 @@ export function ListsSection({
                               {remove}
                               {byVariation ? (
                                 <div className="col-span-2 col-start-2 grid grid-cols-2 gap-x-3 gap-y-2">
-                                  {variations.map((variation) => (
+                                  {variations.filter((variation) => !(limited && v.notOffered?.includes(variation.key))).map((variation) => (
                                     <div key={variation.key} className="space-y-1">
                                       <span aria-hidden="true" className="block text-sm text-muted-foreground">
                                         {variation.name}
@@ -269,6 +287,41 @@ export function ListsSection({
                                   <AddedPrice beside note={addedPriceNote(v.price, bases, currencyCode, numberStyle)} />
                                   {picture !== "" && removePicture}
                                 </div>
+                              )}
+                              {limited && (
+                                <fieldset className="col-span-2 col-start-2 space-y-1">
+                                  <legend className="text-sm text-muted-foreground">Comes in</legend>
+                                  {variations.map((variation) => {
+                                    const offered = !v.notOffered?.includes(variation.key);
+                                    const cbId = fid(`option-${g.key}-value-${v.key}-in-${variation.key}`);
+                                    return (
+                                      <Field key={variation.key} orientation="horizontal" className="items-start py-1">
+                                        <Checkbox
+                                          id={cbId}
+                                          checked={offered}
+                                          onCheckedChange={(checked) =>
+                                            setGroup(g.key, {
+                                              values: g.values.map((x) =>
+                                                x.key === v.key
+                                                  ? { ...x, notOffered: checked === true ? (x.notOffered ?? []).filter((k) => k !== variation.key) : [...(x.notOffered ?? []), variation.key] }
+                                                  : x,
+                                              ),
+                                            })
+                                          }
+                                        />
+                                        <FieldLabel htmlFor={cbId} className="text-base">
+                                          {variation.name.trim() || "Unnamed"}
+                                          <span className="sr-only"> for {vTitle}</span>
+                                        </FieldLabel>
+                                      </Field>
+                                    );
+                                  })}
+                                  {ve?.offered && (
+                                    <p role="alert" className="text-sm text-destructive">
+                                      {ve.offered}
+                                    </p>
+                                  )}
+                                </fieldset>
                               )}
                               {byVariation && picture !== "" && <div className="col-span-2 col-start-2">{removePicture}</div>}
                               {problem && (

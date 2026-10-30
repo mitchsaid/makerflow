@@ -124,3 +124,16 @@ Founder: the next-step button and the status dropdown "feel awkward" together; "
 ### Changed the same day (2026-10-28): back to a dropdown, and Ready means made
 Founder: "I don't like the job chips. I think a dropdown is actually better." The status is a **dropdown** again (any status can be chosen, in any order); the contextual part stays (the "Everything is made" question when the last item is counted, and the card on a job that is already all made). The chip row's `wrap` mode on `FilterBar` was removed with it.
 Founder: "when it's marked as ready for delivery, or out for delivery, or done, the items should be considered made." Moving a job to **Ready, Out for delivery or Done** now sets every item to made in full and every production step to done in full (`move_job_status`, migration `20261127100000_job_ready_means_made.sql`, **needs human review**: it writes job data). Going back to Making lowers nothing, so the items then show as all made. The partial counts typed before are replaced, not kept aside: a job that is ready is made.
+
+## Founder's list, 2026-10-30 (items 1 and 3 to 11, then two more)
+Built together; no database change except item 2's own plan (`docs/plans/not-offered-variations.md`, **needs human review**, migration `20261128100000_option_values_not_offered.sql`).
+- **Private steps:** the Production steps section carries the *Private* tag, as *What it costs to make* does; the Production tab no longer shows a step count.
+- **Materials wording:** new-material costs read in the present ("How you buy it", "How much you buy", "What you pay for it").
+- **Quote delivery:** the options are plainly *Collection* and *Delivery* (no parentheticals), also on the quote settings and the new job form.
+- **Add a way to pay:** the sheet has bottom padding, so its buttons are no longer cut off.
+- **Gone:** the "Customer agrees to the terms: coming later" card on the quote form.
+- **Margin prompt:** "Add what a product costs to make… Go to your products" is now a prompt card, *Want to know your profit margin on this quote?*, with *Go to your products*, *Not now* and *Don't ask me again* (kept in `prompt_dismissals` under `quote-margin`). Once closed, one quiet line still says where costs go. It is the same card behaviour as the logo and create-job prompts.
+- **On the item sheet:** the product photo shows when an item is added from a product (large), with *Show product photos on this quote* under it; *Show quantity prices on this quote* sits under the price field, where quantity prices are applied. Both stay quote-level settings and are applied on Save (Cancel changes nothing); the quote form no longer has those two switches.
+- **Desktop scroll jump** when answering "Yes" to variations on a product: not reproduced in Chromium; a guard now keeps the sheet's scroll position, with a desktop-viewport test. Unconfirmed until tried in the founder's browser.
+- **Adding an item to a job is an overlay on the job** (founder: "it doesn't need to go to this mostly-empty page"). *Add an item* on the job page opens the item sheet over the job; what it needs (products, costing) is fetched when the button is pressed (`loadJobItemSheet`), so the job page stays light. Closing it leaves the job as it was; saving refreshes the job under it. The `/app/jobs/[id]/add-item` page is gone.
+

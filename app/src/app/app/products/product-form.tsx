@@ -331,6 +331,9 @@ export function ProductForm({
       const ve = e.rows[v.key];
       if (ve?.name) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-name`), label: `${title}: choice ${vi + 1}`, message: ve.name });
       if (ve?.price) problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price`), label: `${title}: choice ${vi + 1} price`, message: ve.price });
+      if (ve?.offered && values.variations.length > 0) {
+        problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-in-${values.variations[0].key}`), label: `${title}: choice ${vi + 1} comes in`, message: ve.offered });
+      }
       for (const [vk, message] of values.variations.length > 0 ? Object.entries(ve?.prices ?? {}) : []) {
         const variationName = values.variations.find((r) => r.key === vk)?.name.trim() ?? "";
         problems.push({ fieldId: fid(`option-${g.key}-value-${v.key}-price-${vk}`), label: `${title}: choice ${vi + 1} for ${variationName}`, message });

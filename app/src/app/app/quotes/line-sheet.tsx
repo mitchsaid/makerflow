@@ -35,7 +35,7 @@ import type { VatChoice } from "@/lib/quotes/vat-choices";
 import type { BusinessType } from "@/lib/business-types";
 import { variationSuggestions } from "@/lib/products/variations";
 import { VariationChoice } from "./variation-choice";
-import { missingOptions, OptionChoices, optionValueAmount, repriceOptions } from "./option-choices";
+import { missingOptions, OptionChoices, offeredValues, optionValueAmount, repriceOptions } from "./option-choices";
 import { extraAmount } from "@/lib/products/extras";
 import { optionsFixed, optionsPerItem, parseLine, type LineOption, type DiscountKind, type LineErrors, type LineFormValues } from "@/lib/quotes";
 import { createProductInQuote, updateProduct } from "../products/actions";
@@ -96,7 +96,7 @@ export function lineFromProduct(product: ProductSummary, key: string, style: Num
     variationName: usual?.name ?? "",
     // Each "choose one" option starts with its usual value, if it has one.
     options: product.options.flatMap((g) => {
-      const v = g.kind === "one" ? g.values.find((x) => x.usual) : undefined;
+      const v = g.kind === "one" ? offeredValues(g, usual?.id).find((x) => x.usual) : undefined;
       return v
         ? [{ groupId: g.id, group: g.name, kind: g.kind, valueId: v.id, value: v.name, text: "", amountCents: optionValueAmount(g, v, usual?.id) }]
         : [];
@@ -349,7 +349,7 @@ function followOptions(chosen: readonly LineOption[], after: ProductSummary, var
   for (const o of chosen) {
     if (o.kind === "one") {
       const g = after.options.find((x) => x.id === o.groupId);
-      const v = g?.values.find((x) => x.id === o.valueId);
+      const v = g ? offeredValues(g, variationId).find((x) => x.id === o.valueId) : undefined;
       if (!g || !v || next.some((x) => x.groupId === g.id)) continue;
       next.push({ ...o, group: g.name, value: v.name, amountCents: optionValueAmount(g, v, variationId) });
       continue;
@@ -360,7 +360,7 @@ function followOptions(chosen: readonly LineOption[], after: ProductSummary, var
   }
   for (const g of after.options) {
     if (next.some((x) => x.groupId === g.id)) continue;
-    const usual = g.values.find((x) => x.usual);
+    const usual = offeredValues(g, variationId).find((x) => x.usual);
     if (usual) next.push({ groupId: g.id, group: g.name, kind: "one", valueId: usual.id, value: usual.name, text: "", amountCents: optionValueAmount(g, usual, variationId) });
   }
   return next;
@@ -653,7 +653,7 @@ function ConfigureView({
     // A product with variations needs one chosen, and its required options answered (the database cannot
     // know: lines keep their own copy).
     const mustChoose = variations.length > 0 && !line.variationName ? { variation: `Choose a ${word.toLowerCase()}.` } : {};
-    const missing = missingOptions(optionGroups, productExtras, line.options ?? []);
+    const missing = missingOptions(optionGroups, productExtras, line.options ?? [], line.variationId);
     setOptionErrors(missing);
     if (!result.ok || Object.keys(mustChoose).length > 0 || Object.keys(missing).length > 0) {
       // An extra ticked without its wording is also "options that cannot be used": say it once, at the extra.
@@ -953,7 +953,7 @@ function ConfigureView({
             onChange={(options) => {
               setLine((l) => ({ ...l, options }));
               // A problem goes away once it is fixed.
-              setOptionErrors((e) => Object.fromEntries(Object.entries(e).filter(([gid]) => missingOptions(optionGroups, productExtras, options)[gid])));
+              setOptionErrors((e) => Object.fromEntries(Object.entries(e).filter(([gid]) => missingOptions(optionGroups, productExtras, options, line.variationId)[gid])));
             }}
           />
           {errors.options && (

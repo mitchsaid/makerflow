@@ -409,7 +409,10 @@ test("the profit margin card can be dismissed for good, and the quiet line stays
   await expect(sheet(page)).toHaveCount(0);
   const prompt = page.getByTestId("margin-prompt");
   await expect(prompt).toBeVisible();
+  // The card closes at once and the choice is saved quietly: wait for that before leaving the page.
+  const saved = page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/app/quotes/new"));
   await prompt.getByRole("button", { name: "Don't ask me again" }).click();
+  await saved;
   await expect(prompt).toHaveCount(0);
   await expect(page.getByTestId("margin-panel")).toContainText("To see your margin here");
   // Remembered: a new quote, in a fresh page load, shows only the quiet line.
