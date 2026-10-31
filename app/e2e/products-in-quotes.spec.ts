@@ -57,7 +57,6 @@ test("choose a saved product, configure it for this quote, and edit the line lat
 
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add an item");
-  await expect(sheet(page).getByTestId("coming-soon")).toContainText("Import from Shopify or a CSV");
   await sheet(page).getByLabel("Search your products and services").fill("wed");
   await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
 

@@ -17,6 +17,7 @@ One way to ask for each kind of thing. A screen that asks for an address, a quan
 | A customer | `CustomerPicker` | |
 | An item on a quote or job | `LineSheet` | |
 | A picture | `ImageField` (one picture), `ChoiceImage` (a choice's picture) | |
+| A list or file to bring in (products from a spreadsheet) | `TextAreaField` to paste, and `Input type="file"` in a `Field` to choose a CSV; the file is read in the browser, then the same check and preview (`app/products/import`) | Never uploaded as a file. Not `ImageField`: nothing here is a picture |
 | Words | `TextField`, `TextAreaField` | Helper text under the label, errors under the field (`docs/adr/0003-ui-components.md`) |
 
 Two unit tests keep this honest (`components/__tests__/input-kinds.test.ts`): a text field or text area whose label asks for an address ("Deliver to", "Street address", "Postal code"…) or a quantity ("Quantity", "how many", "how much") fails. A new kind of input is added to this table in the same change that first uses it.

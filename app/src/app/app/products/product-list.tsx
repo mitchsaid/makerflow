@@ -3,21 +3,24 @@
 import Link from "@/components/app-link";
 import { PhotoThumb } from "@/components/photo-thumb";
 import { useState } from "react";
-import { ComingSoonSection } from "@/components/coming-soon";
 import { EmptyState, NoMatches } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { formatMoney, type NumberStyle } from "@/lib/money";
 import { productMatchesSearch, type ProductKind, type ProductSummary } from "@/lib/products";
-import { KIND_WORDS, newHref } from "./product-values";
+import { importHref, KIND_WORDS, newHref } from "./product-values";
 import { AddLink } from "@/components/add-button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /** The products list: search as you type, archived products hidden until asked for. */
 export function ProductList({
   kind,
   products: allProducts,
   addedName,
+  importedCount,
+  importFailedCount,
   currencyCode,
   numberStyle,
 }: {
@@ -25,6 +28,9 @@ export function ProductList({
   kind: ProductKind;
   products: ProductSummary[];
   addedName?: string;
+  /** After an import: how many were added, and how many could not be. */
+  importedCount?: number;
+  importFailedCount?: number;
   currencyCode: string;
   numberStyle: NumberStyle;
 }) {
@@ -47,18 +53,21 @@ export function ProductList({
             Add your first {words.one}
           </AddLink>
         </EmptyState>
-        {kind === "product" && (
-          <ComingSoonSection
-            title="Import from Shopify or a CSV"
-            description="Bring in a product list you already have."
-          />
-        )}
+        <Link href={importHref(kind)} className={cn(buttonVariants({ variant: "outline" }), "w-full")} data-testid="import-link">
+          Import a list of {words.many}
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {importedCount !== undefined && (
+        <p role="status" className="text-sm font-medium" data-testid="products-imported">
+          {importedCount === 1 ? `Added 1 ${words.one}.` : `Added ${importedCount} ${words.many}.`}
+          {importFailedCount ? ` ${importFailedCount} could not be added: import them again.` : ""}
+        </p>
+      )}
       {addedName && (
         <p role="status" className="text-sm font-medium" data-testid="product-added">
           Added {addedName}.

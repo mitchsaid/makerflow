@@ -21,7 +21,9 @@ test("the first product: a name and a price; the later layers are shown but do n
   await signUpAndOnboard(page, "p-first", "Product Co");
   await openProducts(page);
   await expect(page.getByText("No products yet")).toBeVisible();
-  await expect(page.getByTestId("coming-soon")).toContainText("Import from Shopify or a CSV");
+  // The import is real now (a link to it), not a placeholder.
+  await expect(page.getByTestId("import-link")).toContainText("Import a list of products");
+  await expect(page.getByTestId("coming-soon")).toHaveCount(0);
 
   await page.getByRole("link", { name: "Add your first product" }).click();
   await expect(page).toHaveURL(/\/app\/products\/new$/);
@@ -75,7 +77,7 @@ test("services are their own list, with their own form, and save, edit and come 
   await switcher.getByRole("link", { name: "Services" }).click();
   await expect(page).toHaveURL(/view=services/);
   await expect(page.getByText("No services yet")).toBeVisible();
-  // The Shopify import is about products only.
+  await expect(page.getByTestId("import-link")).toContainText("Import a list of services");
   await expect(page.getByTestId("coming-soon")).toHaveCount(0);
 
   await page.getByRole("link", { name: "Add your first service" }).click();
