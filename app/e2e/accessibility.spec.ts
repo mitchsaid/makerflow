@@ -777,6 +777,15 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/app/materials");
       await expect(page.getByText("Cotton fabric")).toBeVisible();
       await expectNoViolations(page, "a demo's materials");
+      await page.goto("/app/quotes");
+      await expect(page.getByRole("link", { name: /Michelle Naidoo/ }).first()).toBeVisible();
+      await expectNoViolations(page, "a demo's quotes");
+      await page.getByRole("link", { name: /Michelle Naidoo/ }).first().click();
+      await expect(page.getByTestId("margin-summary")).toBeVisible();
+      await expectNoViolations(page, "a demo's draft quote, with its margin");
+      await page.goto("/app/jobs");
+      await expect(page.getByRole("link", { name: /Bridal Boutique Rosebank/ })).toBeVisible();
+      await expectNoViolations(page, "a demo's jobs");
     });
     test("importing products: paste, columns, check, and after adding", async ({ page }) => {
       test.setTimeout(180_000);

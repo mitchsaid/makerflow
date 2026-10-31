@@ -92,4 +92,26 @@ describe.each(DEMO_KINDS)("the %s demo content", (kind) => {
       }
     }
   });
+
+  it("has sample quotes that name real customers, products, variations and extras: a draft that shows a margin, a sent one and an accepted one", () => {
+    const customers = new Set(c.customers.map((x) => x.name));
+    const byName = new Map(c.products.map((p) => [p.name, p]));
+    expect(c.quotes.map((q) => q.status).sort()).toEqual(["accepted", "draft", "sent"]);
+    for (const q of c.quotes) {
+      expect(customers.has(q.customer), `${q.customer} is not a customer`).toBe(true);
+      expect(q.daysAgo).toBeGreaterThanOrEqual(0);
+      expect(q.daysAgo).toBeLessThan(10);
+      expect(q.items.length).toBeGreaterThan(0);
+      for (const item of q.items) {
+        const product = byName.get(item.product);
+        expect(product, `${item.product} is not a product`).toBeDefined();
+        expect(Number.isInteger(item.quantity) && item.quantity > 0).toBe(true);
+        if (item.variation) expect(product!.variations?.map((v) => v.name)).toContain(item.variation);
+        for (const extra of item.extras ?? []) expect(product!.extras?.map((x) => x.name)).toContain(extra);
+      }
+    }
+    // The draft earns its keep in the demo by showing the margin: it has something with costs on it.
+    const draft = c.quotes.find((q) => q.status === "draft")!;
+    expect(draft.items.some((i) => byName.get(i.product)!.costs)).toBe(true);
+  });
 });

@@ -4,6 +4,9 @@ import { PageTransition } from "@/components/page-transition";
 import { DemoBanner } from "./demo-banner";
 import { WorkspaceNav } from "./nav";
 
+// Building a demo business (sample customers, products, quotes and a logo) takes several seconds; a hosted function is given up to a minute.
+export const maxDuration = 60;
+
 export default async function WorkspaceLayout({ children }: LayoutProps<"/app">) {
   const { organisation, profile, demo } = await requireOrganisation();
 

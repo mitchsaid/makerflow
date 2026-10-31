@@ -33,6 +33,19 @@ test("a visitor picks a kind of maker and lands in a demo business full of sampl
   await page.getByRole("link", { name: /Celebration cake/ }).click();
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Celebration cake");
 
+  // Quotes: a draft, a sent one and an accepted one, with a job under way and an invoice draft.
+  await page.goto("/app/quotes");
+  await expect(page.getByText("Grace Wedding Events").first()).toBeVisible();
+  await expect(page.getByText("Lindiwe Dlamini").first()).toBeVisible();
+  // The draft shows what it earns (only the maker sees this).
+  await page.getByRole("link", { name: /Pieter van Wyk/ }).first().click();
+  await expect(page.getByTestId("margin-summary")).toBeVisible();
+  await page.goto("/app/jobs");
+  await expect(page.getByRole("link", { name: /Grace Wedding Events/ })).toBeVisible();
+  await page.goto("/app/invoices");
+  await page.getByRole("button", { name: /^Drafts \(1\)/ }).click();
+  await expect(page.getByRole("link", { name: /Grace Wedding Events/ }).first()).toBeVisible();
+
   // Customers and materials.
   await page.goto("/app/customers");
   await expect(page.getByText("Lindiwe Dlamini")).toBeVisible();
@@ -105,4 +118,24 @@ test("a maker who is signed in is not given a demo, and a demo that has run out 
   const gone = await fetch(`${url}/rest/v1/organisations?id=eq.${org!.id}&select=id`, { headers });
   expect(await gone.json()).toEqual([]);
   await visitor.close();
+});
+
+test("every kind of maker builds: its business, a draft, a sent and an accepted quote, a job and an invoice draft", async ({ browser }) => {
+  test.setTimeout(240_000);
+  const cases = [
+    { kind: "woodworker", business: "Karoo Timber Works", accepted: "Karoo Guest Lodge" },
+    { kind: "seamstress", business: "Stitch & Thread", accepted: "Bridal Boutique Rosebank" },
+    { kind: "ceramicist", business: "Earth & Fire Ceramics", accepted: "The Pottery Cafe" },
+  ] as const;
+  for (const c of cases) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await startDemo(page, c.kind);
+    await expect(page.getByTestId("business-name")).toHaveText(c.business);
+    await page.goto("/app/quotes");
+    await expect(page.getByRole("link", { name: new RegExp(c.accepted) }).first()).toBeVisible();
+    await page.goto("/app/jobs");
+    await expect(page.getByRole("link", { name: new RegExp(c.accepted) })).toBeVisible();
+    await context.close();
+  }
 });
