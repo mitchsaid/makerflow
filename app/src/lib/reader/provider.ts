@@ -2,7 +2,7 @@ import "server-only";
 import { READER_MAX_ITEMS, type ReaderMediaType } from "./index";
 
 /**
- * The one call to the AI service that reads a document (docs/plans/import-onboarding.md, slice 2). A fixed tool forces
+ * The one call to the AI service that reads a document (docs/plans/import-onboarding.md, slice 2). A fixed tool, asked for in the prompt, gives
  * a fixed answer shape; the answer is still untrusted and goes through `sanitiseReading`. The document is sent once,
  * not stored here or anywhere else, and neither it nor the answer is logged.
  */
@@ -28,6 +28,7 @@ const SYSTEM = [
   "Only record what is printed on the document. Leave a field out when it is not there; never guess or invent.",
   "Prices are the price of ONE unit, as printed, with no currency symbol or VAT adjustment.",
   "For items, list each distinct product or service the business sells. Leave out delivery, discounts, deposits, totals, VAT and balances.",
+  `Record everything by calling the ${"record_document"} tool exactly once, and write nothing else.`,
 ].join(" ");
 
 const STRING = { type: "string" } as const;
@@ -85,7 +86,10 @@ export async function readDocument(file: { bytes: Uint8Array; mediaType: ReaderM
         max_tokens: 4000,
         system: SYSTEM,
         tools: [{ name: TOOL, description: "Record what the document says about the business that issued it.", input_schema: SCHEMA }],
-        tool_choice: { type: "tool", name: TOOL },
+        // Not a forced tool call: the current Sonnet and Opus refuse `tool_choice` any/tool with a 400. The system prompt
+        // asks for the one call, and an answer without it is "unreadable". Low effort: this is extraction, not reasoning.
+        tool_choice: { type: "auto" },
+        output_config: { effort: "low" },
         messages: [{ role: "user", content: [block, { type: "text", text: "Read this document and record the business's details and the items it sells." }] }],
       }),
       signal: AbortSignal.timeout(config.timeoutMs ?? TIMEOUT_MS),

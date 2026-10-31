@@ -104,7 +104,7 @@ describe("readDocument (the provider call, with a fake service)", () => {
   const pdf = { bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]), mediaType: "application/pdf" as const };
   const reply = (status: number, body: unknown) => vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
 
-  it("sends the document with a forced tool, the key in a header and nothing else, and returns the tool's input", async () => {
+  it("sends the document with one tool to call, the key in a header and nothing else, and returns the tool's input", async () => {
     const { readDocument } = await import("../provider");
     const fetchImpl = reply(200, { content: [{ type: "text", text: "hi" }, { type: "tool_use", name: "record_document", input: { business: { name: "X" }, items: [] } }] });
     const out = await readDocument(pdf, { apiKey: "sk-test", fetchImpl: fetchImpl as unknown as typeof fetch, baseUrl: "http://fake" });
@@ -113,7 +113,10 @@ describe("readDocument (the provider call, with a fake service)", () => {
     expect(url).toBe("http://fake/v1/messages");
     expect((init.headers as Record<string, string>)["x-api-key"]).toBe("sk-test");
     const sent = JSON.parse(init.body as string);
-    expect(sent.tool_choice).toEqual({ type: "tool", name: "record_document" });
+    // Never a forced tool: the current Sonnet and Opus answer that with a 400.
+    expect(sent.tool_choice).toEqual({ type: "auto" });
+    expect(sent.output_config).toEqual({ effort: "low" });
+    expect(sent.system).toContain("record_document");
     expect(sent.messages[0].content[0]).toMatchObject({ type: "document", source: { type: "base64", media_type: "application/pdf" } });
     expect(JSON.stringify(sent)).not.toContain("sk-test");
   });
