@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { businessTab, openBusinessProfile, setJobStatus, signUpAndOnboard } from "./helpers";
-import { acceptedQuote, businessWithAddress, issueFromQuoteSheet } from "./invoice-helpers";
+import { acceptedQuote, businessWithAddress, issueFromQuoteSheet, issuedInvoice } from "./invoice-helpers";
 import { addCustomerInSheet, sheet } from "./quote-helpers";
 
 /** Invoices with no quote, and drafts (docs/plans/invoice-i3.md, slice I3b). */
@@ -388,4 +388,44 @@ test("an invoice picks a theme on its preview, the next invoice starts with it, 
   await expect(page).toHaveURL(/\/app\/invoices\/[0-9a-f-]{36}$/);
   await expect(page.getByTestId("current-design")).toHaveText("Warm");
   await expect(page.getByText("The look this invoice was sent with.")).toBeVisible();
+});
+
+test("a sent invoice and a draft can each be duplicated from their card into a new draft", async ({ page }) => {
+  test.setTimeout(300_000);
+  await issuedInvoice(page, "invoice-duplicate", { name: "Cupcakes", quantity: "10", price: "250" });
+  await page.goto("/app/invoices");
+  const card = (name: string | RegExp) => page.getByRole("button", { name });
+
+  // A sent invoice: asks first, then opens a new DRAFT (not a numbered invoice) with the same customer and total.
+  await expect(card(/^More for Thandi Nkosi, invoice INV-0001/)).toBeVisible();
+  await card(/^More for Thandi Nkosi, invoice INV-0001/).click();
+  await page.getByRole("dialog", { name: /Thandi Nkosi · INV-0001/ }).getByRole("button", { name: /Duplicate/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Duplicate this invoice?");
+  await sheet(page).getByRole("button", { name: "Not now" }).click();
+  await expect(page.getByRole("button", { name: /^Drafts/ })).toHaveCount(0);
+  await card(/^More for Thandi Nkosi, invoice INV-0001/).click();
+  await page.getByRole("dialog", { name: /Thandi Nkosi · INV-0001/ }).getByRole("button", { name: /Duplicate/ }).click();
+  await sheet(page).getByRole("button", { name: "Duplicate", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("2 500"));
+  await expect(page.getByText("Cupcakes")).toBeVisible();
+
+  // The list has the new draft (under Drafts), and the invoice is still the only numbered one.
+  await page.goto("/app/invoices");
+  await expect(page.getByRole("link", { name: /INV-0001/ })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: /INV-0002/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /^Drafts \(1\)/ }).click();
+  await expect(page.getByTestId("invoice-draft-row")).toHaveCount(1);
+
+  // A draft can be duplicated too.
+  await card(/^More for Thandi Nkosi, draft/).click();
+  await page.getByRole("dialog", { name: /Thandi Nkosi · draft/ }).getByRole("button", { name: /Duplicate/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Duplicate this draft?");
+  await sheet(page).getByRole("button", { name: "Duplicate", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("sticky-total")).toHaveText(rand("2 500"));
+  await page.goto("/app/invoices");
+  await page.getByRole("button", { name: /^Drafts \(2\)/ }).click();
+  await expect(page.getByTestId("invoice-draft-row")).toHaveCount(2);
 });

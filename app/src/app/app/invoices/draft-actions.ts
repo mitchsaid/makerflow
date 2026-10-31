@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation, type Workspace } from "@/lib/auth/dal";
 import { blankInvoiceForm, differsFromQuote, isInvoiceDraftForm, type InvoiceDraftErrors } from "@/lib/invoices/draft";
+import { invoiceFormFromSnapshot } from "@/lib/invoices/duplicate";
 import { findInvoiceDraft } from "@/lib/invoices/draft-data";
 import { parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
 import { prepareInvoiceDraft } from "@/lib/invoices/prepare-draft";
@@ -12,7 +13,8 @@ import { findStoredQuote } from "@/lib/quotes/data";
 import { toFormValues } from "@/lib/quotes/form-values";
 import { getLocalePack } from "@/lib/locale";
 import { quantityToInput } from "@/lib/money";
-import { todayIn } from "@/lib/quotes/dates";
+import { addDays, todayIn } from "@/lib/quotes/dates";
+import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
 import { isStarterKey } from "@/lib/quotes/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -371,3 +373,75 @@ export async function saveInvoiceDraftTheme(draftId: string, id: string | null, 
   revalidatePath(`/app/invoices/drafts/${draftId}/preview`);
   return { status: "saved" };
 }
+
+export type DuplicateResult = { status: "error"; message: string };
+
+/**
+ * "Duplicate" on an invoice's card (docs/plans/duplicate.md): a new invoice DRAFT with the same customer and items, today's
+ * date and the usual due day, opened for checking. It is never a numbered invoice and the original is untouched. The
+ * invoice's document is turned back into a form and worked out again on the server when it is sent, so it totals what
+ * the original did (`invoiceFormFromSnapshot`).
+ */
+export async function duplicateInvoice(invoiceId: string): Promise<DuplicateResult> {
+  const { organisation, profile, user } = await requireOrganisation();
+  if (!UUID.test(invoiceId)) return { status: "error", message: GENERIC_ERROR };
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("invoices").select("organisation_id, customer_id, snapshot").eq("id", invoiceId).maybeSingle();
+  const found = row as { organisation_id: string; customer_id: string | null; snapshot: QuoteSnapshot } | null;
+  if (!found || found.organisation_id !== organisation.id) return { status: "error", message: "That invoice could not be found." };
+
+  const locale = getLocalePack(profile.countryCode);
+  const copied = invoiceFormFromSnapshot(found.snapshot, {
+    customerId: found.customer_id ?? "",
+    today: todayIn(locale.timeZone),
+    dueDays: locale.documents.invoice.dueDays,
+    numberStyle: locale.numberStyle,
+  });
+  if (!copied.ok) return { status: "error", message: `${copied.reason} Start a new invoice instead.` };
+  return insertDuplicate(copied.form, found.customer_id, { id: null, starter: null }, organisation.id, user.id);
+}
+
+/** "Duplicate" on a draft's card: a new draft with the same form, today's date and the usual due day, and no quote. */
+export async function duplicateInvoiceDraft(draftId: string): Promise<DuplicateResult> {
+  const { organisation, profile, user } = await requireOrganisation();
+  if (!UUID.test(draftId)) return { status: "error", message: GENERIC_ERROR };
+  const stored = await findInvoiceDraft(draftId);
+  if (!stored || stored.organisationId !== organisation.id || !stored.form) {
+    return { status: "error", message: "That draft can't be found any more. It may have been sent or discarded." };
+  }
+  const locale = getLocalePack(profile.countryCode);
+  const today = todayIn(locale.timeZone);
+  const form = { ...stored.form, issueDate: today, dueDate: addDays(today, locale.documents.invoice.dueDays) };
+  return insertDuplicate(form, stored.form.customerId || null, stored.theme, organisation.id, user.id);
+}
+
+async function insertDuplicate(
+  form: ReturnType<typeof blankInvoiceForm>,
+  customerId: string | null,
+  theme: { id: string | null; starter: string | null },
+  organisationId: string,
+  userId: string,
+): Promise<DuplicateResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoice_drafts")
+    .insert({
+      organisation_id: organisationId,
+      customer_id: customerId,
+      form,
+      // The look of the original, copied (not a new choice).
+      theme_id: theme.id,
+      theme_starter: theme.starter,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    if (error?.code === "54000") return { status: "error", message: "You can keep up to 100 invoice drafts. Send or discard one first." };
+    console.error("could not duplicate an invoice:", error?.code, error?.message);
+    return { status: "error", message: GENERIC_ERROR };
+  }
+  revalidatePath("/app/invoices");
+  redirect(`/app/invoices/drafts/${(data as { id: string }).id}`);
+}
+
