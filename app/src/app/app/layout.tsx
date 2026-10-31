@@ -1,16 +1,18 @@
 import { BusinessTypesProvider } from "@/components/business-types-context";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { PageTransition } from "@/components/page-transition";
+import { DemoBanner } from "./demo-banner";
 import { WorkspaceNav } from "./nav";
 
 export default async function WorkspaceLayout({ children }: LayoutProps<"/app">) {
-  const { organisation, profile } = await requireOrganisation();
+  const { organisation, profile, demo } = await requireOrganisation();
 
   return (
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
       <WorkspaceNav businessName={organisation.name} />
       {/* Bottom padding (the tab bar's height) keeps content clear of the fixed tab bar on phones. */}
       <div className="flex min-w-0 flex-1 flex-col pb-14 md:pb-0">
+        {demo && <DemoBanner kind={demo.kind} expiresAt={demo.expiresAt} />}
         <BusinessTypesProvider types={profile.businessTypes}>
           <PageTransition>{children}</PageTransition>
         </BusinessTypesProvider>

@@ -18,6 +18,8 @@ import { isSignOffAs } from "@/lib/quotes/sign-off";
  */
 
 export type SessionUser = { id: string; email: string | null };
+import { isDemoKind, type DemoKind } from "@/lib/demo";
+
 export type Organisation = { id: string; name: string };
 
 export type Workspace = {
@@ -32,6 +34,8 @@ export type Workspace = {
   paymentMethods: PaymentMethod[];
   /** Friendly prompts this person has dismissed in this business (their own only). */
   dismissedPrompts: string[];
+  /** Set when this business is a visitor's temporary demo (docs/plans/demo-accounts.md): which sample business, and when it is thrown away. */
+  demo: { kind: DemoKind; expiresAt: string } | null;
 };
 
 /**
@@ -103,6 +107,8 @@ type ProfileRow = {
 type OrganisationRow = {
   id: string;
   name: string;
+  demo_kind: string | null;
+  demo_expires_at: string | null;
   business_profiles: ProfileRow | ProfileRow[] | null;
   business_bank_details: BankRow | BankRow[] | null;
   payment_methods: PaymentMethodRow[] | null;
@@ -128,7 +134,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
     .select(
       `role,
        organisations (
-         id, name,
+         id, name, demo_kind, demo_expires_at,
          business_profiles (
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
@@ -205,6 +211,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
       }),
     ),
     dismissedPrompts: (org.prompt_dismissals ?? []).map((d) => d.prompt_key),
+    demo: isDemoKind(org.demo_kind) && org.demo_expires_at ? { kind: org.demo_kind, expiresAt: org.demo_expires_at } : null,
   };
 });
 
@@ -215,5 +222,7 @@ export async function requireOrganisation(): Promise<Workspace> {
     await requireUser(); // cached: redirects to sign-in if the session is gone
     redirect("/onboarding");
   }
+  // A demo that has run out is over, whether or not the clean-up has reached it yet.
+  if (workspace.demo && Date.parse(workspace.demo.expiresAt) <= Date.now()) redirect("/demo/ended");
   return workspace;
 }

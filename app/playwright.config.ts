@@ -49,7 +49,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       // The reader is switched on by a key; here it is a made-up one and the "service" is the stand-in above.
-      env: { ANTHROPIC_API_KEY: "test-key", ANTHROPIC_BASE_URL: "http://127.0.0.1:4010" },
+      env: { ANTHROPIC_API_KEY: "test-key", ANTHROPIC_BASE_URL: "http://127.0.0.1:4010", CRON_SECRET: "test-cron-secret" },
     },
   ],
 });

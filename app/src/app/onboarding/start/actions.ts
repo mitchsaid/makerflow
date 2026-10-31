@@ -20,7 +20,9 @@ const UNREADABLE = "We couldn't read details from that. Try a clearer photo, or 
  * The answer only fills in a form the maker checks and saves, through the same save as any other change.
  */
 export async function readBusinessDocument(formData: FormData): Promise<ReadResult> {
-  const { organisation, role, profile, user } = await requireOrganisation();
+  const { organisation, role, profile, user, demo } = await requireOrganisation();
+  // A demo never calls the paid service (docs/plans/demo-accounts.md).
+  if (demo) return { status: "error", message: "Reading a document isn't part of the demo. Sign up to try it with your own quote." };
   if (!canEditBusinessProfile(role)) return { status: "error", message: "Only owners and admins can fill in the business details." };
   if (!readerEnabled()) return { status: "error", message: "Reading a document isn't switched on yet. You can fill in your details by hand." };
 
