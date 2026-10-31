@@ -33,9 +33,18 @@ async function expectNoViolations(page: Page, where: string) {
     const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
     if (bar) bar.style.position = "static";
   });
-  const { violations } = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
+  const scan = () =>
+    new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+  let { violations } = await scan();
+  // Next streams the page's title in after a client-side navigation, and for a moment the head can be between one
+  // title and the next. If that is the only thing found, look again: a title that is really missing is still found
+  // on every scan, and fails here.
+  for (let again = 0; again < 3 && violations.length > 0 && violations.every((v) => v.id === "document-title"); again++) {
+    await page.waitForTimeout(400);
+    ({ violations } = await scan());
+  }
   await page.evaluate(() => {
     const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
     if (bar) bar.style.position = "";
@@ -1098,6 +1107,23 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "a finished job, with the invoice card");
       await page.getByTestId("invoice-job-nudge").getByRole("button", { name: "Not now" }).click();
       await expectNoViolations(page, "a finished job, the plain invoice button");
+    });
+
+    test("the feedback sheet: asking, a problem, and sent", async ({ page }) => {
+      test.setTimeout(180_000);
+      await signUpAndOnboard(page, `a11y-feedback-${scheme}`, "Axe Feedback Co");
+      await openMore(page);
+      await expectNoViolations(page, "More, with the feedback row");
+      await page.getByRole("button", { name: /Send feedback/ }).click();
+      await expect(page.getByRole("dialog", { name: "Send feedback" })).toBeVisible();
+      await expectNoViolations(page, "feedback sheet");
+      await page.getByRole("dialog", { name: "Send feedback" }).getByRole("button", { name: "Send feedback" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "feedback sheet, with a problem");
+      await page.getByRole("dialog", { name: "Send feedback" }).getByLabel("Your message").fill("Looks good");
+      await page.getByRole("dialog", { name: "Send feedback" }).getByRole("button", { name: "Send feedback" }).click();
+      await expect(page.getByTestId("feedback-sent")).toBeVisible();
+      await expectNoViolations(page, "feedback sheet, sent");
     });
 
     test("a customer's page: each section, with and without history", async ({ page }) => {

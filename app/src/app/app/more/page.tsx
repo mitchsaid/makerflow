@@ -1,5 +1,6 @@
 import Link from "@/components/app-link";
 import { requireOrganisation } from "@/lib/auth/dal";
+import { FeedbackButton } from "../feedback/feedback-button";
 
 const LINKS = [
   {
@@ -48,6 +49,9 @@ export default async function MorePage() {
             </Link>
           </li>
         ))}
+        <li>
+          <FeedbackButton variant="row" />
+        </li>
       </ul>
     </main>
   );

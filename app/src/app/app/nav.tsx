@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { FeedbackButton } from "./feedback/feedback-button";
 
 type Item = {
   href: string;
@@ -88,6 +89,10 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
           );
         })}
       </ul>
+      {/* On wider screens there is no More tab: feedback sits at the foot of the sidebar. */}
+      <div className="hidden px-2 pt-4 md:block">
+        <FeedbackButton variant="sidebar" />
+      </div>
     </nav>
   );
 }
