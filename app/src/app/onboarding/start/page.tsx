@@ -14,10 +14,10 @@ export const maxDuration = 60;
  * who can change the business details. Skipping goes on to Home (or back to the Business profile).
  */
 export default async function StartFromDocumentPage({ searchParams }: PageProps<"/onboarding/start">) {
-  const [{ organisation, profile, role }, params] = await Promise.all([requireOrganisation(), searchParams]);
+  const [{ organisation, profile, role, demo }, params] = await Promise.all([requireOrganisation(), searchParams]);
   const fromBusiness = params.from === "business";
   const skipHref = fromBusiness ? "/app/business" : "/app";
-  if (!readerEnabled() || !canEditBusinessProfile(role)) redirect(skipHref);
+  if (!readerEnabled() || demo || !canEditBusinessProfile(role)) redirect(skipHref);
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">

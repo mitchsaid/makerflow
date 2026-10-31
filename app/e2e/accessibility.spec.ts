@@ -66,6 +66,10 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/sign-in");
       await expectNoViolations(page, "sign-in");
 
+      await page.goto("/?demo=ended");
+      await expect(page.getByText("Your demo has ended.")).toBeVisible();
+      await expectNoViolations(page, "landing page, after a demo ended");
+
       await page.goto("/sign-in?error=link");
       await expect(page.getByText("expired or was already used")).toBeVisible();
       await expectNoViolations(page, "sign-in with an error");
@@ -758,6 +762,21 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByLabel("Intro (optional)").fill("A different introduction");
       await expect(page.getByRole("button", { name: "Use this intro on new quotes" })).toBeVisible();
       await expectNoViolations(page, "new quote, deposit choice and the Use on new quotes link");
+    });
+    test("a demo business: the landing picker, the banner, and a few of its screens", async ({ page }) => {
+      test.setTimeout(180_000);
+      await page.goto("/");
+      await expectNoViolations(page, "landing page with the demo picker");
+      await page.getByTestId("demo-seamstress").click();
+      await expect(page).toHaveURL(/\/app$/, { timeout: 45_000 });
+      await expect(page.getByTestId("demo-banner")).toBeVisible();
+      await expectNoViolations(page, "a demo's Home, with the banner");
+      await page.goto("/app/products");
+      await expect(page.getByText("Made-to-measure dress")).toBeVisible();
+      await expectNoViolations(page, "a demo's products");
+      await page.goto("/app/materials");
+      await expect(page.getByText("Cotton fabric")).toBeVisible();
+      await expectNoViolations(page, "a demo's materials");
     });
     test("importing products: paste, columns, check, and after adding", async ({ page }) => {
       test.setTimeout(180_000);

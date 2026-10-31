@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { DemoPicker } from "./demo-picker";
 
-export default function Home() {
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const params = await searchParams;
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-4 py-12 text-center">
       <div className="space-y-3">
@@ -16,10 +18,8 @@ export default function Home() {
         <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
           Get started
         </Link>
-        <Button variant="outline" size="lg" disabled>
-          Try the demo (coming soon)
-        </Button>
       </div>
+      <DemoPicker ended={params.demo === "ended"} />
     </main>
   );
 }

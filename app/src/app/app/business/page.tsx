@@ -43,7 +43,7 @@ function OnlyOwners({ title, children }: { title: string; children: React.ReactN
  * rate and target margin with the products.
  */
 export default async function BusinessProfilePage({ searchParams }: PageProps<"/app/business">) {
-  const [{ organisation, profile, role, bankDetails, paymentMethods }, query] = await Promise.all([requireOrganisation(), searchParams]);
+  const [{ organisation, profile, role, bankDetails, paymentMethods, demo }, query] = await Promise.all([requireOrganisation(), searchParams]);
   // "bank" is the tab's old name: a bookmark to it still opens Ways to pay.
   const asked = typeof query.section === "string" ? query.section : "details";
   const wanted = asked === "bank" ? "pay" : asked;
@@ -73,7 +73,7 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
         panels={{
           details: canEdit ? (
             <div className="space-y-6">
-              {readerEnabled() && (
+              {readerEnabled() && !demo && (
                 <Link href="/onboarding/start?from=business" className={buttonVariants({ variant: "outline" })} data-testid="fill-from-document">
                   Fill in from a quote or invoice
                 </Link>

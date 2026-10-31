@@ -93,7 +93,7 @@ Design implications already in mind:
 Founder decisions (2026-10-14):
 - **Several demo accounts, one per kind of business: three to five** (for example a baker, a woodworker, a seamstress, a ceramicist, a printer), so a visitor can pick the one closest to their own trade. Each is its own demo business with sample customers, products, materials, quotes and jobs that make sense for that trade. The builder takes the kind of business as an input; the sample content for each kind lives with the builder (a dev-and-demo content file, never in a normal product path).
 - **Every demo business has a logo** (a made-up one, stored the usual way as a picture in the `pictures` bucket and `images` table), so the logo card on the Business profile and the logo on quotes show up in the demo as they do for a real business, and the "Add your logo" prompt does not appear there.
-- Still to decide when the demo is built: how a visitor picks (a short row of business types on the landing page is the proposal).
+- **Built 2026-10-31 (slice 1):** a visitor picks one of four kinds (baker, woodworker, seamstress, ceramicist) on the landing page and lands in a private demo business with a banner, start-over and a 6-hour expiry. See `docs/plans/demo-accounts.md`. No issued invoices in a demo (they can never be deleted).
 
 ## 5. Delivery layers (proposal)
 
