@@ -1,6 +1,6 @@
 # Plan: public demo accounts ("Try the demo" on the landing page)
 
-Status: **slice 1 built 2026-10-31** (a private demo business per visitor with the sample business, logo, customers, materials and costed products; banner, start over, expiry and clean-up). **Slice 2** (sample quotes, a job, an invoice draft) is next. Founder, 2026-10-31: "After this build the demo accounts." Requirement and decisions: `docs/product-brief.md`, section 4a (private sandbox per visitor, several demos one per kind of maker, each with a logo). **Needs human review**: anonymous sign-in, a new security-definer function and new columns that decide what a business may do (migration `20261202100000_demo_accounts.sql`).
+Status: **slice 1 built 2026-10-31** (a private demo business per visitor with the sample business, logo, customers, materials and costed products; banner, start over, expiry and clean-up). **Slice 2 built the same day** (three sample quotes per demo: a draft that shows the margin, a sent one and an accepted one with a job in progress and an invoice draft). Founder, 2026-10-31: "After this build the demo accounts." Requirement and decisions: `docs/product-brief.md`, section 4a (private sandbox per visitor, several demos one per kind of maker, each with a logo). **Needs human review**: anonymous sign-in, a new security-definer function and new columns that decide what a business may do (migration `20261202100000_demo_accounts.sql`).
 
 ## Where things stand
 The landing page had an inactive "Try the demo (coming soon)". Nothing sends email and nothing takes a payment yet, so "demos never send real email or take real payments" holds today without a block; it must be kept when either is built (the check is `workspace.demo`).
@@ -43,7 +43,7 @@ Inputs by kind: none (choices only).
 
 ## Slices
 1. **Built:** the above, with the sample business, logo, customers, materials and costed products.
-2. **Next:** a draft quote with margin visible, a sent quote, an accepted quote with its job in progress, and an invoice draft, per kind (the server's own functions for sending are used after the visitor's session proves they own the business).
+2. **Built:** a draft quote with the margin showing, a sent quote, and an accepted quote with its job in progress and an invoice draft, per kind. Each goes through the same server actions a maker's taps do (save, send, record the answer, make the job, start the invoice), called by the builder as the visitor, so numbers, frozen versions and costing are exactly the app's; the server key is used only where the app itself uses it (sending, making a job).
 3. **Later:** a printer demo; CAPTCHA; "turn this demo into my account" (link an email to the anonymous user, keeping what they did).
 
 ## Tests

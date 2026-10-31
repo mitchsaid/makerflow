@@ -30,6 +30,20 @@ export type DemoProduct = {
 
 export type DemoCustomer = { name: string; email: string; phone: string; city: string; region: string; postalCode: string; addressLine1: string; notes?: string };
 
+/**
+ * A sample quote: for which customer, what is on it (a product by name, its variation and extras by name), and how far
+ * it has got. "accepted" also gets a job in progress and an invoice draft; a demo never has an issued invoice
+ * (docs/plans/demo-accounts.md, decision 5).
+ */
+export type DemoQuote = {
+  customer: string;
+  status: "draft" | "sent" | "accepted";
+  title?: string;
+  /** How many days ago it was made out (small: a quote must not already have run out). */
+  daysAgo: number;
+  items: { product: string; variation?: string; extras?: string[]; quantity: number }[];
+};
+
 export type DemoContent = {
   businessName: string;
   ownerName: string;
@@ -50,6 +64,7 @@ export type DemoContent = {
   materials: DemoMaterial[];
   customers: DemoCustomer[];
   products: DemoProduct[];
+  quotes: DemoQuote[];
 };
 
 const R = (rand: number) => rand * 100;
@@ -132,6 +147,20 @@ const BAKER: DemoContent = {
     { name: "Wedding cake tasting box", kind: "product", description: "Six mini cakes to taste before you choose.", priceCents: R(350) },
     { name: "Cake design consultation", kind: "service", description: "Planning a cake with you, by phone or in person.", priceCents: R(180), unit: "hour" },
   ],
+  quotes: [
+    {
+      customer: "Grace Wedding Events",
+      status: "accepted",
+      title: "Cakes for the Davids wedding",
+      daysAgo: 3,
+      items: [
+        { product: "Celebration cake", variation: "Large (serves 30)", extras: ["Fondant topper", "Fresh flowers"], quantity: 1 },
+        { product: "Chocolate cupcakes", quantity: 3 },
+      ],
+    },
+    { customer: "Lindiwe Dlamini", status: "sent", title: "Birthday cake for the twins", daysAgo: 1, items: [{ product: "Celebration cake", variation: "Medium (serves 16)", extras: ["Fondant topper"], quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }] },
+    { customer: "Pieter van Wyk", status: "draft", daysAgo: 0, items: [{ product: "Celebration cake", variation: "Small (serves 8)", quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }, { product: "Cake design consultation", quantity: 1 }] },
+  ],
 };
 
 const WOODWORKER: DemoContent = {
@@ -205,6 +234,17 @@ const WOODWORKER: DemoContent = {
     { name: "Custom commission", kind: "service", description: "Design and building to your drawing, charged by the hour.", priceCents: R(380), unit: "hour" },
     { name: "Delivery and set-up", kind: "service", description: "We bring it and put it in place.", priceCents: R(650) },
   ],
+  quotes: [
+    {
+      customer: "Karoo Guest Lodge",
+      status: "accepted",
+      title: "Dining tables for the lodge",
+      daysAgo: 3,
+      items: [{ product: "Dining table", variation: "2.4 m (seats 10)", extras: ["Engraved initials"], quantity: 2 }, { product: "Delivery and set-up", quantity: 1 }],
+    },
+    { customer: "Annelize Pretorius", status: "sent", daysAgo: 1, items: [{ product: "Bench", quantity: 1 }, { product: "Cutting board", quantity: 2 }] },
+    { customer: "Mpho Sithole", status: "draft", daysAgo: 0, items: [{ product: "Bench", quantity: 1 }, { product: "Custom commission", quantity: 6 }, { product: "Delivery and set-up", quantity: 1 }] },
+  ],
 };
 
 const SEAMSTRESS: DemoContent = {
@@ -263,6 +303,17 @@ const SEAMSTRESS: DemoContent = {
     { name: "Replace a zip", kind: "service", description: "New zip fitted, matching colour.", priceCents: R(160) },
     { name: "Suit alteration", kind: "service", description: "Jacket and trousers taken in or let out.", priceCents: R(520) },
     { name: "Cushion cover", kind: "product", description: "Cotton, with an invisible zip.", priceCents: R(180) },
+  ],
+  quotes: [
+    {
+      customer: "Bridal Boutique Rosebank",
+      status: "accepted",
+      title: "Bridal alterations, March",
+      daysAgo: 3,
+      items: [{ product: "Suit alteration", quantity: 3 }, { product: "Hem trousers or skirt", quantity: 4 }, { product: "Replace a zip", quantity: 2 }],
+    },
+    { customer: "Zanele Khumalo", status: "sent", title: "Cocktail dress", daysAgo: 1, items: [{ product: "Made-to-measure dress", variation: "Cocktail dress", extras: ["Lining", "Hand-finished hem"], quantity: 1 }] },
+    { customer: "Michelle Naidoo", status: "draft", daysAgo: 0, items: [{ product: "Made-to-measure dress", variation: "Day dress", quantity: 1 }, { product: "Cushion cover", quantity: 4 }] },
   ],
 };
 
@@ -335,6 +386,17 @@ const CERAMICIST: DemoContent = {
     { name: "Mug", kind: "product", description: "Stoneware mug, dishwasher safe.", priceCents: R(185) },
     { name: "Pottery workshop", kind: "service", description: "A two-hour hands-on class for up to six people.", priceCents: R(1800) },
     { name: "Commissioned piece", kind: "service", description: "Designed and made to your brief, charged by the hour.", priceCents: R(240), unit: "hour" },
+  ],
+  quotes: [
+    {
+      customer: "The Pottery Cafe",
+      status: "accepted",
+      title: "Quarterly cafe order",
+      daysAgo: 3,
+      items: [{ product: "Mug", quantity: 24 }, { product: "Dinner set", variation: "Celadon", extras: ["Gift packaging"], quantity: 6 }],
+    },
+    { customer: "Ayesha Patel", status: "sent", daysAgo: 1, items: [{ product: "Vase", quantity: 2 }, { product: "Mug", quantity: 4 }] },
+    { customer: "Coastal Weddings", status: "draft", daysAgo: 0, items: [{ product: "Vase", quantity: 4 }, { product: "Pottery workshop", quantity: 1 }] },
   ],
 };
 

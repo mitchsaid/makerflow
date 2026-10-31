@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { getWorkspace, requireOrganisation } from "@/lib/auth/dal";
 import { buildDemoBusiness } from "@/lib/demo/build";
+import { buildDemoDocuments } from "./build-documents";
 import { demoContent } from "@/lib/demo/content";
 import { isDemoKind } from "@/lib/demo";
 import { purgeExpiredDemos, removeDemoOf } from "@/lib/demo/purge";
@@ -59,6 +60,7 @@ export async function buildDemo(): Promise<DemoResult> {
   if (!workspace?.demo) return { status: "error", message: GENERIC };
   try {
     await buildDemoBusiness(workspace);
+    await buildDemoDocuments(workspace);
   } catch (error) {
     console.error("could not build the demo:", (error as Error).message);
     return { status: "error", message: GENERIC };

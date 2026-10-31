@@ -2,6 +2,9 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { DemoPicker } from "./demo-picker";
 
+// Building a demo business (sample customers, products, quotes and a logo) takes several seconds; a hosted function is given up to a minute.
+export const maxDuration = 60;
+
 export default async function Home({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   return (
