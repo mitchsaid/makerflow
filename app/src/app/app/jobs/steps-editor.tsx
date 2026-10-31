@@ -184,27 +184,8 @@ export function StepsEditor({
             </Button>
           </div>
         </form>
-      ) : (
-        steps.length < 30 && (
-          <AddButton
-            ref={addButton}
-            onClick={() => {
-              setAdding(true);
-              setTimeout(() => document.getElementById(`add-step-${itemId}`)?.focus(), 0);
-            }}
-          >
-            Add a step
-            <span className="sr-only"> to {name}</span>
-          </AddButton>
-        )
-      )}
+      ) : null}
 
-      {stepsEdited && asking?.kind !== "reset" && (
-        <Button type="button" variant="outline" disabled={busy} onClick={() => setAsking({ kind: "reset" })}>
-          Reset to the product&apos;s steps
-          <span className="sr-only"> for {name}</span>
-        </Button>
-      )}
       {asking?.kind === "reset" && (
         <div ref={question} className="space-y-3 rounded-xl border border-destructive/50 p-3" role="alertdialog" aria-label="Reset the steps?">
           <p className="text-base">Put {name} back to the product&apos;s steps? What has been counted on its steps goes back to none.</p>
@@ -224,20 +205,41 @@ export function StepsEditor({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          setOpen(false);
-          setAdding(false);
-          setAsking(null);
-          setMessage(null);
-          setTimeout(() => openButton.current?.focus(), 0);
-        }}
-      >
-        Done
-        <span className="sr-only"> changing steps</span>
-      </Button>
+      {/* The ways on, in one row with room between them. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {!adding && steps.length < 30 && (
+          <AddButton
+            ref={addButton}
+            onClick={() => {
+              setAdding(true);
+              setTimeout(() => document.getElementById(`add-step-${itemId}`)?.focus(), 0);
+            }}
+          >
+            Add a step
+            <span className="sr-only"> to {name}</span>
+          </AddButton>
+        )}
+        {stepsEdited && asking?.kind !== "reset" && (
+          <Button type="button" variant="outline" disabled={busy} onClick={() => setAsking({ kind: "reset" })}>
+            Reset to the product&apos;s steps
+            <span className="sr-only"> for {name}</span>
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setOpen(false);
+            setAdding(false);
+            setAsking(null);
+            setMessage(null);
+            setTimeout(() => openButton.current?.focus(), 0);
+          }}
+        >
+          Done
+          <span className="sr-only"> changing steps</span>
+        </Button>
+      </div>
     </div>
   );
 }

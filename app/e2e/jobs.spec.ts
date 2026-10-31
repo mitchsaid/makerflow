@@ -491,12 +491,17 @@ test("moving a job to Ready, Out for delivery or Done counts every item as made"
   // Only part of one item is counted, then the job is set to Ready from the dropdown.
   await page.getByRole("button", { name: "One more made of Shelf" }).click();
   await expect(page.getByTestId("job-progress")).toContainText("0 of 2 items made");
+  // Still to make: the items are headed "To make".
+  await expect(page.getByRole("heading", { name: "To make", level: 2 })).toBeVisible();
   await setJobStatus(page, "Ready");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Ready$/, level: 1 })).toBeVisible();
-  // Back to Making: everything is counted as made.
+  // Ready or later means the items are made: the heading says so.
+  await expect(page.getByRole("heading", { name: "Made", level: 2, exact: true })).toBeVisible();
+  // Back to Making: everything is counted as made, and the heading still says Made.
   await setJobStatus(page, "Making");
   await expect(page.getByRole("heading", { name: /^Job J-0001 Making$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("job-progress")).toContainText("All 2 items made");
+  await expect(page.getByRole("heading", { name: "Made", level: 2, exact: true })).toBeVisible();
   await expect(page.getByTestId("item-progress").nth(0)).toContainText("All made");
   await expect(page.getByTestId("item-progress").nth(1)).toContainText("All made");
 });

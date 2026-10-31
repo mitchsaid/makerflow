@@ -15,6 +15,14 @@ export type JobFulfilment = "none" | "collection" | "delivery";
 export const isJobStatus = (value: unknown): value is JobStatus =>
   typeof value === "string" && (JOB_STATUSES as readonly string[]).includes(value);
 
+/**
+ * The heading over a job's items: "To make" while there is making to do, "Made" once the job is ready for collection or
+ * delivery or beyond (those statuses mean the items are made), or once every item has been counted as made.
+ */
+export function itemsHeading(status: JobStatus, allMade: boolean): "To make" | "Made" {
+  return status === "ready" || status === "out_for_delivery" || status === "done" || allMade ? "Made" : "To make";
+}
+
 /** "J-0007": a job's number as the maker sees it. */
 export const jobNumberText = (number: number): string => `J-${String(number).padStart(4, "0")}`;
 
