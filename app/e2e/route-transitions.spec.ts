@@ -39,7 +39,7 @@ test("going deeper slides forward, coming back slides back, and a tab fades", as
 
   // Deeper: the list to a new quote.
   let before = await count(page);
-  await page.getByRole("link", { name: "New quote" }).click();
+  await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/new/);
   await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
   const forward = await transitionsSince(page, before);
@@ -70,7 +70,7 @@ test("the page can be used straight away, during the animation", async ({ page }
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "route-transitions-usable", "Usable Co");
   await page.goto("/app/quotes");
-  await page.getByRole("link", { name: "New quote" }).click();
+  await page.getByRole("link", { name: "Start your first quote" }).click();
   // No waiting for the animation: the first field takes typing at once, and the animation layer catches no taps.
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(page.getByRole("dialog", { name: "Add an item" })).toBeVisible();
@@ -96,6 +96,6 @@ test("with reduced motion the animations have no length", async ({ page }) => {
   expect(css).toContain("prefers-reduced-motion");
   expect(css).toMatch(/view-transition-new\(\*\)/);
   await page.goto("/app/quotes");
-  await page.getByRole("link", { name: "New quote" }).click();
+  await page.getByRole("link", { name: "Start your first quote" }).click();
   await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
 });
