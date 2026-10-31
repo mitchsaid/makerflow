@@ -94,8 +94,11 @@
 }
 
 /*
- * Route transitions (docs/plans/route-transitions.md). A page slides out and in a short way when the maker goes deeper
- * or comes back (React's <ViewTransition>, with the direction from AppLink), and fades otherwise. Short and quiet.
+ * Route transitions (docs/plans/route-transitions.md), made like a phone's own. Going deeper, the new page slides in
+ * over the old one, which moves a little way left and dims under it; coming back, the page slides off to the right and
+ * the one beneath comes back into place. Between tabs nothing moves. Every page layer is opaque
+ * (the wrapper in PageTransition has the page background), so two pages are never seen through each other. The class
+ * names are the ones PageTransition gives each side (push-in, push-under, pop-out, pop-under).
  * The rest of the screen (the tab bar, the background) is the root snapshot and does not animate.
  */
 ::view-transition {
@@ -108,7 +111,7 @@
   animation: none;
 }
 
-/* The tab bar (phone) and the sidebar stay where they are, above the page that slides under or beside them. */
+/* The tab bar (phone) and the sidebar stay where they are, above the pages that slide under or beside them. */
 ::view-transition-group(app-nav) {
   animation: none;
   z-index: 100;
@@ -120,52 +123,54 @@
   animation: none;
 }
 
-@keyframes nav-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes nav-slide {
-  from {
-    translate: var(--slide-offset);
-  }
-  to {
-    translate: 0;
-  }
+:root {
+  --push-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --push-duration: 340ms;
 }
 
-::view-transition-old(.nav-forward) {
-  --slide-offset: -40px;
-  animation:
-    120ms ease-in both nav-fade reverse,
-    200ms ease-in-out both nav-slide reverse;
+/* What is on top while it moves. */
+::view-transition-group(.push-in),
+::view-transition-group(.pop-out) {
+  z-index: 2;
 }
-::view-transition-new(.nav-forward) {
-  --slide-offset: 40px;
-  animation:
-    160ms ease-out 80ms both nav-fade,
-    200ms ease-in-out both nav-slide;
+::view-transition-group(.push-under),
+::view-transition-group(.pop-under) {
+  z-index: 1;
 }
-::view-transition-old(.nav-back) {
-  --slide-offset: 40px;
-  animation:
-    120ms ease-in both nav-fade reverse,
-    200ms ease-in-out both nav-slide reverse;
+
+@keyframes push-in {
+  from {
+    transform: translateX(100%);
+  }
 }
-::view-transition-new(.nav-back) {
-  --slide-offset: -40px;
-  animation:
-    160ms ease-out 80ms both nav-fade,
-    200ms ease-in-out both nav-slide;
+@keyframes push-under {
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.78);
+  }
 }
-::view-transition-old(.page-fade) {
-  animation: 90ms ease-in both nav-fade reverse;
+@keyframes pop-out {
+  to {
+    transform: translateX(100%);
+  }
 }
-::view-transition-new(.page-fade) {
-  animation: 120ms ease-out 60ms both nav-fade;
+@keyframes pop-under {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.78);
+  }
+}
+::view-transition-new(.push-in) {
+  animation: var(--push-duration) var(--push-ease) both push-in;
+}
+::view-transition-old(.push-under) {
+  animation: var(--push-duration) var(--push-ease) both push-under;
+}
+::view-transition-old(.pop-out) {
+  animation: var(--push-duration) var(--push-ease) both pop-out;
+}
+::view-transition-new(.pop-under) {
+  animation: var(--push-duration) var(--push-ease) both pop-under;
 }
 
 @media (prefers-reduced-motion: reduce) {

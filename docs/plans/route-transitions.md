@@ -6,9 +6,9 @@ Status: **planned and built 2026-10-31.** Founder, 2026-10-31, after asking whet
 No prototype counterpart. The prototype is a single-page demo with no routes (`prototype/src/App.tsx` swaps whole screens in state), so there is nothing to keep, change or drop.
 
 ## What the maker sees
-- **Going deeper** (a row to its page, a page to its preview, "Add…", Settings to a settings page): the old page slides out to the left while the new one slides in from the right, a short distance, with a fade. About a fifth of a second.
-- **Coming back** (the chevron or X at the top of a page, or any link that goes to a parent page): the reverse, sliding in from the left.
-- **Moving between tabs, or anywhere that is neither deeper nor back** (Home to Quotes, a customer to a quote that is not under it, after a save sends you somewhere): a quick fade (about a tenth of a second), no sliding.
+- **Going deeper** (a row to its page, a page to its preview, "Add…", Settings to a settings page): the new page slides in over the old one from the right, and the old page moves a little way left and dims under it, like a phone's own push. About a third of a second, decelerating.
+- **Coming back** (the chevron or X at the top of a page, or any link that goes to a parent page): the page slides off to the right and the one beneath comes back into place.
+- **Moving between tabs, or anywhere that is neither deeper nor back** (Home to Quotes, a customer to a quote that is not under it, after a save sends you somewhere): nothing moves; the page is simply there, as on a phone's own tab bar.
 - The bottom tab bar (phones) and the sidebar (wider screens) do not move. Anything pinned inside a page (a pinned action bar) moves with its page.
 - **Reduced motion:** with the phone or computer set to reduce motion, there is no animation at all.
 - **Browser back and swipe-back** carry no direction, so they fade. (In an installed app on iOS the system's own swipe-back is native.)
@@ -39,3 +39,11 @@ Inputs by kind: none.
 - Unit: `navDirection` (deeper, back, same page, peers, query and hash ignored, trailing slashes, `/app` as the root).
 - Browser (`e2e/route-transitions.spec.ts`): a row to its page and the chevron back each run a view transition with the right type; a tab change runs one with none; with reduced motion none runs; the new page is usable at once. The existing browser suite and the accessibility walk must stay green (they are the check that nothing waits on, or is blocked by, an animation).
 - By eye on a phone before release (the part tests cannot judge: that it feels right).
+
+## Revised the same day, after the founder's phone recording (2026-10-31)
+"Transitions aren't looking good." The recording (a dark-mode phone on the hosted dev app, where a page takes about half a second to arrive) showed: the old page fading and shifting while the next page's loading skeleton faded in over it, two see-through layers on a dark background that looked muddy; a tab change fading a skeleton over the old page the same way; and the skeleton then popping to the real content. What changed:
+- **Pages are opaque while they move** (the wrapper has the page background), so two pages are never seen through each other.
+- **A phone's own push and pop** instead of a fade-and-nudge: the new page slides in over the old, which moves under it and dims; coming back, the page slides away and the one beneath returns. Decelerating, about 340 ms. The tab bar stays above both.
+- **Tabs do not animate**, as on a phone's own tab bar.
+- Checked frame by frame with the server slowed to about 600 ms (the phone's wait), in dark mode, before and after.
+- Still as it was: the skeleton is replaced by the real page without an animation of its own (a cross-fade there would also run on every in-page update). A page-shaped skeleton for each route, and a reveal of the content, could follow.
