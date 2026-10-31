@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { Button } from "@/components/ui/button";
 import { deleteJob } from "./actions";
@@ -11,7 +11,7 @@ import { deleteJob } from "./actions";
  * quote and any invoice stay. The Jobs list says it is gone. Controlled, so the job page and a job's card can both open it.
  */
 export function DeleteJobSheet({ jobId, jobLabel, open, onOpenChange, finalFocus }: { jobId: string; jobLabel: string; open: boolean; onOpenChange: (open: boolean) => void; finalFocus?: () => HTMLElement | null | true }) {
-  const router = useRouter();
+  const router = useAppRouter();
   return (
     <ConfirmSheet
       open={open}

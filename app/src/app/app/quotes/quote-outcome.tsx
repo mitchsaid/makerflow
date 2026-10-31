@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -104,7 +104,7 @@ function OutcomeForm({
   thenCreateJob?: boolean;
   onDone: () => void;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [values, setValues] = useState<OutcomeFormValues>({ on: today, how: "", note: "" });
   const [errors, setErrors] = useState<OutcomeErrors>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -220,7 +220,7 @@ function OutcomeForm({
 
 /** On an accepted or declined quote: put it back to sent so a different answer can be recorded. */
 export function ChangeAnswerButton({ quoteId }: { quoteId: string }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

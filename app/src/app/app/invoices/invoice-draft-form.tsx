@@ -2,7 +2,7 @@
 
 import { rewriteAddress } from "@/lib/rewrite-address";
 import Link from "@/components/app-link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { FormErrorScope } from "@/components/form-errors";
@@ -76,7 +76,7 @@ export function InvoiceDraftForm({
   /** What the product form's Inputs tab needs, for editing a product in the sheet. */
   costing: ProductFormCosting;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [values, setValues] = useState<InvoiceDraftForm>(initial);
   const [draftId, setDraftId] = useState(initialDraftId);
   const [customers, setCustomers] = useState(initialCustomers);

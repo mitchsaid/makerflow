@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "@/components/app-link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { waitForDesignSave } from "../../design-saves";
 import { EmailQuoteSheet } from "../../email-sheet";
@@ -14,7 +14,7 @@ import { SendQuoteSheet } from "../../send-sheet";
  * sent locks the quote as sent, for a quote that has gone to the customer.
  */
 export function PreviewBar({ quoteId }: { quoteId: string }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [markOpen, setMarkOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   return (

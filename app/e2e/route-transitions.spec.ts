@@ -59,6 +59,18 @@ test("going deeper slides forward, coming back slides back, and a tab does not s
   expect(back.length).toBeGreaterThan(0);
   expect(back.flat()).toContain("nav-back");
 
+  // Back by a button that navigates in code (not a link): cancelling a new quote returns to the list the same way.
+  await page.goto("/app/quotes/new");
+  await expect(page.getByRole("heading", { name: "New quote", level: 1 })).toBeVisible();
+  // Let the page finish arriving (a late update of the page just loaded would otherwise be counted as the cancel).
+  await page.waitForTimeout(2000);
+  before = await count(page);
+  await page.getByRole("button", { name: "Cancel new quote" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes$/);
+  await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
+  const cancelled = await transitionsSince(page, before);
+  expect(cancelled.flat()).toContain("nav-back");
+
   // A tab is neither: nothing slides (as on a phone's own tab bar).
   before = await count(page);
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();

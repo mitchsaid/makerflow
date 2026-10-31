@@ -2,7 +2,7 @@
 
 import { rewriteAddress } from "@/lib/rewrite-address";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import Link from "@/components/app-link";
@@ -158,7 +158,7 @@ export function QuoteBuilder({
   /** What goes between the form and the bar, such as Delete draft. */
   children?: React.ReactNode;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [values, setValues] = useState<QuoteFormValues>(initial);
   // Kept here (not in the picker) because "deliver to" offers the chosen customer's addresses.
   const [customers, setCustomers] = useState(initialCustomers);

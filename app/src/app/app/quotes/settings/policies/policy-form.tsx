@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "@/components/app-link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { ComingLater, ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { useBusinessTypes } from "@/components/business-types-context";
@@ -57,7 +57,7 @@ export function PolicyForm({
   idPrefix?: string;
   embedded?: EmbeddedPolicyForm;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const allExamples = termExamples(content);
   const start = policyId === null ? allExamples.find((e) => e.key === startFrom) : undefined;
   const [values, setValues] = useState<PolicyFormValues>(

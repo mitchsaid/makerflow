@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ const focusTitle = () => setTimeout(() => document.getElementById("quote-title")
  * survives the page redrawing after the answer is saved.
  */
 export function CreateJobNudge({ quoteId, quoteNumber }: { quoteId: string; quoteNumber: string }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [hidden, setHidden] = useState(false);
   const [making, setMaking] = useState(false);
   const [, startTransition] = useTransition();
