@@ -1,5 +1,6 @@
 "use client";
 
+import { rewriteAddress } from "@/lib/rewrite-address";
 import Link from "@/components/app-link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
@@ -155,7 +156,7 @@ export function InvoiceDraftForm({
   function adopt(id: string | undefined) {
     if (!id || id === draftId) return;
     setDraftId(id);
-    window.history.replaceState(null, "", `/app/invoices/drafts/${id}`);
+    rewriteAddress(`/app/invoices/drafts/${id}`);
   }
 
   /** A discount that was opened and left empty is dropped, not refused. */

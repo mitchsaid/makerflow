@@ -1,5 +1,6 @@
 "use client";
 
+import { rewriteAddress } from "@/lib/rewrite-address";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
@@ -302,7 +303,7 @@ export function QuoteBuilder({
     el?.scrollIntoView({ block: "center" });
     el?.focus({ preventScroll: true });
     // The address no longer says where to land, so refreshing doesn't jump again.
-    window.history.replaceState(null, "", `/app/quotes/${quoteId}`);
+    rewriteAddress(`/app/quotes/${quoteId}`);
     // Only on arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -1,5 +1,6 @@
 "use client";
 
+import { rewriteAddress } from "@/lib/rewrite-address";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FontPicker } from "@/components/font-picker";
@@ -140,7 +141,7 @@ export function ThemeStudio({
         if (id === null) {
           setId(result.id);
           // The address of a theme that exists now (a reload opens it, not a new copy), without reloading the studio.
-          window.history.replaceState(null, "", `/app/quotes/settings/themes/${result.id}${target ? `?${themeTargetParam(target)}` : ""}`);
+          rewriteAddress(`/app/quotes/settings/themes/${result.id}${target ? `?${themeTargetParam(target)}` : ""}`);
         }
         if (thenUse && target) {
           const used = target.kind === "quote" ? await saveQuoteTheme(target.id, result.id, null) : await saveInvoiceDraftTheme(target.id, result.id, null);
