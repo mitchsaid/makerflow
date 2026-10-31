@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import type { BusinessType } from "@/lib/business-types";
 import { saveBusinessTypes } from "@/app/app/business/type-actions";
 
-/** Continue saves the ticks; Skip saves an empty list (asked, no answer). Both go to Home. */
-export function TypeForm() {
+/** Continue saves the ticks; Skip saves an empty list (asked, no answer). Both go on (to Home, or to the step about bringing in a document). */
+export function TypeForm({ next }: { /** Where Continue and Skip go: Home, or the "coming from another tool?" step when the reader is on. */ next: string }) {
   const router = useRouter();
   const [chosen, setChosen] = useState<BusinessType[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function TypeForm() {
     startTransition(async () => {
       try {
         const result = await saveBusinessTypes(types);
-        if (result.status === "saved") router.push("/app");
+        if (result.status === "saved") router.push(next);
         else setMessage(result.message);
       } catch {
         setMessage("Couldn't reach the server, so nothing was saved. Try again.");

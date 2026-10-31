@@ -37,9 +37,12 @@ const initialState: SaveState = { status: "idle" };
 export function BusinessProfileForm({
   initial,
   countryCode,
+  savedNote,
 }: {
   initial: FormValues;
   countryCode: string;
+  /** Shown under "Saved." (what to do next, when this form is a step in something). */
+  savedNote?: React.ReactNode;
 }) {
   const locale = getLocalePack(countryCode);
   const [state, formAction, pending] = useActionState(saveBusinessProfile, initialState);
@@ -192,7 +195,10 @@ export function BusinessProfileForm({
       )}
       <FormSummary problems={problems} trigger={state} />
       {state.status === "saved" && !pending && !editedSinceSave && (
-        <p role="status" className="text-sm font-medium">Saved.</p>
+        <div className="space-y-3">
+          <p role="status" className="text-sm font-medium">Saved.</p>
+          {savedNote}
+        </div>
       )}
 
       <SaveButton what="details" pending={pending} />

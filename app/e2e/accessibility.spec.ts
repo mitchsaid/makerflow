@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { addCustomerInSheet, sentQuote } from "./quote-helpers";
 import { acceptedQuote, businessWithAddress, issueFromQuoteSheet, issuedInvoice } from "./invoice-helpers";
-import { businessTab, setJobStatus, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab } from "./helpers";
+import { businessTab, setJobStatus, quoteSettingsTab, localSupabase, openBusinessProfile, openDocuments, openProductSettings, openInvoiceSettings, openMore, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, openProductTab, startFresh } from "./helpers";
 
 // Automated accessibility checks (axe): contrast, labels, headings, names, tap-target
 // basics. They catch a lot but not everything; a screen-reader pass is still worth doing.
@@ -86,6 +86,24 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "onboarding, what do you make");
       await page.getByRole("checkbox", { name: "Food and baking" }).check();
       await page.getByRole("button", { name: "Continue" }).click();
+      const comingFrom = page.getByRole("heading", { name: "Coming from another tool?", level: 1 });
+      await expect(comingFrom.or(page.getByTestId("business-name"))).toBeVisible();
+      // When the document reader is on (the browser tests set a made-up key and a stand-in service).
+      if (await comingFrom.isVisible()) {
+        await expectNoViolations(page, "onboarding, coming from another tool");
+        await page.getByRole("button", { name: "Read it" }).click();
+        await expect(page.getByText("Choose a quote or invoice first")).toBeVisible();
+        await expectNoViolations(page, "onboarding, coming from another tool, with a problem");
+        await page.locator("#document").setInputFiles({ name: "quote.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n") });
+        await page.getByRole("button", { name: "Read it" }).click();
+        await expect(page.getByRole("heading", { name: "Here's what we found" })).toBeVisible();
+        await expectNoViolations(page, "onboarding, what was found, in the form");
+        await page.getByRole("button", { name: "Save details" }).click();
+        await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+        await expectNoViolations(page, "onboarding, what was found, saved");
+        await page.getByRole("link", { name: "Go to Home" }).click();
+      }
+      await startFresh(page);
       await expect(page.getByTestId("business-name")).toBeVisible();
 
       await page.goto("/app/quotes/settings/policies");

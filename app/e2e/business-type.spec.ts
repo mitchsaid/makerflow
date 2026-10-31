@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openBusinessProfile, openDocuments, uniqueEmail, waitForSignInLink } from "./helpers";
+import { openBusinessProfile, openDocuments, startFresh, uniqueEmail, waitForSignInLink } from "./helpers";
 
 /** Signs up and stops on the "what do you make?" step. */
 async function signUpToTypeStep(page: Page, businessName: string) {
@@ -23,6 +23,7 @@ test("picking what you make puts the examples that fit first, and nothing is hid
   await page.getByRole("checkbox", { name: "Food and baking" }).check();
   await page.getByRole("checkbox", { name: "Workshops and classes" }).check();
   await page.getByRole("button", { name: "Continue" }).click();
+  await startFresh(page);
   await expect(page).toHaveURL(/\/app$/);
   // Asked once: going back to it goes straight to Home.
   await page.goto("/onboarding/type");
@@ -54,6 +55,7 @@ test("picking what you make puts the examples that fit first, and nothing is hid
 test("skipping shows every example, and the terms page links to the Business profile, where it is asked", async ({ page }) => {
   await signUpToTypeStep(page, "Skip Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
+  await startFresh(page);
   await expect(page).toHaveURL(/\/app$/);
 
   await openDocuments(page);
@@ -80,6 +82,7 @@ test("skipping shows every example, and the terms page links to the Business pro
 test("'Something else' says nothing about which examples fit", async ({ page }) => {
   await signUpToTypeStep(page, "Other Co");
   await page.getByRole("button", { name: "Skip for now" }).click();
+  await startFresh(page);
   await openBusinessProfile(page);
   await page.getByRole("checkbox", { name: "Something else" }).check();
   await page.getByRole("button", { name: "Save details" }).click();

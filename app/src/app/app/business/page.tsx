@@ -11,7 +11,11 @@ import { formatMoment } from "@/lib/quotes/dates";
 import { bankFormValues } from "@/lib/bank/form";
 import { WaysToPay } from "./ways-to-pay";
 import { LogoForm } from "./logo-form";
-import { BusinessProfileForm, type FormValues } from "./business-profile-form";
+import Link from "@/components/app-link";
+import { buttonVariants } from "@/components/ui/button";
+import { readerEnabled } from "@/lib/reader";
+import { BusinessProfileForm } from "./business-profile-form";
+import { businessFormValues } from "./form-values";
 
 const SECTIONS = ["details", "logo", "pay"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -50,21 +54,7 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
   const items = back ? ITEMS.map((item) => ({ ...item, href: withBack(item.href, back) })) : ITEMS;
 
   const locale = getLocalePack(profile.countryCode);
-  const initial: FormValues = {
-    name: organisation.name,
-    ownerName: profile.ownerName ?? "",
-    phone: profile.phone ?? "",
-    email: profile.email ?? "",
-    addressLine1: profile.addressLine1 ?? "",
-    addressLine2: profile.addressLine2 ?? "",
-    city: profile.city ?? "",
-    region: profile.region ?? "",
-    postalCode: profile.postalCode ?? "",
-    vatRegistered: profile.vatRegistered,
-    vatNumber: profile.vatNumber ?? "",
-    pricesIncludeVat: profile.pricesIncludeVat ? "inclusive" : "exclusive",
-    businessTypes: [...(profile.businessTypes ?? [])],
-  };
+  const initial = businessFormValues(organisation.name, profile);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -82,7 +72,14 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
         initial={section}
         panels={{
           details: canEdit ? (
-            <BusinessProfileForm initial={initial} countryCode={profile.countryCode} />
+            <div className="space-y-6">
+              {readerEnabled() && (
+                <Link href="/onboarding/start?from=business" className={buttonVariants({ variant: "outline" })} data-testid="fill-from-document">
+                  Fill in from a quote or invoice
+                </Link>
+              )}
+              <BusinessProfileForm initial={initial} countryCode={profile.countryCode} />
+            </div>
           ) : (
             <OnlyOwners title="Business details">Only owners and admins can change these.</OnlyOwners>
           ),
