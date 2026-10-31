@@ -33,9 +33,18 @@ async function expectNoViolations(page: Page, where: string) {
     const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
     if (bar) bar.style.position = "static";
   });
-  const { violations } = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
+  const scan = () =>
+    new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+  let { violations } = await scan();
+  // Next streams the page's title in after a client-side navigation, and for a moment the head can be between one
+  // title and the next. If that is the only thing found, look again: a title that is really missing is still found
+  // on every scan, and fails here.
+  for (let again = 0; again < 3 && violations.length > 0 && violations.every((v) => v.id === "document-title"); again++) {
+    await page.waitForTimeout(400);
+    ({ violations } = await scan());
+  }
   await page.evaluate(() => {
     const bar = document.querySelector<HTMLElement>('[data-testid="action-bar"]');
     if (bar) bar.style.position = "";
