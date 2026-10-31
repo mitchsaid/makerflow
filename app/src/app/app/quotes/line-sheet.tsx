@@ -3,7 +3,6 @@
 import { withoutEmptyOptionals } from "@/lib/quotes/optional";
 import { PrivateTag } from "@/components/private-tag";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
@@ -499,10 +498,6 @@ function PickView({
           One-off item (just for this {subject})
         </Button>
       </div>
-      <ComingSoonSection
-        title="Import from Shopify or a CSV"
-        description="Bring in a product list you already have."
-      />
     </div>
   );
 }

@@ -157,3 +157,8 @@ export function valuesFromProduct(p: ProductSummary, style: NumberStyle): Produc
 export function newHref(kind: ProductKind): string {
   return kind === "service" ? "/app/products/new?kind=service" : "/app/products/new";
 }
+
+/** Where "Import" goes: bringing in a list of products or of services. */
+export function importHref(kind: ProductKind): string {
+  return kind === "service" ? "/app/products/import?kind=service" : "/app/products/import";
+}

@@ -198,7 +198,6 @@ test("a job can be made without a quote, adding items the way a quote does", asy
   // Items come from the same sheet as a quote's: your products and services, or a one-off item. No prices.
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add an item");
-  await expect(sheet(page).getByTestId("coming-soon")).toContainText("Import from Shopify or a CSV");
   await expect(sheet(page).getByRole("button", { name: /Wedding cake/ })).not.toContainText("R");
   await sheet(page).getByRole("button", { name: /Wedding cake/ }).click();
   await expect(sheet(page)).toHaveAccessibleName("Add Wedding cake");

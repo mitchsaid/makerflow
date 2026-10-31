@@ -1,0 +1,4 @@
+ItemCode,ItemName,PurchasesDescription,PurchasesUnitPrice,SalesDescription,SalesUnitPrice,TaxType
+CAKE-CHOC-20,Chocolate cake 20cm,Flour and cocoa,120.00,Rich chocolate cake,450.00,15%
+CAKE-VAN-20,Vanilla cake 20cm,,110.00,"Vanilla, with buttercream",430.00,15%
+DELIV,Delivery,,,Delivery within 20km,,15%

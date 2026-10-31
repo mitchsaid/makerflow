@@ -21,6 +21,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/app/pro
   const added = typeof params.added === "string" ? params.added : undefined;
   const addedName = products.find((p) => p.id === added)?.name;
   const locale = getLocalePack(profile.countryCode);
+  const count = (v: unknown) => (typeof v === "string" && /^\d{1,4}$/.test(v) ? Number(v) : undefined);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
@@ -28,6 +29,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/app/pro
         initialKind={kind}
         products={products}
         addedName={addedName}
+        importedCount={count(params.imported)}
+        importFailedCount={count(params.failed)}
         currencyCode={profile.currencyCode}
         numberStyle={locale.numberStyle}
       />
