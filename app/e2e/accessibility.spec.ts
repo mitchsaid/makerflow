@@ -1100,6 +1100,23 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "a finished job, the plain invoice button");
     });
 
+    test("the feedback sheet: asking, a problem, and sent", async ({ page }) => {
+      test.setTimeout(180_000);
+      await signUpAndOnboard(page, `a11y-feedback-${scheme}`, "Axe Feedback Co");
+      await openMore(page);
+      await expectNoViolations(page, "More, with the feedback row");
+      await page.getByRole("button", { name: /Send feedback/ }).click();
+      await expect(page.getByRole("dialog", { name: "Send feedback" })).toBeVisible();
+      await expectNoViolations(page, "feedback sheet");
+      await page.getByRole("dialog", { name: "Send feedback" }).getByRole("button", { name: "Send feedback" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "feedback sheet, with a problem");
+      await page.getByRole("dialog", { name: "Send feedback" }).getByLabel("Your message").fill("Looks good");
+      await page.getByRole("dialog", { name: "Send feedback" }).getByRole("button", { name: "Send feedback" }).click();
+      await expect(page.getByTestId("feedback-sent")).toBeVisible();
+      await expectNoViolations(page, "feedback sheet, sent");
+    });
+
     test("a customer's page: each section, with and without history", async ({ page }) => {
       test.setTimeout(300_000);
       await issuedInvoice(page, `a11y-customer-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });
