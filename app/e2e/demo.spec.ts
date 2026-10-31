@@ -87,14 +87,27 @@ test("a demo can be started over, and each kind of maker has its own business", 
   await expect(page.getByText("Visitor's own customer")).toHaveCount(0);
 });
 
-test("a maker who is signed in is not given a demo, and a demo that has run out is over and cleaned up", async ({ page, browser }) => {
+test("a maker who is signed in is asked before the demo replaces their sign-in, and a demo that has run out is over and cleaned up", async ({ page, browser }) => {
   test.setTimeout(240_000);
-  // A real maker: the landing page's demo says to sign out first.
+  // A real maker: the demo asks before it replaces their sign-in, and Cancel leaves them signed in.
   await signUpAndOnboard(page, "demo-real", "Real Maker Co");
   await page.goto("/");
   await page.getByTestId("try-demo").click();
   await page.getByRole("dialog").getByRole("button", { name: /^Baker/ }).click();
-  await expect(page.getByText("You're signed in to MakerFlow already.")).toBeVisible();
+  await expect(page.getByTestId("demo-signed-in")).toContainText("You're signed in to MakerFlow.");
+  await page.getByTestId("demo-signed-in").getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByTestId("demo-signed-in")).toHaveCount(0);
+  await page.goto("/app");
+  await expect(page.getByTestId("business-name")).toHaveText("Real Maker Co");
+
+  // Choosing to sign out gets the demo, and the real account is untouched (it can sign in again).
+  await page.goto("/");
+  await page.getByTestId("try-demo").click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Baker/ }).click();
+  await page.getByTestId("demo-signed-in").getByRole("button", { name: "Sign out and try the demo" }).click();
+  await expect(page).toHaveURL(/\/app$/, { timeout: 45_000 });
+  await expect(page.getByTestId("demo-banner")).toBeVisible();
+  await expect(page.getByTestId("business-name")).toHaveText("Sweet Crumbs Bakery");
 
   // A visitor's demo, then its time runs out.
   const visitor = await browser.newContext();

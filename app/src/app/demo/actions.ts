@@ -17,22 +17,30 @@ import { createClient } from "@/lib/supabase/server";
  * `resetDemo` throws that demo away and starts a fresh one.
  */
 
-export type DemoResult = { status: "ok" } | { status: "error"; message: string };
+export type DemoResult =
+  | { status: "ok" }
+  /** This browser is signed in to a real account: the demo needs its one sign-in, so the visitor must choose to sign out. */
+  | { status: "signed-in" }
+  | { status: "error"; message: string };
 
 const BUSY = "The demo is busy right now. Please try again in a few minutes.";
 const GENERIC = "Something went wrong starting the demo. Please try again.";
 
-/** Signs in as an anonymous visitor (unless this browser already is one) and makes the demo business of this kind. */
-export async function startDemo(kind: string): Promise<DemoResult> {
+/**
+ * Signs in as an anonymous visitor (unless this browser already is one) and makes the demo business of this kind.
+ * A browser holds one sign-in, so a real maker signed in here has to choose to be signed out first
+ * (`signOutFirst`: the account and its data are untouched; they sign in again with their email link).
+ */
+export async function startDemo(kind: string, signOutFirst = false): Promise<DemoResult> {
   if (!isDemoKind(kind)) return { status: "error", message: GENERIC };
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   const existing = claims?.claims;
-  // A real maker who is signed in here does not get a demo beside their account.
-  if (existing?.sub && existing.is_anonymous !== true) {
-    return { status: "error", message: "You're signed in to MakerFlow already. Sign out first to try the demo." };
-  }
-  if (!existing?.sub) {
+  // A real maker who is signed in here is asked first: the demo would replace their sign-in in this browser.
+  const realMaker = Boolean(existing?.sub) && existing?.is_anonymous !== true;
+  if (realMaker && !signOutFirst) return { status: "signed-in" };
+  if (realMaker) await supabase.auth.signOut();
+  if (!existing?.sub || realMaker) {
     const { error } = await supabase.auth.signInAnonymously();
     if (error) {
       console.error("could not start an anonymous visit:", error.code, error.message);

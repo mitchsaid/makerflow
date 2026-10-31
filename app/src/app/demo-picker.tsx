@@ -20,14 +20,18 @@ export function DemoPicker({ ended, children }: { ended: boolean; children?: Rea
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<DemoKind | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // This browser is signed in to a real account: ask before the demo replaces that sign-in.
+  const [signedIn, setSignedIn] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function start(kind: DemoKind) {
+  function start(kind: DemoKind, signOutFirst = false) {
     setChosen(kind);
     setMessage(null);
+    setSignedIn(false);
     startTransition(async () => {
       try {
-        const started = await startDemo(kind);
+        const started = await startDemo(kind, signOutFirst);
+        if (started.status === "signed-in") return setSignedIn(true);
         if (started.status === "error") return setMessage(started.message);
         const built = await buildDemo();
         if (built.status === "error") return setMessage(built.message);
@@ -49,6 +53,22 @@ export function DemoPicker({ ended, children }: { ended: boolean; children?: Rea
       {ended && (
         <Alert role="status">
           <AlertDescription>Your demo has ended. Start another, or sign up to keep your own.</AlertDescription>
+        </Alert>
+      )}
+      {signedIn && chosen && (
+        <Alert role="alert" data-testid="demo-signed-in">
+          <AlertDescription className="space-y-3">
+            <p>You&apos;re signed in to MakerFlow. A browser holds one sign-in, so the demo would sign you out here. Your business and everything in it stay as they are: sign back in with your email link.</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" onClick={() => start(chosen, true)} disabled={pending}>
+                Sign out and try the demo
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setSignedIn(false)}>
+                Cancel
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">Or open the demo in a private window, and stay signed in here.</p>
+          </AlertDescription>
         </Alert>
       )}
       {message && (

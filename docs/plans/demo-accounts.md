@@ -14,7 +14,7 @@ No prototype counterpart. The prototype is a single-user demo with its own sampl
 3. Everything works as in a real business, with sample content: business details and a made-up logo, five customers, materials, and products with variations, extras and what they cost to make (so the margin shows).
 4. **Start the demo over** throws the demo away and builds a fresh one of the same kind. **Start your own** signs out and goes to sign-up.
 5. After 6 hours the demo is over: the next page goes to the landing page with "Your demo has ended."
-6. A signed-in maker who taps a demo card is told to sign out first (no demo beside a real account).
+6. A maker who is signed in in this browser and taps a demo is asked first: a browser holds one sign-in, so the demo would sign them out here (their business and data are untouched; they sign in again with their email link). "Sign out and try the demo", or Cancel; a private window works too.
 7. In a demo: no account to delete (an anonymous visitor has no email), and no document reader (it is paid).
 
 ## Interactions reused and new interactions
