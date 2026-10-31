@@ -106,7 +106,7 @@ test("any quote can be duplicated from its card into a new draft, leaving the or
   await page.getByRole("dialog", { name: /Thandi Nkosi · QT-0001/ }).getByRole("button", { name: /Duplicate/ }).click();
   await sheet(page).getByRole("button", { name: "Duplicate", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
-  await expect(page.getByText("QT-0002", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Quote QT-0002 Draft$/, level: 1 })).toBeVisible();
   await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
 
   // Both are in the list: the new one a draft, the original still sent.
@@ -119,5 +119,5 @@ test("any quote can be duplicated from its card into a new draft, leaving the or
   await page.getByRole("dialog", { name: /Thandi Nkosi · QT-0002/ }).getByRole("button", { name: /Duplicate/ }).click();
   await sheet(page).getByRole("button", { name: "Duplicate", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
-  await expect(page.getByText("QT-0003", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Quote QT-0003 Draft$/, level: 1 })).toBeVisible();
 });
