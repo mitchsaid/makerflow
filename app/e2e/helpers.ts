@@ -43,6 +43,16 @@ export function uniqueEmail(label: string) {
 }
 
 /** Signs a brand-new person up by email link (same browser) and finishes onboarding. */
+/**
+ * After the "what do you make?" step, "Coming from another tool?" follows when the document reader is on (a key is set;
+ * the browser tests set a made-up one): most tests start fresh. When the reader is off, Home is next and nothing is done.
+ */
+export async function startFresh(page: Page) {
+  const fresh = page.getByRole("link", { name: "Start fresh" });
+  await expect(fresh.or(page.getByTestId("business-name"))).toBeVisible();
+  if (await fresh.isVisible()) await fresh.click();
+}
+
 export async function signUpAndOnboard(
   page: Page,
   label: string,
@@ -58,6 +68,7 @@ export async function signUpAndOnboard(
   await page.getByRole("button", { name: "Continue" }).click();
   // The optional "what do you make?" step: most tests skip it.
   await page.getByRole("button", { name: "Skip for now" }).click();
+  await startFresh(page);
   await expect(page.getByTestId("business-name")).toHaveText(businessName);
   return email;
 }

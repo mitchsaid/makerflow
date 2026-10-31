@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
+import { readerEnabled } from "@/lib/reader";
 import { TypeForm } from "./type-form";
 
 /**
@@ -22,7 +23,7 @@ export default async function OnboardingTypePage() {
           Tick any that fit. Used only to show fitting examples.
         </p>
       </div>
-      <TypeForm />
+      <TypeForm next={readerEnabled() ? "/onboarding/start" : "/app"} />
     </main>
   );
 }

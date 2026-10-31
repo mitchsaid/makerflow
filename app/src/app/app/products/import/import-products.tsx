@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { ChoiceCards } from "@/components/choice-cards";
 import { SelectField, TextAreaField } from "@/components/form-fields";
 import { AddButton } from "@/components/add-button";
@@ -21,6 +21,7 @@ import {
   type Table,
 } from "@/lib/import/products";
 import { formatMoney, type NumberStyle } from "@/lib/money";
+import { FOUND_LIST_KEY } from "@/lib/reader";
 import type { ProductKind } from "@/lib/products";
 import { importProducts } from "./actions";
 
@@ -36,6 +37,7 @@ type Step = "paste" | "columns" | "check";
  * uploaded; only the checked products go to the server, which checks them again.
  */
 export function ImportProducts({
+  fromDocument,
   initialKind,
   currencyCode,
   currencySymbol,
@@ -43,6 +45,8 @@ export function ImportProducts({
   existingNames,
   priceNote,
 }: {
+  /** Arrived from reading a document: its items wait in this tab, and go into the box to be checked like any list. */
+  fromDocument: boolean;
   initialKind: ProductKind;
   currencyCode: string;
   currencySymbol: string;
@@ -64,6 +68,19 @@ export function ImportProducts({
   const [unticked, setUnticked] = useState<ReadonlySet<number>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  useEffect(() => {
+    if (!fromDocument) return;
+    try {
+      const found = sessionStorage.getItem(FOUND_LIST_KEY);
+      if (found) {
+        sessionStorage.removeItem(FOUND_LIST_KEY);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reading what another page left for this one, once
+        setText(found);
+      }
+    } catch {
+      // No storage: the box is just empty.
+    }
+  }, [fromDocument]);
   const existing = useMemo(() => new Set(existingNames), [existingNames]);
 
   const rows = useMemo(

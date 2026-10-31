@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { accessTokenFrom, localSupabase, openBusinessProfile, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink } from "./helpers";
+import { accessTokenFrom, localSupabase, openBusinessProfile, openSettings, signUpAndOnboard, uniqueEmail, waitForSignInLink, startFresh } from "./helpers";
 
 const sheet = (page: Page) => page.getByRole("dialog");
 
@@ -93,6 +93,7 @@ test("deleting the account asks for the email address, removes the data and the 
   await page.getByLabel("Business name").fill("Fresh Start Co");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Skip for now" }).click();
+  await startFresh(page);
   await expect(page.getByTestId("business-name")).toHaveText("Fresh Start Co");
   await page.goto("/app/quotes/new");
   // Nothing of the old account is left: its first quote number starts again, with no customers.

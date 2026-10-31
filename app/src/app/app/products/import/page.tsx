@@ -21,6 +21,7 @@ export default async function ImportProductsPage({ searchParams }: PageProps<"/a
         <p className="text-muted-foreground">Bring in a list you already have.</p>
       </PageHeader>
       <ImportProducts
+        fromDocument={params.from === "document"}
         initialKind={params.kind === "service" ? "service" : "product"}
         currencyCode={profile.currencyCode}
         currencySymbol={currencySymbol(profile.currencyCode, locale.numberStyle)}

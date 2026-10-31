@@ -40,10 +40,16 @@ export default defineConfig({
       ? [{ name: "iphone", testMatch: /layout\.spec\.ts/, use: { ...devices["iPhone 14"] } }]
       : []),
   ],
-  webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    // A stand-in for the AI service that reads documents, so the reader's screens can be walked (e2e/fake-reader.mjs).
+    { command: "node e2e/fake-reader.mjs", url: "http://127.0.0.1:4010", reuseExistingServer: !process.env.CI, timeout: 30_000 },
+    {
+      command: "pnpm dev",
+      url: "http://localhost:3000",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      // The reader is switched on by a key; here it is a made-up one and the "service" is the stand-in above.
+      env: { ANTHROPIC_API_KEY: "test-key", ANTHROPIC_BASE_URL: "http://127.0.0.1:4010" },
+    },
+  ],
 });
