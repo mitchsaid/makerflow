@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { notFound } from "next/navigation";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { PageHeader } from "@/components/page-header";

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { OptionalTag, Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { termName, type PolicyPackContent, type PolicySummary } from "@/lib/policies";
 import type { BankPreview } from "@/lib/bank";

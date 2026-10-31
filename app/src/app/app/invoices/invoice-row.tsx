@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { invoiceStatus, type InvoiceSummary } from "@/lib/invoices";
 import { formatMoney, type NumberStyle } from "@/lib/money";
 import { formatDay } from "@/lib/quotes/dates";

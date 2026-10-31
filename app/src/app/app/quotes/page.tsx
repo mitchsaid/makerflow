@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { SettingsLink } from "@/components/settings-link";
 import { AddLink } from "@/components/add-button";
 import { buttonVariants } from "@/components/ui/button";
