@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { setPolicyArchived } from "./actions";
 
 /** Archive or restore a term. Archived terms are hidden from quotes but kept; quotes that used them are unchanged. */
 export function PolicyArchiveButton({ id, archived }: { id: string; archived: boolean }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   return (

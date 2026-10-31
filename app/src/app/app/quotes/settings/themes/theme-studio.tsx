@@ -2,7 +2,7 @@
 
 import { rewriteAddress } from "@/lib/rewrite-address";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { FontPicker } from "@/components/font-picker";
 import { ImageField } from "@/components/image-field";
 import { BackLink } from "@/components/page-header";
@@ -82,7 +82,7 @@ export function ThemeStudio({
   /** Set when the maker came from a draft quote or invoice: Save can also use the theme on it. */
   target?: ThemeTarget;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [id, setId] = useState(initial.id);
   const [name, setName] = useState(initial.name);
   const [spec, setSpec] = useState(initial.spec);

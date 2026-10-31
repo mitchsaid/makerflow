@@ -23,7 +23,7 @@ No prototype counterpart. The prototype is a single-page demo with no routes (`p
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new |
 | --- | --- | --- |
-| Going to another page | `next/link` and `router.push` | `AppLink` wraps `Link` (a thin wrapper, same props); `router.push` where a page opens another gets the direction from the same function |
+| Going to another page | `next/link` and `router.push` | `AppLink` wraps `Link` (a thin wrapper, same props); `router.push`/`replace` in code get the direction from the same function through `useAppRouter` (`components/use-app-router.ts`), so a Cancel that returns to the list slides back (added 2026-10-31 after the founder noticed cancelling a new quote did not) |
 | A way back | `PageHeader` back and close (docs/adr/0009-back-navigation.md) | As is: it now slides back |
 | Waiting for a page | `loading.tsx` skeletons (docs/adr/0002-performance.md) | As is |
 

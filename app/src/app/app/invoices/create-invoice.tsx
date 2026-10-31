@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/app-link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { useState, useTransition } from "react";
 import { AddButton } from "@/components/add-button";
 import { withBack } from "@/lib/back-link";
@@ -43,7 +43,7 @@ export function CreateInvoice({
   problems: InvoiceProblem[];
   customerId: string | null;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [busy, setBusy] = useState(false);
 

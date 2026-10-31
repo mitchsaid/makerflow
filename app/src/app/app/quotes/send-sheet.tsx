@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "@/components/app-link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/components/use-app-router";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -79,7 +79,7 @@ function SendFlow({
   onGoTo: (fieldId: string) => void;
   onCancel: () => void;
 }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [view, setView] = useState<SendSheetState | null>(null);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
