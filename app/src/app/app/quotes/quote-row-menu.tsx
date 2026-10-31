@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLinkIcon, HammerIcon, Trash2Icon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon, HammerIcon, Trash2Icon } from "lucide-react";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { RowMenu } from "@/components/row-menu";
 import type { SheetAction } from "@/components/action-sheet";
 import { jobNumberText } from "@/lib/jobs";
 import { quoteRowActions } from "@/lib/quotes/row-actions";
 import { createJob } from "../jobs/actions";
-import { deleteQuoteDraft } from "./actions";
+import { deleteQuoteDraft, duplicateQuote } from "./actions";
 import { TurnIntoJobSheet } from "./quote-outcome";
 
 /**
@@ -25,7 +25,7 @@ export function QuoteRowMenu({
   today: string;
 }) {
   const router = useRouter();
-  const [sheet, setSheet] = useState<"delete" | "turn" | "create" | null>(null);
+  const [sheet, setSheet] = useState<"delete" | "turn" | "create" | "duplicate" | null>(null);
   const kinds = quoteRowActions(quote);
   const who = quote.customerName ?? "No customer yet";
 
@@ -37,6 +37,8 @@ export function QuoteRowMenu({
         return { label: "Turn into a job", hint: "They said yes: record it and start the job", icon: <HammerIcon className="size-5" />, onSelect: () => setSheet("turn") };
       case "create-job":
         return { label: "Create a job", hint: "Make a job to make, from this accepted quote", icon: <HammerIcon className="size-5" />, onSelect: () => setSheet("create") };
+      case "duplicate":
+        return { label: "Duplicate", hint: "A new draft with the same customer and items", icon: <CopyIcon className="size-5" />, onSelect: () => setSheet("duplicate") };
       case "open-job":
         return { label: `Open job ${jobNumberText(quote.liveJob!.number)}`, hint: "Already being made", icon: <ExternalLinkIcon className="size-5" />, href: `/app/jobs/${quote.liveJob!.id}` };
     }
@@ -71,6 +73,21 @@ export function QuoteRowMenu({
         tone="default"
         onConfirm={async () => {
           const result = await createJob(quote.id);
+          if (result?.status === "error") return result.message;
+        }}
+      />
+      <ConfirmSheet
+        open={sheet === "duplicate"}
+        onOpenChange={(open) => !open && setSheet(null)}
+        title="Duplicate this quote?"
+        description={`${who} · ${quote.number}`}
+        body="Starts a new draft with the same customer, items and wording, a new number and today's dates. This quote is left as it is."
+        confirmLabel="Duplicate"
+        pendingLabel="Duplicating…"
+        keepLabel="Not now"
+        tone="default"
+        onConfirm={async () => {
+          const result = await duplicateQuote(quote.id);
           if (result?.status === "error") return result.message;
         }}
       />

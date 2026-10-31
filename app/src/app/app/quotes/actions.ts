@@ -136,6 +136,19 @@ export async function deleteQuoteDraft(id: string): Promise<DeleteState> {
  * saved the same way as any draft (checked, priced on the server, numbered), then opened.
  */
 export async function quoteAgain(quoteId: string): Promise<{ status: "error"; message: string }> {
+  return copyQuote(quoteId, { draftsToo: false });
+}
+
+/**
+ * The ⋯ on a quote's card: a new draft from any quote, whatever its status (docs/plans/duplicate.md): the same customer,
+ * items, wording, policies and deposit as the quote says now (a draft is copied as it stands), a new number and
+ * today's dates. The original is left as it is.
+ */
+export async function duplicateQuote(quoteId: string): Promise<{ status: "error"; message: string }> {
+  return copyQuote(quoteId, { draftsToo: true });
+}
+
+async function copyQuote(quoteId: string, options: { draftsToo: boolean }): Promise<{ status: "error"; message: string }> {
   const { organisation, profile } = await requireOrganisation();
   if (!UUID.test(quoteId)) return { status: "error", message: "Something went wrong. Please try again." };
   const quote = await findStoredQuote(quoteId);
@@ -143,7 +156,7 @@ export async function quoteAgain(quoteId: string): Promise<{ status: "error"; me
     return { status: "error", message: "That quote could not be found." };
   }
   // A draft (even a revision of a sent quote) holds edits the customer hasn't seen: copy what was sent.
-  if (quote.status === "draft") {
+  if (quote.status === "draft" && !options.draftsToo) {
     return { status: "error", message: "This quote is still a draft. Finish it and send it, or keep editing it." };
   }
 
