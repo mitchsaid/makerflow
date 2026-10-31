@@ -2,6 +2,7 @@ import Link from "@/components/app-link";
 import type { InvoiceDraftRow as Row } from "@/lib/invoices/draft";
 import { formatMoney, type NumberStyle } from "@/lib/money";
 import { formatDay } from "@/lib/quotes/dates";
+import { InvoiceRowMenu } from "./invoice-row-menu";
 
 /** One invoice draft in the Invoices list: who it is for, what is on it so far, and that it is not issued. */
 export function InvoiceDraftRow({
@@ -16,10 +17,10 @@ export function InvoiceDraftRow({
   numberStyle: NumberStyle;
 }) {
   return (
-    <li className="rounded-xl bg-card ring-1 ring-foreground/10" data-testid="invoice-draft-row">
+    <li className="relative" data-testid="invoice-draft-row">
       <Link
         href={`/app/invoices/drafts/${d.id}`}
-        className="block rounded-xl px-4 py-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="block rounded-xl bg-card py-3 pl-4 pr-16 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <span className="flex items-baseline justify-between gap-3">
           <span className="truncate text-base font-medium">{d.customerName ?? "No customer yet"}</span>
@@ -34,6 +35,9 @@ export function InvoiceDraftRow({
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not sent</span>
         </span>
       </Link>
+      <div className="absolute right-2 top-2">
+        <InvoiceRowMenu target={{ kind: "draft", id: d.id }} who={d.customerName ?? "No customer yet"} what="draft" />
+      </div>
     </li>
   );
 }

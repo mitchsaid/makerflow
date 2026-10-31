@@ -27,7 +27,7 @@ test("a draft's card can delete it, after a question, and offers no job", async 
   await openQuotes(page);
   await openMenu(page, "More for Sarah, quote QT-0001", /Sarah · QT-0001/);
   const menu = page.getByRole("dialog", { name: /Sarah · QT-0001/ });
-  await expect(menu.getByRole("list").getByRole("button")).toHaveText([/Delete draft/]);
+  await expect(menu.getByRole("list").getByRole("button")).toHaveText([/Duplicate/, /Delete draft/]);
   await menu.getByRole("button", { name: /Delete draft/ }).click();
   await expect(sheet(page)).toHaveAccessibleName("Delete this draft?");
   // Keeping it changes nothing.
@@ -87,4 +87,37 @@ test("an accepted quote makes a job from its card, and a job's card can delete i
   await sheet(page).getByRole("button", { name: "Delete the job" }).click();
   await expect(page.getByTestId("job-deleted-notice")).toContainText("Job J-0001 deleted.");
   await expect(page.getByRole("link", { name: /J-0001/ })).toHaveCount(0);
+});
+
+test("any quote can be duplicated from its card into a new draft, leaving the original as it is", async ({ page }) => {
+  test.setTimeout(240_000);
+  await signUpAndOnboard(page, "menu-duplicate", "Menu Duplicate Co");
+  await sentQuote(page);
+  await openQuotes(page);
+
+  // A sent quote: ask first, and a new draft opens with the same customer and items and the next number.
+  await openMenu(page, /^More for Thandi Nkosi, quote QT-0001/, /Thandi Nkosi · QT-0001/);
+  await page.getByRole("dialog", { name: /Thandi Nkosi · QT-0001/ }).getByRole("button", { name: /Duplicate/ }).click();
+  await expect(sheet(page)).toHaveAccessibleName("Duplicate this quote?");
+  // Not now changes nothing.
+  await sheet(page).getByRole("button", { name: "Not now" }).click();
+  await expect(page.getByRole("link", { name: /QT-0002/ })).toHaveCount(0);
+  await openMenu(page, /^More for Thandi Nkosi, quote QT-0001/, /Thandi Nkosi · QT-0001/);
+  await page.getByRole("dialog", { name: /Thandi Nkosi · QT-0001/ }).getByRole("button", { name: /Duplicate/ }).click();
+  await sheet(page).getByRole("button", { name: "Duplicate", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await expect(page.getByRole("heading", { name: /^Quote QT-0002 Draft$/, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("selected-customer")).toHaveText("Thandi Nkosi");
+
+  // Both are in the list: the new one a draft, the original still sent.
+  await openQuotes(page);
+  await expect(page.getByRole("link", { name: /QT-0002/ })).toContainText("Draft");
+  await expect(page.getByRole("link", { name: /QT-0001/ })).toContainText("Sent");
+
+  // A draft can be duplicated too.
+  await openMenu(page, /^More for Thandi Nkosi, quote QT-0002/, /Thandi Nkosi · QT-0002/);
+  await page.getByRole("dialog", { name: /Thandi Nkosi · QT-0002/ }).getByRole("button", { name: /Duplicate/ }).click();
+  await sheet(page).getByRole("button", { name: "Duplicate", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/[0-9a-f-]{36}\?saved=1$/);
+  await expect(page.getByRole("heading", { name: /^Quote QT-0003 Draft$/, level: 1 })).toBeVisible();
 });

@@ -2,6 +2,7 @@ import Link from "@/components/app-link";
 import { invoiceStatus, type InvoiceSummary } from "@/lib/invoices";
 import { formatMoney, type NumberStyle } from "@/lib/money";
 import { formatDay } from "@/lib/quotes/dates";
+import { InvoiceRowMenu } from "./invoice-row-menu";
 import { InvoiceStatusChip } from "./invoice-status-chip";
 
 /** One invoice in a list: on the Invoices list, and on a customer's page (where their name is left out). */
@@ -22,10 +23,10 @@ export function InvoiceRow({
   const owingCents = i.grossCents - i.creditedCents - i.paidCents;
   const status = invoiceStatus({ grossCents: i.grossCents, paidCents: i.paidCents, creditedCents: i.creditedCents, dueDate: i.dueDate, today });
   return (
-    <li className="rounded-xl bg-card ring-1 ring-foreground/10">
+    <li className="relative">
       <Link
         href={`/app/invoices/${i.id}`}
-        className="block rounded-xl px-4 py-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="block rounded-xl bg-card py-3 pl-4 pr-16 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <span className="flex items-baseline justify-between gap-3">
           <span className="truncate text-base font-medium">{hideCustomer ? i.number : i.customerName}</span>
@@ -40,6 +41,9 @@ export function InvoiceRow({
           <InvoiceStatusChip status={status} />
         </span>
       </Link>
+      <div className="absolute right-2 top-2">
+        <InvoiceRowMenu target={{ kind: "invoice", id: i.id }} who={i.customerName} what={`invoice ${i.number}`} />
+      </div>
     </li>
   );
 }
