@@ -14,7 +14,8 @@ const supabase = () => {
 
 async function startDemo(page: Page, kind: "baker" | "woodworker" | "seamstress" | "ceramicist") {
   await page.goto("/");
-  await page.getByTestId(`demo-${kind}`).click();
+  await page.getByTestId("try-demo").click();
+  await page.getByRole("dialog").getByRole("button", { name: new RegExp(`^${kind}`, "i") }).click();
   await expect(page).toHaveURL(/\/app$/, { timeout: 45_000 });
   await expect(page.getByTestId("demo-banner")).toBeVisible();
 }
@@ -91,7 +92,8 @@ test("a maker who is signed in is not given a demo, and a demo that has run out 
   // A real maker: the landing page's demo says to sign out first.
   await signUpAndOnboard(page, "demo-real", "Real Maker Co");
   await page.goto("/");
-  await page.getByTestId("demo-baker").click();
+  await page.getByTestId("try-demo").click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Baker/ }).click();
   await expect(page.getByText("You're signed in to MakerFlow already.")).toBeVisible();
 
   // A visitor's demo, then its time runs out.

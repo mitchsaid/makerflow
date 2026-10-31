@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DemoPicker } from "./demo-picker";
 
 // Building a demo business (sample customers, products, quotes and a logo) takes several seconds; a hosted function is given up to a minute.
@@ -17,12 +18,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           Send a quote, track the job, invoice for the work, and see your margin.
         </p>
       </div>
-      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+      <DemoPicker ended={params.demo === "ended"}>
+        <Link href="/sign-in" className={cn(buttonVariants({ size: "lg" }), "min-w-48")}>
           Get started
         </Link>
-      </div>
-      <DemoPicker ended={params.demo === "ended"} />
+      </DemoPicker>
     </main>
   );
 }
