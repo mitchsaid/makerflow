@@ -9,12 +9,12 @@ The landing page had an inactive "Try the demo (coming soon)". Nothing sends ema
 No prototype counterpart. The prototype is a single-user demo with its own sample data in state (`prototype/src/`), which is exactly what the project rules forbid copying; the brief's section 4a is the requirement. (Searched the prototype for sample or seed data: its `useAppState.ts` initial state is demo content for the AI Studio screen, not a feature.)
 
 ## What the visitor sees
-1. **Landing page: "Try it first".** Four cards: Baker, Woodworker, Seamstress, Ceramicist, each with a line about what they make. No sign-up.
+1. **Landing page: a "Try the demo" button** beside "Get started". It opens a sheet (the app's own `ActionSheet`: from the bottom on a phone, a dialog on a bigger screen) asking which kind of maker is closest: Baker, Woodworker, Seamstress or Ceramicist, each with a line about what they make. No sign-up.
 2. Tap one: "Setting up the baker…" for a few seconds, then **Home of a demo business** with a strip across the top: "Demo: Baker. Try anything; it is cleared in 6 hours." with **Start the demo over** and **Start your own**.
 3. Everything works as in a real business, with sample content: business details and a made-up logo, five customers, materials, and products with variations, extras and what they cost to make (so the margin shows).
 4. **Start the demo over** throws the demo away and builds a fresh one of the same kind. **Start your own** signs out and goes to sign-up.
 5. After 6 hours the demo is over: the next page goes to the landing page with "Your demo has ended."
-6. A signed-in maker who taps a demo card is told to sign out first (no demo beside a real account).
+6. A maker who is signed in in this browser and taps a demo is asked first: a browser holds one sign-in, so the demo would sign them out here (their business and data are untouched; they sign in again with their email link). "Sign out and try the demo", or Cancel; a private window works too.
 7. In a demo: no account to delete (an anonymous visitor has no email), and no document reader (it is paid).
 
 ## Interactions reused and new interactions

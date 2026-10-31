@@ -766,8 +766,11 @@ for (const scheme of ["light", "dark"] as const) {
     test("a demo business: the landing picker, the banner, and a few of its screens", async ({ page }) => {
       test.setTimeout(180_000);
       await page.goto("/");
-      await expectNoViolations(page, "landing page with the demo picker");
-      await page.getByTestId("demo-seamstress").click();
+      await expectNoViolations(page, "landing page with the demo button");
+      await page.getByTestId("try-demo").click();
+      await expect(page.getByRole("dialog", { name: "Try the demo" })).toBeVisible();
+      await expectNoViolations(page, "landing page, the demo sheet open");
+      await page.getByRole("dialog").getByRole("button", { name: /^Seamstress/ }).click();
       await expect(page).toHaveURL(/\/app$/, { timeout: 45_000 });
       await expect(page.getByTestId("demo-banner")).toBeVisible();
       await expectNoViolations(page, "a demo's Home, with the banner");
