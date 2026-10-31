@@ -46,9 +46,13 @@ test("going deeper slides forward, coming back slides back, and a tab fades", as
   expect(forward.length).toBeGreaterThan(0);
   expect(forward.flat()).toContain("nav-forward");
 
-  // Back: the close control goes to the parent.
+  // Back: from a page under the list, the chevron goes to its parent.
+  await page.goto("/app/quotes");
+  await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: "Quote settings" }).click();
+  await expect(page).toHaveURL(/\/app\/quotes\/settings$/);
   before = await count(page);
-  await page.getByTestId("close-link").click();
+  await page.getByTestId("back-link").click();
   await expect(page).toHaveURL(/\/app\/quotes$/);
   await expect(page.getByRole("heading", { name: "Quotes", level: 1 })).toBeVisible();
   const back = await transitionsSince(page, before);
