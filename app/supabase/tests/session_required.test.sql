@@ -56,7 +56,9 @@ begin
        -- security invoker: every statement runs under the caller's row-level security
        'save_quote_draft', 'save_product', 'save_product_layers', 'save_product_costs', 'cost_line_check', 'invoice_owed_totals',
        -- security definer, checks the session and the owner/admin role itself
-       'set_document_numbering'
+       'set_document_numbering',
+       -- security definer, checks the session itself and that the caller is an anonymous visitor
+       'create_demo_organisation'
      );
   assert missing is null,
     format('unexpected functions callable by signed-in users (do they check the session?): %s', missing);

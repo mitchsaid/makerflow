@@ -35,7 +35,8 @@ declare
   uid uuid := auth.uid();
   org uuid;
 begin
-  if uid is null then
+  -- Security definer, so the session is checked here (docs/plans/session-bound-rls.md): an ended session gets nothing.
+  if uid is null or not public.session_is_active() then
     raise exception 'not authenticated' using errcode = '28000';
   end if;
   -- Only an anonymous visitor: the claim comes from the verified token, not from anything the browser sends.
