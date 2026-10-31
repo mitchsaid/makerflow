@@ -4,6 +4,7 @@ import {
   canMoveJob,
   isItemMade,
   isOverdueJob,
+  itemsHeading,
   JOB_STATUSES,
   jobNumberText,
   jobProgress,
@@ -288,5 +289,19 @@ describe("the Invoice it card on a finished job", () => {
   it("is gone for good once this person said not to ask again, and the job prompt's answer is a different one", () => {
     expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["invoice-finished-job"] })).toBe(false);
     expect(shouldNudgeInvoiceJob({ ...base, dismissedPrompts: ["create-job", "logo"] })).toBe(true);
+  });
+});
+
+describe("the heading over a job's items", () => {
+  it("says To make while there is making to do", () => {
+    for (const status of ["not_started", "in_progress", "cancelled"] as const) expect(itemsHeading(status, false)).toBe("To make");
+  });
+
+  it("says Made once the job is ready for collection or delivery or beyond", () => {
+    for (const status of ["ready", "out_for_delivery", "done"] as const) expect(itemsHeading(status, false)).toBe("Made");
+  });
+
+  it("says Made when every item has been counted as made, whatever the status", () => {
+    for (const status of ["not_started", "in_progress"] as const) expect(itemsHeading(status, true)).toBe("Made");
   });
 });

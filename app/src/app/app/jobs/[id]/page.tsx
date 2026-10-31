@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { canEditBusinessProfile } from "@/lib/business-profile";
-import { isOverdueJob, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
+import { isOverdueJob, itemsHeading, jobNumberText, jobProgress, jobStatusLabel, MAX_JOB_ITEMS, shouldNudgeInvoiceJob, takesCounts, takesNewItems, type JobDetail } from "@/lib/jobs";
 import { getJob } from "@/lib/jobs/data";
 import { getLocalePack } from "@/lib/locale";
 import { PhotoThumb } from "@/components/photo-thumb";
@@ -83,7 +83,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
 
       <section className="space-y-2" aria-labelledby="make-heading">
         <h2 id="make-heading" className="text-base font-semibold">
-          To make
+          {itemsHeading(job.status, progress.allMade)}
         </h2>
         {counting && <JobProgressBar progress={progress} />}
         <Card>
