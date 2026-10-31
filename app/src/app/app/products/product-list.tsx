@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { PhotoThumb } from "@/components/photo-thumb";
 import { useState } from "react";
 import { ComingSoonSection } from "@/components/coming-soon";

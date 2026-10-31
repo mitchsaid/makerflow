@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import type { ComponentProps } from "react";
 import { PlusIcon } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";

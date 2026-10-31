@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddLink } from "@/components/add-button";

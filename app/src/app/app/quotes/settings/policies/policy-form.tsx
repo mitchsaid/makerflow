@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { useRouter } from "next/navigation";
 import { ComingLater, ComingSoonSection } from "@/components/coming-soon";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";

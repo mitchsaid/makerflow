@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { useRouter } from "next/navigation";
 import { ThemeThumbnail } from "@/components/theme-thumbnail";
 import { Alert, AlertDescription } from "@/components/ui/alert";

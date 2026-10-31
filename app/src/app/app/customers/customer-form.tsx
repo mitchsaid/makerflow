@@ -1,7 +1,7 @@
 "use client";
 
 import { PrivateTag } from "@/components/private-tag";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
 import { Section, TextAreaField, TextField } from "@/components/form-fields";

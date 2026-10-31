@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { useState } from "react";
 import { AddLink } from "@/components/add-button";
 import { EmptyState, NoMatches } from "@/components/empty-state";

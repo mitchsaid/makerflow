@@ -18,7 +18,7 @@ import type { ProductFieldErrors, ProductKind, ProductSummary } from "@/lib/prod
 import { carryPrice } from "@/lib/products/variations";
 import type { PriceBase } from "@/lib/products/added-price";
 import { carryPriceBreaks, sentPriceBreaks } from "@/lib/products/price-breaks";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import type { ProductSaveState } from "./actions";
 import type { VatChoice } from "@/lib/quotes/vat-choices";
 import { newVariationKey, PricedVariations } from "./variations-section";

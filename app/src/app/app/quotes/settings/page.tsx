@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { PageHeader } from "@/components/page-header";
 import { SectionTabs, type SectionLink } from "@/components/section-switch";
 import { buttonVariants } from "@/components/ui/button";

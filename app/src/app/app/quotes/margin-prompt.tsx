@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { useState, useTransition } from "react";
 import { PrivateTag } from "@/components/private-tag";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

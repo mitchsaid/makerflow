@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { isOverdueJob, jobNumberText, jobProgress, progressText, takesCounts, type JobSummary } from "@/lib/jobs";
 import { formatQuantity, type NumberStyle } from "@/lib/money/format";
 import { formatDay } from "@/lib/quotes/dates";

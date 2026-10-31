@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { notFound, redirect } from "next/navigation";
 import { ThemeThumbnail } from "@/components/theme-thumbnail";
 import { requireOrganisation } from "@/lib/auth/dal";

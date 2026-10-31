@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { FormSummary, type FormProblem } from "@/components/form-feedback";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { Section, SelectField, TextAreaField, TextField } from "@/components/form-fields";
 import { isSignOffAs, SIGN_OFF_CHOICES, SIGN_OFF_OTHER_MAX, signOffChoiceLabels } from "@/lib/quotes/sign-off";
 import { Alert, AlertDescription } from "@/components/ui/alert";

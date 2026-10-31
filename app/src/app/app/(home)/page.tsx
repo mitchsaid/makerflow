@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { AddLink } from "@/components/add-button";
 import { CreateNew } from "./create-new";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { PrivateTag } from "@/components/private-tag";
 import { formatMoney, formatPercent, type NumberStyle } from "@/lib/money";
 import { quoteMargin } from "@/lib/costing";

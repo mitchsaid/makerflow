@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { notFound } from "next/navigation";
 import { ComingSoonSection } from "@/components/coming-soon";
 import { Alert, AlertDescription } from "@/components/ui/alert";

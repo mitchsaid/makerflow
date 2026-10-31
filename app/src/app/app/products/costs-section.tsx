@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/app-link";
 import { Trash2Icon } from "lucide-react";
 import { AddButton } from "@/components/add-button";
 import { Section, SelectField, TextField } from "@/components/form-fields";
