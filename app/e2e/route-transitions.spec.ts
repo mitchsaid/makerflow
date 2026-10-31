@@ -29,7 +29,7 @@ const transitionsSince = (page: Page, from: number) =>
   }, from);
 const count = (page: Page) => page.evaluate(() => (window as unknown as { __transitions: unknown[] }).__transitions.length);
 
-test("going deeper slides forward, coming back slides back, and a tab fades", async ({ page }) => {
+test("going deeper slides forward, coming back slides back, and a tab does not slide", async ({ page }) => {
   test.setTimeout(180_000);
   await recordTransitions(page);
   await signUpAndOnboard(page, "route-transitions", "Transition Co");
@@ -59,13 +59,12 @@ test("going deeper slides forward, coming back slides back, and a tab fades", as
   expect(back.length).toBeGreaterThan(0);
   expect(back.flat()).toContain("nav-back");
 
-  // A tab is neither: it runs a transition with no direction (a fade).
+  // A tab is neither: nothing slides (as on a phone's own tab bar).
   before = await count(page);
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Jobs" }).click();
   await expect(page).toHaveURL(/\/app\/jobs$/);
   await expect(page.getByRole("heading", { name: "Jobs", level: 1 })).toBeVisible();
   const tab = await transitionsSince(page, before);
-  expect(tab.length).toBeGreaterThan(0);
   expect(tab.flat()).not.toContain("nav-forward");
   expect(tab.flat()).not.toContain("nav-back");
 });
