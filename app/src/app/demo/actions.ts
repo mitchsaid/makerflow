@@ -25,6 +25,9 @@ export type DemoResult =
 
 const BUSY = "The demo is busy right now. Please try again in a few minutes.";
 const GENERIC = "Something went wrong starting the demo. Please try again.";
+/** The site's sign-in has anonymous visits switched off: only the person who runs the site can fix it, so say so plainly. */
+const NOT_SWITCHED_ON = "The demo isn't switched on for this site yet. (Anonymous sign-ins are off in its Supabase settings.)";
+const SAMPLE_DATA = "The demo started, but its sample data couldn't be set up. Please try again.";
 
 /**
  * Signs in as an anonymous visitor (unless this browser already is one) and makes the demo business of this kind.
@@ -44,6 +47,7 @@ export async function startDemo(kind: string, signOutFirst = false): Promise<Dem
     const { error } = await supabase.auth.signInAnonymously();
     if (error) {
       console.error("could not start an anonymous visit:", error.code, error.message);
+      if (error.code === "anonymous_provider_disabled") return { status: "error", message: NOT_SWITCHED_ON };
       return { status: "error", message: error.status === 429 ? BUSY : GENERIC };
     }
   }
@@ -71,7 +75,7 @@ export async function buildDemo(): Promise<DemoResult> {
     await buildDemoDocuments(workspace);
   } catch (error) {
     console.error("could not build the demo:", (error as Error).message);
-    return { status: "error", message: GENERIC };
+    return { status: "error", message: SAMPLE_DATA };
   }
   return { status: "ok" };
 }
