@@ -3,7 +3,7 @@
 Status: **built 2026-11-01.** Founder, 2026-11-01: "OK do those" (item 3 of the five). It is the "extraction experiment" that `docs/plans/onboarding.md` called for before relying on AI to read a maker's documents, and it settles the Sonnet-or-Haiku question (`docs/plans/import-onboarding.md`, questions for the founder).
 
 ## Prototype read
-No prototype counterpart (the prototype has no document reading).
+No prototype counterpart. The prototype has no document reading.
 
 ## What it does
 A command, `pnpm reader:experiment <folder>`, run by the founder on their own computer with their own key. For each document in the folder and each model it calls the same code the app uses (`lib/reader`), cleans the answer the same way, and writes `reader-experiment-report.md` beside the documents: a table of the models side by side (documents, failures, average seconds, average cost, fields right, items found, item prices right) and a list of every wrong field and every document that could not be read.
