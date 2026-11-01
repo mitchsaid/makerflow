@@ -42,3 +42,53 @@ test("More has Tell another maker, which copies a link where there is no share s
   expect(copied).toContain("MakerFlow");
   expect(copied).toContain("http://localhost:3000");
 });
+
+/** The card on Home that shows a new maker on a phone how to add the app (docs/plans/installable-app.md, follow-up). */
+test("a maker on an Android phone sees the steps on Home, and Done hides them for good on that phone", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "install-card-android", "Install Card Android Co");
+  await page.goto("/app");
+  const card = page.getByTestId("install-card");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("Put MakerFlow on your home screen");
+  await expect(card).toContainText("Install app");
+  await expect(card).not.toContainText("Safari");
+  await card.getByRole("button", { name: "Done" }).click();
+  await expect(card).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("business-name")).toBeVisible();
+  await expect(card).toHaveCount(0);
+});
+
+test("where the browser offers an install, the card has one button that asks it", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "install-card-prompt", "Install Card Prompt Co");
+  await page.goto("/app");
+  await expect(page.getByTestId("install-card")).toBeVisible();
+  await page.evaluate(() => {
+    const event = new Event("beforeinstallprompt", { cancelable: true }) as Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+    (window as unknown as { __asked: number }).__asked = 0;
+    event.prompt = async () => {
+      (window as unknown as { __asked: number }).__asked++;
+    };
+    event.userChoice = Promise.resolve({ outcome: "accepted" });
+    window.dispatchEvent(event);
+  });
+  await page.getByRole("button", { name: "Install MakerFlow" }).click();
+  expect(await page.evaluate(() => (window as unknown as { __asked: number }).__asked)).toBe(1);
+  // Once installed, it is gone.
+  await expect(page.getByTestId("install-card")).toHaveCount(0);
+});
+
+test.describe("an iPhone in Safari", () => {
+  test.use({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1" });
+  test("is told where Share and Add to Home Screen are", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signUpAndOnboard(page, "install-card-ios", "Install Card IOS Co");
+    await page.goto("/app");
+    const card = page.getByTestId("install-card");
+    await expect(card).toContainText("Share button");
+    await expect(card).toContainText("Add to Home Screen");
+    await expect(card).not.toContainText("Install app");
+  });
+});

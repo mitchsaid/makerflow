@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { installWay, isIos, isIosSafari } from "../index";
+import { installGuide, installWay, isIos, isIosSafari } from "../index";
 
 const IPHONE_SAFARI = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 const IPHONE_CHROME = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0 Mobile/15E148 Safari/604.1";
@@ -33,5 +33,31 @@ describe("how a browser installs MakerFlow", () => {
     expect(isIos(IPAD_AS_MAC, 0)).toBe(false);
     expect(isIosSafari(IPHONE_CHROME)).toBe(false);
     expect(isIosSafari(IPHONE_SAFARI)).toBe(true);
+  });
+});
+
+describe("the card on Home, by phone", () => {
+  const base = { standalone: false, canPrompt: false };
+  it("says nothing on a computer or in the installed app", () => {
+    expect(installGuide({ ...base, userAgent: DESKTOP_FIREFOX })).toBeNull();
+    expect(installGuide({ ...base, userAgent: IPAD_AS_MAC, maxTouchPoints: 0 })).toBeNull();
+    expect(installGuide({ ...base, standalone: true, userAgent: ANDROID_CHROME })).toBeNull();
+    expect(installGuide({ standalone: true, canPrompt: true, userAgent: IPHONE_SAFARI })).toBeNull();
+  });
+  it("offers one tap where the browser has offered an install", () => {
+    expect(installGuide({ ...base, canPrompt: true, userAgent: ANDROID_CHROME })?.kind).toBe("prompt");
+  });
+  it("gives an iPhone in Safari the Share steps", () => {
+    const guide = installGuide({ ...base, userAgent: IPHONE_SAFARI });
+    expect(guide?.kind).toBe("steps");
+    expect(guide && "steps" in guide && guide.steps.join(" ")).toMatch(/Share.*Add to Home Screen/);
+  });
+  it("tells another iPhone browser to use Safari", () => {
+    const guide = installGuide({ ...base, userAgent: IPHONE_CHROME });
+    expect(guide && "steps" in guide && guide.steps[0]).toMatch(/Safari/);
+  });
+  it("gives Android the browser's menu steps when it has not offered an install", () => {
+    const guide = installGuide({ ...base, userAgent: ANDROID_CHROME });
+    expect(guide && "steps" in guide && guide.steps.join(" ")).toMatch(/menu.*Install app.*Add to Home screen/);
   });
 });

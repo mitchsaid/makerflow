@@ -37,7 +37,8 @@ Inputs by kind: none.
 2. **Start URL is `/app`.** An installed app should open on the maker's work, not the marketing page.
 3. **The tab bar's height is one variable** (`--tabbar-h`, 3.5rem plus the safe-area inset), used by the page's bottom padding and every pinned action bar, so the two cannot drift apart. The inset is 0 in a normal browser tab, so nothing changes there.
 4. **Icons are drawn from shapes** (`scripts/make-icons.mjs`, no fonts) and committed; a maskable icon keeps its mark inside the safe 80%.
-5. **No install nag.** An install prompt that pops up uninvited is the kind of thing we do not want; the row is there for whoever looks. A friendly dismissible card on Home could follow if testers say they never found it.
+5. **No install nag.** An install prompt that pops up uninvited is the kind of thing we do not want; the row is there for whoever looks.
+6. **A friendly card on Home for new makers on a phone** (founder, 2026-11-01: "After the user signs up on mobile, maybe a prompt to let them know how to add it, custom for iOS and android"). It sits on Home below the first-quote card, only on an iPhone, iPad or Android phone that is not already running the installed app, and says how for that phone: one **Install MakerFlow** button where the browser offers it; the Share → Add to Home Screen steps in Safari; "open this in Safari" on another iPhone browser; the browser-menu steps on Android when no offer has come. "Done" / "Not now" hides it for good on that phone (remembered in the browser's own storage, because an install is per device, not per account); it vanishes by itself once installed. It is never shown on a computer. The More row stays for anyone who dismissed it. The words and the choice of steps live in `src/lib/install` (`installGuide`) and are unit-tested.
 
 ## Tests
 - Unit: which way a browser installs (installed, one tap, Safari steps, nothing), including an iPad that calls itself a Mac.

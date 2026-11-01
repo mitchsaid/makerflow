@@ -35,3 +35,29 @@ export const IOS_STEPS = "In Safari, tap the Share button (the square with an ar
 
 /** What "Tell another maker" says, to share or to copy. */
 export const SHARE_TEXT = "I use MakerFlow for quotes, jobs and invoices. Have a look:";
+
+export function isAndroid(userAgent: string): boolean {
+  return /Android/.test(userAgent);
+}
+
+/** What the card on Home tells a maker on a phone, by phone. `null` where there is nothing to say (installed, a computer). */
+export type InstallGuide =
+  /** The browser offered an install: one tap. */
+  | { kind: "prompt"; title: string; line: string }
+  /** Steps to follow in the browser's own menu. */
+  | { kind: "steps"; title: string; line: string; steps: string[] };
+
+const TITLE = "Put MakerFlow on your home screen";
+
+export function installGuide(input: { standalone: boolean; canPrompt: boolean; userAgent: string; maxTouchPoints?: number }): InstallGuide | null {
+  if (input.standalone) return null;
+  const ios = isIos(input.userAgent, input.maxTouchPoints);
+  if (!ios && !isAndroid(input.userAgent)) return null;
+  if (input.canPrompt) return { kind: "prompt", title: TITLE, line: "Open it like an app, with its own icon." };
+  if (ios) {
+    return isIosSafari(input.userAgent)
+      ? { kind: "steps", title: TITLE, line: "It opens like an app, with its own icon.", steps: ["Tap the Share button (the square with an arrow).", "Scroll down and tap “Add to Home Screen”.", "Tap “Add”."] }
+      : { kind: "steps", title: TITLE, line: "On an iPhone this is done from Safari.", steps: ["Open this page in Safari.", "Tap the Share button (the square with an arrow).", "Scroll down and tap “Add to Home Screen”, then “Add”."] };
+  }
+  return { kind: "steps", title: TITLE, line: "It opens like an app, with its own icon.", steps: ["Tap the menu (three dots) at the top of your browser.", "Tap “Install app” or “Add to Home screen”.", "Tap “Install”."] };
+}
