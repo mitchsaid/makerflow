@@ -66,6 +66,8 @@ export type ReaderConfig = {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Told how many tokens the call used, when the service says (for the experiment script, which works out a cost). */
+  onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void;
 };
 
 /** Sends the document and returns the answer's fixed-shape content (still untrusted), or throws a ReaderError. */
@@ -105,6 +107,10 @@ export async function readDocument(file: { bytes: Uint8Array; mediaType: ReaderM
     body = await response.json();
   } catch {
     throw new ReaderError("unreadable");
+  }
+  const usage = typeof body === "object" && body !== null ? (body as { usage?: { input_tokens?: unknown; output_tokens?: unknown } }).usage : undefined;
+  if (config.onUsage && typeof usage?.input_tokens === "number" && typeof usage?.output_tokens === "number") {
+    config.onUsage({ inputTokens: usage.input_tokens, outputTokens: usage.output_tokens });
   }
   const content = typeof body === "object" && body !== null ? (body as { content?: unknown }).content : null;
   const use = Array.isArray(content) ? content.find((c) => typeof c === "object" && c !== null && (c as { type?: unknown }).type === "tool_use" && (c as { name?: unknown }).name === TOOL) : null;

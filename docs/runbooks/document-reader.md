@@ -24,5 +24,12 @@ Each read is counted **before** it is made, so a failed read still counts: at mo
 - Accuracy and cost on real documents: nothing here has run against the real service. Run the experiment in `docs/plans/onboarding.md` ("Extraction experiment") with real sample documents, then decide whether a cheaper model will do.
 - How long a read takes on Vercel's Hobby plan (the page asks for up to 60 seconds).
 
+## Running the experiment (on your own computer)
+Settles which model to use, and how far to trust the reader, with your makers' real documents.
+1. Put 10 or so real quotes and invoices (PDF, or a photo or screenshot) in a folder **outside the repository**. Never commit them.
+2. Optional, for accuracy: beside any document add `<same name>.expected.json` with just what you want checked, for example `{ "businessName": "Sweet Crumbs", "business": { "phone": "082 555 0101", "city": "Cape Town", "vatNumber": "4123456789" }, "items": [ { "name": "Chocolate cake", "priceCents": 45000 } ] }`. Without it you still get what was found, to check by eye.
+3. Run `ANTHROPIC_API_KEY=... pnpm reader:experiment <folder>` (from `app/`). It runs every document through **Sonnet 5.5 and Haiku 5.5** (change with `READER_EXPERIMENT_MODELS=claude-haiku-5-5,claude-opus-5-5`) and writes `reader-experiment-report.md` in the folder: time, cost, fields right and items found, side by side, and every wrong field. It refuses to run in CI or on a server, and **it spends real money** (about a cent a document on Sonnet), so set a spend limit first.
+4. If Haiku gets the same fields right, set `READER_MODEL=claude-haiku-5-5` in Vercel. If it drops fields or confuses the seller with the customer, keep Sonnet. The cost figures use cached prices: check the provider's price page.
+
 ## Testing
 The browser tests start a stand-in service (`e2e/fake-reader.mjs`) and point the app at it with `ANTHROPIC_BASE_URL`; a document containing BUSY, NOTHING or GARBAGE makes it answer that way. Unit tests (`lib/reader`) cover the file check, the cleaning of the answer, the request that is sent and each way the service can fail.

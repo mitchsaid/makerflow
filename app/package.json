@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "perf": "bash scripts/perf/run-perf.sh",
+    "reader:experiment": "bash scripts/reader-experiment.sh",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "env:local": "bash scripts/write-env-local.sh",
     "local": "pnpm stack:start && pnpm env:local && next dev",
