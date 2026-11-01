@@ -1,6 +1,7 @@
 import Link from "@/components/app-link";
 import { AddLink } from "@/components/add-button";
 import { CreateNew } from "./create-new";
+import { InstallCard } from "../install-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getActiveJobDates } from "@/lib/jobs/data";
@@ -61,6 +62,9 @@ export default async function WorkspacePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Only on a phone that can add it to the home screen; below the first quote, which stays the main thing to do. */}
+      <InstallCard />
 
       {caughtUp && (
         <Card data-testid="home-caught-up">

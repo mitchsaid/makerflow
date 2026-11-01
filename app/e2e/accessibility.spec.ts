@@ -818,6 +818,13 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("products-imported")).toBeVisible();
       await expectNoViolations(page, "products, after an import");
     });
+    test("Home, with the install card on a phone", async ({ page }) => {
+      test.setTimeout(120_000);
+      await signUpAndOnboard(page, `a11y-install-card-${scheme}`, "Install Card Axe Co");
+      await page.goto("/app");
+      await expect(page.getByTestId("install-card")).toBeVisible();
+      await expectNoViolations(page, "home, the install card");
+    });
     test("importing customers: paste, columns, check, and after adding", async ({ page }) => {
       test.setTimeout(180_000);
       await signUpAndOnboard(page, `a11y-import-customers-${scheme}`, "Import Customers Axe Co");

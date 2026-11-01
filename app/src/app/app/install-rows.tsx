@@ -1,23 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { promptInstall, useCanPrompt } from "@/components/install-store";
+import { useState } from "react";
+import { promptInstall, useCanPrompt, usePageFacts } from "@/components/install-store";
 import { Button } from "@/components/ui/button";
 import { installWay, IOS_STEPS, SHARE_TEXT } from "@/lib/install";
 
 const ROW =
   "h-auto min-h-11 w-full flex-col items-start justify-start gap-0.5 whitespace-normal rounded-xl bg-card px-4 py-3 text-left ring-1 ring-foreground/10 hover:bg-muted";
-
-const noopSubscribe = () => () => undefined;
-const usePageFacts = () => ({
-  standalone: useSyncExternalStore(
-    noopSubscribe,
-    () => window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
-    () => false,
-  ),
-  userAgent: useSyncExternalStore(noopSubscribe, () => navigator.userAgent, () => ""),
-  maxTouchPoints: useSyncExternalStore(noopSubscribe, () => navigator.maxTouchPoints, () => 0),
-});
 
 /**
  * "Install MakerFlow" (docs/plans/installable-app.md): one tap where the browser offers to install the app,

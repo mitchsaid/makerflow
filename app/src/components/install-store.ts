@@ -48,3 +48,17 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | "unava
   await event.prompt();
   return (await event.userChoice).outcome;
 }
+
+const noopSubscribe = () => () => undefined;
+/** What this page knows about the phone, read after it loads (server and first render say "not installed, unknown"). */
+export function usePageFacts() {
+  return {
+    standalone: useSyncExternalStore(
+      noopSubscribe,
+      () => window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
+      () => false,
+    ),
+    userAgent: useSyncExternalStore(noopSubscribe, () => navigator.userAgent, () => ""),
+    maxTouchPoints: useSyncExternalStore(noopSubscribe, () => navigator.maxTouchPoints, () => 0),
+  };
+}
