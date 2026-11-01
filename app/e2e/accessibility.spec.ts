@@ -70,6 +70,13 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByText("Your demo has ended.")).toBeVisible();
       await expectNoViolations(page, "landing page, after a demo ended");
 
+      await page.goto("/privacy");
+      await expect(page.getByRole("heading", { name: "Privacy policy", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "privacy policy");
+      await page.goto("/terms");
+      await expect(page.getByRole("heading", { name: "Terms of use", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "terms of use");
+
       await page.goto("/sign-in?error=link");
       await expect(page.getByText("expired or was already used")).toBeVisible();
       await expectNoViolations(page, "sign-in with an error");

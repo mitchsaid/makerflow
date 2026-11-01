@@ -23,6 +23,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           Get started
         </Link>
       </DemoPicker>
+      <p className="text-sm text-muted-foreground">
+        <Link href="/privacy" className="underline underline-offset-2">
+          Privacy
+        </Link>
+        {" · "}
+        <Link href="/terms" className="underline underline-offset-2">
+          Terms
+        </Link>
+      </p>
     </main>
   );
 }

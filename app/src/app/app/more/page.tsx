@@ -29,6 +29,11 @@ const LINKS = [
     title: "Settings",
     description: "Your account and how the app works for you.",
   },
+  {
+    href: "/privacy",
+    title: "Privacy and terms",
+    description: "How your information is kept, and the terms of use.",
+  },
 ] as const;
 
 /** The phone's "More" tab: the places that don't need a tab of their own. */
