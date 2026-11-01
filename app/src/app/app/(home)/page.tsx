@@ -2,6 +2,7 @@ import Link from "@/components/app-link";
 import { AddLink } from "@/components/add-button";
 import { CreateNew } from "./create-new";
 import { InstallCard } from "../install-card";
+import { isNewBusiness } from "@/lib/install";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getActiveJobDates } from "@/lib/jobs/data";
@@ -15,7 +16,7 @@ import { forOrganisation } from "@/lib/scope";
 
 export default async function WorkspacePage() {
   // The jobs query runs beside the workspace check, not after it; what is owed needs the business, so it follows.
-  const [activeJobs, quoteStatuses, { organisation, profile }] = await Promise.all([getActiveJobDates(), getQuoteStatuses(), requireOrganisation()]);
+  const [activeJobs, quoteStatuses, { organisation, profile, demo }] = await Promise.all([getActiveJobDates(), getQuoteStatuses(), requireOrganisation()]);
   const locale = getLocalePack(profile.countryCode);
   const today = todayIn(locale.timeZone);
   const owed = await getOwedTotals(organisation.id, today);
@@ -63,8 +64,8 @@ export default async function WorkspacePage() {
         </Card>
       )}
 
-      {/* Only on a phone that can add it to the home screen; below the first quote, which stays the main thing to do. */}
-      <InstallCard />
+      {/* One time, just after signing up, on a phone that can add it to the home screen; below the first quote, which stays the main thing to do. */}
+      <InstallCard newBusiness={!demo && isNewBusiness(organisation.createdAt)} />
 
       {caughtUp && (
         <Card data-testid="home-caught-up">

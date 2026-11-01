@@ -820,8 +820,8 @@ for (const scheme of ["light", "dark"] as const) {
     });
     test("Home, with the install card on a phone", async ({ page }) => {
       test.setTimeout(120_000);
+      // Ends on Home, the one visit the prompt is shown on.
       await signUpAndOnboard(page, `a11y-install-card-${scheme}`, "Install Card Axe Co");
-      await page.goto("/app");
       await expect(page.getByTestId("install-card")).toBeVisible();
       await expectNoViolations(page, "home, the install card");
     });
