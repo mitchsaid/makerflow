@@ -92,3 +92,69 @@ test("a column with no price says so at the field, and the empty Products page o
   await page.getByRole("button", { name: "Check the products" }).click();
   await expect(page.getByText("Choose which column has the price.")).toBeVisible();
 });
+
+test("rows that look like one product with choices are offered as one, and can be kept separate", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "import-group", "Import Group Co");
+  await page.goto("/app/products/import");
+  const list = ["Product\tScent\tSize\tPrice", "Soy candle\tLavender\t200ml\tR149", "Soy candle\tVanilla\t200ml\tR149", "Soy candle\tLavender\t400ml\tR249", "Soy candle\tVanilla\t400ml\tR249", "Gift wrap\t\t\tR35", "Cake - small\tR100".replace("\t", "\t\t\t"), "Cake - large\t\t\tR180"].join("\n");
+  await page.getByLabel("Your list").fill(list);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Check the products" }).click();
+
+  // Two groups and a single: three products, none left out.
+  await expect(page.getByTestId("import-summary")).toHaveText("3 products are ready to add.");
+  const candles = page.getByTestId("import-group").filter({ hasText: "Soy candle" });
+  await expect(candles).toContainText("One product with 4 choices (scent and size)");
+  await expect(candles.getByRole("list", { name: "Choices for Soy candle" }).getByRole("listitem")).toHaveCount(4);
+  await expect(candles).toContainText("from");
+
+  // Say they are separate: the repeated names are left out again, as before.
+  await candles.getByRole("button", { name: /These are separate products/ }).click();
+  await expect(page.getByTestId("import-group")).toHaveCount(1);
+  await expect(page.getByTestId("import-row-problem")).toHaveCount(3);
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "Check the products" }).click();
+  await expect(page.getByTestId("import-group")).toHaveCount(2);
+
+  // Added, they are products with choices.
+  await page.getByRole("button", { name: "Add 3 products" }).click();
+  await expect(page).toHaveURL(/imported=3/);
+  await page.getByRole("link", { name: /Soy candle/ }).click();
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Soy candle");
+  await expect(page.getByLabel("Variation name").first()).toHaveValue("Scent and Size");
+  await expect(page.locator('input[value="Lavender, 200ml"]')).toBeVisible();
+  await expect(page.locator('input[value="Vanilla, 400ml"]')).toBeVisible();
+});
+
+test("a Shopify product export: the rows of one product arrive as one suggested product with choices", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUpAndOnboard(page, "import-shopify", "Import Shopify Co");
+  await page.goto("/app/products/import");
+  await page.locator("#import-file").setInputFiles({
+    name: "products_export.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      [
+        "Handle,Title,Body (HTML),Vendor,Option1 Name,Option1 Value,Variant SKU,Variant Price,Image Src,Status",
+        'lavender-candle,Lavender candle,"<p>Hand-poured <strong>soy</strong> wax.</p>",Wick & Co,Size,200ml,LC200,180.00,https://example.test/a.jpg,active',
+        "lavender-candle,,,,Size,400ml,LC400,320.00,,",
+        "lavender-candle,,,,,,,,https://example.test/b.jpg,",
+        "gift-card,Gift card,,Wick & Co,Title,Default Title,,500.00,,active",
+        "old-candle,Old candle,,Wick & Co,Title,Default Title,,99.00,,archived",
+      ].join("\n"),
+    ),
+  });
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Check the products" }).click();
+  await expect(page.getByTestId("import-summary")).toHaveText("2 products are ready to add.");
+  const group = page.getByTestId("import-group");
+  await expect(group).toContainText("Lavender candle");
+  await expect(group).toContainText("One product with 2 choices (size)");
+  await expect(group).toContainText("200ml");
+  await expect(group).toContainText("400ml");
+  await expect(page.getByText("Old candle")).toHaveCount(0);
+  await page.getByRole("button", { name: "Add 2 products" }).click();
+  await expect(page.getByTestId("products-imported")).toHaveText("Added 2 products.");
+  await expect(page.getByText("Lavender candle")).toBeVisible();
+});

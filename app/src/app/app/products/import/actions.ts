@@ -4,13 +4,23 @@ import { revalidatePath } from "next/cache";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { IMPORT_MAX_ROWS, nameKey } from "@/lib/import/products";
 import { MAX_CENTS } from "@/lib/money";
+import { VARIATION_LABEL_MAX, VARIATION_NAME_MAX, VARIATIONS_MAX } from "@/lib/products/variations";
 import { PRODUCT_DESCRIPTION_MAX, PRODUCT_UNIT_MAX, validateProductName, type ProductKind } from "@/lib/products";
 import { getProducts } from "@/lib/products/data";
 import { forOrganisation } from "@/lib/scope";
 import { createClient } from "@/lib/supabase/server";
 
 /** One product to add, as the preview sends it. Everything is checked again here: the browser is not trusted. */
-export type ImportItem = { kind: ProductKind; name: string; priceCents: number; unit: string | null; description: string | null };
+export type ImportItem = {
+  kind: ProductKind;
+  name: string;
+  priceCents: number;
+  unit: string | null;
+  description: string | null;
+  /** A product with choices (an accepted suggestion): the maker's word for them, and each with its own price. */
+  variationLabel?: string;
+  variations?: { name: string; priceCents: number }[];
+};
 
 export type ImportResult =
   | { status: "done"; added: number; skipped: number; failed: string[] }
@@ -39,7 +49,19 @@ export async function importProducts(items: ImportItem[]): Promise<ImportResult>
     const kindOk = item?.kind === "product" || item?.kind === "service";
     const unit = typeof item?.unit === "string" && item.unit.trim() !== "" ? item.unit.trim() : null;
     const description = typeof item?.description === "string" && item.description.trim() !== "" ? item.description.trim() : null;
-    if (!name.ok || !priceOk || !kindOk || (unit !== null && unit.length > PRODUCT_UNIT_MAX) || (description !== null && description.length > PRODUCT_DESCRIPTION_MAX)) {
+    const variations = Array.isArray(item?.variations) ? item.variations : [];
+    const label = typeof item?.variationLabel === "string" ? item.variationLabel.trim() : "";
+    const variationsOk =
+      variations.length === 0 ||
+      (variations.length >= 2 &&
+        variations.length <= VARIATIONS_MAX &&
+        label.length >= 1 &&
+        label.length <= VARIATION_LABEL_MAX &&
+        variations.every((v) => typeof v?.name === "string" && v.name.trim().length >= 1 && v.name.trim().length <= VARIATION_NAME_MAX && Number.isInteger(v.priceCents) && v.priceCents >= 0 && v.priceCents <= MAX_CENTS) &&
+        new Set(variations.map((v) => v.name.trim().toLowerCase())).size === variations.length &&
+        // With choices the product's own price is the lowest of them.
+        item.priceCents === Math.min(...variations.map((v) => v.priceCents)));
+    if (!name.ok || !priceOk || !kindOk || !variationsOk || (unit !== null && unit.length > PRODUCT_UNIT_MAX) || (description !== null && description.length > PRODUCT_DESCRIPTION_MAX)) {
       return { status: "error", message: "Some of those rows could not be read. Go back to the check and try again." };
     }
     const key = nameKey(name.value);
@@ -48,7 +70,14 @@ export async function importProducts(items: ImportItem[]): Promise<ImportResult>
       continue;
     }
     existing.add(key);
-    clean.push({ kind: item.kind, name: name.value, priceCents: item.priceCents, unit, description });
+    clean.push({
+      kind: item.kind,
+      name: name.value,
+      priceCents: item.priceCents,
+      unit,
+      description,
+      ...(variations.length > 0 ? { variationLabel: label, variations: variations.map((v) => ({ name: v.name.trim(), priceCents: v.priceCents })) } : {}),
+    });
   }
 
   const supabase = await createClient();
@@ -60,8 +89,8 @@ export async function importProducts(items: ImportItem[]): Promise<ImportResult>
         const { error } = await supabase.rpc("save_product_layers", {
           p_org: organisation.id,
           p_product_id: null,
-          p_product: { kind: p.kind, name: p.name, description: p.description ?? "", unit_price_cents: p.priceCents, unit: p.unit ?? "", variation_label: "" },
-          p_variations: [],
+          p_product: { kind: p.kind, name: p.name, description: p.description ?? "", unit_price_cents: p.priceCents, unit: p.unit ?? "", variation_label: p.variationLabel ?? "" },
+          p_variations: (p.variations ?? []).map((v, i) => ({ name: v.name, price_cents: v.priceCents, usual: i === 0 })),
         });
         if (error) console.error("could not import a product:", error.code, error.message);
         return error ? p.name : null;

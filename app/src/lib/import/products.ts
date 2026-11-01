@@ -161,6 +161,8 @@ export type ImportRow = {
   problem?: string;
   /** Something to know that does not stop it (a "from" price, a description cut short). */
   note?: string;
+  /** The cells of the columns that were not given a part (Scent, Size…), with their headings: what tells same-named rows apart. */
+  extras?: { heading: string; value: string }[];
 };
 
 export type ReadOptions = {
@@ -184,6 +186,9 @@ export function readRows(table: Table, hasHeader: boolean, mapping: Mapping, opt
     // A Type column (QuickBooks) can say service or product per row; any other word in it (a category) changes nothing.
     const kind: ProductKind = typeText.includes("service") ? "service" : /product|inventory|goods|bundle/.test(typeText) ? "product" : options.kind;
     const row: ImportRow = { line, kind, name, priceCents: null, unit: null, description: null };
+    const used = new Set(Object.values(mapping));
+    const extras = cells.flatMap((value, i) => (used.has(i) || value.trim() === "" ? [] : [{ heading: hasHeader ? (table[0]?.[i] ?? "").trim() : "", value: value.trim() }]));
+    if (extras.length > 0) row.extras = extras;
 
     const notes: string[] = [];
     const description = cell("description");
@@ -216,4 +221,87 @@ export function readRows(table: Table, hasHeader: boolean, mapping: Mapping, opt
     if (notes.length > 0) row.note = notes.join(" ");
     return row;
   });
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Suggested grouping: rows that look like one product with choices (docs/plans/import-onboarding.md, slice 3)
+// ---------------------------------------------------------------------------------------------------------------
+
+export type ImportGroup = {
+  /** Stable for the list: the base name in lower case. */
+  key: string;
+  name: string;
+  kind: ProductKind;
+  description: string | null;
+  unit: string | null;
+  /** The maker's word for the choices ("Size", "Scent and Size"), or "Option" when the list did not say. */
+  variationLabel: string;
+  variations: { line: number; name: string; priceCents: Cents }[];
+  /** How it was recognised: the same name on several rows (told apart by other columns), or a name that ends " - 20cm". */
+  basis: "extras" | "name";
+};
+
+const SEPARATOR = /^(.+?)\s+[-–—:]\s+(.+)$/;
+/** The most choices a product can have (the database's own limit). */
+export const IMPORT_MAX_VARIATIONS = 50;
+const VARIANT_MAX = 80;
+const LABEL_MAX = 40;
+
+/**
+ * Finds sets of rows that look like one product with choices, so the maker can say yes instead of retyping them. Two
+ * ways it recognises them, both only a suggestion: several rows with the SAME name that other columns tell apart (a
+ * candle in Lavender and in Vanilla, in two sizes), or names that share a start and differ in an ending after a dash
+ * ("Chocolate cake - 20cm", "Chocolate cake - 25cm"). A set is offered only if it has at least two rows, each with
+ * a price, no two choices read the same, there are not too many, and the maker does not already have a product by that
+ * name. The product's own price is the lowest of the choices, as everywhere else.
+ */
+export function suggestGroups(rows: readonly ImportRow[]): ImportGroup[] {
+  // Rows that have a price and are not already among the products (a repeated name within the list is what we are here for).
+  const candidates = rows.filter((r) => r.priceCents !== null && (!r.problem || /^Same name as row/.test(r.problem)));
+  const byName = new Map<string, ImportRow[]>();
+  for (const r of candidates) byName.set(nameKey(r.name), [...(byName.get(nameKey(r.name)) ?? []), r]);
+  const taken = new Set<number>();
+  const groups: ImportGroup[] = [];
+
+  const make = (key: string, name: string, members: { row: ImportRow; variant: string }[], variationLabel: string, basis: ImportGroup["basis"]) => {
+    if (members.length < 2 || members.length > IMPORT_MAX_VARIATIONS) return;
+    if (members.some((m) => m.variant === "" || m.variant.length > VARIANT_MAX)) return;
+    if (new Set(members.map((m) => nameKey(m.variant))).size !== members.length) return;
+    const first = members[0]!.row;
+    groups.push({
+      key,
+      name,
+      kind: first.kind,
+      description: members.map((m) => m.row.description).find((d) => d !== null) ?? null,
+      unit: members.map((m) => m.row.unit).find((u) => u !== null) ?? null,
+      variationLabel: variationLabel.slice(0, LABEL_MAX) || "Option",
+      variations: members.map((m) => ({ line: m.row.line, name: m.variant, priceCents: m.row.priceCents! })),
+      basis,
+    });
+    for (const m of members) taken.add(m.row.line);
+  };
+
+  // 1. The same name on several rows, told apart by the other columns.
+  for (const [key, members] of byName) {
+    if (members.length < 2) continue;
+    const named = members.map((row) => ({ row, variant: (row.extras ?? []).map((e) => e.value).join(", ") }));
+    const label = [...new Set((members[0]!.extras ?? []).map((e) => e.heading).filter((h) => h !== ""))].join(" and ");
+    make(key, members[0]!.name, named, label, "extras");
+  }
+
+  // 2. Names that share a start and differ after a dash. Only rows not already grouped, and only a name seen once as a whole.
+  const byBase = new Map<string, { row: ImportRow; base: string; variant: string }[]>();
+  for (const r of candidates) {
+    if (taken.has(r.line) || (byName.get(nameKey(r.name))?.length ?? 0) > 1) continue;
+    const m = SEPARATOR.exec(r.name);
+    if (!m) continue;
+    const base = m[1]!.trim();
+    byBase.set(nameKey(base), [...(byBase.get(nameKey(base)) ?? []), { row: r, base, variant: m[2]!.trim() }]);
+  }
+  for (const [key, members] of byBase) {
+    // A product by that exact name already among the rows would be confused with the group: leave both alone.
+    if (byName.has(key)) continue;
+    make(key, members[0]!.base, members, "Option", "name");
+  }
+  return groups;
 }
