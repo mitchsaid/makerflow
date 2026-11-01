@@ -63,6 +63,17 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
           Back to the home page
         </Link>
       </p>
+      <p className="text-center text-sm text-muted-foreground">
+        By continuing you agree to the{" "}
+        <Link href="/terms" className="underline underline-offset-2">
+          terms
+        </Link>{" "}
+        and the{" "}
+        <Link href="/privacy" className="underline underline-offset-2">
+          privacy policy
+        </Link>
+        .
+      </p>
     </main>
   );
 }

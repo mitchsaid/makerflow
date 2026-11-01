@@ -144,7 +144,12 @@ export function StartFromDocument({
         />
         {fileError && <FieldError id="document-error">{fileError}</FieldError>}
       </Field>
-      <p className="text-sm text-muted-foreground">It is sent to our AI provider to be read, and is not kept. Customer details on it are ignored.</p>
+      <p className="text-sm text-muted-foreground">
+        It is sent to our AI provider to be read, and is not kept. Customer details on it are ignored.{" "}
+        <Link href="/privacy#documents" className="underline underline-offset-2">
+          How it is handled
+        </Link>
+      </p>
       {message && (
         <Alert variant="destructive" role="alert">
           <AlertDescription>{message}</AlertDescription>
