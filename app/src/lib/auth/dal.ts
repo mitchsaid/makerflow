@@ -20,7 +20,12 @@ import { isSignOffAs } from "@/lib/quotes/sign-off";
 export type SessionUser = { id: string; email: string | null };
 import { isDemoKind, type DemoKind } from "@/lib/demo";
 
-export type Organisation = { id: string; name: string };
+export type Organisation = {
+  id: string;
+  name: string;
+  /** When the business was made (ISO), so "new here" prompts can be limited to the first days. */
+  createdAt: string;
+};
 
 export type Workspace = {
   user: SessionUser;
@@ -107,6 +112,7 @@ type ProfileRow = {
 type OrganisationRow = {
   id: string;
   name: string;
+  created_at: string;
   demo_kind: string | null;
   demo_expires_at: string | null;
   business_profiles: ProfileRow | ProfileRow[] | null;
@@ -134,7 +140,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
     .select(
       `role,
        organisations (
-         id, name, demo_kind, demo_expires_at,
+         id, name, created_at, demo_kind, demo_expires_at,
          business_profiles (
            country_code, currency_code,
            phone, email, address_line1, address_line2, city, region, postal_code,
@@ -172,7 +178,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
   const countryCode = p?.country_code ?? DEFAULT_COUNTRY_CODE;
   return {
     user,
-    organisation: { id: org.id, name: org.name },
+    organisation: { id: org.id, name: org.name, createdAt: org.created_at },
     role: membership.role,
     profile: {
       countryCode,

@@ -61,3 +61,14 @@ export function installGuide(input: { standalone: boolean; canPrompt: boolean; u
   }
   return { kind: "steps", title: TITLE, line: "It opens like an app, with its own icon.", steps: ["Tap the menu (three dots) at the top of your browser.", "Tap “Install app” or “Add to Home screen”.", "Tap “Install”."] };
 }
+
+/** How many days after a business is made the "add it to your home screen" prompt may still come up. */
+export const INSTALL_PROMPT_DAYS = 3;
+
+/** Is this business new enough that the one-time install prompt is for it (the first days after signing up)? */
+export function isNewBusiness(createdAt: string, now: Date = new Date()): boolean {
+  const made = Date.parse(createdAt);
+  if (Number.isNaN(made)) return false;
+  const age = now.getTime() - made;
+  return age >= 0 && age <= INSTALL_PROMPT_DAYS * 24 * 60 * 60 * 1000;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { installGuide, installWay, isIos, isIosSafari } from "../index";
+import { installGuide, installWay, isIos, isIosSafari, isNewBusiness } from "../index";
 
 const IPHONE_SAFARI = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 const IPHONE_CHROME = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0 Mobile/15E148 Safari/604.1";
@@ -59,5 +59,18 @@ describe("the card on Home, by phone", () => {
   it("gives Android the browser's menu steps when it has not offered an install", () => {
     const guide = installGuide({ ...base, userAgent: ANDROID_CHROME });
     expect(guide && "steps" in guide && guide.steps.join(" ")).toMatch(/menu.*Install app.*Add to Home screen/);
+  });
+});
+
+describe("who the one-time prompt is for", () => {
+  const now = new Date("2026-11-10T12:00:00Z");
+  it("a business made in the last few days", () => {
+    expect(isNewBusiness("2026-11-10T11:00:00Z", now)).toBe(true);
+    expect(isNewBusiness("2026-11-08T13:00:00Z", now)).toBe(true);
+  });
+  it("not an older one, a date in the future, or nonsense", () => {
+    expect(isNewBusiness("2026-11-06T12:00:00Z", now)).toBe(false);
+    expect(isNewBusiness("2026-11-11T12:00:00Z", now)).toBe(false);
+    expect(isNewBusiness("not a date", now)).toBe(false);
   });
 });
