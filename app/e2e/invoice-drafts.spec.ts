@@ -415,8 +415,11 @@ test("a sent invoice and a draft can each be duplicated from their card into a n
   await page.goto("/app/invoices");
   await expect(page.getByRole("link", { name: /INV-0001/ })).toHaveCount(1);
   await expect(page.getByRole("link", { name: /INV-0002/ })).toHaveCount(0);
-  await page.getByRole("button", { name: /^Drafts \(1\)/ }).click();
-  await expect(page.getByTestId("invoice-draft-row")).toHaveCount(1);
+  // The click can land before the list has hydrated and do nothing: click again until the drafts are shown.
+  await expect(async () => {
+    await page.getByRole("button", { name: /^Drafts \(1\)/ }).click();
+    await expect(page.getByTestId("invoice-draft-row")).toHaveCount(1, { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 
   // A draft can be duplicated too.
   await card(/^More for Thandi Nkosi, draft/).click();
@@ -426,6 +429,9 @@ test("a sent invoice and a draft can each be duplicated from their card into a n
   await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}$/);
   await expect(page.getByTestId("sticky-total")).toHaveText(rand("2 500"));
   await page.goto("/app/invoices");
-  await page.getByRole("button", { name: /^Drafts \(2\)/ }).click();
-  await expect(page.getByTestId("invoice-draft-row")).toHaveCount(2);
+  // The click can land before the list has hydrated and do nothing: click again until the drafts are shown.
+  await expect(async () => {
+    await page.getByRole("button", { name: /^Drafts \(2\)/ }).click();
+    await expect(page.getByTestId("invoice-draft-row")).toHaveCount(2, { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 });
