@@ -45,3 +45,6 @@ On the stable dev URL, on a phone: sign up with your email, open the email link 
 - CAPTCHA not yet added (see `docs/security-notes.md`).
 - The deploy workflow has not yet run against a real project. (The CI workflow has, and passes.)
 - GitHub environment protection: leave `dev` with no rules and no branch restriction. For `prod`, add yourself as required reviewer, untick "Allow administrators to bypass configured protection rules" so the approval step always applies, and restrict deployments to `main`.
+
+## Preview deployments
+`app/vercel.json` turns off Vercel's automatic builds for branches named `claude/*` (`git.deploymentEnabled`). Before this, every push to a working branch built a preview, which filled the free plan's Function Storage (10 GB, 2026-11). `main` still deploys as before. To look at a branch on a phone, turn the pattern off for a while (or open a pull request from a branch with another name), and delete old previews from the Vercel dashboard or with `npx vercel remove <project> --safe`.
