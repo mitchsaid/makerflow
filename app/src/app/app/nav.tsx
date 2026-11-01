@@ -56,7 +56,7 @@ export function WorkspaceNav({ businessName }: { businessName: string }) {
       aria-label="Main"
       // Its own layer in the page transitions, above the sliding page, so a page never slides over the tab bar.
       style={{ viewTransitionName: "app-nav" }}
-      className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card md:static md:w-56 md:shrink-0 md:border-r md:border-t-0"
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:static md:pb-0 md:w-56 md:shrink-0 md:border-r md:border-t-0"
     >
       <p className="hidden truncate px-4 pt-5 pb-3 text-sm font-semibold md:block">
         {businessName}

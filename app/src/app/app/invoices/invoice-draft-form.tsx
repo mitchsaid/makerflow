@@ -473,7 +473,7 @@ export function InvoiceDraftForm({
       </form>
 
       {/* Always in view above the tab bar, as on a quote. */}
-      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-2 md:bottom-0">
+      <div data-testid="action-bar" className="sticky bottom-[var(--tabbar-h)] z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-2 md:bottom-0">
         <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 sm:flex sm:justify-end">
           <div className="min-w-0 sm:mr-auto">
             <p className="text-sm text-muted-foreground">Total</p>

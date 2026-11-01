@@ -338,7 +338,7 @@ export function ThemeStudio({
         </section>
       </div>
 
-      <div data-testid="action-bar" className="sticky bottom-14 z-10 border-t border-border bg-card px-4 py-3 md:bottom-0">
+      <div data-testid="action-bar" className="sticky bottom-[var(--tabbar-h)] z-10 border-t border-border bg-card px-4 py-3 md:bottom-0">
         <div className="flex flex-wrap items-center gap-2">
           {target ? (
             <>

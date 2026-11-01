@@ -1003,7 +1003,7 @@ export function QuoteBuilder({
       {/* Always in view above the tab bar. It comes last, after anything under the form (such as
           Delete draft), so nothing is hidden beneath it, and it sits flush with the end of the
           page (-mb-8 takes back the page's bottom padding) so it never moves when you reach the bottom. */}
-      <div data-testid="action-bar" className="sticky bottom-14 z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-2 md:bottom-0">
+      <div data-testid="action-bar" className="sticky bottom-[var(--tabbar-h)] z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-2 md:bottom-0">
         {/* On a phone the total and Save share a row and the next step has the row below, whatever the total is (a long
             total must not make the bar change shape); from a tablet up it is one line. */}
         <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 sm:flex sm:justify-end">

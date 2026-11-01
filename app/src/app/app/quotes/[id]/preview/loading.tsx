@@ -23,7 +23,7 @@ export default function QuotePreviewLoading() {
           Preparing your preview…
         </p>
       </div>
-      <div className="sticky bottom-14 z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-3 md:bottom-0">
+      <div className="sticky bottom-[var(--tabbar-h)] z-10 -mx-4 -mb-8 transform-gpu border-t border-border bg-card px-4 py-3 md:bottom-0">
         <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2 sm:flex sm:items-center">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-12 rounded-lg sm:w-24" />
