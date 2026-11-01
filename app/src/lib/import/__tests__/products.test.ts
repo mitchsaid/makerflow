@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { guessMapping, IMPORT_MAX_ROWS, nameKey, parseDelimited, parsePriceCell, readRows, type ImportRow } from "../products";
+import { guessMapping, IMPORT_MAX_ROWS, nameKey, parseDelimited, parsePriceCell, readRows, suggestGroups, type ImportRow } from "../products";
 
 const currency = { symbol: "R", code: "ZAR" };
 const fixture = (name: string) => readFileSync(join(__dirname, "../__fixtures__", name), "utf8");
@@ -204,5 +204,56 @@ describe("readRows", () => {
 
   it("the most it takes at once is 200", () => {
     expect(IMPORT_MAX_ROWS).toBe(200);
+  });
+});
+
+
+describe("suggestGroups: rows that look like one product with choices", () => {
+  it("candles: the same name told apart by Scent and Size becomes one product with four choices", () => {
+    const [group, ...rest] = suggestGroups(read("candles.tsv"));
+    expect(rest).toEqual([]);
+    expect(group).toMatchObject({ name: "Soy candle", basis: "extras", variationLabel: "Scent and Size" });
+    expect(group!.variations.map((v) => [v.name, v.priceCents])).toEqual([
+      ["Lavender, 200ml", 14900],
+      ["Vanilla, 200ml", 14900],
+      ["Lavender, 400ml", 24900],
+      ["Vanilla, 400ml", 24900],
+    ]);
+  });
+
+  it("baker: names that end after a dash become one cake with its sizes; the rest stay on their own", () => {
+    const groups = suggestGroups(read("baker.csv"));
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({ name: "Chocolate cake", basis: "name", variationLabel: "Option" });
+    expect(groups[0]!.variations.map((v) => [v.name, v.priceCents])).toEqual([["20cm", 45000], ["25cm", 65000], ["30cm", 85000]]);
+  });
+
+  it("leather: colours become choices of one card holder", () => {
+    const groups = suggestGroups(read("leather.csv"));
+    expect(groups.map((g) => [g.name, g.variations.map((v) => v.name)])).toEqual([["Card holder", ["black", "tan"]]]);
+  });
+
+  it("lists with nothing to group, and rows that cannot be told apart, give no suggestion", () => {
+    expect(suggestGroups(read("seamstress.csv"))).toEqual([]);
+    expect(suggestGroups(read("stationery.csv"))).toEqual([]);
+    // The same name twice with nothing to tell them apart: not a group (they stay as a repeated name).
+    const rows = readRows(parseDelimited("Name,Price\nCake,10\nCake,20"), true, { name: 0, price: 1 }, { kind: "product", currency, existingNames: new Set() });
+    expect(suggestGroups(rows)).toEqual([]);
+  });
+
+  it("a name the business already has is left alone, and a row with no price is not part of a group", () => {
+    const rows = read("baker.csv", ["Chocolate cake - 20cm"]);
+    // One of the three is already a product: the other two still make a group of two.
+    expect(suggestGroups(rows)[0]!.variations.map((v) => v.name)).toEqual(["25cm", "30cm"]);
+    const noPrice = readRows(parseDelimited("Name,Price\nTee - S,\nTee - M,10\nTee - L,12"), true, { name: 0, price: 1 }, { kind: "product", currency, existingNames: new Set() });
+    expect(suggestGroups(noPrice)[0]!.variations.map((v) => v.name)).toEqual(["M", "L"]);
+  });
+
+  it("the product's choices are at most 50, and a group is offered only when it has two or more", () => {
+    const many = Array.from({ length: 51 }, (_, i) => `Tee - size ${i}\t10`).join("\n");
+    const rows = readRows(parseDelimited(many), false, { name: 0, price: 1 }, { kind: "product", currency, existingNames: new Set() });
+    expect(suggestGroups(rows)).toEqual([]);
+    const one = readRows(parseDelimited("Tee - S\t10\nHat\t5"), false, { name: 0, price: 1 }, { kind: "product", currency, existingNames: new Set() });
+    expect(suggestGroups(one)).toEqual([]);
   });
 });

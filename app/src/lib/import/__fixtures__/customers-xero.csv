@@ -1,0 +1,6 @@
+*ContactName,EmailAddress,POAddressLine1,POCity,PORegion,POPostalCode,PhoneNumber
+Lindiwe Dlamini,lindiwe@example.test,4 Kloof Road,Cape Town,Western Cape,8001,082 555 0111
+Pieter van Wyk,not-an-email,88 Main Road,Claremont,Narnia,77x,082 555 0112
+,nobody@example.test,,,,,
+Grace Wedding Events,grace@events.example,5 Vineyard Lane,Stellenbosch,Western Cape,7600,call me
+lindiwe dlamini,dup@example.test,,,,,

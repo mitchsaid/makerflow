@@ -818,6 +818,27 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("products-imported")).toBeVisible();
       await expectNoViolations(page, "products, after an import");
     });
+    test("importing customers: paste, columns, check, and after adding", async ({ page }) => {
+      test.setTimeout(180_000);
+      await signUpAndOnboard(page, `a11y-import-customers-${scheme}`, "Import Customers Axe Co");
+      await page.goto("/app/customers");
+      await expectNoViolations(page, "customers, empty, with the import link");
+      await page.getByTestId("import-link").click();
+      await expect(page.getByRole("heading", { name: "Import customers", level: 1 })).toBeVisible();
+      await page.getByRole("button", { name: "Continue" }).click();
+      await expect(page.getByText("Paste your list or choose a file first.")).toBeVisible();
+      await expectNoViolations(page, "import customers, the paste step with its problem");
+      await page.getByLabel("Your list").fill("Name,Email,Phone\nAxe Ann,ann@example.test,021 123 4567\nAxe Bob,bad,\n,x@example.test,");
+      await page.getByRole("button", { name: "Continue" }).click();
+      await expect(page.getByText("Which column is which?")).toBeVisible();
+      await expectNoViolations(page, "import customers, the columns step");
+      await page.getByRole("button", { name: "Check the customers" }).click();
+      await expect(page.getByTestId("import-summary")).toBeVisible();
+      await expectNoViolations(page, "import customers, the check step with a note and a problem row");
+      await page.getByRole("button", { name: "Add 2 customers" }).click();
+      await expect(page.getByTestId("customers-imported")).toBeVisible();
+      await expectNoViolations(page, "customers, after an import");
+    });
     test("production steps, on a product and on a job", async ({ page }) => {
       test.setTimeout(240_000);
       await signUpAndOnboard(page, `a11y-steps-${scheme}`, "Steps Axe Co");

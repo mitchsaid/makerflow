@@ -16,10 +16,12 @@ import {
   IMPORT_MAX_ROWS,
   parseDelimited,
   readRows,
+  suggestGroups,
   type ColumnKey,
   type Mapping,
   type Table,
 } from "@/lib/import/products";
+import { fromShopify } from "@/lib/import/shopify";
 import { formatMoney, type NumberStyle } from "@/lib/money";
 import { FOUND_LIST_KEY } from "@/lib/reader";
 import type { ProductKind } from "@/lib/products";
@@ -87,8 +89,17 @@ export function ImportProducts({
     () => (step === "check" ? readRows(table, hasHeader, mapping, { kind, currency: { symbol: currencySymbol, code: currencyCode }, existingNames: existing }) : []),
     [step, table, hasHeader, mapping, kind, currencySymbol, currencyCode, existing],
   );
-  const ready = rows.filter((r) => !r.problem);
+  // Rows that look like one product with choices are offered as one; "keep them separate" puts them back as rows.
+  const [separate, setSeparate] = useState<ReadonlySet<string>>(new Set());
+  const groups = useMemo(() => suggestGroups(rows).filter((g) => !separate.has(g.key)), [rows, separate]);
+  const groupedLines = useMemo(() => new Set(groups.flatMap((g) => g.variations.map((v) => v.line))), [groups]);
+  const singles = rows.filter((r) => !groupedLines.has(r.line));
+  const ready = singles.filter((r) => !r.problem);
+  // A group is ticked or not by the line of its first choice, like a row.
+  const groupId = (g: (typeof groups)[number]) => g.variations[0]!.line;
+  const chosenGroups = groups.filter((g) => !unticked.has(groupId(g)));
   const chosen = ready.filter((r) => !unticked.has(r.line));
+  const count = chosen.length + chosenGroups.length;
 
   async function chooseFile(file: File | undefined) {
     if (!file) return;
@@ -101,7 +112,9 @@ export function ImportProducts({
   }
 
   function toColumns() {
-    const parsed = parseDelimited(text);
+    // Shopify's export (a product over several rows) is turned into the plain shape first.
+    const raw = parseDelimited(text);
+    const parsed = fromShopify(raw) ?? raw;
     if (parsed.length === 0) {
       setPasteError("Paste your list or choose a file first. Each row needs a name and a price.");
       return;
@@ -132,24 +145,38 @@ export function ImportProducts({
     if (errors.name || errors.price) return setColumnErrors(errors);
     setColumnErrors({});
     setUnticked(new Set());
+    setSeparate(new Set());
     setMessage(null);
     setStep("check");
   }
 
   function add() {
-    if (chosen.length === 0) {
+    if (count === 0) {
       setMessage("Tick at least one product to add.");
       return;
     }
     setMessage(null);
     startTransition(async () => {
       try {
-        const result = await importProducts(chosen.map((r) => ({ kind: r.kind, name: r.name, priceCents: r.priceCents!, unit: r.unit, description: r.description })));
+        const items = [
+          ...chosen.map((r) => ({ kind: r.kind, name: r.name, priceCents: r.priceCents!, unit: r.unit, description: r.description })),
+          ...chosenGroups.map((g) => ({
+            kind: g.kind,
+            name: g.name,
+            // With choices the product's own price is the lowest of them.
+            priceCents: Math.min(...g.variations.map((v) => v.priceCents)),
+            unit: g.unit,
+            description: g.description,
+            variationLabel: g.variationLabel,
+            variations: g.variations.map((v) => ({ name: v.name, priceCents: v.priceCents })),
+          })),
+        ];
+        const result = await importProducts(items);
         if (result.status === "error") {
           setMessage(result.message);
           return;
         }
-        const view = chosen.every((r) => r.kind === "service") ? "&view=services" : "";
+        const view = [...chosen, ...chosenGroups].every((r) => r.kind === "service") ? "&view=services" : "";
         router.push(`/app/products?imported=${result.added}${result.failed.length > 0 ? `&failed=${result.failed.length}` : ""}${view}`);
       } catch {
         setMessage(OFFLINE);
@@ -180,7 +207,7 @@ export function ImportProducts({
         <TextAreaField
           id="import-text"
           label="Your list"
-          hint="Paste rows from a spreadsheet: a name and a price on each row."
+          hint="Paste rows from a spreadsheet, or a Shopify product export."
           rows={8}
           value={text}
           error={pasteError}
@@ -260,18 +287,59 @@ export function ImportProducts({
     );
   }
 
-  const leftOut = rows.length - ready.length;
+  const leftOut = singles.length - ready.length;
+  const readyCount = ready.length + groups.length;
   return (
     <div className="space-y-6">
       <div className="space-y-1">
         <p className="text-base font-medium" data-testid="import-summary">
-          {ready.length === 1 ? "1 product is ready to add" : `${ready.length} products are ready to add`}
+          {readyCount === 1 ? "1 product is ready to add" : `${readyCount} products are ready to add`}
           {leftOut > 0 ? `, ${leftOut} left out` : ""}.
         </p>
         {priceNote && <p className="text-sm text-muted-foreground">{priceNote}</p>}
       </div>
       <ul className="space-y-2">
-        {rows.map((r) => (
+        {groups.map((g) => (
+          <li key={`group-${g.key}`} className="rounded-xl bg-card px-4 py-3 ring-1 ring-primary/40" data-testid="import-group">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id={`import-group-${groupId(g)}`}
+                aria-label={`Add ${g.name} with ${g.variations.length} choices`}
+                checked={!unticked.has(groupId(g))}
+                onCheckedChange={(c) =>
+                  setUnticked((s) => {
+                    const next = new Set(s);
+                    if (c === true) next.delete(groupId(g));
+                    else next.add(groupId(g));
+                    return next;
+                  })
+                }
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate text-base font-medium">{g.name}</span>
+                  <span className="shrink-0 text-base">from {formatMoney(Math.min(...g.variations.map((v) => v.priceCents)), currencyCode, numberStyle)}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  One product with {g.variations.length} choices ({g.variationLabel.toLowerCase()}). Looks like these rows go together.
+                </p>
+                <ul className="space-y-0.5 text-sm" aria-label={`Choices for ${g.name}`}>
+                  {g.variations.map((v) => (
+                    <li key={v.line} className="flex justify-between gap-3">
+                      <span className="min-w-0 truncate">{v.name}</span>
+                      <span className="shrink-0 text-muted-foreground">{formatMoney(v.priceCents, currencyCode, numberStyle)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button type="button" variant="link" className="h-auto min-h-11 justify-start px-0 text-sm underline" onClick={() => setSeparate((s) => new Set(s).add(g.key))}>
+                  These are separate products
+                  <span className="sr-only"> ({g.name})</span>
+                </Button>
+              </div>
+            </div>
+          </li>
+        ))}
+        {singles.map((r) => (
           <li key={r.line} className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10" data-testid={r.problem ? "import-row-problem" : "import-row"}>
             <div className="flex items-start gap-3">
               {!r.problem && (
@@ -310,7 +378,7 @@ export function ImportProducts({
       )}
       <div className="flex flex-col gap-3">
         <AddButton variant="default" size="lg" disabled={pending} onClick={add}>
-          {pending ? "Adding…" : chosen.length === 1 ? "Add 1 product" : `Add ${chosen.length} products`}
+          {pending ? "Adding…" : count === 1 ? "Add 1 product" : `Add ${count} products`}
         </AddButton>
         <Button type="button" size="lg" variant="outline" disabled={pending} onClick={() => setStep("columns")}>
           Back

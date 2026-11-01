@@ -1,0 +1,6 @@
+Handle,Title,Body (HTML),Vendor,Type,Tags,Published,Option1 Name,Option1 Value,Option2 Name,Option2 Value,Variant SKU,Variant Price,Image Src,Status
+lavender-candle,Lavender candle,"<p>Hand-poured <strong>soy</strong> wax.</p>",Wick & Co,Candles,,true,Size,200ml,,,LC200,R180.00,https://example.test/a.jpg,active
+lavender-candle,,,,,,,Size,400ml,,,LC400,R320.00,,
+lavender-candle,,,,,,,,,,,,,https://example.test/b.jpg,
+gift-card,Gift card,,Wick & Co,,,true,Title,Default Title,,,,R500.00,,active
+old-candle,Old candle,,Wick & Co,,,true,Title,Default Title,,,,R99.00,,archived

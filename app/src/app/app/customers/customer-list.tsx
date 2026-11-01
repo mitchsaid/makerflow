@@ -8,6 +8,8 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { matchesSearch, type CustomerSummary } from "@/lib/customers";
 import { AddLink } from "@/components/add-button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * The customers list: search as you type, archived customers hidden until asked for. The
@@ -17,10 +19,13 @@ import { AddLink } from "@/components/add-button";
 export function CustomerList({
   customers,
   addedName,
+  importedCount,
 }: {
   customers: CustomerSummary[];
   /** Name of a customer that was just added, for a confirmation line. */
   addedName?: string;
+  /** How many were just brought in from a list, for a confirmation line. */
+  importedCount?: number;
 }) {
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"current" | "archived">("current");
@@ -36,12 +41,20 @@ export function CustomerList({
         <AddLink href="/app/customers/new" variant="default">
           Add your first customer
         </AddLink>
+        <Link href="/app/customers/import" className={cn(buttonVariants({ variant: "outline" }), "w-full")} data-testid="import-link">
+          Import a list of customers
+        </Link>
       </EmptyState>
     );
   }
 
   return (
     <div className="space-y-4">
+      {importedCount !== undefined && (
+        <p role="status" className="text-sm font-medium" data-testid="customers-imported">
+          {importedCount === 1 ? "Added 1 customer." : `Added ${importedCount} customers.`}
+        </p>
+      )}
       {addedName && (
         <p role="status" className="text-sm font-medium" data-testid="customer-added">
           Added {addedName}.
