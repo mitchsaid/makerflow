@@ -18,10 +18,15 @@ export async function requestMagicLink(
   const email = validateEmail(formData.get("email"));
   if (!email.ok) return { status: "error", message: email.error };
 
+  // The check's one-use token, when the site has it switched on (docs/runbooks/captcha.md); Supabase checks it.
+  const captcha = formData.get("captchaToken");
+  const captchaToken = typeof captcha === "string" && captcha !== "" ? captcha : undefined;
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: email.value,
     options: {
+      ...(captchaToken ? { captchaToken } : {}),
       shouldCreateUser: true,
       // Used by Supabase's default email (a link that returns here with a one-time
       // code). Our own templates link to /auth/confirm instead and ignore this.

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ActionSheet } from "@/components/action-sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Turnstile, turnstileSiteKey } from "@/components/turnstile";
 import { useAppRouter } from "@/components/use-app-router";
 import { DEMO_CHOICES, DEMO_KINDS, type DemoKind } from "@/lib/demo";
 import { buildDemo, startDemo } from "./demo/actions";
@@ -24,13 +25,25 @@ export function DemoPicker({ ended, children }: { ended: boolean; children?: Rea
   const [signedIn, setSignedIn] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function start(kind: DemoKind, signOutFirst = false) {
+  // With the "are you a person?" check switched on, a choice waits for it (docs/runbooks/captcha.md).
+  const [waiting, setWaiting] = useState<{ kind: DemoKind; signOutFirst: boolean } | null>(null);
+  const checking = turnstileSiteKey() !== null;
+
+  function request(kind: DemoKind, signOutFirst = false) {
+    setChosen(kind);
+    setMessage(null);
+    setSignedIn(false);
+    if (checking) setWaiting({ kind, signOutFirst });
+    else start(kind, signOutFirst);
+  }
+
+  function start(kind: DemoKind, signOutFirst: boolean, captchaToken?: string) {
     setChosen(kind);
     setMessage(null);
     setSignedIn(false);
     startTransition(async () => {
       try {
-        const started = await startDemo(kind, signOutFirst);
+        const started = await startDemo(kind, signOutFirst, captchaToken);
         if (started.status === "signed-in") return setSignedIn(true);
         if (started.status === "error") return setMessage(started.message);
         const built = await buildDemo();
@@ -55,12 +68,25 @@ export function DemoPicker({ ended, children }: { ended: boolean; children?: Rea
           <AlertDescription>Your demo has ended. Start another, or sign up to keep your own.</AlertDescription>
         </Alert>
       )}
+      {waiting && (
+        <div className="space-y-2" data-testid="demo-check">
+          <p className="text-sm text-muted-foreground">One moment: checking you&apos;re a person.</p>
+          <Turnstile
+            key={`${waiting.kind}-${waiting.signOutFirst}`}
+            onToken={(token) => {
+              if (!token) return;
+              setWaiting(null);
+              start(waiting.kind, waiting.signOutFirst, token);
+            }}
+          />
+        </div>
+      )}
       {signedIn && chosen && (
         <Alert role="alert" data-testid="demo-signed-in">
           <AlertDescription className="space-y-3">
             <p>You&apos;re signed in to MakerFlow. A browser holds one sign-in, so the demo would sign you out here. Your business and everything in it stay as they are: sign back in with your email link.</p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" onClick={() => start(chosen, true)} disabled={pending}>
+              <Button type="button" onClick={() => request(chosen, true)} disabled={pending}>
                 Sign out and try the demo
               </Button>
               <Button type="button" variant="outline" onClick={() => setSignedIn(false)}>
@@ -81,7 +107,7 @@ export function DemoPicker({ ended, children }: { ended: boolean; children?: Rea
         onOpenChange={setOpen}
         title="Try the demo"
         description="Which maker is closest to you? You get a demo business of your own: no sign-up."
-        actions={DEMO_KINDS.map((kind) => ({ label: DEMO_CHOICES[kind].title, hint: DEMO_CHOICES[kind].line, onSelect: () => start(kind) }))}
+        actions={DEMO_KINDS.map((kind) => ({ label: DEMO_CHOICES[kind].title, hint: DEMO_CHOICES[kind].line, onSelect: () => request(kind) }))}
         finalFocus={() => document.querySelector<HTMLElement>('[data-testid="try-demo"]')}
       />
     </div>

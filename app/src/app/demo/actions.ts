@@ -34,7 +34,7 @@ const SAMPLE_DATA = "The demo started, but its sample data couldn't be set up. P
  * A browser holds one sign-in, so a real maker signed in here has to choose to be signed out first
  * (`signOutFirst`: the account and its data are untouched; they sign in again with their email link).
  */
-export async function startDemo(kind: string, signOutFirst = false): Promise<DemoResult> {
+export async function startDemo(kind: string, signOutFirst = false, captchaToken?: string): Promise<DemoResult> {
   if (!isDemoKind(kind)) return { status: "error", message: GENERIC };
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -44,7 +44,8 @@ export async function startDemo(kind: string, signOutFirst = false): Promise<Dem
   if (realMaker && !signOutFirst) return { status: "signed-in" };
   if (realMaker) await supabase.auth.signOut();
   if (!existing?.sub || realMaker) {
-    const { error } = await supabase.auth.signInAnonymously();
+    // With the check switched on at the site (docs/runbooks/captcha.md), Supabase wants its one-use token here.
+    const { error } = await supabase.auth.signInAnonymously(typeof captchaToken === "string" && captchaToken !== "" ? { options: { captchaToken } } : undefined);
     if (error) {
       console.error("could not start an anonymous visit:", error.code, error.message);
       if (error.code === "anonymous_provider_disabled") return { status: "error", message: NOT_SWITCHED_ON };
