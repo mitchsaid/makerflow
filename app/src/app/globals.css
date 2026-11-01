@@ -11,6 +11,8 @@
  *   primary = our terracotta brand colour, accent = subtle hover surface (not the brand colour).
  */
 :root {
+  /* The phone tab bar's height, with the room the home bar needs under it in an installed app (0 elsewhere). */
+  --tabbar-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
   --background: #faf8f5;
   --foreground: #211e1a;
   --card: #ffffff;

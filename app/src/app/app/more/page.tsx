@@ -1,6 +1,7 @@
 import Link from "@/components/app-link";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { FeedbackButton } from "../feedback/feedback-button";
+import { InstallRow, ShareRow } from "../install-rows";
 
 const LINKS = [
   {
@@ -49,6 +50,8 @@ export default async function MorePage() {
             </Link>
           </li>
         ))}
+        <InstallRow />
+        <ShareRow />
         <li>
           <FeedbackButton variant="row" />
         </li>

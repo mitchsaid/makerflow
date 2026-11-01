@@ -56,7 +56,7 @@ function SheetContent({
           // On a phone (under 768 px): a sheet from its edge, as before. On a bigger screen: a dialog in the middle of
           // the page, whichever edge the sheet was written for (the work happens where the maker is looking, not at
           // the edge of the screen).
-          "fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0",
+          "fixed z-50 flex flex-col max-md:pb-[env(safe-area-inset-bottom)] bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0",
           "max-md:data-[side=bottom]:inset-x-0 max-md:data-[side=bottom]:bottom-0 max-md:data-[side=bottom]:h-auto max-md:data-[side=bottom]:border-t max-md:data-[side=bottom]:data-ending-style:translate-y-[2.5rem] max-md:data-[side=bottom]:data-starting-style:translate-y-[2.5rem]",
           "max-md:data-[side=left]:inset-y-0 max-md:data-[side=left]:left-0 max-md:data-[side=left]:h-full max-md:data-[side=left]:w-full max-md:data-[side=left]:border-r max-md:data-[side=left]:data-ending-style:translate-x-[-2.5rem] max-md:data-[side=left]:data-starting-style:translate-x-[-2.5rem] max-md:data-[side=left]:sm:max-w-lg",
           "max-md:data-[side=right]:inset-y-0 max-md:data-[side=right]:right-0 max-md:data-[side=right]:h-full max-md:data-[side=right]:w-full max-md:data-[side=right]:border-l max-md:data-[side=right]:data-ending-style:translate-x-[2.5rem] max-md:data-[side=right]:data-starting-style:translate-x-[2.5rem] max-md:data-[side=right]:sm:max-w-lg",
