@@ -1,3 +1,4 @@
+import { AppearanceChoice } from "@/components/appearance-choice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganisation } from "@/lib/auth/dal";
@@ -47,11 +48,12 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">App preferences</CardTitle>
-          <CardDescription className="text-base">
-            Your preferences will appear here. Business details are in the Business profile.
-          </CardDescription>
+          <CardTitle className="text-lg">Appearance</CardTitle>
+          <CardDescription className="text-base">How MakerFlow looks on this device.</CardDescription>
         </CardHeader>
+        <CardContent>
+          <AppearanceChoice />
+        </CardContent>
       </Card>
 
       {user.email && <DeleteAccount email={user.email} />}

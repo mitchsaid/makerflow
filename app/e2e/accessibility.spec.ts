@@ -831,6 +831,19 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("install-card")).toBeVisible();
       await expectNoViolations(page, "home, the install card");
     });
+    test("Appearance: the opposite of the device's setting, chosen in Settings", async ({ page }) => {
+      test.setTimeout(150_000);
+      await signUpAndOnboard(page, `a11y-appearance-${scheme}`, "Appearance Axe Co");
+      await openSettings(page);
+      await expectNoViolations(page, "settings, the Appearance choice");
+      // Dark on a phone that prefers light, light on one that prefers dark: the forced colours must pass too.
+      await page.getByRole("radio", { name: scheme === "light" ? "Dark" : "Light", exact: true }).click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", scheme === "light" ? "dark" : "light");
+      await expectNoViolations(page, `settings, ${scheme === "light" ? "dark" : "light"} chosen`);
+      await page.goto("/app");
+      await expect(page.getByTestId("business-name")).toBeVisible();
+      await expectNoViolations(page, `home, ${scheme === "light" ? "dark" : "light"} chosen`);
+    });
     test("importing customers: paste, columns, check, and after adding", async ({ page }) => {
       test.setTimeout(180_000);
       await signUpAndOnboard(page, `a11y-import-customers-${scheme}`, "Import Customers Axe Co");
