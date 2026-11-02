@@ -52,7 +52,7 @@ export function JobSteps({ jobId, status, fulfilment, allMade }: { jobId: string
         </div>
       )}
       {status === "in_progress" && allMade && ready && (
-        <div className="space-y-2 rounded-xl bg-card p-4 ring-1 ring-foreground/10" data-testid="all-made-prompt">
+        <div className="space-y-2 rounded-xl bg-card p-4 ring-1 ring-border" data-testid="all-made-prompt">
           <p className="text-base font-medium" role="status">
             Everything is made.
           </p>

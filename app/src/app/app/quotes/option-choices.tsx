@@ -129,7 +129,7 @@ export function OptionChoices({
                     <span className="flex min-w-0 items-center gap-3">
                       {v.imageId && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={imageUrl(v.imageId, "thumb")} alt="" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
+                        <img src={imageUrl(v.imageId, "thumb")} alt="" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-border" />
                       )}
                       <span>{v.name}</span>
                     </span>

@@ -57,7 +57,7 @@ export function MarginPanel({
           {total.incomplete ? " or less" : ""}
           {partial ? ` (costed items only, ${costed} of ${items.length})` : ""}
           {standing && (
-            <span className={standing === "meets" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-800 dark:text-amber-300"} data-testid="margin-standing">
+            <span className={standing === "meets" ? "text-success" : "text-warning"} data-testid="margin-standing">
               {" "}
               · {standing === "meets" ? "meets" : "below"} your {target} target
             </span>
@@ -83,7 +83,7 @@ export function MarginPanel({
                   </dd>
                 </dl>
                 {targetBp !== null && targetStanding(i.margin.marginBp, targetBp) === "below" && (
-                  <p className="text-amber-800 dark:text-amber-300" data-testid="margin-item-hint">
+                  <p className="text-warning" data-testid="margin-item-hint">
                     Below your {target} target.
                     {(() => {
                       const price = priceForMarginCents(i.margin.costCents, targetBp);

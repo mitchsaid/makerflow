@@ -186,7 +186,7 @@ function InvoiceForm({
           {problems.length > 0 && (
             <ul className="space-y-3" aria-label="What is missing">
               {problems.map((p) => (
-                <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
+                <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-border">
                   <p className="text-base">{p.message}</p>
                   {p.code === "vat-changed" ? (
                     <Link id={`invoice-problem-${p.code}`} href={`/app/quotes/${quoteId}`} className="inline-flex min-h-11 items-center font-medium underline">

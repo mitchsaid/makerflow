@@ -43,7 +43,7 @@ export function LegalPage({ title, intro, sections, other, withServices = false 
           {withServices && section.id === "others" && (
             <ul className="space-y-2" aria-label="Services we use">
               {SERVICES.map((s) => (
-                <li key={s.name} className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
+                <li key={s.name} className="rounded-xl bg-card px-4 py-3 ring-1 ring-border">
                   <span className="block text-base font-medium">{s.name}</span>
                   <span className="block text-sm text-muted-foreground">
                     For {s.what}. Based in {s.where}.

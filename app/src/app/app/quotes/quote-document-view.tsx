@@ -223,7 +223,7 @@ export function QuoteDocumentView({ snapshot: s }: { snapshot: QuoteSnapshot }) 
                     src={imageUrl(group.imageId)}
                     alt={`QR code for ${group.name ?? "paying"}`}
                     data-testid="pay-qr"
-                    className="mt-1 size-40 rounded-md bg-white object-contain ring-1 ring-foreground/10"
+                    className="mt-1 size-40 rounded-md bg-white object-contain ring-1 ring-border"
                   />
                 )}
               </div>

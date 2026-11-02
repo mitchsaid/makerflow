@@ -70,7 +70,7 @@ export function PaymentsSection(props: Props) {
               {rows.map((row) => {
                 const p = row.payment;
                 return (
-                  <li key={p.id} className="space-y-1 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="payment">
+                  <li key={p.id} className="space-y-1 rounded-xl bg-muted/40 p-3 ring-1 ring-border" data-testid="payment">
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4">
                       <span className={row.reversal ? "text-muted-foreground line-through" : "font-medium"}>{money(p.amountCents)}</span>
                       <span className="text-sm text-muted-foreground">{formatDay(p.paidOn, formatLocale)}</span>
@@ -100,7 +100,7 @@ export function PaymentsSection(props: Props) {
           )}
 
           {depositOffered && (
-            <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="deposit-offer">
+            <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-border" data-testid="deposit-offer">
               <p className="text-base">Your quote asked for a deposit of {money(depositCents)}.</p>
               <Button type="button" onClick={() => setForm({ amount: Math.min(depositCents, owingCents), note: props.depositNote })}>
                 Record the deposit

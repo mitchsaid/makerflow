@@ -402,11 +402,11 @@ function TargetNote({
   if (standing === null) return null;
   const target = formatPercent(targetBp, numberStyle);
   if (standing === "meets") {
-    return <span className="text-emerald-700 dark:text-emerald-400" data-testid="target-note"> Meets your {target} target.</span>;
+    return <span className="text-success" data-testid="target-note"> Meets your {target} target.</span>;
   }
   const price = costCents === null ? null : priceForMarginCents(costCents, targetBp);
   return (
-    <span className="text-amber-800 dark:text-amber-300" data-testid="target-note">
+    <span className="text-warning" data-testid="target-note">
       {" "}
       Below your {target} target
       {price === null ? "." : `: for ${target}, charge ${incomplete ? "at least " : ""}${money(price)}${vatRegistered ? " without VAT" : ""}.`}

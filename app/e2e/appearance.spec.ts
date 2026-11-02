@@ -3,7 +3,7 @@ import { openSettings, signUpAndOnboard } from "./helpers";
 
 /** The Appearance choice (docs/plans/visual-design.md): light, dark, or the same as the device. */
 const LIGHT_BG = "rgb(251, 246, 236)";
-const DARK_BG = "rgb(27, 24, 20)";
+const DARK_BG = "rgb(20, 17, 14)";
 const background = (page: import("@playwright/test").Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 // The buttons animate their colours, so these are polled. The Sign out button is an outline button: it has the page's colour in light, and `dark:bg-input/30` in dark.
 const signOutBackground = (page: import("@playwright/test").Page) =>
@@ -22,7 +22,7 @@ test.describe("on a phone that prefers light", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     expect(await background(page)).toBe(DARK_BG);
     // The address-bar colour follows too.
-    await expect(page.locator('meta[name="theme-color"]').first()).toHaveAttribute("content", "#1b1814");
+    await expect(page.locator('meta[name="theme-color"]').first()).toHaveAttribute("content", "#14110e");
 
     // After a reload it is dark from the first paint, and the choice shows as chosen.
     await page.reload();

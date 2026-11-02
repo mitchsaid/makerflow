@@ -14,7 +14,7 @@ export function parseTheme(raw: unknown): Theme {
 }
 
 /** The browser's address-bar colours, as in the layout's `viewport.themeColor`. */
-export const THEME_COLORS = { light: "#fbf6ec", dark: "#1b1814" } as const;
+export const THEME_COLORS = { light: "#fbf6ec", dark: "#14110e" } as const;
 
 export const THEME_CHOICES: readonly { value: Theme; title: string; hint?: string }[] = [
   { value: "system", title: "Same as this device", hint: "Follows its light or dark setting." },

@@ -33,7 +33,7 @@ export function JobRow({
   const overdue = isOverdueJob(j, today);
   const progress = jobProgress(j.items);
   return (
-    <li className="relative rounded-xl bg-card ring-1 ring-foreground/10 transition-colors hover:bg-muted">
+    <li className="relative rounded-xl bg-card ring-1 ring-border transition-colors hover:bg-muted">
       <Link
         href={`/app/jobs/${j.id}`}
         className={`block rounded-xl py-3 pl-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${canDelete ? "pr-16" : "pr-4"}`}

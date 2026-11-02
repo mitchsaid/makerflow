@@ -217,7 +217,7 @@ export function ImportCustomers({ countryCode, existingNames }: { countryCode: s
       </p>
       <ul className="space-y-2">
         {rows.map((r) => (
-          <li key={r.line} className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10" data-testid={r.problem ? "import-row-problem" : "import-row"}>
+          <li key={r.line} className="rounded-xl bg-card px-4 py-3 ring-1 ring-border" data-testid={r.problem ? "import-row-problem" : "import-row"}>
             <div className="flex items-start gap-3">
               {!r.problem && (
                 <Checkbox

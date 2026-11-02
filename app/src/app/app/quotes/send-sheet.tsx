@@ -201,7 +201,7 @@ function Problems({ problems, onGoTo }: { problems: SendProblem[]; onGoTo: (fiel
       {problems.map((p) => {
         const fix = FIX_FIELD[p.code];
         return (
-          <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
+          <li key={p.code} className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-border">
             <p className="text-base">{p.message}</p>
             <Button type="button" variant="outline" onClick={() => onGoTo(fix.id)}>
               {fix.label}

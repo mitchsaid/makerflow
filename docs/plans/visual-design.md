@@ -43,6 +43,7 @@ Each slice is walked on a phone viewport in light and dark and passes the access
 - **Type:** Fraunces for page titles (`h1`, now `text-2xl`; the business name on Home `text-3xl`) and for section and sheet titles (`font-heading`); DM Sans for everything else. Geist is gone.
 - **Home:** the paid amount is green and the money figures bold; **lists and builders:** product prices semibold, the pinned total on quotes and invoices larger and bold. The tab bar already had the indicator above the active tab.
 - The address-bar and install colours follow the new background.
+- **Dark mode, second pass (founder: light felt better designed).** Why: the dark page and card were a hair apart (`#1b1814` / `#26211b`), the 10% outlines and shadows vanish on dark, inputs and outline buttons had a translucent fill that looked like holes, the accent turned pastel, and Draft and Sent chips were muddy. Fix: three clearer steps (page `#14110e`, card `#211c17`, raised `#2d2720`), solid lighter borders (`ring-border` everywhere, replacing `ring-foreground/10`), a one-pixel top highlight on cards in dark, solid raised fills for inputs and outline buttons, a richer coral accent (`#e5845f`), and status chips built from tokens (`success`, `warning`, `info` at 15% over the surface, with a hairline on the neutral Draft chip) so light and dark read the same.
 - Not changed: the shape of any screen. Quote and invoice documents keep their own themes.
 
 ## Tests

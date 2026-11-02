@@ -37,7 +37,7 @@ export function ThemeLibrary({ saved, canEdit }: { saved: readonly SavedTheme[];
   const card = (e: Entry) => {
     const from = e.own ? `theme:${e.key}` : `starter:${e.key}`;
     return (
-      <li key={e.key} className="space-y-2 rounded-xl bg-card p-3 ring-1 ring-foreground/10" data-testid="theme-card">
+      <li key={e.key} className="space-y-2 rounded-xl bg-card p-3 ring-1 ring-border" data-testid="theme-card">
         <div className="flex gap-3">
           <div className="w-24 shrink-0">
             <ThemeThumbnail theme={resolveTheme(e.spec, e.name)} />

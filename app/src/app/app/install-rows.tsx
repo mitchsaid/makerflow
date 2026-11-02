@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { installWay, IOS_STEPS, SHARE_TEXT } from "@/lib/install";
 
 const ROW =
-  "h-auto min-h-11 w-full flex-col items-start justify-start gap-0.5 whitespace-normal rounded-xl bg-card px-4 py-3 text-left ring-1 ring-foreground/10 hover:bg-muted";
+  "h-auto min-h-11 w-full flex-col items-start justify-start gap-0.5 whitespace-normal rounded-xl bg-card px-4 py-3 text-left ring-1 ring-border hover:bg-muted";
 
 /**
  * "Install MakerFlow" (docs/plans/installable-app.md): one tap where the browser offers to install the app,

@@ -17,7 +17,7 @@ export function PhotoThumb({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  const box = cn(SIZES[size], "shrink-0 self-center overflow-hidden rounded-md ring-1 ring-foreground/10", className);
+  const box = cn(SIZES[size], "shrink-0 self-center overflow-hidden rounded-md ring-1 ring-border", className);
   if (!imageId) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element

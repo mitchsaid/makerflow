@@ -44,6 +44,8 @@
   --accent-foreground: #231f1a;
   --destructive: #b3261e;
   --success: #2f6b3f;
+  --warning: #8a5400;
+  --info: #1f5f86;
   --border: #eadfcc;
   --input: #d9cdb8;
   --ring: #a94f33;
@@ -57,49 +59,53 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #1b1814;
+    --background: #14110e;
     --foreground: #f4ede0;
-    --card: #26211b;
+    --card: #211c17;
     --card-foreground: #f4ede0;
-    --popover: #26211b;
+    --popover: #211c17;
     --popover-foreground: #f4ede0;
-    --primary: #e08a68;
-    --primary-foreground: #1b1814;
-    --secondary: #2f2820;
+    --primary: #e5845f;
+    --primary-foreground: #1a1410;
+    --secondary: #2d2720;
     --secondary-foreground: #f4ede0;
-    --muted: #2f2820;
-    --muted-foreground: #b3a999;
-    --accent: #2f2820;
+    --muted: #2d2720;
+    --muted-foreground: #b9ae9d;
+    --accent: #2d2720;
     --accent-foreground: #f4ede0;
     --destructive: #f2877e;
     --success: #8ccb9b;
-    --border: #3a332b;
-    --input: #4a4136;
-    --ring: #e08a68;
+    --warning: #e9b866;
+    --info: #8fc3e6;
+    --border: #3f372d;
+    --input: #54493c;
+    --ring: #e5845f;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #1b1814;
+  --background: #14110e;
   --foreground: #f4ede0;
-  --card: #26211b;
+  --card: #211c17;
   --card-foreground: #f4ede0;
-  --popover: #26211b;
+  --popover: #211c17;
   --popover-foreground: #f4ede0;
-  --primary: #e08a68;
-  --primary-foreground: #1b1814;
-  --secondary: #2f2820;
+  --primary: #e5845f;
+  --primary-foreground: #1a1410;
+  --secondary: #2d2720;
   --secondary-foreground: #f4ede0;
-  --muted: #2f2820;
-  --muted-foreground: #b3a999;
-  --accent: #2f2820;
+  --muted: #2d2720;
+  --muted-foreground: #b9ae9d;
+  --accent: #2d2720;
   --accent-foreground: #f4ede0;
   --destructive: #f2877e;
   --success: #8ccb9b;
-  --border: #3a332b;
-  --input: #4a4136;
-  --ring: #e08a68;
+  --warning: #e9b866;
+  --info: #8fc3e6;
+  --border: #3f372d;
+  --input: #54493c;
+  --ring: #e5845f;
 }
 
 @theme inline {
@@ -119,6 +125,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
