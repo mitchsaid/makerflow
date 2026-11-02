@@ -363,7 +363,7 @@ function ItemRow({
       >
         {photoId && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl(photoId, "thumb")} alt="" loading="lazy" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10" />
+          <img src={imageUrl(photoId, "thumb")} alt="" loading="lazy" className="size-10 shrink-0 rounded-md object-cover ring-1 ring-border" />
         )}
         <span className="min-w-0">
           <span className="block truncate text-base font-medium">

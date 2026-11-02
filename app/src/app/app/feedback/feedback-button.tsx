@@ -28,7 +28,7 @@ export function FeedbackButton({ variant }: { variant: "row" | "sidebar" }) {
           type="button"
           variant="outline"
           onClick={() => setOpen(true)}
-          className="h-auto min-h-11 w-full flex-col items-start justify-start gap-0.5 whitespace-normal rounded-xl bg-card px-4 py-3 text-left ring-1 ring-foreground/10 hover:bg-muted"
+          className="h-auto min-h-11 w-full flex-col items-start justify-start gap-0.5 whitespace-normal rounded-xl bg-card px-4 py-3 text-left ring-1 ring-border hover:bg-muted"
         >
           <span className="block text-base font-medium">Send feedback</span>
           <span className="block text-sm font-normal text-muted-foreground">Something not working, or an idea? Tell us.</span>

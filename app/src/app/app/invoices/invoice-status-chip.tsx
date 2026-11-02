@@ -1,9 +1,9 @@
 import { INVOICE_STATUS_LABELS, invoiceStatusTone, type InvoiceStatus, type InvoiceStatusTone } from "@/lib/invoices";
 
 const TONE_CLASS: Record<InvoiceStatusTone, string> = {
-  neutral: "bg-muted text-muted-foreground",
-  good: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  warning: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
+  neutral: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
+  good: "bg-success/15 text-success",
+  warning: "bg-warning/15 text-warning",
 };
 
 /** The small label that says where an invoice stands. It is worked out, never set by hand. */

@@ -85,7 +85,7 @@ export function CreditNotesSection(props: Props) {
                   <li key={c.id}>
                     <Link
                       href={`/app/credit-notes/${c.id}`}
-                      className="block rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="block rounded-xl bg-muted/40 p-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
                       <span className="flex items-baseline justify-between gap-3">
                         <span className="font-medium">{c.number}</span>
@@ -102,7 +102,7 @@ export function CreditNotesSection(props: Props) {
           )}
 
           {refundDueCents > 0 && (
-            <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="refund-due">
+            <div className="space-y-2 rounded-xl bg-muted/40 p-3 ring-1 ring-border" data-testid="refund-due">
               <p className="text-base">
                 They have paid {money(refundDueCents)} more than this invoice now comes to.
               </p>
@@ -299,7 +299,7 @@ function CreditForm({
                 const lineErrors = errors.byLine?.[item.index] ?? {};
                 const done = item.amountLeftCents <= 0;
                 return (
-                  <li key={item.index} className="space-y-3 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10" data-testid="credit-item">
+                  <li key={item.index} className="space-y-3 rounded-xl bg-muted/40 p-3 ring-1 ring-border" data-testid="credit-item">
                     <Field orientation="horizontal" className="items-start">
                       <Checkbox
                         id={`credit-line-${item.index}`}
@@ -364,7 +364,7 @@ function CreditForm({
             onChange={(explanation) => setValues((v) => ({ ...v, explanation }))}
           />
 
-          <dl className="space-y-1 rounded-xl bg-muted/40 p-3 text-base ring-1 ring-foreground/10" data-testid="credit-total">
+          <dl className="space-y-1 rounded-xl bg-muted/40 p-3 text-base ring-1 ring-border" data-testid="credit-total">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Credit total</dt>
               <dd className="font-medium">{totals ? money(totals.grossCents) : money(0)}</dd>

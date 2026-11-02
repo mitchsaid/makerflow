@@ -15,7 +15,7 @@ export function JobProgressBar({ progress }: { progress: JobProgress }) {
         aria-valuetext={progressText(progress)}
         className="h-2 w-full overflow-hidden rounded-full bg-muted"
       >
-        <div className="h-full rounded-full bg-emerald-600 transition-[width] dark:bg-emerald-500" style={{ width: `${percent}%` }} />
+        <div className="h-full rounded-full bg-success transition-[width]" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );

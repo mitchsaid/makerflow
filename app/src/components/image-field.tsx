@@ -82,8 +82,8 @@ export function ImageField({
             data-testid={`${id}-preview`}
             className={
               shape === "square"
-                ? "size-24 shrink-0 rounded-lg object-cover ring-1 ring-foreground/10"
-                : kind === "background" ? "max-h-28 max-w-32 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10" : kind === "payment-qr" ? "size-28 shrink-0 rounded-lg bg-white object-contain ring-1 ring-foreground/10" : "max-h-20 max-w-48 shrink-0 rounded-lg object-contain ring-1 ring-foreground/10"
+                ? "size-24 shrink-0 rounded-lg object-cover ring-1 ring-border"
+                : kind === "background" ? "max-h-28 max-w-32 shrink-0 rounded-lg object-contain ring-1 ring-border" : kind === "payment-qr" ? "size-28 shrink-0 rounded-lg bg-white object-contain ring-1 ring-border" : "max-h-20 max-w-48 shrink-0 rounded-lg object-contain ring-1 ring-border"
             }
           />
         ) : (

@@ -101,7 +101,7 @@ export function CustomerList({
             <li key={c.id}>
               <Link
                 href={`/app/customers/${c.id}`}
-                className="block rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="block rounded-xl bg-card px-4 py-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="flex items-center gap-2">
                   <span className="truncate text-base font-medium">{c.name}</span>

@@ -6,9 +6,9 @@ import {
 } from "@/lib/quotes/status";
 
 const TONE_CLASS = {
-  neutral: "bg-muted text-muted-foreground",
-  good: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  warning: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
+  neutral: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
+  good: "bg-success/15 text-success",
+  warning: "bg-warning/15 text-warning",
 } as const;
 
 /** The small label that says where a quote stands. */

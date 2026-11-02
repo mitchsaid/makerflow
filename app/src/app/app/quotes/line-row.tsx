@@ -46,7 +46,7 @@ export function LineRow({
               src={imageUrl(photoId, "thumb")}
               alt=""
               loading="lazy"
-              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-foreground/10"
+              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-border"
             />
           )}
           <span className="min-w-0">
