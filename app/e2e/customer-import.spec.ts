@@ -36,6 +36,11 @@ test("a Xero-style contacts list: bad details are left out of that customer, row
   await expect(page.getByTestId("customer-count")).toHaveText("2 customers");
   await expect(page.getByText("Lindiwe Dlamini")).toBeVisible();
 
+  // The header holds the Add button and the settings gear; Import lives in Customer settings.
+  await expect(page.getByRole("link", { name: "Import", exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Customer settings" }).click();
+  await expect(page.getByRole("heading", { name: "Customer settings", level: 1 })).toBeVisible();
+
   // Importing the same list again adds nothing twice.
   await page.getByTestId("import-link").click();
   await page.getByLabel("Your list").fill("Name,Email\nLindiwe Dlamini,x@example.test\nSipho Mokoena,sipho@example.test");
