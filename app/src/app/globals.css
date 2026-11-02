@@ -2,8 +2,21 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark mode follows the phone's setting (no manual toggle yet). */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/*
+ * Dark mode follows the device's setting unless the person chose Light or Dark in Settings, which puts
+ * data-theme="light" or "dark" on <html> before the first paint (docs/plans/visual-design.md). The `dark:` variant and the
+ * dark tokens below follow the same rule.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
 
 /*
  * Neutral, calm, with some warmth. Brand personality lives in the maker's own documents.
@@ -32,10 +45,15 @@
   --input: #d9d2c6;
   --ring: #a94f33;
   --radius: 0.625rem;
+  /* Native controls and scrollbars follow the same choice. */
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #1a1815;
     --foreground: #f1ece4;
     --card: #242019;
@@ -55,6 +73,28 @@
     --input: #4a443a;
     --ring: #d9805f;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #1a1815;
+  --foreground: #f1ece4;
+  --card: #242019;
+  --card-foreground: #f1ece4;
+  --popover: #242019;
+  --popover-foreground: #f1ece4;
+  --primary: #d9805f;
+  --primary-foreground: #1a1815;
+  --secondary: #2e2922;
+  --secondary-foreground: #f1ece4;
+  --muted: #2e2922;
+  --muted-foreground: #a59d92;
+  --accent: #2e2922;
+  --accent-foreground: #f1ece4;
+  --destructive: #f2877e;
+  --border: #38332b;
+  --input: #4a443a;
+  --ring: #d9805f;
 }
 
 @theme inline {
