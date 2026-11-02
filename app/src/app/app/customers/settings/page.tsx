@@ -11,7 +11,7 @@ export default async function CustomerSettingsPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/customers", label: "Customers" }}>
-        <h1 className="text-xl font-semibold">Customer settings</h1>
+        <h1 className="text-2xl font-semibold">Customer settings</h1>
       </PageHeader>
       <ImportCard title="Import" line="Bring in customers from a spreadsheet or file." href="/app/customers/import" label="Import a list" />
     </main>

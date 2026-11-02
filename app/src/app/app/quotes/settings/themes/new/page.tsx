@@ -44,7 +44,7 @@ export default async function NewThemePage({ searchParams }: PageProps<"/app/quo
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
         <PageHeader back={{ href: back.href, label: back.label }}>
-          <h1 className="text-xl font-semibold">Create a new theme</h1>
+          <h1 className="text-2xl font-semibold">Create a new theme</h1>
           <p className="text-base text-muted-foreground">How do you want to start? You can change everything afterwards.</p>
         </PageHeader>
         <section className="space-y-3" aria-labelledby="blank-heading">

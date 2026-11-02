@@ -1009,7 +1009,7 @@ export function QuoteBuilder({
         <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 sm:flex sm:justify-end">
           <div className="min-w-0 sm:mr-auto">
             <p className="text-sm text-muted-foreground">Total</p>
-            <p className="truncate text-lg font-semibold" data-testid="sticky-total">
+            <p className="truncate text-xl font-bold" data-testid="sticky-total">
               {totals ? money(totals.grossCents) : "–"}
             </p>
           </div>

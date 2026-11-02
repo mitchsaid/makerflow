@@ -20,7 +20,7 @@ export default async function EditPolicyPage({ params }: PageProps<"/app/quotes/
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/quotes/settings/policies", label: "Terms" }}>
-        <h1 className="text-xl font-semibold">{termName(policy)}</h1>
+        <h1 className="text-2xl font-semibold">{termName(policy)}</h1>
       </PageHeader>
       {policy.archived && (
         <Alert data-testid="archived-notice">

@@ -19,32 +19,35 @@
 }
 
 /*
- * Neutral, calm, with some warmth. Brand personality lives in the maker's own documents.
+ * Warm editorial (docs/plans/visual-design.md): cream pages, white cards with soft borders, terracotta for actions, a serif
+ * for page and section titles and a plain sans for everything else. Calm and easy to read first; the personality is in the
+ * type and the warmth, not in decoration. The maker's own documents have their own themes.
  * Names follow shadcn/ui so its components pick the palette up unchanged:
  *   primary = our terracotta brand colour, accent = subtle hover surface (not the brand colour).
  */
 :root {
   /* The phone tab bar's height, with the room the home bar needs under it in an installed app (0 elsewhere). */
   --tabbar-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
-  --background: #faf8f5;
-  --foreground: #211e1a;
+  --background: #fbf6ec;
+  --foreground: #231f1a;
   --card: #ffffff;
-  --card-foreground: #211e1a;
+  --card-foreground: #231f1a;
   --popover: #ffffff;
-  --popover-foreground: #211e1a;
+  --popover-foreground: #231f1a;
   --primary: #a94f33;
   --primary-foreground: #ffffff;
-  --secondary: #f1ece4;
-  --secondary-foreground: #211e1a;
-  --muted: #f1ece4;
-  --muted-foreground: #6a635a;
-  --accent: #f1ece4;
-  --accent-foreground: #211e1a;
+  --secondary: #f4eada;
+  --secondary-foreground: #231f1a;
+  --muted: #f4eada;
+  --muted-foreground: #675f54;
+  --accent: #f4eada;
+  --accent-foreground: #231f1a;
   --destructive: #b3261e;
-  --border: #e6e0d6;
-  --input: #d9d2c6;
+  --success: #2f6b3f;
+  --border: #eadfcc;
+  --input: #d9cdb8;
   --ring: #a94f33;
-  --radius: 0.625rem;
+  --radius: 0.875rem;
   /* Native controls and scrollbars follow the same choice. */
   color-scheme: light dark;
 }
@@ -54,47 +57,49 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #1a1815;
-    --foreground: #f1ece4;
-    --card: #242019;
-    --card-foreground: #f1ece4;
-    --popover: #242019;
-    --popover-foreground: #f1ece4;
-    --primary: #d9805f;
-    --primary-foreground: #1a1815;
-    --secondary: #2e2922;
-    --secondary-foreground: #f1ece4;
-    --muted: #2e2922;
-    --muted-foreground: #a59d92;
-    --accent: #2e2922;
-    --accent-foreground: #f1ece4;
+    --background: #1b1814;
+    --foreground: #f4ede0;
+    --card: #26211b;
+    --card-foreground: #f4ede0;
+    --popover: #26211b;
+    --popover-foreground: #f4ede0;
+    --primary: #e08a68;
+    --primary-foreground: #1b1814;
+    --secondary: #2f2820;
+    --secondary-foreground: #f4ede0;
+    --muted: #2f2820;
+    --muted-foreground: #b3a999;
+    --accent: #2f2820;
+    --accent-foreground: #f4ede0;
     --destructive: #f2877e;
-    --border: #38332b;
-    --input: #4a443a;
-    --ring: #d9805f;
+    --success: #8ccb9b;
+    --border: #3a332b;
+    --input: #4a4136;
+    --ring: #e08a68;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #1a1815;
-  --foreground: #f1ece4;
-  --card: #242019;
-  --card-foreground: #f1ece4;
-  --popover: #242019;
-  --popover-foreground: #f1ece4;
-  --primary: #d9805f;
-  --primary-foreground: #1a1815;
-  --secondary: #2e2922;
-  --secondary-foreground: #f1ece4;
-  --muted: #2e2922;
-  --muted-foreground: #a59d92;
-  --accent: #2e2922;
-  --accent-foreground: #f1ece4;
+  --background: #1b1814;
+  --foreground: #f4ede0;
+  --card: #26211b;
+  --card-foreground: #f4ede0;
+  --popover: #26211b;
+  --popover-foreground: #f4ede0;
+  --primary: #e08a68;
+  --primary-foreground: #1b1814;
+  --secondary: #2f2820;
+  --secondary-foreground: #f4ede0;
+  --muted: #2f2820;
+  --muted-foreground: #b3a999;
+  --accent: #2f2820;
+  --accent-foreground: #f4ede0;
   --destructive: #f2877e;
-  --border: #38332b;
-  --input: #4a443a;
-  --ring: #d9805f;
+  --success: #8ccb9b;
+  --border: #3a332b;
+  --input: #4a4136;
+  --ring: #e08a68;
 }
 
 @theme inline {
@@ -113,12 +118,13 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -132,6 +138,13 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    /* Figures line up in a column and read at a glance: money, counts, numbers. */
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  /* Page titles are in the serif; section titles (CardTitle, sheet titles) use font-heading themselves. */
+  h1 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
   }
 }
 

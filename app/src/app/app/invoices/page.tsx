@@ -20,7 +20,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<"/app/inv
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Invoices</h1>
+        <h1 className="text-2xl font-semibold">Invoices</h1>
         <div className="flex items-center gap-2">
           {(invoices.length > 0 || drafts.length > 0) && (
             <AddLink href="/app/invoices/new" variant="default">

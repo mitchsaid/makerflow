@@ -40,7 +40,7 @@ export default async function JobPage({ params }: PageProps<"/app/jobs/[id]">) {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/jobs", label: "Jobs" }}>
-        <h1 id="job-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
+        <h1 id="job-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-2xl font-semibold outline-none">
           <span>Job {jobNumberText(job.number)}</span>
           <JobStatusChip status={job.status} fulfilment={job.fulfilment} />
         </h1>

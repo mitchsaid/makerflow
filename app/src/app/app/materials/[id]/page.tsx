@@ -20,7 +20,7 @@ export default async function MaterialPage({ params }: PageProps<"/app/materials
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/materials", label: "Materials" }}>
-        <h1 className="text-xl font-semibold">{material.name}</h1>
+        <h1 className="text-2xl font-semibold">{material.name}</h1>
       </PageHeader>
       {material.archived && (
         <Alert data-testid="archived-notice">

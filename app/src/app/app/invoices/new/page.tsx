@@ -30,7 +30,7 @@ export default async function NewInvoicePage({ searchParams }: PageProps<"/app/i
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader close={{ href: "/app/invoices", label: "Invoices" }}>
-        <h1 className="text-xl font-semibold">New invoice</h1>
+        <h1 className="text-2xl font-semibold">New invoice</h1>
         <p className="text-sm text-muted-foreground">For work with no quote. It can be kept as a draft until you mark it as sent.</p>
       </PageHeader>
       <InvoiceDraftForm

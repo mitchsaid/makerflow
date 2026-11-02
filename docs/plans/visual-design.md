@@ -1,6 +1,6 @@
 # Plan: visual design pass ("warm editorial") and a light / dark / system choice
 
-Status: **planned 2026-11-02; slice 1 (the Appearance choice) built the same day.** Founder, 2026-11-02: "want to do a visual design / UI loop on the app ... all the values etc really easy to read, so don't want to overdo it with style, but it needs a bit more personality and polish ... also want to add explicit light mode / dark mode / follow system default options." Three directions were mocked on a design canvas (A warm editorial, B bold and friendly, C quiet ledger); the founder chose **A, warm editorial**, with one change: **no underline highlight under the business name**. (The "&" in the serif was tried in the body font instead and the founder preferred the original, so it stays as Fraunces draws it.)
+Status: **planned 2026-11-02; slice 1 (the Appearance choice) and slices 2 to 4 (the look) built the same day.** Founder, 2026-11-02: "want to do a visual design / UI loop on the app ... all the values etc really easy to read, so don't want to overdo it with style, but it needs a bit more personality and polish ... also want to add explicit light mode / dark mode / follow system default options." Three directions were mocked on a design canvas (A warm editorial, B bold and friendly, C quiet ledger); the founder chose **A, warm editorial**, with one change: **no underline highlight under the business name**. (The "&" in the serif was tried in the body font instead and the founder preferred the original, so it stays as Fraunces draws it.)
 
 ## Where things stand
 - Palette and tokens are in `app/src/app/globals.css` (shadcn names: terracotta `primary`, cream `background`). Dark mode follows the phone only (`prefers-color-scheme`), and Tailwind's `dark:` variant is wired the same way.
@@ -37,6 +37,13 @@ Inputs by kind: one choice (ChoiceCards). No address, quantity, date, price or p
 4. **Lists and the quote builder:** product and customer rows, the pinned total bar, forms and buttons polished to match.
 
 Each slice is walked on a phone viewport in light and dark and passes the accessibility scan.
+
+## What was built (slices 2 to 4, 2026-11-02)
+- **Tokens:** the warm palette in `globals.css` (cream `#fbf6ec`, white cards, soft borders, terracotta `#a94f33`; dark `#1b1814` with a lifted terracotta), a new `success` colour for paid amounts, a rounder radius (0.875rem), `lining-nums tabular-nums` on the body so figures line up.
+- **Type:** Fraunces for page titles (`h1`, now `text-2xl`; the business name on Home `text-3xl`) and for section and sheet titles (`font-heading`); DM Sans for everything else. Geist is gone.
+- **Home:** the paid amount is green and the money figures bold; **lists and builders:** product prices semibold, the pinned total on quotes and invoices larger and bold. The tab bar already had the indicator above the active tab.
+- The address-bar and install colours follow the new background.
+- Not changed: the shape of any screen. Quote and invoice documents keep their own themes.
 
 ## Tests
 - Unit: the stored value is parsed safely (anything but "light" or "dark" means system); the head script's output.

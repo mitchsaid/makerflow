@@ -68,7 +68,7 @@ export default async function QuotePage({
 
   const header = (
     <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
-      <h1 id="quote-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
+      <h1 id="quote-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-2xl font-semibold outline-none">
         <span>Quote {quote.number}</span>{" "}
         <StatusChip status={quote.status} version={quote.version} validUntil={quote.validUntil} today={today} />
       </h1>

@@ -36,7 +36,7 @@ export default async function StatementPage({ params, searchParams }: PageProps<
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: `/app/customers/${id}`, label: doc.customer.name }}>
-        <h1 id="statement-title" tabIndex={-1} className="text-xl font-semibold outline-none">
+        <h1 id="statement-title" tabIndex={-1} className="text-2xl font-semibold outline-none">
           {words.title}
         </h1>
       </PageHeader>

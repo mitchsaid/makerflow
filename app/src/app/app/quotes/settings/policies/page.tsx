@@ -34,7 +34,7 @@ export default async function PoliciesPage({ searchParams }: PageProps<"/app/quo
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/quotes/settings", label: "Quote settings" }}>
-        <h1 className="text-xl font-semibold">Terms</h1>
+        <h1 className="text-2xl font-semibold">Terms</h1>
         <p className="text-muted-foreground">
           Write each term once, then add it to any quote. Existing quotes are never changed.
         </p>

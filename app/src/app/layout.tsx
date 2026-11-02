@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Fraunces } from "next/font/google";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Fraunces (titles) and DM Sans (everything else): self-hosted by Next at build time, no request to Google at runtime.
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
+  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
@@ -27,8 +29,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf8f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1815" },
+    { media: "(prefers-color-scheme: light)", color: "#fbf6ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1814" },
   ],
 };
 
@@ -37,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // data-theme is set by the script below before the first paint (the Appearance choice), so the server's html differs by that one attribute.
     <html
       lang="en-ZA"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${fraunces.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

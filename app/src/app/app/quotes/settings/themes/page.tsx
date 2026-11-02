@@ -16,7 +16,7 @@ export default async function ThemesPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/quotes/settings", label: "Quote settings" }}>
-        <h1 className="text-xl font-semibold">Themes</h1>
+        <h1 className="text-2xl font-semibold">Themes</h1>
         <p className="text-base text-muted-foreground">
           A new quote starts with the theme you used last. Sent quotes keep their look.
         </p>

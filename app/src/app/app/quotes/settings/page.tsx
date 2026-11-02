@@ -56,7 +56,7 @@ export default async function QuoteSettingsPage({ searchParams }: PageProps<"/ap
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/quotes", label: "Quotes" }}>
-        <h1 className="text-xl font-semibold">Quote settings</h1>
+        <h1 className="text-2xl font-semibold">Quote settings</h1>
       </PageHeader>
 
       <div className="space-y-2">

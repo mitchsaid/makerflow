@@ -20,7 +20,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/app/jobs">)
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Jobs</h1>
+        <h1 className="text-2xl font-semibold">Jobs</h1>
         {jobs.length > 0 && (
           <AddLink href="/app/jobs/new" variant="default">
             New job
