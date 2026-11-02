@@ -51,6 +51,11 @@ test("a pasted list is checked, the bad rows are left out with how to fix them, 
   await expect(page.getByText("Coffee table")).toHaveCount(0);
   await expect(page.getByTestId("product-count")).toHaveText("2 products");
 
+  // The header holds only Add and the settings gear; Import lives in Product settings.
+  await expect(page.getByRole("link", { name: "Import", exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Product settings" }).click();
+  await expect(page.getByRole("heading", { name: "Product settings", level: 1 })).toBeVisible();
+
   // Importing the same list again adds nothing twice: those names are now left out.
   await page.getByTestId("import-link").click();
   await page.getByLabel("Your list").fill("Product\tPrice\nChocolate cake\tR450\nTart\tR90");

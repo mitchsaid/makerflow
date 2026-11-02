@@ -6,9 +6,7 @@ import { SectionSwitch, useSectionState, type SectionLink } from "@/components/s
 import type { NumberStyle } from "@/lib/money";
 import type { ProductKind, ProductSummary } from "@/lib/products";
 import { ProductList } from "./product-list";
-import Link from "@/components/app-link";
-import { buttonVariants } from "@/components/ui/button";
-import { importHref, KIND_WORDS, newHref } from "./product-values";
+import { KIND_WORDS, newHref } from "./product-values";
 
 const VIEWS: SectionLink<ProductKind>[] = [
   { key: "product", label: "Products", href: "/app/products" },
@@ -46,16 +44,11 @@ export function ProductsArea({
         <h1 className="text-xl font-semibold">Products &amp; services</h1>
         <div className="flex items-center gap-2">
           {hasAny && (
-            <Link href={importHref(kind)} className={buttonVariants({ variant: "outline" })} data-testid="import-link">
-              Import
-            </Link>
-          )}
-          {hasAny && (
             <AddLink href={newHref(kind)} variant="default">
               Add {KIND_WORDS[kind].one}
             </AddLink>
           )}
-          {/* Your hourly rate and the margin you aim for: how prices are worked out. */}
+          {/* Product settings: how prices are worked out, and bringing in a list. */}
           <SettingsLink href="/app/products/settings" label="Product settings" />
         </div>
       </div>

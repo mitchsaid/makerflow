@@ -191,6 +191,12 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("customer-added")).toBeVisible();
       await expectNoViolations(page, "customers, with a customer");
 
+      await page.getByRole("link", { name: "Customer settings" }).click();
+      await expect(page.getByRole("heading", { name: "Customer settings", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "customer settings");
+      await page.getByRole("link", { name: "Back to Customers" }).click();
+      await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
+
       await page.getByRole("link", { name: /Axe Customer/ }).click();
       await expect(page.getByRole("heading", { name: "Axe Customer", level: 1 })).toBeVisible();
       await expectNoViolations(page, "edit customer");

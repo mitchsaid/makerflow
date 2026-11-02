@@ -3,8 +3,7 @@ import { forOrganisation } from "@/lib/customers";
 import { getCustomers } from "@/lib/customers/data";
 import { CustomerList } from "./customer-list";
 import { AddLink } from "@/components/add-button";
-import Link from "@/components/app-link";
-import { buttonVariants } from "@/components/ui/button";
+import { SettingsLink } from "@/components/settings-link";
 
 export default async function CustomersPage({ searchParams }: PageProps<"/app/customers">) {
   // The customers query runs beside the workspace check, not after it.
@@ -22,16 +21,15 @@ export default async function CustomersPage({ searchParams }: PageProps<"/app/cu
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Customers</h1>
-        {customers.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Link href="/app/customers/import" className={buttonVariants({ variant: "outline" })} data-testid="import-link">
-              Import
-            </Link>
+        <div className="flex items-center gap-2">
+          {customers.length > 0 && (
             <AddLink href="/app/customers/new" variant="default">
               Add customer
             </AddLink>
-          </div>
-        )}
+          )}
+          {/* Customer settings: for now, bringing in a list. */}
+          <SettingsLink href="/app/customers/settings" label="Customer settings" />
+        </div>
       </div>
       <CustomerList customers={customers} addedName={addedName} importedCount={imported} />
     </main>
