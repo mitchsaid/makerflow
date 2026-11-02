@@ -60,10 +60,10 @@ export default async function BusinessProfilePage({ searchParams }: PageProps<"/
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       {back ? (
         <PageHeader back={{ href: back, label: backLabelFor(back) }}>
-          <h1 className="text-xl font-semibold">Business profile</h1>
+          <h1 className="text-2xl font-semibold">Business profile</h1>
         </PageHeader>
       ) : (
-        <h1 className="text-xl font-semibold">Business profile</h1>
+        <h1 className="text-2xl font-semibold">Business profile</h1>
       )}
 
       <SectionTabs

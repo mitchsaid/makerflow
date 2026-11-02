@@ -41,7 +41,7 @@ export default async function InvoiceDraftPreviewPage({ params }: PageProps<"/ap
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: `/app/invoices/drafts/${id}`, label: "invoice draft" }}>
-        <h1 id="preview-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
+        <h1 id="preview-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-2xl font-semibold outline-none">
           <span>Preview of invoice</span>
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not sent</span>
         </h1>

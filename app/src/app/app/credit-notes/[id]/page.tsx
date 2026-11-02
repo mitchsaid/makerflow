@@ -26,7 +26,7 @@ export default async function CreditNotePage({ params }: PageProps<"/app/credit-
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: `/app/invoices/${note.invoiceId}`, label: `Invoice ${note.invoiceNumber}` }}>
-        <h1 id="credit-note-title" tabIndex={-1} className="text-xl font-semibold outline-none">
+        <h1 id="credit-note-title" tabIndex={-1} className="text-2xl font-semibold outline-none">
           {title} {note.number}
         </h1>
       </PageHeader>

@@ -17,7 +17,7 @@ export default async function ImportProductsPage({ searchParams }: PageProps<"/a
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader close={{ href: "/app/products", label: "Products" }}>
-        <h1 className="text-xl font-semibold">Import products</h1>
+        <h1 className="text-2xl font-semibold">Import products</h1>
         <p className="text-muted-foreground">Bring in a list you already have.</p>
       </PageHeader>
       <ImportProducts

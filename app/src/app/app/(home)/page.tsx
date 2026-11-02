@@ -38,7 +38,7 @@ export default async function WorkspacePage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold" data-testid="business-name">
+        <h1 className="text-3xl leading-tight font-semibold" data-testid="business-name">
           {organisation.name}
         </h1>
         <CreateNew />
@@ -106,7 +106,7 @@ export default async function WorkspacePage() {
               )}
               {owed.paidThisMonthCents > 0 && (
                 <li>
-                  <MoneyLink href="/app/invoices" label="Paid this month" text={money(owed.paidThisMonthCents)} tone="calm" testId="home-paid" />
+                  <MoneyLink href="/app/invoices" label="Paid this month" text={money(owed.paidThisMonthCents)} tone="good" testId="home-paid" />
                 </li>
               )}
             </ul>
@@ -175,13 +175,13 @@ export default async function WorkspacePage() {
 }
 
 /** An amount that opens the Invoices list already narrowed to those invoices. */
-function MoneyLink({ href, label, text, tone, testId }: { href: string; label: string; text: string; tone: "late" | "calm"; testId: string }) {
+function MoneyLink({ href, label, text, tone, testId }: { href: string; label: string; text: string; tone: "late" | "calm" | "good"; testId: string }) {
   return (
     <Link
       href={href}
       className="block min-h-11 rounded-xl px-4 py-3 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <span className={`block text-2xl font-semibold ${tone === "late" ? "text-destructive" : ""}`} data-testid={testId}>
+      <span className={`block text-2xl font-bold ${tone === "late" ? "text-destructive" : tone === "good" ? "text-success" : ""}`} data-testid={testId}>
         {text}
       </span>
       <span className="block text-base text-muted-foreground">{label}</span>

@@ -24,7 +24,7 @@ export default async function ProductPage({ params }: PageProps<"/app/products/[
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: listHref(product.kind), label: product.kind === "service" ? "Services" : "Products" }}>
-        <h1 className="text-xl font-semibold">{product.name}</h1>
+        <h1 className="text-2xl font-semibold">{product.name}</h1>
       </PageHeader>
       {product.archived && (
         <Alert data-testid="archived-notice">

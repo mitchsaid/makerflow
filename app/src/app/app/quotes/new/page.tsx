@@ -46,7 +46,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/app/quo
         header={
           // A new quote has its X to cancel; there is no page above it to go back to.
           <div className="space-y-1 pt-2">
-            <h1 className="text-xl font-semibold">New quote</h1>
+            <h1 className="text-2xl font-semibold">New quote</h1>
           </div>
         }
         initial={{

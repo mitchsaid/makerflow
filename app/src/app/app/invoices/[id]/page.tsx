@@ -42,7 +42,7 @@ export default async function InvoicePage({ params }: PageProps<"/app/invoices/[
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/invoices", label: "Invoices" }}>
-        <h1 id="invoice-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-xl font-semibold outline-none">
+        <h1 id="invoice-title" tabIndex={-1} className="flex flex-wrap items-center gap-3 text-2xl font-semibold outline-none">
           <span>
             {title} {invoice.number}
           </span>{" "}

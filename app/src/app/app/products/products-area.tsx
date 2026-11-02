@@ -41,7 +41,7 @@ export function ProductsArea({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Products &amp; services</h1>
+        <h1 className="text-2xl font-semibold">Products &amp; services</h1>
         <div className="flex items-center gap-2">
           {hasAny && (
             <AddLink href={newHref(kind)} variant="default">

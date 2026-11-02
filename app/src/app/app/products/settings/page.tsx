@@ -19,7 +19,7 @@ export default async function ProductSettingsPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={{ href: "/app/products", label: "Products" }}>
-        <h1 className="text-xl font-semibold">Product settings</h1>
+        <h1 className="text-2xl font-semibold">Product settings</h1>
       </PageHeader>
       <ImportCard title="Import" line="Bring in products or services from a spreadsheet or file." href="/app/products/import" label="Import a list" />
       {canEditBusinessProfile(role) ? (

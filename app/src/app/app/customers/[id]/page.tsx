@@ -63,7 +63,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <PageHeader back={back ? { href: back, label: backLabelFor(back) } : { href: "/app/customers", label: "Customers" }}>
-        <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
+        <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
           <span>{customer.name}</span>
           {customer.kind === "business" && <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Business</span>}
         </h1>
