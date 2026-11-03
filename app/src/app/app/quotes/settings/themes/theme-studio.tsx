@@ -367,7 +367,7 @@ export function ThemeStudio({
               <SheetTitle>Full preview</SheetTitle>
               <SheetDescription>Every page of the sample quote in this theme.</SheetDescription>
             </SheetHeader>
-            {fullOpen && <LivePdfPreview snapshot={shown} label="Full preview" />}
+            {fullOpen && <LivePdfPreview snapshot={shown} label="Full preview" zoomable={false} />}
           </div>
         </SheetContent>
       </Sheet>
