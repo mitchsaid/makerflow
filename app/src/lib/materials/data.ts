@@ -20,10 +20,12 @@ type Row = {
   price_cents: number | string;
   vat_treatment: VatTreatment;
   supplier: string | null;
+  supplier_email: string | null;
+  supplier_phone: string | null;
   archived_at: string | null;
 };
 
-const COLUMNS = "id, organisation_id, name, unit, bought_quantity_milli, price_cents, vat_treatment, supplier, archived_at";
+const COLUMNS = "id, organisation_id, name, unit, bought_quantity_milli, price_cents, vat_treatment, supplier, supplier_email, supplier_phone, archived_at";
 
 function fromRow(row: Row): Material {
   return {
@@ -36,6 +38,8 @@ function fromRow(row: Row): Material {
     priceCents: Number(row.price_cents),
     vatTreatment: row.vat_treatment,
     supplier: row.supplier,
+    supplierEmail: row.supplier_email,
+    supplierPhone: row.supplier_phone,
     archived: row.archived_at !== null,
   };
 }

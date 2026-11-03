@@ -33,13 +33,13 @@ test("three tabs, Details first; nothing typed in one is lost on another; one Sa
   // (The tab does not count the steps: the steps are not a number to watch.)
   await expect(page.getByRole("tab", { name: /^Production/ })).toHaveText("Production");
 
-  // Inputs: one cost line; the tab shows one.
+  // Inputs: one cost line; the tab does not count them either (founder, 2026-11-03: neutral tabs).
   await openProductTab(page, "Inputs");
   await page.getByRole("button", { name: "Add other cost", exact: true }).click();
   const row = costRow(page, "Other cost 1");
   await row.getByLabel("What is it").fill("Box");
   await row.getByLabel("What it costs").fill("10");
-  await expect(page.getByRole("tab", { name: /^Inputs/ })).toContainText("1");
+  await expect(page.getByRole("tab", { name: /^Inputs/ })).toHaveText("Inputs");
 
   // Back on Details, what was typed is still there; the one Save covers every tab.
   await openProductTab(page, "Details");
@@ -48,11 +48,11 @@ test("three tabs, Details first; nothing typed in one is lost on another; one Sa
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByTestId("product-added")).toHaveText("Added Tabbed cake.");
 
-  // Opened again: it opens on Details; the counts are on the tabs; the steps and the cost were kept.
+  // Opened again: it opens on Details; the tabs show no counts; the steps and the cost were kept.
   await page.getByRole("link", { name: /Tabbed cake/ }).click();
   await expect(page.getByRole("tab", { name: /^Details/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: /^Production/ })).toHaveText("Production");
-  await expect(page.getByRole("tab", { name: /^Inputs/ })).toContainText("1");
+  await expect(page.getByRole("tab", { name: /^Inputs/ })).toHaveText("Inputs");
   await openProductTab(page, "Production");
   await expect(page.getByLabel("Step 2", { exact: true })).toHaveValue("Ice");
   await openProductTab(page, "Inputs");
@@ -161,7 +161,7 @@ test("editing a product from a quote has the same tabs: steps and costs can be c
   await sheet(page).getByRole("button", { name: "Add to quote" }).click();
   await page.getByTestId("quote-line").first().getByRole("button", { name: /Edit/ }).click();
   await sheet(page).getByRole("button", { name: "Edit this product" }).click();
-  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Production$/, /^Inputs1/]);
+  await expect(sheet(page).getByRole("tab")).toHaveText([/^Details/, /^Production$/, /^Inputs$/]);
   await sheet(page).getByLabel("Price", { exact: true }).fill("250");
   await sheet(page).getByRole("tab", { name: /^Production/ }).click();
   await sheet(page).getByRole("button", { name: "Add another step" }).click();
@@ -179,7 +179,7 @@ test("editing a product from a quote has the same tabs: steps and costs can be c
   await page.getByRole("link", { name: /Sheet cake/ }).click();
   await expect(page.getByLabel("Price", { exact: true })).toHaveValue("250");
   await expect(page.getByRole("tab", { name: /^Production/ })).toHaveText("Production");
-  await expect(page.getByRole("tab", { name: /^Inputs/ })).toContainText("2");
+  await expect(page.getByRole("tab", { name: /^Inputs/ })).toHaveText("Inputs");
   await openProductTab(page, "Production");
   await expect(page.getByLabel("Step 1", { exact: true })).toHaveValue("Bake");
   await expect(page.getByLabel("Step 2", { exact: true })).toHaveValue("Ice");

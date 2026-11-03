@@ -10,7 +10,7 @@ import type { DemoPicture } from "./pictures";
  * numbers and addresses are invented (the 082 555 numbers are reserved-looking test numbers, the VAT number is made up).
  */
 
-export type DemoMaterial = { key: string; name: string; unit: UnitCode; boughtQuantityMilli: number; priceCents: number; supplier?: string };
+export type DemoMaterial = { key: string; name: string; unit: UnitCode; boughtQuantityMilli: number; priceCents: number; supplier?: string; supplierEmail?: string; supplierPhone?: string };
 
 export type DemoCostLine =
   | { kind: "material"; material: string; amountMilli: number; unit: UnitCode }
@@ -93,8 +93,8 @@ const BAKER: DemoContent = {
   targetMarginBp: 5000,
   logo: { initials: "SC", background: "#b5483a", foreground: "#fff7ee" },
   materials: [
-    { key: "flour", name: "Cake flour", unit: "kg", boughtQuantityMilli: 12500, priceCents: R(189), supplier: "Cape Bulk Foods" },
-    { key: "butter", name: "Butter", unit: "kg", boughtQuantityMilli: 5000, priceCents: R(395), supplier: "Cape Bulk Foods" },
+    { key: "flour", name: "Cake flour", unit: "kg", boughtQuantityMilli: 12500, priceCents: R(189), supplier: "Cape Bulk Foods", supplierEmail: "orders@capebulk.example", supplierPhone: "021 555 0140" },
+    { key: "butter", name: "Butter", unit: "kg", boughtQuantityMilli: 5000, priceCents: R(395), supplier: "Cape Bulk Foods", supplierEmail: "orders@capebulk.example", supplierPhone: "021 555 0140" },
     { key: "sugar", name: "Castor sugar", unit: "kg", boughtQuantityMilli: 10000, priceCents: R(215) },
     { key: "cocoa", name: "Cocoa powder", unit: "kg", boughtQuantityMilli: 1000, priceCents: R(240) },
     { key: "eggs", name: "Free-range eggs", unit: "dozen", boughtQuantityMilli: 5000, priceCents: R(190) },
@@ -194,8 +194,8 @@ const WOODWORKER: DemoContent = {
   targetMarginBp: 4000,
   logo: { initials: "KT", background: "#4a5d3a", foreground: "#f6f1e4" },
   materials: [
-    { key: "oak", name: "Oak planks", unit: "m", boughtQuantityMilli: 20000, priceCents: R(2400), supplier: "Southern Cape Timber" },
-    { key: "pine", name: "Pine planks", unit: "m", boughtQuantityMilli: 30000, priceCents: R(1650), supplier: "Southern Cape Timber" },
+    { key: "oak", name: "Oak planks", unit: "m", boughtQuantityMilli: 20000, priceCents: R(2400), supplier: "Southern Cape Timber", supplierEmail: "sales@southerncapetimber.example", supplierPhone: "044 555 0150" },
+    { key: "pine", name: "Pine planks", unit: "m", boughtQuantityMilli: 30000, priceCents: R(1650), supplier: "Southern Cape Timber", supplierEmail: "sales@southerncapetimber.example", supplierPhone: "044 555 0150" },
     { key: "oil", name: "Hardwax oil", unit: "l", boughtQuantityMilli: 5000, priceCents: R(1450) },
     { key: "screws", name: "Wood screws", unit: "each", boughtQuantityMilli: 500000, priceCents: R(260) },
   ],
@@ -283,8 +283,8 @@ const SEAMSTRESS: DemoContent = {
   targetMarginBp: 5500,
   logo: { initials: "ST", background: "#5b3a8c", foreground: "#fdf7ff" },
   materials: [
-    { key: "cotton", name: "Cotton fabric", unit: "m", boughtQuantityMilli: 10000, priceCents: R(950), supplier: "Fabric Warehouse" },
-    { key: "lining", name: "Satin lining", unit: "m", boughtQuantityMilli: 10000, priceCents: R(780), supplier: "Fabric Warehouse" },
+    { key: "cotton", name: "Cotton fabric", unit: "m", boughtQuantityMilli: 10000, priceCents: R(950), supplier: "Fabric Warehouse", supplierEmail: "trade@fabricwarehouse.example", supplierPhone: "011 555 0160" },
+    { key: "lining", name: "Satin lining", unit: "m", boughtQuantityMilli: 10000, priceCents: R(780), supplier: "Fabric Warehouse", supplierEmail: "trade@fabricwarehouse.example", supplierPhone: "011 555 0160" },
     { key: "zips", name: "Invisible zips", unit: "each", boughtQuantityMilli: 25000, priceCents: R(225) },
     { key: "thread", name: "Thread", unit: "each", boughtQuantityMilli: 12000, priceCents: R(300) },
   ],
@@ -358,8 +358,8 @@ const CERAMICIST: DemoContent = {
   targetMarginBp: 5000,
   logo: { initials: "EF", background: "#c9733a", foreground: "#fff8f0" },
   materials: [
-    { key: "clay", name: "Stoneware clay", unit: "kg", boughtQuantityMilli: 25000, priceCents: R(520), supplier: "Clay Supplies SA" },
-    { key: "glaze", name: "Celadon glaze", unit: "l", boughtQuantityMilli: 4000, priceCents: R(880), supplier: "Clay Supplies SA" },
+    { key: "clay", name: "Stoneware clay", unit: "kg", boughtQuantityMilli: 25000, priceCents: R(520), supplier: "Clay Supplies SA", supplierEmail: "info@claysupplies.example", supplierPhone: "031 555 0170" },
+    { key: "glaze", name: "Celadon glaze", unit: "l", boughtQuantityMilli: 4000, priceCents: R(880), supplier: "Clay Supplies SA", supplierEmail: "info@claysupplies.example", supplierPhone: "031 555 0170" },
     { key: "gas", name: "Kiln firing", unit: "each", boughtQuantityMilli: 1000, priceCents: R(450) },
     { key: "packaging", name: "Gift packaging", unit: "each", boughtQuantityMilli: 100000, priceCents: R(950) },
   ],

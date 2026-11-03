@@ -27,6 +27,8 @@ function toRow(m: MaterialFields) {
     price_cents: m.priceCents,
     vat_treatment: m.vatTreatment,
     supplier: m.supplier,
+    supplier_email: m.supplierEmail,
+    supplier_phone: m.supplierPhone,
   };
 }
 

@@ -81,6 +81,28 @@ begin
     raise exception 'an empty supplier was accepted (it should be NULL)';
   exception when check_violation then null;
   end;
+  -- Supplier contact details (docs/plans/material-supplier-contact.md): optional, NULL when empty, kept to a sane size.
+  insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents, supplier, supplier_email, supplier_phone)
+    values (org_a, 'Packed with contact', 'each', 1000, 100, 'Wire Co', 'orders@wireco.example', '021 555 0123');
+  assert (select supplier_email = 'orders@wireco.example' and supplier_phone = '021 555 0123' from public.materials where name = 'Packed with contact'), 'the contact details were not kept';
+  assert (select supplier_email is null and supplier_phone is null from public.materials where name = 'Silver wire'), 'no contact details should be NULL';
+  update public.materials set supplier_email = 'new@wireco.example', supplier_phone = null where name = 'Packed with contact';
+  assert (select supplier_email = 'new@wireco.example' and supplier_phone is null from public.materials where name = 'Packed with contact'), 'the contact details could not be changed';
+  begin
+    insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents, supplier_email) values (org_a, 'X', 'kg', 1000, 100, '');
+    raise exception 'an empty supplier email was accepted (it should be NULL)';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents, supplier_phone) values (org_a, 'X', 'kg', 1000, 100, repeat('1', 41));
+    raise exception 'a 41-character supplier phone was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.materials (organisation_id, name, unit, bought_quantity_milli, price_cents, supplier_email) values (org_a, 'X', 'kg', 1000, 100, repeat('a', 250) || '@x.co');
+    raise exception 'a 255-character supplier email was accepted';
+  exception when check_violation then null;
+  end;
 
   ----------------------------------------------------------------------
   -- Names: unique per business (ignoring case and spaces) while not archived; free again once archived

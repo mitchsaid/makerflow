@@ -19,9 +19,11 @@ export type MaterialFormValues = {
   price: string;
   vatTreatment: VatTreatment;
   supplier: string;
+  supplierEmail: string;
+  supplierPhone: string;
 };
 
-export const EMPTY_MATERIAL: MaterialFormValues = { name: "", unit: "", quantity: "", price: "", vatTreatment: "included", supplier: "" };
+export const EMPTY_MATERIAL: MaterialFormValues = { name: "", unit: "", quantity: "", price: "", vatTreatment: "included", supplier: "", supplierEmail: "", supplierPhone: "" };
 
 type Action = (previous: MaterialSaveState, formData: FormData) => Promise<MaterialSaveState>;
 
@@ -90,6 +92,8 @@ export function MaterialForm({
       [fid("price"), "What you pay", errors.price],
       [fid("vat-included"), `Does the price include ${taxName}`, errors.vatTreatment],
       [fid("supplier"), "Supplier", errors.supplier],
+      [fid("supplier-email"), "Supplier email", errors.supplierEmail],
+      [fid("supplier-phone"), "Supplier phone", errors.supplierPhone],
     ] as const
   ).flatMap(([id, label, message]) => (message ? [{ fieldId: id, label, message }] : []));
 
@@ -127,6 +131,29 @@ export function MaterialForm({
           value={values.supplier}
           error={errors.supplier}
           onChange={set("supplier")}
+        />
+        <TextField
+          id={fid("supplier-email")}
+          name="supplierEmail"
+          label="Supplier email (optional)"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          maxLength={254}
+          value={values.supplierEmail}
+          error={errors.supplierEmail}
+          onChange={set("supplierEmail")}
+        />
+        <TextField
+          id={fid("supplier-phone")}
+          name="supplierPhone"
+          label="Supplier phone (optional)"
+          type="tel"
+          autoComplete="off"
+          maxLength={40}
+          value={values.supplierPhone}
+          error={errors.supplierPhone}
+          onChange={set("supplierPhone")}
         />
       </Section>
 

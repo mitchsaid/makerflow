@@ -96,6 +96,40 @@ test("add, find, edit and archive a material; the cost of one unit is worked out
   await expect(page.getByTestId("archived-notice")).toHaveCount(0);
 });
 
+test("a supplier's email and phone are optional, checked at their fields, and kept", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUpAndOnboard(page, "mat-contact", "Materials Contact Co");
+  await openMaterials(page);
+  await page.getByRole("link", { name: "Add your first material" }).click();
+  await fillMaterial(page, { name: "Silver wire", unit: "m", quantity: "5", price: "250", supplier: "Metalcraft" });
+
+  // Both are optional; a wrong one is said at its field, and what was typed stays.
+  await page.getByLabel("Supplier email (optional)").fill("not-an-email");
+  await page.getByLabel("Supplier phone (optional)").fill("call me");
+  await page.getByRole("button", { name: "Add material" }).click();
+  await expect(page.getByTestId("form-summary")).toContainText("2 things need fixing");
+  await expect(page.getByTestId("form-summary")).toContainText("That doesn't look like an email address.");
+  await expect(page.getByTestId("form-summary")).toContainText("That doesn't look like a phone number.");
+  await expect(page.getByLabel("Supplier email (optional)")).toHaveValue("not-an-email");
+
+  await page.getByLabel("Supplier email (optional)").fill("Orders@Metalcraft.example");
+  await page.getByLabel("Supplier phone (optional)").fill("021 555 0123");
+  await page.getByRole("button", { name: "Add material" }).click();
+  await expect(page.getByTestId("material-added")).toHaveText("Added Silver wire.");
+
+  // Kept (the email in lower case, as everywhere), and clearing them works.
+  await page.getByRole("link", { name: /Silver wire/ }).click();
+  await expect(page.getByLabel("Supplier email (optional)")).toHaveValue("orders@metalcraft.example");
+  await expect(page.getByLabel("Supplier phone (optional)")).toHaveValue("021 555 0123");
+  await page.getByLabel("Supplier email (optional)").fill("");
+  await page.getByLabel("Supplier phone (optional)").fill("");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Supplier email (optional)")).toHaveValue("");
+  await expect(page.getByLabel("Supplier phone (optional)")).toHaveValue("");
+});
+
 test("a VAT-registered business says what the price includes, and costs are worked out without VAT", async ({ page }) => {
   test.setTimeout(120_000);
   await signUpAndOnboard(page, "mat-vat", "Materials VAT Co");
