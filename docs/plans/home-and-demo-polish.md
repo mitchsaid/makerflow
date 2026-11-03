@@ -50,3 +50,10 @@ Tiles for credit notes or statements on Home; a per-status jobs filter (the roll
 
 ## Missed from the prototype
 (none; no counterpart)
+
+## Demo quotes with a look of their own (2026-11-03)
+Founder: "the quotes in the demos should contain products with images, and try show a variety of attractive quotes (this is a product differentiator)."
+- Every demo kind now has three quote themes of its own (for example the baker's Sweet showcase, Bakery cards and Order list; the woodworker's Workshop, Gallery and Commission) beside the five starters. Each demo quote is given one before it is sent, so sent quotes keep that look (the theme is frozen at send time).
+- Items already carry the demo product's drawn picture; the themes with photos show them small or large.
+- Built through the same actions a maker uses (`createTheme`, `saveQuoteTheme`), server-side, in `build-documents.ts`. A unit test checks that every theme spec is whole and valid, every quote names a real theme, and the looks vary (layouts and headers).
+- Walked on a phone viewport: the quote pages show different colours, headers and layouts with product pictures.

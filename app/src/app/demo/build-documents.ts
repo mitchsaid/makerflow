@@ -13,6 +13,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createJob, moveJob } from "../app/jobs/actions";
 import { startInvoiceFromQuote } from "../app/invoices/draft-actions";
 import { saveQuoteDraft } from "../app/quotes/actions";
+import { saveQuoteTheme } from "../app/quotes/design-actions";
+import { createTheme } from "../app/quotes/settings/theme-actions";
+import { BLANK_SPEC, isStarterKey } from "@/lib/quotes/themes";
 import { recordOutcome } from "../app/quotes/outcome-actions";
 import { sendQuote } from "../app/quotes/issue-actions";
 
@@ -82,6 +85,14 @@ export async function buildDemoDocuments(workspace: Workspace): Promise<void> {
   if (error) throw new Error(`could not read the demo customers: ${error.message}`);
   const customerId = new Map((customerRows ?? []).map((c) => [c.name as string, c.id as string]));
 
+  // The business's own quote themes first, so each quote can have a look of its own (a quote's look is part of the product).
+  const themeId = new Map<string, string>();
+  for (const t of content.themes) {
+    const made = await createTheme(t.name, { ...BLANK_SPEC, ...t.spec });
+    if (made.status !== "saved") throw new Error(`could not add a demo theme: ${made.message}`);
+    themeId.set(t.name, made.id);
+  }
+
   for (const q of content.quotes) {
     const customer = customerId.get(q.customer);
     if (!customer) throw new Error(`demo quote names a customer that is not there: ${q.customer}`);
@@ -116,6 +127,14 @@ export async function buildDemoDocuments(workspace: Workspace): Promise<void> {
       policies: [],
     };
     const quoteId = await redirectedTo(() => saveQuoteDraft(null, values));
+    // The look is chosen while it is a draft: a sent quote keeps the look it was sent in.
+    if (q.theme) {
+      const starter = q.theme.startsWith("starter:") ? q.theme.slice("starter:".length) : null;
+      const id = starter === null ? (themeId.get(q.theme) ?? null) : null;
+      if ((starter !== null && !isStarterKey(starter)) || (starter === null && id === null)) throw new Error(`demo quote names a theme that is not there: ${q.theme}`);
+      const chosen = await saveQuoteTheme(quoteId, id, starter);
+      if (chosen.status === "error") throw new Error(`could not choose a demo quote's look: ${chosen.message}`);
+    }
     if (q.status === "draft") continue;
 
     const sent = await sendQuote(quoteId);

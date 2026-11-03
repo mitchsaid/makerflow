@@ -1,6 +1,7 @@
 import type { BusinessType } from "../business-types";
 import type { UnitCode } from "../materials/units";
 import type { DemoKind } from "./index";
+import type { ThemeSpec } from "../quotes/themes";
 import type { DemoPicture } from "./pictures";
 
 /**
@@ -38,6 +39,9 @@ export type DemoCustomer = { name: string; email: string; phone: string; city: s
  * it has got. "accepted" also gets a job in progress and an invoice draft; a demo never has an issued invoice
  * (docs/plans/demo-accounts.md, decision 5).
  */
+/** A quote theme of the demo business's own (a look: layout, colours, fonts, photo size), on top of the plain base. */
+export type DemoTheme = { name: string; spec: Partial<ThemeSpec> };
+
 export type DemoQuote = {
   customer: string;
   status: "draft" | "sent" | "accepted";
@@ -45,6 +49,8 @@ export type DemoQuote = {
   /** How many days ago it was made out (small: a quote must not already have run out). */
   daysAgo: number;
   items: { product: string; variation?: string; extras?: string[]; quantity: number }[];
+  /** The look of the quote: the name of one of the demo's own themes, or "starter:" and a starter's key (like "starter:warm"). */
+  theme?: string;
   /** When it is needed, in days from today (negative: it was needed already, so its job is late). */
   neededInDays?: number;
   /** For an accepted quote, how far its job has got. Default: in progress. */
@@ -73,6 +79,8 @@ export type DemoContent = {
   materials: DemoMaterial[];
   customers: DemoCustomer[];
   products: DemoProduct[];
+  /** The business's own quote themes, so its quotes do not all look alike (a quote's look is part of the product). */
+  themes: DemoTheme[];
   quotes: DemoQuote[];
 };
 
@@ -156,10 +164,15 @@ const BAKER: DemoContent = {
     { name: "Wedding cake tasting box", picture: { motif: "box", background: "#f9dcdc", foreground: "#b5483a" }, kind: "product", description: "Six mini cakes to taste before you choose.", priceCents: R(350) },
     { name: "Cake design consultation", kind: "service", description: "Planning a cake with you, by phone or in person.", priceCents: R(180), unit: "hour" },
   ],
+  themes: [
+    { name: "Sweet showcase", spec: { accent: "#b5483a", paper: "#fff8f0", background: "gradient", gradientTo: "#fbe6d4", gradientDirection: "diagonal", headingFont: "playfair", bodyFont: "lato", header: "boxed", headerAlign: "center", layout: "showcase", photo: "large", photoShape: "rounded", totals: "pill", corners: "round", density: "airy" } },
+    { name: "Bakery cards", spec: { accent: "#8a3b2e", paper: "#fffaf5", headingFont: "dm-serif", bodyFont: "dm-sans", header: "band", layout: "cards", photo: "small", photoShape: "round", totals: "tint", corners: "round" } },
+    { name: "Order list", spec: { accent: "#b5483a", paper: "#ffffff", headingFont: "lora", bodyFont: "nunito", header: "bar", layout: "list", photo: "small", photoShape: "rounded", totals: "rule", corners: "soft" } },
+  ],
   quotes: [
     {
       customer: "Grace Wedding Events",
-      status: "accepted",
+      status: "accepted", theme: "Sweet showcase",
       title: "Cakes for the Davids wedding",
       daysAgo: 3,
       neededInDays: 5,
@@ -168,13 +181,13 @@ const BAKER: DemoContent = {
         { product: "Chocolate cupcakes", quantity: 3 },
       ],
     },
-    { customer: "Lindiwe Dlamini", status: "sent", title: "Birthday cake for the twins", daysAgo: 1, items: [{ product: "Celebration cake", variation: "Medium (serves 16)", extras: ["Fondant topper"], quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }] },
-    { customer: "Pieter van Wyk", status: "draft", daysAgo: 0, items: [{ product: "Celebration cake", variation: "Small (serves 8)", quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }, { product: "Cake design consultation", quantity: 1 }] },
-    { customer: "Fatima Hendricks", status: "sent", daysAgo: 2, items: [{ product: "Wedding cake tasting box", quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }] },
-    { customer: "Sipho Mokoena", status: "accepted", title: "Anniversary cake", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Celebration cake", variation: "Medium (serves 16)", extras: ["Fresh flowers"], quantity: 1 }] },
-    { customer: "Lindiwe Dlamini", status: "accepted", title: "Bread and cupcakes for the school fete", daysAgo: 2, neededInDays: 12, job: "not_started", invoiceDraft: false, items: [{ product: "Sourdough loaf", quantity: 10 }, { product: "Chocolate cupcakes", quantity: 4 }] },
-    { customer: "Fatima Hendricks", status: "accepted", title: "Office tea party", daysAgo: 7, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Chocolate cupcakes", quantity: 5 }, { product: "Sourdough loaf", quantity: 6 }] },
-    { customer: "Grace Wedding Events", status: "draft", daysAgo: 0, items: [{ product: "Wedding cake tasting box", quantity: 2 }] },
+    { customer: "Lindiwe Dlamini", status: "sent", theme: "Bakery cards", title: "Birthday cake for the twins", daysAgo: 1, items: [{ product: "Celebration cake", variation: "Medium (serves 16)", extras: ["Fondant topper"], quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }] },
+    { customer: "Pieter van Wyk", status: "draft", theme: "starter:warm", daysAgo: 0, items: [{ product: "Celebration cake", variation: "Small (serves 8)", quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }, { product: "Cake design consultation", quantity: 1 }] },
+    { customer: "Fatima Hendricks", status: "sent", theme: "Order list", daysAgo: 2, items: [{ product: "Wedding cake tasting box", quantity: 1 }, { product: "Chocolate cupcakes", quantity: 2 }] },
+    { customer: "Sipho Mokoena", status: "accepted", theme: "starter:soft", title: "Anniversary cake", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Celebration cake", variation: "Medium (serves 16)", extras: ["Fresh flowers"], quantity: 1 }] },
+    { customer: "Lindiwe Dlamini", status: "accepted", theme: "Order list", title: "Bread and cupcakes for the school fete", daysAgo: 2, neededInDays: 12, job: "not_started", invoiceDraft: false, items: [{ product: "Sourdough loaf", quantity: 10 }, { product: "Chocolate cupcakes", quantity: 4 }] },
+    { customer: "Fatima Hendricks", status: "accepted", theme: "starter:classic", title: "Office tea party", daysAgo: 7, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Chocolate cupcakes", quantity: 5 }, { product: "Sourdough loaf", quantity: 6 }] },
+    { customer: "Grace Wedding Events", status: "draft", theme: "Sweet showcase", daysAgo: 0, items: [{ product: "Wedding cake tasting box", quantity: 2 }] },
   ],
 };
 
@@ -249,22 +262,27 @@ const WOODWORKER: DemoContent = {
     { name: "Custom commission", kind: "service", description: "Design and building to your drawing, charged by the hour.", priceCents: R(380), unit: "hour" },
     { name: "Delivery and set-up", kind: "service", description: "We bring it and put it in place.", priceCents: R(650) },
   ],
+  themes: [
+    { name: "Workshop", spec: { accent: "#4a5d3a", paper: "#f6f1e4", headingFont: "roboto-slab", bodyFont: "work-sans", header: "band", layout: "table", tableHead: "filled", rows: "zebra", photo: "small", photoShape: "square", totals: "solid", corners: "square" } },
+    { name: "Gallery", spec: { accent: "#3f4f31", paper: "#f6f1e4", background: "gradient", gradientTo: "#e3ead6", gradientDirection: "diagonal", headingFont: "cormorant", bodyFont: "lato", header: "plain", headerAlign: "center", layout: "showcase", photo: "large", photoShape: "square", totals: "rule", corners: "square", density: "airy" } },
+    { name: "Commission", spec: { accent: "#6b4f2a", paper: "#fbf7f0", headingFont: "libre-baskerville", bodyFont: "inter", header: "bar", layout: "cards", photo: "small", photoShape: "rounded", totals: "tint", corners: "soft" } },
+  ],
   quotes: [
     {
       customer: "Karoo Guest Lodge",
-      status: "accepted",
+      status: "accepted", theme: "Workshop",
       title: "Dining tables for the lodge",
       daysAgo: 3,
       neededInDays: 5,
       items: [{ product: "Dining table", variation: "2.4 m (seats 10)", extras: ["Engraved initials"], quantity: 2 }, { product: "Delivery and set-up", quantity: 1 }],
     },
-    { customer: "Annelize Pretorius", status: "sent", daysAgo: 1, items: [{ product: "Bench", quantity: 1 }, { product: "Cutting board", quantity: 2 }] },
-    { customer: "Mpho Sithole", status: "draft", daysAgo: 0, items: [{ product: "Bench", quantity: 1 }, { product: "Custom commission", quantity: 6 }, { product: "Delivery and set-up", quantity: 1 }] },
-    { customer: "Dewald Kruger", status: "sent", daysAgo: 2, items: [{ product: "Cutting board", quantity: 4 }, { product: "Delivery and set-up", quantity: 1 }] },
-    { customer: "Annelize Pretorius", status: "accepted", title: "Hallway bench", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Bench", quantity: 1 }] },
-    { customer: "Mpho Sithole", status: "accepted", title: "Dining table for the new house", daysAgo: 2, neededInDays: 14, job: "not_started", invoiceDraft: false, items: [{ product: "Dining table", variation: "2.0 m (seats 8)", extras: ["Extension leaf"], quantity: 1 }] },
-    { customer: "Dewald Kruger", status: "accepted", title: "Garden benches", daysAgo: 8, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Bench", quantity: 2 }, { product: "Custom commission", quantity: 4 }] },
-    { customer: "Karoo Guest Lodge", status: "draft", daysAgo: 0, items: [{ product: "Cutting board", quantity: 6 }] },
+    { customer: "Annelize Pretorius", status: "sent", theme: "Gallery", daysAgo: 1, items: [{ product: "Bench", quantity: 1 }, { product: "Cutting board", quantity: 2 }] },
+    { customer: "Mpho Sithole", status: "draft", theme: "starter:bold", daysAgo: 0, items: [{ product: "Bench", quantity: 1 }, { product: "Custom commission", quantity: 6 }, { product: "Delivery and set-up", quantity: 1 }] },
+    { customer: "Dewald Kruger", status: "sent", theme: "Commission", daysAgo: 2, items: [{ product: "Cutting board", quantity: 4 }, { product: "Delivery and set-up", quantity: 1 }] },
+    { customer: "Annelize Pretorius", status: "accepted", theme: "Gallery", title: "Hallway bench", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Bench", quantity: 1 }] },
+    { customer: "Mpho Sithole", status: "accepted", theme: "Workshop", title: "Dining table for the new house", daysAgo: 2, neededInDays: 14, job: "not_started", invoiceDraft: false, items: [{ product: "Dining table", variation: "2.0 m (seats 8)", extras: ["Extension leaf"], quantity: 1 }] },
+    { customer: "Dewald Kruger", status: "accepted", theme: "starter:modern", title: "Garden benches", daysAgo: 8, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Bench", quantity: 2 }, { product: "Custom commission", quantity: 4 }] },
+    { customer: "Karoo Guest Lodge", status: "draft", theme: "Commission", daysAgo: 0, items: [{ product: "Cutting board", quantity: 6 }] },
   ],
 };
 
@@ -325,22 +343,27 @@ const SEAMSTRESS: DemoContent = {
     { name: "Suit alteration", kind: "service", description: "Jacket and trousers taken in or let out.", priceCents: R(520) },
     { name: "Cushion cover", picture: { motif: "cushion", background: "#f3dcea", foreground: "#7a3a6c" }, kind: "product", description: "Cotton, with an invisible zip.", priceCents: R(180) },
   ],
+  themes: [
+    { name: "Boutique", spec: { accent: "#5b3a8c", paper: "#fdf7ff", headingFont: "cormorant", bodyFont: "raleway", header: "boxed", headerAlign: "center", layout: "list", photo: "small", photoShape: "round", totals: "pill", corners: "round", density: "airy" } },
+    { name: "Atelier", spec: { accent: "#3d2566", paper: "#ffffff", background: "gradient", gradientTo: "#efe6fa", headingFont: "playfair", bodyFont: "nunito", header: "band", layout: "showcase", photo: "large", photoShape: "rounded", totals: "solid", corners: "soft" } },
+    { name: "Alterations", spec: { accent: "#5b3a8c", paper: "#ffffff", headingFont: "poppins", bodyFont: "inter", header: "bar", layout: "table", tableHead: "tint", rows: "lines", photo: "none", totals: "tint" } },
+  ],
   quotes: [
     {
       customer: "Bridal Boutique Rosebank",
-      status: "accepted",
+      status: "accepted", theme: "Atelier",
       title: "Bridal alterations, March",
       daysAgo: 3,
       neededInDays: 5,
       items: [{ product: "Suit alteration", quantity: 3 }, { product: "Hem trousers or skirt", quantity: 4 }, { product: "Replace a zip", quantity: 2 }],
     },
-    { customer: "Zanele Khumalo", status: "sent", title: "Cocktail dress", daysAgo: 1, items: [{ product: "Made-to-measure dress", variation: "Cocktail dress", extras: ["Lining", "Hand-finished hem"], quantity: 1 }] },
-    { customer: "Michelle Naidoo", status: "draft", daysAgo: 0, items: [{ product: "Made-to-measure dress", variation: "Day dress", quantity: 1 }, { product: "Cushion cover", quantity: 4 }] },
-    { customer: "Thabo Radebe", status: "sent", daysAgo: 2, items: [{ product: "Suit alteration", quantity: 1 }, { product: "Hem trousers or skirt", quantity: 1 }] },
-    { customer: "Zanele Khumalo", status: "accepted", title: "Alterations before the wedding", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Hem trousers or skirt", quantity: 2 }, { product: "Replace a zip", quantity: 1 }] },
-    { customer: "Michelle Naidoo", status: "accepted", title: "Evening gown", daysAgo: 2, neededInDays: 10, job: "not_started", invoiceDraft: false, items: [{ product: "Made-to-measure dress", variation: "Evening gown", extras: ["Lining"], quantity: 1 }] },
-    { customer: "Bridal Boutique Rosebank", status: "accepted", title: "Bridesmaid dresses, hems and zips", daysAgo: 7, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Hem trousers or skirt", quantity: 6 }, { product: "Replace a zip", quantity: 3 }] },
-    { customer: "Thabo Radebe", status: "draft", daysAgo: 0, items: [{ product: "Cushion cover", quantity: 6 }] },
+    { customer: "Zanele Khumalo", status: "sent", theme: "Boutique", title: "Cocktail dress", daysAgo: 1, items: [{ product: "Made-to-measure dress", variation: "Cocktail dress", extras: ["Lining", "Hand-finished hem"], quantity: 1 }] },
+    { customer: "Michelle Naidoo", status: "draft", theme: "starter:soft", daysAgo: 0, items: [{ product: "Made-to-measure dress", variation: "Day dress", quantity: 1 }, { product: "Cushion cover", quantity: 4 }] },
+    { customer: "Thabo Radebe", status: "sent", theme: "Alterations", daysAgo: 2, items: [{ product: "Suit alteration", quantity: 1 }, { product: "Hem trousers or skirt", quantity: 1 }] },
+    { customer: "Zanele Khumalo", status: "accepted", theme: "Boutique", title: "Alterations before the wedding", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Hem trousers or skirt", quantity: 2 }, { product: "Replace a zip", quantity: 1 }] },
+    { customer: "Michelle Naidoo", status: "accepted", theme: "Atelier", title: "Evening gown", daysAgo: 2, neededInDays: 10, job: "not_started", invoiceDraft: false, items: [{ product: "Made-to-measure dress", variation: "Evening gown", extras: ["Lining"], quantity: 1 }] },
+    { customer: "Bridal Boutique Rosebank", status: "accepted", theme: "starter:classic", title: "Bridesmaid dresses, hems and zips", daysAgo: 7, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Hem trousers or skirt", quantity: 6 }, { product: "Replace a zip", quantity: 3 }] },
+    { customer: "Thabo Radebe", status: "draft", theme: "Alterations", daysAgo: 0, items: [{ product: "Cushion cover", quantity: 6 }] },
   ],
 };
 
@@ -414,22 +437,27 @@ const CERAMICIST: DemoContent = {
     { name: "Pottery workshop", kind: "service", description: "A two-hour hands-on class for up to six people.", priceCents: R(1800) },
     { name: "Commissioned piece", kind: "service", description: "Designed and made to your brief, charged by the hour.", priceCents: R(240), unit: "hour" },
   ],
+  themes: [
+    { name: "Studio showcase", spec: { accent: "#c9733a", paper: "#fff8f0", background: "gradient", gradientTo: "#fbe4cf", headingFont: "dm-serif", bodyFont: "dm-sans", header: "plain", headerAlign: "center", layout: "showcase", photo: "large", photoShape: "round", totals: "pill", corners: "round", density: "airy" } },
+    { name: "Kiln list", spec: { accent: "#a85a2a", paper: "#fffaf3", headingFont: "merriweather", bodyFont: "lato", header: "band", layout: "list", photo: "small", photoShape: "rounded", totals: "tint", corners: "soft" } },
+    { name: "Order cards", spec: { accent: "#2f6a73", paper: "#f7fbfb", headingFont: "montserrat", bodyFont: "work-sans", header: "bar", layout: "cards", photo: "small", photoShape: "square", totals: "rule", corners: "square" } },
+  ],
   quotes: [
     {
       customer: "The Pottery Cafe",
-      status: "accepted",
+      status: "accepted", theme: "Studio showcase",
       title: "Quarterly cafe order",
       daysAgo: 3,
       neededInDays: 5,
       items: [{ product: "Mug", quantity: 24 }, { product: "Dinner set", variation: "Celadon", extras: ["Gift packaging"], quantity: 6 }],
     },
-    { customer: "Ayesha Patel", status: "sent", daysAgo: 1, items: [{ product: "Vase", quantity: 2 }, { product: "Mug", quantity: 4 }] },
-    { customer: "Coastal Weddings", status: "draft", daysAgo: 0, items: [{ product: "Vase", quantity: 4 }, { product: "Pottery workshop", quantity: 1 }] },
-    { customer: "Nomsa Zulu", status: "sent", daysAgo: 2, items: [{ product: "Mug", quantity: 2 }, { product: "Vase", quantity: 1 }] },
-    { customer: "Ayesha Patel", status: "accepted", title: "Vases for the hall", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Vase", quantity: 2 }] },
-    { customer: "Coastal Weddings", status: "accepted", title: "Wedding favours", daysAgo: 2, neededInDays: 21, job: "not_started", invoiceDraft: false, items: [{ product: "Dinner set", variation: "Speckled white", extras: ["Monogram", "Gift packaging"], quantity: 8 }] },
-    { customer: "The Pottery Cafe", status: "accepted", title: "Extra mugs", daysAgo: 9, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Mug", quantity: 12 }] },
-    { customer: "Nomsa Zulu", status: "draft", daysAgo: 0, items: [{ product: "Commissioned piece", quantity: 3 }] },
+    { customer: "Ayesha Patel", status: "sent", theme: "Kiln list", daysAgo: 1, items: [{ product: "Vase", quantity: 2 }, { product: "Mug", quantity: 4 }] },
+    { customer: "Coastal Weddings", status: "draft", theme: "starter:warm", daysAgo: 0, items: [{ product: "Vase", quantity: 4 }, { product: "Pottery workshop", quantity: 1 }] },
+    { customer: "Nomsa Zulu", status: "sent", theme: "Order cards", daysAgo: 2, items: [{ product: "Mug", quantity: 2 }, { product: "Vase", quantity: 1 }] },
+    { customer: "Ayesha Patel", status: "accepted", theme: "Studio showcase", title: "Vases for the hall", daysAgo: 4, neededInDays: 2, job: "ready", invoiceDraft: false, items: [{ product: "Vase", quantity: 2 }] },
+    { customer: "Coastal Weddings", status: "accepted", theme: "Kiln list", title: "Wedding favours", daysAgo: 2, neededInDays: 21, job: "not_started", invoiceDraft: false, items: [{ product: "Dinner set", variation: "Speckled white", extras: ["Monogram", "Gift packaging"], quantity: 8 }] },
+    { customer: "The Pottery Cafe", status: "accepted", theme: "starter:modern", title: "Extra mugs", daysAgo: 9, neededInDays: -2, job: "in_progress", invoiceDraft: false, items: [{ product: "Mug", quantity: 12 }] },
+    { customer: "Nomsa Zulu", status: "draft", theme: "Order cards", daysAgo: 0, items: [{ product: "Commissioned piece", quantity: 3 }] },
   ],
 };
 
