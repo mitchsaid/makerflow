@@ -6,6 +6,7 @@ import { createClient } from "../supabase/server";
 import type { Workspace } from "../auth/dal";
 import { demoContent, type DemoCostLine, type DemoProduct } from "./content";
 import { demoLogoPng } from "./logo";
+import { demoProductPng } from "./pictures";
 
 /**
  * Fills a demo business with its sample content (docs/plans/demo-accounts.md): the business details and logo,
@@ -117,6 +118,12 @@ export async function buildDemoBusiness(workspace: Workspace): Promise<void> {
   if (customersError) throw new Error(`could not add the demo customers: ${customersError.message}`);
 
   for (const p of content.products) {
+    // A drawn picture for a product, stored like any other picture.
+    let photoImageId = "";
+    if (p.picture) {
+      const picture = await processImage(await demoProductPng(p.picture), "product");
+      if (picture.ok) photoImageId = await insertImage(orgId, "product", picture.value);
+    }
     const { error } = await supabase.rpc("save_product_layers", {
       p_org: orgId,
       p_product_id: null,
@@ -127,6 +134,7 @@ export async function buildDemoBusiness(workspace: Workspace): Promise<void> {
         unit_price_cents: p.priceCents,
         unit: p.unit ?? "",
         variation_label: p.variationLabel ?? "",
+        photo_image_id: photoImageId,
       },
       p_variations: (p.variations ?? []).map((v) => ({ name: v.name, price_cents: v.priceCents, usual: v.usual ?? false })),
       p_options: null,

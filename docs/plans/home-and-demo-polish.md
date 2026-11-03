@@ -1,6 +1,6 @@
 # Plan: Home polish, and a better demo
 
-Status: **planned 2026-11-03; Home part (PR 1) built the same day; the demo part (PR 2) follows.** Founder, 2026-11-03, looking at Home on their phone: "improve the 'home' experience: uneven tile heights on quotes; jobs doesn't show you a rollup of in progress jobs; no icons; on 'your money', it's unclear if 'owing' means money owed to you or by you; show business logo in header if it exists. Then, on demos: add images for products; make the home views more populated; show a better loader when the demos are being loaded."
+Status: **planned 2026-11-03; Home part (PR 1) and demo part (PR 2) built the same day.** Founder, 2026-11-03, looking at Home on their phone: "improve the 'home' experience: uneven tile heights on quotes; jobs doesn't show you a rollup of in progress jobs; no icons; on 'your money', it's unclear if 'owing' means money owed to you or by you; show business logo in header if it exists. Then, on demos: add images for products; make the home views more populated; show a better loader when the demos are being loaded."
 
 ## Where things stand
 - Home (`app/src/app/app/(home)/page.tsx`) shows cards only for what needs the maker: money (overdue, owing, paid this month), quotes (waiting, drafts) and jobs (late, needed this week). Each count is a link tile; the jobs card shows nothing about jobs that are simply in progress.
@@ -19,12 +19,13 @@ No prototype counterpart. These are changes to the existing Home screen's layout
 - **Money says whose it is.** The money card has a line, "What your customers owe you."; **Owing** becomes **Owed to you**; Overdue says "Late payments owed to you"; the link reads "See all 3 invoices owed to you".
 - **The business logo** shows beside the name in the header when the business has one (nothing when it has not: no empty square, as everywhere).
 
-### PR 2: demos (after PR 1)
-- Pictures for the demo products (drawn like the logo, so a server without fonts or photos still makes them), attached when the demo is built.
-- A fuller Home in each demo: more sent and draft quotes and more jobs in different states (not started, in progress, ready, late, due this week), so the roll-up has something to show.
-- A better loader while a demo is built: the choice sheet changes to a friendly "Setting up your bakery" screen with what is being added, instead of a button that says "Starting…".
+### PR 2: demos (built)
+- **Pictures** for the demo products (not the services): twelve simple objects drawn with shapes on a soft colour (`lib/demo/pictures.ts`: cake, cupcake, loaf, tasting box, table, bench, cutting board, dress, cushion, dinner set, vase, mug), stored like any picture and attached when the product is saved. Drawn, not photographed, like the demo logo: a server without fonts or a photo library makes the same thing everywhere, and nothing is anyone's real product.
+- **A fuller Home** in each demo: eight quotes instead of three (two sent, two drafts, four accepted), and jobs at every stage: one late, some due this week, one ready, one not started and the rest in progress. Only the first accepted quote has an invoice draft (each one costs the visitor a moment while the demo is built).
+- **A better loader:** a full-screen "Setting up your baker demo" with the five things going in (business, customers and materials, product prices, sample quotes, jobs), the current one spinning. It shows for "Try the demo" and for "Start the demo over". The steps are timed two seconds apart and the last stays until the demo is ready: they say what is in the demo, not exactly how far along it is (the build is one call on the server). Moving parts stop for people who ask for less motion.
+- Product rows put the price in the middle of the row, not on the title's baseline, so it stays beside the name when a picture makes the row taller.
 
-**Decision for the founder (money in demos).** A demo never has an *issued* invoice: issued invoices cannot be deleted, and the clean-up deletes demos (`docs/plans/demo-accounts.md`, decision 5). So the "Your money" card stays empty in a demo. Showing money would need a migration that lets the demo clean-up remove a demo's invoices; that touches the immutability rule and needs human review. Recommendation: leave it out for now.
+**Not done: money in demos.** A demo never has an *issued* invoice: issued invoices cannot be deleted, and the clean-up deletes demos (`docs/plans/demo-accounts.md`, decision 5). So the "Your money" card stays empty in a demo. Showing money would need a migration that lets the demo clean-up remove a demo's invoices; that touches the immutability rule and needs human review. Recommendation: leave it out for now.
 
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |

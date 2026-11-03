@@ -16,7 +16,9 @@ async function startDemo(page: Page, kind: "baker" | "woodworker" | "seamstress"
   await page.goto("/");
   await page.getByTestId("try-demo").click();
   await page.getByRole("dialog").getByRole("button", { name: new RegExp(`^${kind}`, "i") }).click();
-  await expect(page).toHaveURL(/\/app$/, { timeout: 45_000 });
+  // While it is built, a "setting up" screen says what is going in.
+  await expect(page.getByTestId("demo-loader")).toBeVisible();
+  await expect(page).toHaveURL(/\/app$/, { timeout: 90_000 });
   await expect(page.getByTestId("demo-banner")).toBeVisible();
 }
 
@@ -27,9 +29,18 @@ test("a visitor picks a kind of maker and lands in a demo business full of sampl
   await expect(page.getByTestId("demo-banner")).toContainText("Demo: Baker.");
   await expect(page.getByTestId("demo-banner")).toContainText("cleared in 6 hours");
 
-  // Products, with variations and what they cost to make.
+  // Home has something in every card: the logo, and where the jobs stand at each stage (one late, some due this week).
+  await expect(page.locator('main img[src^="/app/images/"]').first()).toBeVisible();
+  for (const id of ["home-count-late", "home-count-week", "home-count-in-progress", "home-count-ready", "home-count-not-started"]) {
+    await expect(page.getByTestId(id), id).toBeVisible();
+  }
+  await expect(page.getByTestId("home-quotes-waiting")).toBeVisible();
+  await expect(page.getByTestId("home-quotes-drafts")).toBeVisible();
+
+  // Products, with a drawn picture each, variations and what they cost to make.
   await page.goto("/app/products");
   await expect(page.getByText("Celebration cake")).toBeVisible();
+  await expect(page.locator('main img[src*="/app/images/"]')).toHaveCount(4);
   await expect(page.getByTestId("product-count")).toHaveText("4 products");
   await page.getByRole("link", { name: /Celebration cake/ }).click();
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Celebration cake");
@@ -135,7 +146,7 @@ test("a maker who is signed in is asked before the demo replaces their sign-in, 
   await visitor.close();
 });
 
-test("every kind of maker builds: its business, a draft, a sent and an accepted quote, a job and an invoice draft", async ({ browser }) => {
+test("every kind of maker builds: its business, drafts, sent and accepted quotes, jobs at every stage and an invoice draft", async ({ browser }) => {
   test.setTimeout(240_000);
   const cases = [
     { kind: "woodworker", business: "Karoo Timber Works", accepted: "Karoo Guest Lodge" },
@@ -150,7 +161,8 @@ test("every kind of maker builds: its business, a draft, a sent and an accepted 
     await page.goto("/app/quotes");
     await expect(page.getByRole("link", { name: new RegExp(c.accepted) }).first()).toBeVisible();
     await page.goto("/app/jobs");
-    await expect(page.getByRole("link", { name: new RegExp(c.accepted) })).toBeVisible();
+    // (A customer can have more than one job now: the jobs are at every stage.)
+    await expect(page.getByRole("link", { name: new RegExp(c.accepted) }).first()).toBeVisible();
     await context.close();
   }
 });
