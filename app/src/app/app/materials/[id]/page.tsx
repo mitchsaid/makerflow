@@ -38,6 +38,8 @@ export default async function MaterialPage({ params }: PageProps<"/app/materials
           price: moneyToInput(material.priceCents, locale.numberStyle),
           vatTreatment: material.vatTreatment,
           supplier: material.supplier ?? "",
+          supplierEmail: material.supplierEmail ?? "",
+          supplierPhone: material.supplierPhone ?? "",
         }}
         vatRateBp={vat.registered ? vat.standardRateBp : null}
         taxName={locale.tax.name}

@@ -77,6 +77,8 @@ describe("search", () => {
     expect(materialMatchesSearch(m, "")).toBe(true);
     expect(materialMatchesSearch(m, "FLOUR")).toBe(true);
     expect(materialMatchesSearch(m, "makro")).toBe(true);
+    expect(materialMatchesSearch({ ...m, supplierEmail: "orders@makro.example" }, "orders@")).toBe(true);
+    expect(materialMatchesSearch(m, "orders@")).toBe(false);
     expect(materialMatchesSearch(m, "wire")).toBe(false);
   });
 });
@@ -94,10 +96,26 @@ describe("parseMaterialForm", () => {
     const r = parseMaterialForm(form(good), { vatRegistered: true });
     expect(r).toEqual({
       ok: true,
-      value: { name: "Cake flour", unit: "kg", boughtQuantityMilli: 12_500, priceCents: 18_750, vatTreatment: "included", supplier: "Makro" },
+      value: { name: "Cake flour", unit: "kg", boughtQuantityMilli: 12_500, priceCents: 18_750, vatTreatment: "included", supplier: "Makro", supplierEmail: null, supplierPhone: null },
     });
     const plain = parseMaterialForm(form(good), { vatRegistered: false });
     expect(plain.ok && plain.value.vatTreatment).toBe("none");
+  });
+
+  it("keeps a supplier's email (in lower case) and phone, and an empty one is none", () => {
+    const r = parseMaterialForm(form({ ...good, supplierEmail: " Orders@Makro.example ", supplierPhone: " 021 555 0123 " }), { vatRegistered: false });
+    expect(r.ok && [r.value.supplierEmail, r.value.supplierPhone]).toEqual(["orders@makro.example", "021 555 0123"]);
+    const none = parseMaterialForm(form({ ...good, supplierEmail: "  ", supplierPhone: "" }), { vatRegistered: false });
+    expect(none.ok && [none.value.supplierEmail, none.value.supplierPhone]).toEqual([null, null]);
+  });
+
+  it("says at its field when the supplier's email or phone is not one, and does not lose the rest", () => {
+    const r = parseMaterialForm(form({ ...good, supplierEmail: "not-an-email", supplierPhone: "call me" }), { vatRegistered: false });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.supplierEmail).toMatch(/email/);
+    expect(r.errors.supplierPhone).toMatch(/phone/);
+    expect(r.errors.name).toBeUndefined();
   });
 
   it("an empty supplier is none", () => {

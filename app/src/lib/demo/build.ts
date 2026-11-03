@@ -93,6 +93,8 @@ export async function buildDemoBusiness(workspace: Workspace): Promise<void> {
         price_cents: m.priceCents,
         vat_treatment: content.vatNumber ? "included" : "none",
         supplier: m.supplier ?? null,
+        supplier_email: m.supplierEmail ?? null,
+        supplier_phone: m.supplierPhone ?? null,
       })),
     )
     .select("id, name");

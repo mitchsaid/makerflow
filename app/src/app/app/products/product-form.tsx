@@ -43,7 +43,6 @@ function ProductTabBar({
   active,
   onChange,
   problemTabs,
-  inputs,
   fid,
 }: {
   kind: ProductKind;
@@ -51,8 +50,6 @@ function ProductTabBar({
   onChange: (tab: ProductTab) => void;
   /** The tab each problem is on, with the id of its field. */
   problemTabs: readonly { fieldId: string; tab: ProductTab }[];
-  /** How many cost lines. */
-  inputs: number;
   fid: (key: string) => string;
 }) {
   const { edited } = useEditedFields();
@@ -70,7 +67,7 @@ function ProductTabBar({
         tabs={[
           { key: "details", label: "Details", note: note("details") },
           { key: "production", label: kind === "service" ? "Steps" : "Production", note: note("production") },
-          { key: "inputs", label: "Inputs", count: inputs, note: note("inputs") },
+          { key: "inputs", label: "Inputs", note: note("inputs") },
         ]}
       />
     </div>
@@ -553,7 +550,7 @@ export function ProductForm({
   return (
     <FormErrorScope epoch={state}>
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
-      <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} inputs={costing ? values.costLines.length : 0} fid={fid} />
+      <ProductTabBar kind={values.kind} active={tab} onChange={setTab} problemTabs={problemTabs} fid={fid} />
       {panel("details", (
       <>
       <Section title="Basics">

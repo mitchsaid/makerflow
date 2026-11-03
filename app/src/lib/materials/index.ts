@@ -1,4 +1,6 @@
+import { optionalValidated } from "../form-values";
 import { MAX_CENTS, parseMoney, parseQuantity, type Cents, type QuantityMilli } from "../money";
+import { validateEmail, validatePhone } from "../validation";
 import { isUnitCode, sameKind, toBaseMilli, UNITS, type UnitCode } from "./units";
 
 /**
@@ -28,6 +30,9 @@ export type Material = {
   priceCents: Cents;
   vatTreatment: VatTreatment;
   supplier: string | null;
+  /** How to reach the supplier (optional). */
+  supplierEmail: string | null;
+  supplierPhone: string | null;
   archived: boolean;
 };
 
@@ -80,11 +85,11 @@ export function costPerUnitCents(
   return materialCostCents(1000, material.unit, material, vatRateBp);
 }
 
-/** A search over name and supplier, ignoring case. */
-export function materialMatchesSearch(m: Pick<Material, "name" | "supplier">, query: string): boolean {
+/** A search over name, supplier and the supplier's email, ignoring case. */
+export function materialMatchesSearch(m: Pick<Material, "name" | "supplier"> & Partial<Pick<Material, "supplierEmail">>, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (q === "") return true;
-  return m.name.toLowerCase().includes(q) || (m.supplier ?? "").toLowerCase().includes(q);
+  return m.name.toLowerCase().includes(q) || (m.supplier ?? "").toLowerCase().includes(q) || (m.supplierEmail ?? "").toLowerCase().includes(q);
 }
 
 export type MaterialFieldErrors = {
@@ -94,6 +99,8 @@ export type MaterialFieldErrors = {
   price?: string;
   vatTreatment?: string;
   supplier?: string;
+  supplierEmail?: string;
+  supplierPhone?: string;
 };
 
 export type MaterialFields = {
@@ -103,6 +110,8 @@ export type MaterialFields = {
   priceCents: Cents;
   vatTreatment: VatTreatment;
   supplier: string | null;
+  supplierEmail: string | null;
+  supplierPhone: string | null;
 };
 
 const tidy = (text: string) => text.trim().replace(/\s+/g, " ");
@@ -144,6 +153,12 @@ export function parseMaterialForm(
   const supplier = tidy(text("supplier"));
   if (supplier.length > MATERIAL_SUPPLIER_MAX) errors.supplier = `Keep the supplier to ${MATERIAL_SUPPLIER_MAX} characters or fewer.`;
 
+  // How to reach the supplier: both optional, checked like a customer's.
+  const supplierEmail = optionalValidated(form.get("supplierEmail"), validateEmail);
+  if (!supplierEmail.ok) errors.supplierEmail = supplierEmail.error;
+  const supplierPhone = optionalValidated(form.get("supplierPhone"), validatePhone);
+  if (!supplierPhone.ok) errors.supplierPhone = supplierPhone.error;
+
   if (Object.keys(errors).length > 0 || !quantity.ok || !price.ok || !isUnitCode(unitText)) return { ok: false, errors };
   return {
     ok: true,
@@ -154,6 +169,8 @@ export function parseMaterialForm(
       priceCents: price.value,
       vatTreatment,
       supplier: supplier === "" ? null : supplier,
+      supplierEmail: supplierEmail.ok ? supplierEmail.value : null,
+      supplierPhone: supplierPhone.ok ? supplierPhone.value : null,
     },
   };
 }
