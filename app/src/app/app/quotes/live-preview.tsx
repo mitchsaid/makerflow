@@ -7,6 +7,7 @@ import type { PdfWorkerRequest, PdfWorkerResponse } from "@/lib/quotes/pdf/worke
 import type { PdfImage } from "@/lib/quotes/pdf/quote-document";
 import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
 import { themeFromStored } from "@/lib/quotes/themes";
+import { ZoomButton, type ZoomSource } from "./document-zoom";
 import { drawPdfPages } from "./pdf-draw";
 
 type Status = "loading" | "ready" | "error";
@@ -98,16 +99,21 @@ export function LivePdfPreview({
   snapshot,
   label,
   firstPageOnly = false,
+  zoomable = true,
 }: {
   snapshot: QuoteSnapshot;
   label: string;
   /** Draw only the first page (the studio keeps it small and pinned). */
   firstPageOnly?: boolean;
+  /** Offer "Zoom in" (not where the preview is a small pinned one, or already inside a sheet). */
+  zoomable?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [pages, setPages] = useState(0);
   const [stamp, setStamp] = useState("");
+  // The drawn document, kept so "Zoom in" can draw the same one sharper.
+  const [zoomSource, setZoomSource] = useState<ZoomSource | null>(null);
   // What the document is drawn from, as one string, so a change is noticed whatever caused it.
   // The theme's name is never drawn, so renaming one (a keystroke at a time in the studio) draws nothing again.
   const input = JSON.stringify(snapshot.theme ? { ...snapshot, theme: { ...snapshot.theme, name: "" } } : snapshot);
@@ -139,6 +145,7 @@ export function LivePdfPreview({
           setPages(count);
           setStatus("ready");
           setStamp(`live:${hash(input)}`);
+          setZoomSource({ data });
         }
       } catch (error) {
         if (cancelled) return;
@@ -164,6 +171,7 @@ export function LivePdfPreview({
           </AlertDescription>
         </Alert>
       )}
+      {zoomable && !firstPageOnly && status === "ready" && <ZoomButton source={zoomSource} label={label} />}
       <div ref={container} data-pages={pages} data-url={stamp} data-testid="pdf-pages" />
     </div>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ZoomButton } from "./document-zoom";
 import { drawPdfPages } from "./pdf-draw";
 
 type Status = "loading" | "ready" | "error";
@@ -59,6 +60,7 @@ export function PdfPreview({ url, label }: { url: string; label: string }) {
           </AlertDescription>
         </Alert>
       )}
+      {status === "ready" && <ZoomButton source={{ url }} label={label} />}
       <div ref={container} data-pages={pages} data-url={url} data-testid="pdf-pages" />
     </div>
   );
