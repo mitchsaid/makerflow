@@ -104,14 +104,28 @@ export const WEEK_DAYS = 7;
 export const isDueThisWeekJob = (job: { status: JobStatus; neededBy: string | null }, today: string): boolean =>
   isActiveJob(job.status) && job.neededBy !== null && job.neededBy >= today && job.neededBy <= addDays(today, WEEK_DAYS - 1);
 
-export type JobDueCounts = { late: number; thisWeek: number; active: number };
+export type JobDueCounts = {
+  late: number;
+  thisWeek: number;
+  active: number;
+  /** Where the active jobs stand: not started, being made, or ready to hand over (ready and out for delivery). */
+  notStarted: number;
+  inProgress: number;
+  ready: number;
+};
 
-/** What Home shows: how many active jobs are late, how many are needed this week (never both), and how many are active. */
+/**
+ * What Home shows: how many active jobs are late, how many are needed this week (never both), how many are active, and
+ * a roll-up of where the active ones stand (not started, in progress, ready).
+ */
 export function jobDueCounts(jobs: readonly { status: JobStatus; neededBy: string | null }[], today: string): JobDueCounts {
   return {
     late: jobs.filter((j) => isOverdueJob(j, today)).length,
     thisWeek: jobs.filter((j) => isDueThisWeekJob(j, today)).length,
     active: jobs.filter((j) => isActiveJob(j.status)).length,
+    notStarted: jobs.filter((j) => j.status === "not_started").length,
+    inProgress: jobs.filter((j) => j.status === "in_progress").length,
+    ready: jobs.filter((j) => j.status === "ready" || j.status === "out_for_delivery").length,
   };
 }
 

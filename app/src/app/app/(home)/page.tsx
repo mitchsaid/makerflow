@@ -3,7 +3,23 @@ import { AddLink } from "@/components/add-button";
 import { CreateNew } from "./create-new";
 import { InstallCard } from "../install-card";
 import { isNewBusiness } from "@/lib/install";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  CalendarClock as CalendarClockIcon,
+  CircleAlert as CircleAlertIcon,
+  CircleCheck as CircleCheckIcon,
+  FileText as FileTextIcon,
+  HandCoins as HandCoinsIcon,
+  Hammer as HammerIcon,
+  Hourglass as HourglassIcon,
+  ListTodo as ListTodoIcon,
+  PackageCheck as PackageCheckIcon,
+  PencilLine as PencilLineIcon,
+  TriangleAlert as TriangleAlertIcon,
+  Wallet as WalletIcon,
+  type LucideIcon,
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PhotoThumb } from "@/components/photo-thumb";
 import { requireOrganisation } from "@/lib/auth/dal";
 import { getActiveJobDates } from "@/lib/jobs/data";
 import { jobDueCounts } from "@/lib/jobs";
@@ -38,9 +54,13 @@ export default async function WorkspacePage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl leading-tight font-semibold" data-testid="business-name">
-          {organisation.name}
-        </h1>
+        <div className="flex min-w-0 items-center gap-3">
+          {/* The business's own logo, when it has one. */}
+          <PhotoThumb imageId={profile.logoImageId} size="lg" className="rounded-xl" />
+          <h1 className="min-w-0 text-3xl leading-tight font-semibold" data-testid="business-name">
+            {organisation.name}
+          </h1>
+        </div>
         <CreateNew />
       </div>
 
@@ -89,29 +109,30 @@ export default async function WorkspacePage() {
       {showMoney && (
         <Card data-testid="home-money">
           <CardHeader>
-            <CardTitle className="text-lg">Your money</CardTitle>
+            <SectionTitle icon={WalletIcon}>Your money</SectionTitle>
+            <CardDescription className="text-base">What your customers owe you.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <ul className="grid grid-cols-2 gap-3">
               {/* Overdue first, and only when something is. */}
               {owed.overdueCents > 0 && (
-                <li>
-                  <MoneyLink href="/app/invoices?show=overdue" label="Overdue" text={money(owed.overdueCents)} tone="late" testId="home-overdue" />
+                <li className="col-span-2">
+                  <Tile href="/app/invoices?show=overdue" icon={CircleAlertIcon} label="Overdue" hint="Late payments owed to you" text={money(owed.overdueCents)} tone="late" testId="home-overdue" />
                 </li>
               )}
               {owed.count > 0 && (
                 <li>
-                  <MoneyLink href="/app/invoices?show=unpaid" label="Owing" text={money(owed.owingCents)} tone="calm" testId="home-owing" />
+                  <Tile href="/app/invoices?show=unpaid" icon={HandCoinsIcon} label="Owed to you" text={money(owed.owingCents)} tone="calm" testId="home-owing" />
                 </li>
               )}
               {owed.paidThisMonthCents > 0 && (
                 <li>
-                  <MoneyLink href="/app/invoices" label="Paid this month" text={money(owed.paidThisMonthCents)} tone="good" testId="home-paid" />
+                  <Tile href="/app/invoices" icon={CircleCheckIcon} label="Paid this month" text={money(owed.paidThisMonthCents)} tone="good" testId="home-paid" />
                 </li>
               )}
             </ul>
             <Link href="/app/invoices" className="inline-flex min-h-11 items-center font-medium underline">
-              {owed.count === 0 ? "See your invoices" : owed.count === 1 ? "See the invoice" : `See all ${owed.count} invoices owing`}
+              {owed.count === 0 ? "See your invoices" : owed.count === 1 ? "See the invoice owed to you" : `See all ${owed.count} invoices owed to you`}
             </Link>
           </CardContent>
         </Card>
@@ -120,18 +141,18 @@ export default async function WorkspacePage() {
       {showQuotes && (
         <Card data-testid="home-quotes">
           <CardHeader>
-            <CardTitle className="text-lg">Your quotes</CardTitle>
+            <SectionTitle icon={FileTextIcon}>Your quotes</SectionTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <ul className="grid grid-cols-2 gap-3">
               {waiting > 0 && (
                 <li>
-                  <CountLink href="/app/quotes?status=sent" label="Waiting for an answer" count={waiting} testId="home-quotes-waiting" />
+                  <Tile href="/app/quotes?status=sent" icon={HourglassIcon} label="Waiting for an answer" text={String(waiting)} tone="calm" big testId="home-quotes-waiting" />
                 </li>
               )}
               {drafts > 0 && (
                 <li>
-                  <CountLink href="/app/quotes?status=draft" label={drafts === 1 ? "Draft" : "Drafts"} count={drafts} testId="home-quotes-drafts" />
+                  <Tile href="/app/quotes?status=draft" icon={PencilLineIcon} label={drafts === 1 ? "Draft" : "Drafts"} text={String(drafts)} tone="calm" big testId="home-quotes-drafts" />
                 </li>
               )}
             </ul>
@@ -145,25 +166,37 @@ export default async function WorkspacePage() {
       {showJobs && (
         <Card data-testid="home-jobs">
           <CardHeader>
-            <CardTitle className="text-lg">Your jobs</CardTitle>
+            <SectionTitle icon={HammerIcon}>Your jobs</SectionTitle>
+            <CardDescription className="text-base">Where the work you have taken on stands.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {counts.late > 0 || counts.thisWeek > 0 ? (
-              <ul className="grid grid-cols-2 gap-3">
-                {counts.late > 0 && (
-                  <li>
-                    <DueLink href="/app/jobs?show=late" label="Late" count={counts.late} tone="late" />
-                  </li>
-                )}
-                {counts.thisWeek > 0 && (
-                  <li>
-                    <DueLink href="/app/jobs?show=week" label="Needed this week" count={counts.thisWeek} tone="calm" />
-                  </li>
-                )}
-              </ul>
-            ) : (
-              <p className="text-base text-muted-foreground">Nothing is due in the next week.</p>
-            )}
+            <ul className="grid grid-cols-2 gap-3">
+              {counts.late > 0 && (
+                <li>
+                  <Tile href="/app/jobs?show=late" icon={TriangleAlertIcon} label="Late" text={String(counts.late)} tone="late" big testId="home-count-late" />
+                </li>
+              )}
+              {counts.thisWeek > 0 && (
+                <li>
+                  <Tile href="/app/jobs?show=week" icon={CalendarClockIcon} label="Needed this week" text={String(counts.thisWeek)} tone="calm" big testId="home-count-week" />
+                </li>
+              )}
+              {counts.inProgress > 0 && (
+                <li>
+                  <Tile href="/app/jobs" icon={HammerIcon} label="In progress" text={String(counts.inProgress)} tone="calm" big testId="home-count-in-progress" />
+                </li>
+              )}
+              {counts.ready > 0 && (
+                <li>
+                  <Tile href="/app/jobs" icon={PackageCheckIcon} label="Ready" text={String(counts.ready)} tone="good" big testId="home-count-ready" />
+                </li>
+              )}
+              {counts.notStarted > 0 && (
+                <li>
+                  <Tile href="/app/jobs" icon={ListTodoIcon} label="Not started" text={String(counts.notStarted)} tone="calm" big testId="home-count-not-started" />
+                </li>
+              )}
+            </ul>
             <Link href="/app/jobs" className="inline-flex min-h-11 items-center font-medium underline">
               {counts.active === 1 ? "See the job to do" : `See all ${counts.active} jobs to do`}
             </Link>
@@ -174,47 +207,58 @@ export default async function WorkspacePage() {
   );
 }
 
-/** An amount that opens the Invoices list already narrowed to those invoices. */
-function MoneyLink({ href, label, text, tone, testId }: { href: string; label: string; text: string; tone: "late" | "calm" | "good"; testId: string }) {
+/** A card's title, with a small icon in a tinted square so the cards are told apart at a glance. */
+function SectionTitle({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+        <Icon className="size-5" />
+      </span>
+      <CardTitle className="text-lg">{children}</CardTitle>
+    </div>
+  );
+}
+
+const TONE_TEXT = { late: "text-destructive", good: "text-success", calm: "" } as const;
+const TONE_ICON = { late: "text-destructive", good: "text-success", calm: "text-muted-foreground" } as const;
+
+/**
+ * An amount or a count that opens the list already narrowed to it. Every tile in a row is the same height (the tile
+ * fills its grid cell), whatever its label needs, so a label that wraps never makes one tile taller than the next.
+ */
+function Tile({
+  href,
+  icon: Icon,
+  label,
+  hint,
+  text,
+  tone,
+  big,
+  testId,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  hint?: string;
+  text: string;
+  tone: keyof typeof TONE_TEXT;
+  /** A count (3xl) rather than an amount (2xl). */
+  big?: boolean;
+  testId: string;
+}) {
   return (
     <Link
       href={href}
-      className="block min-h-11 rounded-xl px-4 py-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex h-full min-h-11 flex-col gap-1 rounded-xl px-4 py-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <span className={`block text-2xl font-bold ${tone === "late" ? "text-destructive" : tone === "good" ? "text-success" : ""}`} data-testid={testId}>
+      <span className="flex items-center gap-2 text-base text-muted-foreground">
+        <Icon aria-hidden="true" className={`size-5 shrink-0 ${TONE_ICON[tone]}`} />
+        {label}
+      </span>
+      <span className={`mt-auto block ${big ? "text-3xl" : "text-2xl"} font-bold ${TONE_TEXT[tone]}`} data-testid={testId}>
         {text}
       </span>
-      <span className="block text-base text-muted-foreground">{label}</span>
-    </Link>
-  );
-}
-
-/** A count that opens the Jobs list already narrowed to those jobs. */
-function DueLink({ href, label, count, tone }: { href: string; label: string; count: number; tone: "late" | "calm" }) {
-  return (
-    <Link
-      href={href}
-      className="block min-h-11 rounded-xl px-4 py-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      <span className={`block text-3xl font-semibold ${tone === "late" ? "text-destructive" : ""}`} data-testid={`home-count-${label === "Late" ? "late" : "week"}`}>
-        {count}
-      </span>
-      <span className="block text-base text-muted-foreground">{label}</span>
-    </Link>
-  );
-}
-
-/** A count that opens a list already narrowed to it. */
-function CountLink({ href, label, count, testId }: { href: string; label: string; count: number; testId: string }) {
-  return (
-    <Link
-      href={href}
-      className="block min-h-11 rounded-xl px-4 py-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      <span className="block text-3xl font-semibold" data-testid={testId}>
-        {count}
-      </span>
-      <span className="block text-base text-muted-foreground">{label}</span>
+      {hint && <span className="block text-sm text-muted-foreground">{hint}</span>}
     </Link>
   );
 }
