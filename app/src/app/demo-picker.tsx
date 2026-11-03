@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { ActionSheet } from "@/components/action-sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DemoLoader } from "@/components/demo-loader";
 import { Button } from "@/components/ui/button";
 import { Turnstile, turnstileSiteKey } from "@/components/turnstile";
 import { useAppRouter } from "@/components/use-app-router";
@@ -102,6 +103,8 @@ export function DemoPicker({ ended, children }: { ended: boolean; children?: Rea
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
+      {/* Building a demo takes several seconds: say what is going into it. */}
+      {pending && chosen && <DemoLoader title={DEMO_CHOICES[chosen].title.toLowerCase()} />}
       <ActionSheet
         open={open}
         onOpenChange={setOpen}

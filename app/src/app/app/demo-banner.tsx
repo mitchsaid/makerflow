@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { DemoLoader } from "@/components/demo-loader";
 import { Button } from "@/components/ui/button";
 import { useAppRouter } from "@/components/use-app-router";
 import { DEMO_CHOICES, timeLeftWords, type DemoKind } from "@/lib/demo";
@@ -34,6 +35,7 @@ export function DemoBanner({ kind, expiresAt }: { kind: DemoKind; expiresAt: str
 
   return (
     <div className="border-b border-border bg-muted px-4 py-2 text-sm" data-testid="demo-banner" role="region" aria-label="Demo">
+      {pending && <DemoLoader title={DEMO_CHOICES[kind].title.toLowerCase()} />}
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p>
           <span className="font-medium">Demo: {DEMO_CHOICES[kind].title}.</span> Try anything; it is cleared in {timeLeftWords(expiresAt)}.

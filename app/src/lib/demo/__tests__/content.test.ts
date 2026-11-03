@@ -93,14 +93,37 @@ describe.each(DEMO_KINDS)("the %s demo content", (kind) => {
     }
   });
 
+  it("has jobs at every stage, one late and some due this week, so Home has a roll-up to show", () => {
+    const jobs = c.quotes.filter((q) => q.status === "accepted");
+    const stage = (q: (typeof jobs)[number]) => q.job ?? "in_progress";
+    expect(new Set(jobs.map(stage))).toEqual(new Set(["not_started", "in_progress", "ready"]));
+    expect(jobs.some((q) => q.neededInDays !== undefined && q.neededInDays < 0 && stage(q) === "in_progress")).toBe(true);
+    expect(jobs.some((q) => q.neededInDays !== undefined && q.neededInDays >= 0 && q.neededInDays <= 6)).toBe(true);
+    // Only the first accepted quote has an invoice draft: each one costs the visitor a moment while the demo is built.
+    expect(jobs.filter((q) => q.invoiceDraft !== false)).toHaveLength(1);
+  });
+
+  it("gives every product, but no service, a drawn picture in colours that are valid", () => {
+    for (const p of c.products) {
+      if (p.kind === "service") {
+        expect(p.picture, `${p.name} is a service`).toBeUndefined();
+        continue;
+      }
+      expect(p.picture, `${p.name} has no picture`).toBeDefined();
+      expect(p.picture!.background).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(p.picture!.foreground).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
   it("has sample quotes that name real customers, products, variations and extras: a draft that shows a margin, a sent one and an accepted one", () => {
     const customers = new Set(c.customers.map((x) => x.name));
     const byName = new Map(c.products.map((p) => [p.name, p]));
-    expect(c.quotes.map((q) => q.status).sort()).toEqual(["accepted", "draft", "sent"]);
+    expect(new Set(c.quotes.map((q) => q.status))).toEqual(new Set(["accepted", "draft", "sent"]));
     for (const q of c.quotes) {
       expect(customers.has(q.customer), `${q.customer} is not a customer`).toBe(true);
       expect(q.daysAgo).toBeGreaterThanOrEqual(0);
       expect(q.daysAgo).toBeLessThan(10);
+      expect(q.neededInDays === undefined || (q.neededInDays > -(q.daysAgo + 1) && q.neededInDays < 60)).toBe(true);
       expect(q.items.length).toBeGreaterThan(0);
       for (const item of q.items) {
         const product = byName.get(item.product);

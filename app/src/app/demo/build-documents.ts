@@ -17,8 +17,9 @@ import { recordOutcome } from "../app/quotes/outcome-actions";
 import { sendQuote } from "../app/quotes/issue-actions";
 
 /**
- * The sample quotes of a demo (docs/plans/demo-accounts.md, slice 2): a draft (so the margin shows), a sent quote, and an
- * accepted one that has a job in progress and an invoice draft. Each goes through the same server actions a maker's
+ * The sample quotes of a demo (docs/plans/demo-accounts.md, slice 2; fuller in docs/plans/home-and-demo-polish.md): drafts
+ * (so the margin shows), sent quotes, and accepted ones whose jobs are at each stage (not started, in progress, ready, one
+ * late), the first with an invoice draft. Each goes through the same server actions a maker's
  * taps do (save, send, record the answer, make the job, start the invoice), so the numbers, the frozen versions and
  * the costing are exactly what the app makes. A demo never has an issued invoice (those can never be deleted).
  */
@@ -89,7 +90,7 @@ export async function buildDemoDocuments(workspace: Workspace): Promise<void> {
       customerId: customer,
       issueDate,
       validUntil: addDays(issueDate, DEFAULT_VALID_DAYS),
-      neededBy: "",
+      neededBy: q.neededInDays === undefined ? "" : addDays(today, q.neededInDays),
       lines: q.items.map((item, i) => {
         const product = products.find((p) => p.name === item.product);
         if (!product) throw new Error(`demo quote names a product that is not there: ${item.product}`);
@@ -125,9 +126,12 @@ export async function buildDemoDocuments(workspace: Workspace): Promise<void> {
     if (answered.status !== "done") throw new Error("could not record a demo quote's answer");
 
     const jobId = await redirectedTo(() => createJob(quoteId));
-    const moved = await moveJob(jobId, "in_progress");
-    if (moved.status === "error") throw new Error(`could not start a demo job: ${moved.message}`);
+    // A new job is not started; the demo has jobs at each stage, so the Home roll-up has something to count.
+    if ((q.job ?? "in_progress") !== "not_started") {
+      const moved = await moveJob(jobId, q.job ?? "in_progress");
+      if (moved.status === "error") throw new Error(`could not move a demo job: ${moved.message}`);
+    }
     // An invoice draft (never an issued invoice: those can never be deleted).
-    await redirectedTo(() => startInvoiceFromQuote(quoteId));
+    if (q.invoiceDraft !== false) await redirectedTo(() => startInvoiceFromQuote(quoteId));
   }
 }

@@ -112,7 +112,8 @@ export function ProductList({
                 href={`/app/products/${p.id}`}
                 className="block rounded-xl bg-card px-4 py-3 ring-1 ring-border transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <span className="flex items-baseline justify-between gap-3">
+                {/* Centred, not on the baseline: with a picture beside the name the price would sit below it. */}
+                <span className="flex items-center justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-2">
                     <PhotoThumb imageId={p.photoImageId} />
                     <span className="truncate text-base font-medium">{p.name}</span>

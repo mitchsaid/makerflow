@@ -783,8 +783,15 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByTestId("try-demo").click();
       await expect(page.getByRole("dialog", { name: "Try the demo" })).toBeVisible();
       await expectNoViolations(page, "landing page, the demo sheet open");
+      // Slow the server's answer a little, so the "setting up" screen stays long enough to scan.
+      await page.route("**/*", async (route) => {
+        if (route.request().method() === "POST" && route.request().headers()["next-action"]) await new Promise((resolve) => setTimeout(resolve, 4_000));
+        await route.continue().catch(() => undefined);
+      });
       await page.getByRole("dialog").getByRole("button", { name: /^Seamstress/ }).click();
-      await expect(page).toHaveURL(/\/app$/, { timeout: 45_000 });
+      await expect(page.getByTestId("demo-loader")).toBeVisible();
+      await expectNoViolations(page, "the demo loader");
+      await expect(page).toHaveURL(/\/app$/, { timeout: 90_000 });
       await expect(page.getByTestId("demo-banner")).toBeVisible();
       await expectNoViolations(page, "a demo's Home, with the banner");
       await page.goto("/app/products");
@@ -800,7 +807,7 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByTestId("margin-summary")).toBeVisible();
       await expectNoViolations(page, "a demo's draft quote, with its margin");
       await page.goto("/app/jobs");
-      await expect(page.getByRole("link", { name: /Bridal Boutique Rosebank/ })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Bridal Boutique Rosebank/ }).first()).toBeVisible();
       await expectNoViolations(page, "a demo's jobs");
     });
     test("importing products: paste, columns, check, and after adding", async ({ page }) => {
