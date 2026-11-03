@@ -103,7 +103,9 @@ test("Home counts the jobs that are late and the ones needed this week, and open
   // (A count of nothing is left out.)
   await expect(page.getByTestId("home-count-late")).toHaveCount(0);
   await expect(page.getByTestId("home-count-week")).toHaveCount(0);
-  await expect(page.getByTestId("home-jobs")).toContainText("Nothing is due in the next week.");
+  // Where the work stands is rolled up: this job has not been started.
+  await expect(page.getByTestId("home-count-not-started")).toHaveText("1");
+  await expect(page.getByTestId("home-count-in-progress")).toHaveCount(0);
 
   // Needed yesterday: late.
   await setNeededBy(jobId, day(-1));

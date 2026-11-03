@@ -73,3 +73,13 @@ test("Create new on Home asks what to make: a quote, an invoice or a job, each s
     await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
   }
 });
+
+test("money says whose it is", async ({ page }) => {
+  test.setTimeout(240_000);
+  await issuedInvoice(page, "home-tiles", { name: "Shelf", quantity: "1", price: "100" });
+  await nav(page).getByRole("link", { name: "Home" }).click();
+  const money = page.getByTestId("home-money");
+  await expect(money).toContainText("What your customers owe you.");
+  await expect(page.getByTestId("home-owing")).toBeVisible();
+  await expect(money.getByText("Owed to you", { exact: true })).toBeVisible();
+});

@@ -147,8 +147,8 @@ describe("needed this week", () => {
       { status: "done", neededBy: "2026-10-01" },
       { status: "cancelled", neededBy: "2026-10-15" },
     ] as const;
-    expect(jobDueCounts(rows, TODAY)).toEqual({ late: 2, thisWeek: 2, active: 6 });
-    expect(jobDueCounts([], TODAY)).toEqual({ late: 0, thisWeek: 0, active: 0 });
+    expect(jobDueCounts(rows, TODAY)).toEqual({ late: 2, thisWeek: 2, active: 6, notStarted: 1, inProgress: 4, ready: 1 });
+    expect(jobDueCounts([], TODAY)).toEqual({ late: 0, thisWeek: 0, active: 0, notStarted: 0, inProgress: 0, ready: 0 });
   });
   it("reads the filter a Jobs address asks for", () => {
     expect(parseJobFilter("late")).toBe("late");
