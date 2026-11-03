@@ -3,6 +3,7 @@ import { getLocalePack } from "../../locale";
 import { isUnitCode, sameKind } from "../../materials/units";
 import { PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX, PRODUCT_UNIT_MAX } from "../../products";
 import { validateEmail, validatePhone } from "../../validation";
+import { BLANK_SPEC, isStarterKey, LAYOUTS, parseSpec, THEME_NAME_MAX } from "../../quotes/themes";
 import { demoContent } from "../content";
 import { DEMO_CHOICES, DEMO_KINDS, isDemoKind, timeLeftWords } from "../index";
 
@@ -101,6 +102,32 @@ describe.each(DEMO_KINDS)("the %s demo content", (kind) => {
     expect(jobs.some((q) => q.neededInDays !== undefined && q.neededInDays >= 0 && q.neededInDays <= 6)).toBe(true);
     // Only the first accepted quote has an invoice draft: each one costs the visitor a moment while the demo is built.
     expect(jobs.filter((q) => q.invoiceDraft !== false)).toHaveLength(1);
+  });
+
+  it("has quote themes of its own that are whole and valid, and quotes that use a variety of looks", () => {
+    const names = c.themes.map((t) => t.name);
+    expect(new Set(names.map((n) => n.toLowerCase())).size).toBe(names.length);
+    expect(c.themes.length).toBeGreaterThanOrEqual(3);
+    for (const t of c.themes) {
+      expect(t.name.length).toBeGreaterThan(0);
+      expect(t.name.length).toBeLessThanOrEqual(THEME_NAME_MAX);
+      // Every choice is a real one: reading the spec safely changes nothing.
+      expect(parseSpec({ ...BLANK_SPEC, ...t.spec })).toEqual({ ...BLANK_SPEC, ...t.spec });
+    }
+    for (const q of c.quotes) {
+      expect(q.theme, `${q.customer}'s quote has no look`).toBeDefined();
+      const starter = q.theme!.startsWith("starter:") ? q.theme!.slice("starter:".length) : null;
+      if (starter !== null) expect(isStarterKey(starter), q.theme).toBe(true);
+      else expect(names, q.theme).toContain(q.theme);
+    }
+    // Different looks, not one look repeated: at least four of them across the quotes, and at least three ways of laying items out.
+    expect(new Set(c.quotes.map((q) => q.theme)).size).toBeGreaterThanOrEqual(4);
+    const layoutOf = (theme: string) => (theme.startsWith("starter:") ? BLANK_SPEC.layout : { ...BLANK_SPEC, ...c.themes.find((t) => t.name === theme)!.spec }.layout);
+    const layouts = new Set(c.quotes.map((q) => layoutOf(q.theme!)));
+    expect(layouts.size).toBeGreaterThanOrEqual(3);
+    for (const l of layouts) expect(LAYOUTS).toContain(l);
+    // And the attractive ones show photos.
+    expect(c.themes.some((t) => (t.spec.photo ?? BLANK_SPEC.photo) === "large")).toBe(true);
   });
 
   it("gives every product, but no service, a drawn picture in colours that are valid", () => {
