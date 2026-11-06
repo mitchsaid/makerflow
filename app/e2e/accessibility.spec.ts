@@ -1257,6 +1257,58 @@ for (const scheme of ["light", "dark"] as const) {
       await expectNoViolations(page, "feedback sheet, sent");
     });
 
+    test("repeating invoices: the Repeat sheet, the Repeating list, what it repeats, and Home", async ({ page }) => {
+      test.setTimeout(300_000);
+      await businessWithAddress(page, `a11y-repeat-${scheme}`, "Axe Repeat Co");
+      await page.goto("/app/invoices/new");
+      await addCustomerInSheet(page, "Thandi Nkosi");
+      await page.getByRole("button", { name: "Add item" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /One-off item/ }).click();
+      await page.getByRole("dialog").getByLabel("Name", { exact: true }).fill("Workshop pass");
+      await page.getByRole("dialog").getByLabel(/^Price/).fill("300");
+      await page.getByRole("dialog").getByRole("button", { name: "Add to invoice" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page).toHaveURL(/\/app\/invoices\/drafts\/[0-9a-f-]{36}\?saved=1$/);
+      await page.goto("/app/invoices?show=drafts");
+      const menuButton = page.getByRole("button", { name: "More for Thandi Nkosi, draft" });
+      await expect(async () => {
+        await menuButton.click();
+        await expect(page.getByRole("dialog", { name: /Thandi Nkosi · draft/ })).toBeVisible({ timeout: 1_000 });
+      }).toPass();
+      await expectNoViolations(page, "the card menu with Repeat");
+      await page.getByRole("dialog", { name: /Thandi Nkosi · draft/ }).getByRole("button", { name: /^Repeat/ }).click();
+      await expect(page.getByRole("dialog", { name: "Repeat this invoice" })).toBeVisible();
+      await expectNoViolations(page, "the Repeat sheet");
+      await page.getByRole("dialog").getByLabel("First one on").fill("2020-01-01");
+      await page.getByRole("dialog").getByRole("button", { name: "Start repeating" }).click();
+      await expect(page.getByTestId("form-summary")).toBeVisible();
+      await expectNoViolations(page, "the Repeat sheet, with a problem");
+      await page.getByRole("dialog").getByRole("radio", { name: /A number of times/ }).check();
+      await expectNoViolations(page, "the Repeat sheet, ending after a number of times");
+      await page.getByRole("dialog").getByLabel("First one on").fill(new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(new Date()));
+      await page.getByRole("dialog").getByRole("radio", { name: /No end/ }).check();
+      await page.getByRole("dialog").getByRole("button", { name: "Start repeating" }).click();
+      await expect(page).toHaveURL(/show=repeating$/);
+      await expect(page.getByTestId("repeat-row")).toBeVisible();
+      await expectNoViolations(page, "invoices, Repeating");
+      await page.getByTestId("repeat-row").getByRole("link").click();
+      await expect(page.getByRole("heading", { name: "What this repeats", level: 1 })).toBeVisible();
+      await expectNoViolations(page, "what a repeat makes");
+      // Make it due and run the day: Home then has a repeat ready to check, and the draft says it was made by a repeat.
+      const { url, secretKey } = localSupabase();
+      const headers = { apikey: secretKey, Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
+      const orgs = await (await fetch(`${url}/rest/v1/organisations?name=eq.Axe%20Repeat%20Co&select=id&order=created_at.desc&limit=1`, { headers })).json();
+      await fetch(`${url}/rest/v1/recurrences?organisation_id=eq.${orgs[0].id}`, { method: "PATCH", headers, body: JSON.stringify({ next_run_on: new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(new Date()) }) });
+      expect((await page.request.get("/api/cron/recurrences", { headers: { authorization: "Bearer test-cron-secret" } })).status()).toBe(200);
+      await page.goto("/app");
+      await expect(page.getByTestId("home-repeats-ready")).toBeVisible();
+      await expectNoViolations(page, "Home, with a repeat ready to check");
+      await page.goto("/app/invoices?show=drafts");
+      await expect(page.getByTestId("draft-from-repeat")).toBeVisible();
+      await expectNoViolations(page, "invoices, a draft made by a repeat");
+    });
+
     test("a customer's page: each section, with and without history", async ({ page }) => {
       test.setTimeout(300_000);
       await issuedInvoice(page, `a11y-customer-${scheme}`, { name: "Cupcakes", quantity: "10", price: "250" });

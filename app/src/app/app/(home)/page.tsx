@@ -14,6 +14,7 @@ import {
   ListTodo as ListTodoIcon,
   PackageCheck as PackageCheckIcon,
   PencilLine as PencilLineIcon,
+  Repeat as RepeatIcon,
   TriangleAlert as TriangleAlertIcon,
   Wallet as WalletIcon,
   type LucideIcon,
@@ -25,6 +26,7 @@ import { getActiveJobDates } from "@/lib/jobs/data";
 import { jobDueCounts } from "@/lib/jobs";
 import { getOwedTotals } from "@/lib/invoices/data";
 import { getQuoteStatuses } from "@/lib/quotes/data";
+import { getRepeatNotices } from "@/lib/recurrence/data";
 import { getLocalePack } from "@/lib/locale";
 import { formatMoney } from "@/lib/money";
 import { todayIn } from "@/lib/quotes/dates";
@@ -32,7 +34,7 @@ import { forOrganisation } from "@/lib/scope";
 
 export default async function WorkspacePage() {
   // The jobs query runs beside the workspace check, not after it; what is owed needs the business, so it follows.
-  const [activeJobs, quoteStatuses, { organisation, profile, demo }] = await Promise.all([getActiveJobDates(), getQuoteStatuses(), requireOrganisation()]);
+  const [activeJobs, quoteStatuses, repeatNotices, { organisation, profile, demo }] = await Promise.all([getActiveJobDates(), getQuoteStatuses(), getRepeatNotices(), requireOrganisation()]);
   const locale = getLocalePack(profile.countryCode);
   const today = todayIn(locale.timeZone);
   const owed = await getOwedTotals(organisation.id, today);
@@ -40,6 +42,10 @@ export default async function WorkspacePage() {
   const quotes = forOrganisation(quoteStatuses, organisation.id);
   const waiting = quotes.filter((q) => q.status === "sent").length;
   const drafts = quotes.filter((q) => q.status === "draft").length;
+  // Invoice drafts a repeat made that are waiting to be checked, and repeats that paused themselves (docs/plans/recurring.md).
+  const repeatReady = repeatNotices.readyOrganisationIds.filter((id) => id === organisation.id).length;
+  const repeatPaused = repeatNotices.pausedOrganisationIds.filter((id) => id === organisation.id).length;
+  const showRepeats = repeatReady > 0 || repeatPaused > 0;
 
   const firstRun = quotes.length === 0 && counts.active === 0 && owed.count === 0 && owed.paidThisMonthCents === 0;
   // What needs the maker, money first (docs/ux-review-2026-10-25.md, N7). A count of nothing is left out.
@@ -48,7 +54,7 @@ export default async function WorkspacePage() {
   const showQuotes = waiting > 0 || drafts > 0;
   const showJobs = counts.active > 0;
   // Money paid this month is good news, not a thing to do: only what is owed, waiting or due keeps Home from being caught up.
-  const caughtUp = !firstRun && owed.count === 0 && !showQuotes && !showJobs;
+  const caughtUp = !firstRun && owed.count === 0 && !showQuotes && !showJobs && !showRepeats;
   const money = (cents: number) => formatMoney(cents, profile.currencyCode, locale.numberStyle);
 
   return (
@@ -133,6 +139,32 @@ export default async function WorkspacePage() {
             </ul>
             <Link href="/app/invoices" className="inline-flex min-h-11 items-center font-medium underline">
               {owed.count === 0 ? "See your invoices" : owed.count === 1 ? "See the invoice owed to you" : `See all ${owed.count} invoices owed to you`}
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {showRepeats && (
+        <Card data-testid="home-repeats">
+          <CardHeader>
+            <SectionTitle icon={RepeatIcon}>Your repeats</SectionTitle>
+            <CardDescription className="text-base">Invoices that make themselves, as drafts for you to check.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="grid grid-cols-2 gap-3">
+              {repeatReady > 0 && (
+                <li>
+                  <Tile href="/app/invoices?show=drafts" icon={PencilLineIcon} label={repeatReady === 1 ? "Repeat ready to check" : "Repeats ready to check"} text={String(repeatReady)} tone="calm" big testId="home-repeats-ready" />
+                </li>
+              )}
+              {repeatPaused > 0 && (
+                <li>
+                  <Tile href="/app/invoices?show=repeating" icon={TriangleAlertIcon} label={repeatPaused === 1 ? "Repeat paused" : "Repeats paused"} hint="It needs a look" text={String(repeatPaused)} tone="late" big testId="home-repeats-paused" />
+                </li>
+              )}
+            </ul>
+            <Link href="/app/invoices?show=repeating" className="inline-flex min-h-11 items-center font-medium underline">
+              See your repeats
             </Link>
           </CardContent>
         </Card>

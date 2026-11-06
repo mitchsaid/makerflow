@@ -29,7 +29,9 @@ import { LineRow } from "../quotes/line-row";
 import { LineSheet, type LineSheetView } from "../quotes/line-sheet";
 import { useItemSheetProducts } from "../quotes/use-item-sheet-products";
 import { withoutEmptyOptionals } from "@/lib/quotes/optional";
+import { dueGap } from "@/lib/recurrence/make";
 import { discardInvoiceDraft, saveInvoiceDraft } from "./draft-actions";
+import { saveRepeatForm } from "./repeat-actions";
 import type { ProductFormCosting } from "../products/product-form";
 
 const OFFLINE = "Couldn't reach the server, so nothing may have been saved. Check your connection and try again. Nothing you typed is lost.";
@@ -57,7 +59,16 @@ export function InvoiceDraftForm({
   vatStatuses,
   businessTypes,
   costing,
+  repeat,
+  usualDueDays,
 }: {
+  /**
+   * Set when this edits what a REPEAT makes (docs/plans/recurring.md), not a draft: the same form, saved to the repeat. The
+   * dates are not asked (each invoice is dated the day it is made), and there is no preview or discard.
+   */
+  repeat?: { id: string };
+  /** The business's usual days to pay, for saying when a repeat's invoices are due. */
+  usualDueDays?: number;
   /** Null for a new invoice that has not been kept yet. */
   draftId: string | null;
   initial: InvoiceDraftForm;
@@ -169,7 +180,34 @@ export function InvoiceDraftForm({
     return sent;
   }
 
+  /** A repeat's form: checked as an invoice (so every problem is named where it is), then kept on the repeat. */
+  function saveRepeat() {
+    if (!repeat) return;
+    setMessage(null);
+    const sent = tidy();
+    const checked = parseInvoiceDraft(sent, vat);
+    setTried((n) => n + 1);
+    if (!checked.ok) {
+      setErrors(checked.errors);
+      return;
+    }
+    setErrors({ fields: {}, lines: {} });
+    startTransition(async () => {
+      try {
+        const result = await saveRepeatForm(repeat.id, sent);
+        if (result.status === "ok") setSaved(true);
+        else setMessage(result.message);
+      } catch {
+        setMessage(OFFLINE);
+      }
+    });
+  }
+
   function save() {
+    if (repeat) {
+      saveRepeat();
+      return;
+    }
     setMessage(null);
     const sent = tidy();
     startTransition(async () => {
@@ -272,6 +310,14 @@ export function InvoiceDraftForm({
       >
         <FormSummary problems={summary} trigger={tried} />
 
+        {repeat && (
+          <Alert data-testid="repeat-note">
+            <AlertDescription>
+              This is what each new invoice draft starts as. Each is dated the day it is made and is due {dueGap(values, usualDueDays ?? 14)} days later. Changes apply to the next one; drafts already made are not touched.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {quote && (
           <Alert data-testid="invoice-quote-note">
             <AlertDescription>
@@ -284,10 +330,12 @@ export function InvoiceDraftForm({
           </Alert>
         )}
 
-        <Section title="Dates">
-          <TextField id="issueDate" type="date" label="Invoice date" value={values.issueDate} error={f.issueDate} onChange={(issueDate) => update({ issueDate })} />
-          <TextField id="dueDate" type="date" label="Due date" value={values.dueDate} error={f.dueDate} onChange={(dueDate) => update({ dueDate })} />
-        </Section>
+        {!repeat && (
+          <Section title="Dates">
+            <TextField id="issueDate" type="date" label="Invoice date" value={values.issueDate} error={f.issueDate} onChange={(issueDate) => update({ issueDate })} />
+            <TextField id="dueDate" type="date" label="Due date" value={values.dueDate} error={f.dueDate} onChange={(dueDate) => update({ dueDate })} />
+          </Section>
+        )}
 
         <Section title="Customer">
           <CustomerPicker
@@ -441,7 +489,7 @@ export function InvoiceDraftForm({
         </Section>
         )}
 
-        {draftId && (
+        {draftId && !repeat && (
           <div className="space-y-2">
             {discarding ? (
               <Alert data-testid="discard-question">
@@ -467,7 +515,7 @@ export function InvoiceDraftForm({
         )}
         {saved && !pending && (
           <p role="status" className="text-sm font-medium">
-            Draft saved.
+            {repeat ? "Saved." : "Draft saved."}
           </p>
         )}
       </form>
@@ -486,13 +534,16 @@ export function InvoiceDraftForm({
               "Saving…"
             ) : (
               <>
-                Save<span className="sr-only"> draft</span>
+                {repeat ? "Save changes" : "Save"}
+                {!repeat && <span className="sr-only"> draft</span>}
               </>
             )}
           </Button>
-          <Button id="preview-invoice" type="button" disabled={pending} size="lg" className="col-span-2 sm:col-span-1" onClick={preview}>
-            Continue to preview
-          </Button>
+          {!repeat && (
+            <Button id="preview-invoice" type="button" disabled={pending} size="lg" className="col-span-2 sm:col-span-1" onClick={preview}>
+              Continue to preview
+            </Button>
+          )}
         </div>
       </div>
 

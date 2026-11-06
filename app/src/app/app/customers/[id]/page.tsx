@@ -179,7 +179,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
                   )}
                   <ul className="space-y-2">
                     {drafts.map((d) => (
-                      <InvoiceDraftRow key={d.id} draft={d} currencyCode={profile.currencyCode} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
+                      <InvoiceDraftRow key={d.id} draft={d} today={today} currencyCode={profile.currencyCode} formatLocale={locale.formatLocale} numberStyle={locale.numberStyle} />
                     ))}
                     {invoices.map((i) => (
                       <InvoiceRow key={i.id} invoice={i} {...rowProps} />
