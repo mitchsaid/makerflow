@@ -91,10 +91,12 @@ export type InvoiceDraftRow = {
   grossCents: number | null;
   /** The quote it adjusts, if any. */
   quoteNumber: string | null;
+  /** Made by a repeat (docs/plans/recurring.md), not by the maker. */
+  fromRepeat: boolean;
   updatedAt: string;
 };
 
-export function draftRowsOf(drafts: readonly Pick<StoredInvoiceDraft, "id" | "customerName" | "form" | "quoteNumber" | "updatedAt">[], vat: VatSettings): InvoiceDraftRow[] {
+export function draftRowsOf(drafts: readonly (Pick<StoredInvoiceDraft, "id" | "customerName" | "form" | "quoteNumber" | "updatedAt"> & { recurrenceId?: string | null })[], vat: VatSettings): InvoiceDraftRow[] {
   return drafts.map((d) => {
     const items = d.form ? d.form.lines.filter((l) => !isBlankLine(l)) : [];
     const totals = d.form ? previewTotals(d.form, vat) : null;
@@ -106,6 +108,7 @@ export function draftRowsOf(drafts: readonly Pick<StoredInvoiceDraft, "id" | "cu
       itemCount: items.length,
       grossCents: priced && totals ? totals.grossCents : null,
       quoteNumber: d.quoteNumber,
+      fromRepeat: (d.recurrenceId ?? null) !== null,
       updatedAt: d.updatedAt,
     };
   });

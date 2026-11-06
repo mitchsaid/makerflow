@@ -17,13 +17,16 @@ import {
 } from "@/lib/invoices";
 import type { InvoiceDraftRow as DraftRow } from "@/lib/invoices/draft";
 import type { NumberStyle } from "@/lib/money";
+import type { RepeatRow as RepeatRowData } from "@/lib/recurrence/rows";
 import { InvoiceDraftRow } from "./invoice-draft-row";
 import { InvoiceRow } from "./invoice-row";
+import { RepeatRow } from "./repeat-row";
 
 /** The invoices list: newest first, search as you type, a few filters. The whole list is loaded once. */
 export function InvoiceList({
   invoices,
   drafts,
+  repeats,
   currencyCode,
   today,
   formatLocale,
@@ -34,6 +37,8 @@ export function InvoiceList({
   invoices: InvoiceSummary[];
   /** Invoices that are not issued yet. */
   drafts: DraftRow[];
+  /** The schedules that make drafts (docs/plans/recurring.md). */
+  repeats: RepeatRowData[];
   currencyCode: string;
   /** Today, as YYYY-MM-DD, in the business's time zone. */
   today: string;
@@ -43,7 +48,7 @@ export function InvoiceList({
   const [filter, setFilter] = useState<InvoiceFilter>(initialFilter);
   const [query, setQuery] = useState("");
 
-  if (invoices.length === 0 && drafts.length === 0) {
+  if (invoices.length === 0 && drafts.length === 0 && repeats.length === 0) {
     return (
       <EmptyState title="No invoices yet" line="Open an accepted quote and choose Create invoice, or start one with no quote.">
         <AddLink href="/app/invoices/new" variant="default">
@@ -64,12 +69,14 @@ export function InvoiceList({
     paid: invoices.filter((i) => statusOf(i) === "paid").length,
     credited: invoices.filter((i) => i.creditedCents > 0).length,
     drafts: drafts.length,
+    repeating: repeats.length,
   };
   const visible = visibleInvoices(invoices, filter, query, today);
   const needle = query.trim().toLowerCase();
   const visibleDrafts = filter === "drafts" ? drafts.filter((d) => needle === "" || (d.customerName ?? "").toLowerCase().includes(needle)) : [];
-  // "Drafts" is offered once there is one (and stays while it is the one being looked at).
-  const filters = INVOICE_FILTERS.filter((f) => f.key !== "drafts" || drafts.length > 0 || filter === "drafts");
+  const visibleRepeats = filter === "repeating" ? repeats.filter((r) => needle === "" || (r.customerName ?? "").toLowerCase().includes(needle)) : [];
+  // "Drafts" and "Repeating" are offered once there is one (and stay while one is being looked at).
+  const filters = INVOICE_FILTERS.filter((f) => (f.key !== "drafts" || drafts.length > 0 || filter === "drafts") && (f.key !== "repeating" || repeats.length > 0 || filter === "repeating"));
 
   return (
     <div className="space-y-4">
@@ -88,22 +95,36 @@ export function InvoiceList({
       <FilterBar label="Show invoices" options={filters.map((f) => ({ ...f, count: counts[f.key] }))} value={filter} onChange={setFilter} />
 
       <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="invoice-count">
-        {filter === "drafts"
-          ? visibleDrafts.length === 1
-            ? "1 draft"
-            : `${visibleDrafts.length} drafts`
-          : visible.length === 1
+        {filter === "repeating"
+          ? visibleRepeats.length === 1
+            ? "1 repeat"
+            : `${visibleRepeats.length} repeats`
+          : filter === "drafts"
+            ? visibleDrafts.length === 1
+              ? "1 draft"
+              : `${visibleDrafts.length} drafts`
+            : visible.length === 1
             ? "1 invoice"
             : `${visible.length} invoices`}
       </p>
 
-      {filter === "drafts" ? (
+      {filter === "repeating" ? (
+        visibleRepeats.length === 0 ? (
+          <NoMatches message={needle !== "" ? `No repeats match “${query.trim()}”.` : "Nothing repeats yet. Open the ⋯ on an invoice and choose Repeat."} clearLabel="Show all invoices" onClear={() => { setQuery(""); setFilter("all"); }} />
+        ) : (
+          <ul className="space-y-2">
+            {visibleRepeats.map((r) => (
+              <RepeatRow key={r.id} repeat={r} today={today} formatLocale={formatLocale} currencyCode={currencyCode} numberStyle={numberStyle} />
+            ))}
+          </ul>
+        )
+      ) : filter === "drafts" ? (
         visibleDrafts.length === 0 ? (
           <NoMatches message={needle !== "" ? `No drafts match “${query.trim()}”.` : "No drafts."} clearLabel="Show all invoices" onClear={() => { setQuery(""); setFilter("all"); }} />
         ) : (
           <ul className="space-y-2">
             {visibleDrafts.map((d) => (
-              <InvoiceDraftRow key={d.id} draft={d} currencyCode={currencyCode} formatLocale={formatLocale} numberStyle={numberStyle} />
+              <InvoiceDraftRow key={d.id} draft={d} today={today} currencyCode={currencyCode} formatLocale={formatLocale} numberStyle={numberStyle} />
             ))}
           </ul>
         )

@@ -7,11 +7,14 @@ import { InvoiceRowMenu } from "./invoice-row-menu";
 /** One invoice draft in the Invoices list: who it is for, what is on it so far, and that it is not issued. */
 export function InvoiceDraftRow({
   draft: d,
+  today,
   currencyCode,
   formatLocale,
   numberStyle,
 }: {
   draft: Row;
+  /** Today in the business's time zone. */
+  today: string;
   currencyCode: string;
   formatLocale: string;
   numberStyle: NumberStyle;
@@ -33,10 +36,11 @@ export function InvoiceDraftRow({
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Not sent</span>
+          {d.fromRepeat && <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary" data-testid="draft-from-repeat">Made by a repeat</span>}
         </span>
       </Link>
       <div className="absolute right-2 top-2">
-        <InvoiceRowMenu target={{ kind: "draft", id: d.id }} who={d.customerName ?? "No customer yet"} what="draft" />
+        <InvoiceRowMenu target={{ kind: "draft", id: d.id }} who={d.customerName ?? "No customer yet"} what="draft" today={today} formatLocale={formatLocale} />
       </div>
     </li>
   );

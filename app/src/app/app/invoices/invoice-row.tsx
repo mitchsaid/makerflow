@@ -42,7 +42,7 @@ export function InvoiceRow({
         </span>
       </Link>
       <div className="absolute right-2 top-2">
-        <InvoiceRowMenu target={{ kind: "invoice", id: i.id }} who={i.customerName} what={`invoice ${i.number}`} />
+        <InvoiceRowMenu target={{ kind: "invoice", id: i.id }} who={i.customerName} what={`invoice ${i.number}`} today={today} formatLocale={formatLocale} />
       </div>
     </li>
   );

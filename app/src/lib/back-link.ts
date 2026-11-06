@@ -19,6 +19,7 @@ export function backLabelFor(path: string): string {
   if (area === "invoices") {
     if (second === "drafts") return last === "preview" ? "invoice preview" : "invoice draft";
     if (second === "new") return "new invoice";
+    if (second === "repeats") return "repeat";
     return "invoice";
   }
   if (area === "quotes") {

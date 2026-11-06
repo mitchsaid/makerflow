@@ -1,6 +1,6 @@
 # Plan: recurring quotes, invoices and jobs
 
-Status: **planned 2026-11-06, nothing built. Waiting on the founder's answers below.** Founder, 2026-11-06: "add the concept of recurring quotes, invoices and jobs." Serves makers with repeat work: a monthly retainer or workshop pass, a standing weekly order from a café, a yearly service, a regular cake for the same customer.
+Status: **planned 2026-11-06; founder answered the same day: all recommendations taken (draft for checking, invoices then jobs then quotes, exact copy, Home only for the notice). Slice 1 (engine and invoices) in progress.** Founder, 2026-11-06: "add the concept of recurring quotes, invoices and jobs." Serves makers with repeat work: a monthly retainer or workshop pass, a standing weekly order from a café, a yearly service, a regular cake for the same customer.
 
 ## Where things stand
 - A quote, an invoice and a job can already be **copied**: Duplicate on a quote or invoice (`docs/plans/duplicate.md`, `quoteAgain`, `invoiceFormFromSnapshot`), and a job can be made with no quote (`lib/jobs/new-job.ts`). Recurring is "make one of those again, on a schedule, without being asked".
@@ -22,7 +22,7 @@ No prototype counterpart. Searched `prototype/src` and `index.html` for recurrin
 - **Told, not surprised.** Home shows "3 repeats are ready to check" (one line, opens a list of the new drafts and jobs). A repeat made today is marked "Repeat" on its card with a line saying which schedule made it.
 - **Seeing and changing them.** Each of the three lists gets a **Repeating** filter, beside its other filters, showing the schedules as cards: what it repeats, how often, **next on** a date, and the last one made. A card's ⋯ has *Pause* / *Resume*, *Change schedule*, *Edit what it repeats* and *Stop repeating*. Stopping never touches anything already made.
 - **Edit what it repeats** opens the same form the item is made with (the quote, invoice or job form), so a price rise or a changed item is one edit, and the next one made uses it.
-- If a repeat can't make its next one (the customer was deleted, an item is no longer valid) it **pauses itself and says why** on its card and on Home, instead of failing quietly.
+- If a repeat can't make its next one (an item is no longer valid, the business already has 100 invoice drafts) it **pauses itself and says why** on its card and on Home, instead of failing quietly. (Deleting a customer deletes that customer's repeats, as it does their drafts.)
 
 ## Interactions reused and new interactions
 | What the screen needs | Existing interaction | Reused as is, with a mode, or new (and why) |
@@ -69,7 +69,10 @@ Inputs by kind: how often (choice), day (choice), start and end (dates), number 
 - Browser (phone): start a repeat from an invoice, see it in the Repeating filter with its next date, pause and resume, stop; the daily run is called with the secret and makes a draft that appears on Home and in Drafts; a stopped repeat makes nothing. Accessibility case for the sheet and the filter.
 - Every screen walked on a phone viewport before its pull request.
 
-## Questions for the founder
+## Questions for the founder (answered 2026-11-06)
+All four: the recommendation. Home only for the notice (no email or push).
+
+(Original questions, for the record.)
 1. **Draft for checking (recommended), or send automatically?** Automatic issuing and sending waits for email.
 2. **Which first?** Recommended: invoices, then jobs, then quotes.
 3. **Should a repeat be an exact copy, or should some things change each time?** The most common is a date in the wording ("March workshop pass"). Recommended for now: an exact copy, with the item's wording edited on the repeat when it matters; a small "{month}" fill-in could follow.
@@ -80,3 +83,9 @@ Automatic price rises; automatic issuing and sending; reminders for repeat invoi
 
 ## Missed from the prototype
 (none; no counterpart)
+
+## Built in slice 1 (notes, 2026-11-06)
+- **Schedule maths** (`lib/recurrence/schedule.ts`): the weekly, monthly and yearly occurrences are always counted from the starting date (never from the last one), so "the 31st" goes 31, 28 (or 29), 31, 30 and never drifts. Monthly has "last day of the month" as a choice.
+- **The day of a weekly repeat is the weekday of its starting date**; the sheet says so ("every Tuesday") rather than asking twice.
+- **Dates on what is made:** invoice date is the day it is made; the due date keeps the gap the stored form has.
+- **Finished** is a repeat with no next date (its end date passed or it made its last one); it stays listed as "Finished" until the maker stops it, so its history is not lost.

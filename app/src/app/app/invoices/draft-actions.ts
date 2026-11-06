@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganisation, type Workspace } from "@/lib/auth/dal";
 import { blankInvoiceForm, differsFromQuote, isInvoiceDraftForm, type InvoiceDraftErrors } from "@/lib/invoices/draft";
-import { invoiceFormFromSnapshot } from "@/lib/invoices/duplicate";
+import { formFromInvoice } from "@/lib/invoices/form-from-invoice";
 import { findInvoiceDraft } from "@/lib/invoices/draft-data";
 import { parseInvoiceForm, type InvoiceFormErrors, type InvoiceFormValues, type InvoiceProblem } from "@/lib/invoices";
 import { prepareInvoiceDraft } from "@/lib/invoices/prepare-draft";
@@ -14,7 +14,6 @@ import { toFormValues } from "@/lib/quotes/form-values";
 import { getLocalePack } from "@/lib/locale";
 import { quantityToInput } from "@/lib/money";
 import { addDays, todayIn } from "@/lib/quotes/dates";
-import type { QuoteSnapshot } from "@/lib/quotes/snapshot";
 import { isStarterKey } from "@/lib/quotes/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -385,20 +384,9 @@ export type DuplicateResult = { status: "error"; message: string };
 export async function duplicateInvoice(invoiceId: string): Promise<DuplicateResult> {
   const { organisation, profile, user } = await requireOrganisation();
   if (!UUID.test(invoiceId)) return { status: "error", message: GENERIC_ERROR };
-  const supabase = await createClient();
-  const { data: row } = await supabase.from("invoices").select("organisation_id, customer_id, snapshot").eq("id", invoiceId).maybeSingle();
-  const found = row as { organisation_id: string; customer_id: string | null; snapshot: QuoteSnapshot } | null;
-  if (!found || found.organisation_id !== organisation.id) return { status: "error", message: "That invoice could not be found." };
-
-  const locale = getLocalePack(profile.countryCode);
-  const copied = invoiceFormFromSnapshot(found.snapshot, {
-    customerId: found.customer_id ?? "",
-    today: todayIn(locale.timeZone),
-    dueDays: locale.documents.invoice.dueDays,
-    numberStyle: locale.numberStyle,
-  });
-  if (!copied.ok) return { status: "error", message: `${copied.reason} Start a new invoice instead.` };
-  return insertDuplicate(copied.form, found.customer_id, { id: null, starter: null }, organisation.id, user.id);
+  const copied = await formFromInvoice(invoiceId, organisation.id, profile.countryCode);
+  if (!copied.ok) return { status: "error", message: copied.notFound ? copied.message : `${copied.message} Start a new invoice instead.` };
+  return insertDuplicate(copied.form, copied.customerId, { id: null, starter: null }, organisation.id, user.id);
 }
 
 /** "Duplicate" on a draft's card: a new draft with the same form, today's date and the usual due day, and no quote. */

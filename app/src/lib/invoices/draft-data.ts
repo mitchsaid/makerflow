@@ -19,6 +19,7 @@ type Row = {
   customer_id: string | null;
   theme_id: string | null;
   theme_starter: string | null;
+  recurrence_id: string | null;
   form: unknown;
   created_at: string;
   updated_at: string;
@@ -33,6 +34,8 @@ export type InvoiceDraftSummary = {
   organisationId: string;
   quoteId: string | null;
   customerName: string | null;
+  /** The repeat that made this draft, if one did (docs/plans/recurring.md). */
+  recurrenceId: string | null;
   /** The form as it was saved, or null when what is stored cannot be read as an invoice form (it is then only discardable). */
   form: InvoiceDraftForm | null;
   updatedAt: string;
@@ -52,7 +55,7 @@ export type StoredInvoiceDraft = InvoiceDraftSummary & {
   stamp: string;
 };
 
-const COLUMNS = "id, organisation_id, quote_id, quote_version, customer_id, theme_id, theme_starter, form, created_at, updated_at, customers ( name ), quotes ( number, theme_id, theme_starter )";
+const COLUMNS = "id, organisation_id, quote_id, quote_version, customer_id, theme_id, theme_starter, recurrence_id, form, created_at, updated_at, customers ( name ), quotes ( number, theme_id, theme_starter )";
 
 const one = <T,>(value: T | T[] | null): T | null => (Array.isArray(value) ? (value[0] ?? null) : value);
 
@@ -62,6 +65,7 @@ function summaryOf(row: Row): StoredInvoiceDraft {
     organisationId: row.organisation_id,
     quoteId: row.quote_id,
     customerName: one(row.customers)?.name ?? null,
+    recurrenceId: row.recurrence_id,
     form: isInvoiceDraftForm(row.form) ? row.form : null,
     updatedAt: row.updated_at,
     quoteNumber: one(row.quotes)?.number ?? null,
@@ -94,6 +98,7 @@ export function customerDraftOf(row: CustomerDraftRow, customerName: string): In
     organisationId: row.organisation_id,
     quoteId: row.quote_id,
     customerName,
+    recurrenceId: null,
     form: isInvoiceDraftForm(row.form) ? row.form : null,
     updatedAt: row.updated_at,
     quoteNumber: one(row.quotes)?.number ?? null,
