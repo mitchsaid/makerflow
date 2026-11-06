@@ -1,6 +1,6 @@
 # Plan: recurring quotes, invoices and jobs
 
-Status: **planned 2026-11-06; founder answered the same day: all recommendations taken (draft for checking, invoices then jobs then quotes, exact copy, Home only for the notice). Slice 1 (engine and invoices) in progress.** Founder, 2026-11-06: "add the concept of recurring quotes, invoices and jobs." Serves makers with repeat work: a monthly retainer or workshop pass, a standing weekly order from a café, a yearly service, a regular cake for the same customer.
+Status: **planned 2026-11-06; founder answered the same day: all recommendations taken (draft for checking, invoices then jobs then quotes, exact copy, Home only for the notice). Slice 1 (engine and invoices) built 2026-11-06 and in review (jobs and quotes follow).** Founder, 2026-11-06: "add the concept of recurring quotes, invoices and jobs." Serves makers with repeat work: a monthly retainer or workshop pass, a standing weekly order from a café, a yearly service, a regular cake for the same customer.
 
 ## Where things stand
 - A quote, an invoice and a job can already be **copied**: Duplicate on a quote or invoice (`docs/plans/duplicate.md`, `quoteAgain`, `invoiceFormFromSnapshot`), and a job can be made with no quote (`lib/jobs/new-job.ts`). Recurring is "make one of those again, on a schedule, without being asked".
@@ -89,3 +89,9 @@ Automatic price rises; automatic issuing and sending; reminders for repeat invoi
 - **The day of a weekly repeat is the weekday of its starting date**; the sheet says so ("every Tuesday") rather than asking twice.
 - **Dates on what is made:** invoice date is the day it is made; the due date keeps the gap the stored form has.
 - **Finished** is a repeat with no next date (its end date passed or it made its last one); it stays listed as "Finished" until the maker stops it, so its history is not lost.
+- **What slice 1 covers:** a repeat from an invoice (the ⋯ on its card) or from an invoice draft; the Repeat sheet (how often as one list: every week, 2 weeks, month, 2, 3 or 6 months, year; the first day; for monthly, the same day or the last day; no end, a last day, or a number of times; said back in words as it is filled in); the **Repeating** view of the Invoices list (pause, resume, change schedule, edit what it repeats, stop); the daily run at 00:00 UTC (`/api/cron/recurrences`, `vercel.json`); a draft the run made is marked *Made by a repeat*; Home's *Your repeats* card (ready to check, paused).
+- **Edit what it repeats reuses the invoice form** (`InvoiceDraftForm` with a `repeat` mode: no dates, no preview, no discard, Save changes), not a copy.
+- **Pausing:** the run checks the form as an invoice before making a draft (`lib/recurrence/make.ts`); a form that no longer passes pauses the repeat with the first problem in words. Resuming runs the same check first. A business with 100 invoice drafts pauses the repeat in the database function itself.
+- **Counts of the plan's decision 9:** at most 25 repeats a business (a trigger), at most 100 runs for one (a check and the run function).
+- **Home's two small queries** (drafts a repeat made; repeats that paused) run beside the existing ones, so the page is no slower (`pnpm perf`: Home content 848 ms, the same as the other tabs). A single database function for both would be a later tidy-up.
+- **Not in slice 1:** jobs and quotes (the table's `kind` check allows only `invoice` for now), an end-of-run email or push (Home only, as decided), automatic price rises.

@@ -37,13 +37,24 @@ async function savedDraft(page: Page) {
 /** Today where the test business is (South Africa). */
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
-async function dueToday(organisationName: string) {
+/** The local database as the server (a demo credential), for what only the daily run or a broken record can show. */
+async function organisationId(name: string) {
+  const { url, secretKey } = localSupabase();
+  const headers = { apikey: secretKey, Authorization: `Bearer ${secretKey}` };
+  const orgs = await (await fetch(`${url}/rest/v1/organisations?name=eq.${encodeURIComponent(name)}&select=id&order=created_at.desc&limit=1`, { headers })).json();
+  return orgs[0].id as string;
+}
+
+async function patchRepeats(organisationName: string, change: (rows: { id: string; form: { lines: { unitPrice: string }[] } }[]) => Record<string, unknown>) {
   const { url, secretKey } = localSupabase();
   const headers = { apikey: secretKey, Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
-  const orgs = await (await fetch(`${url}/rest/v1/organisations?name=eq.${encodeURIComponent(organisationName)}&select=id`, { headers })).json();
-  const response = await fetch(`${url}/rest/v1/recurrences?organisation_id=eq.${orgs[0].id}`, { method: "PATCH", headers, body: JSON.stringify({ next_run_on: today() }) });
+  const org = await organisationId(organisationName);
+  const rows = await (await fetch(`${url}/rest/v1/recurrences?organisation_id=eq.${org}&select=id,form`, { headers })).json();
+  const response = await fetch(`${url}/rest/v1/recurrences?organisation_id=eq.${org}`, { method: "PATCH", headers, body: JSON.stringify(change(rows)) });
   expect(response.ok).toBe(true);
 }
+
+const dueToday = (organisationName: string) => patchRepeats(organisationName, () => ({ next_run_on: today() }));
 
 const runDaily = (page: Page, secret = "test-cron-secret") => page.request.get("/api/cron/recurrences", { headers: { authorization: `Bearer ${secret}` } });
 
@@ -71,7 +82,7 @@ test("a draft is repeated on a schedule that is checked, listed, paused, changed
   await sheet(page).getByRole("radio", { name: /A number of times/ }).check();
   await sheet(page).getByRole("button", { name: "Start repeating" }).click();
   await expect(page.getByTestId("form-summary")).toContainText("Enter a whole number of times");
-  await sheet(page).getByLabel("Number of times").fill("6");
+  await sheet(page).locator("#repeat-max-runs").fill("6");
 
   await sheet(page).getByRole("button", { name: "Start repeating" }).click();
   await expect(page).toHaveURL(/\/app\/invoices\?show=repeating$/);
@@ -111,7 +122,7 @@ test("a draft is repeated on a schedule that is checked, listed, paused, changed
   await expect(page.getByTestId("sticky-total")).toContainText(rand("300"));
   await page.getByTestId("quote-line").first().getByRole("button").first().click();
   await sheet(page).getByLabel(/^Price/).fill("350");
-  await sheet(page).getByRole("button", { name: /Save changes|Update item|Done/ }).click();
+  await sheet(page).getByRole("button", { name: "Save item" }).click();
   await expect(page.getByTestId("sticky-total")).toContainText(rand("350"));
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
@@ -140,16 +151,18 @@ test("the daily run makes one draft a day, marked as made by a repeat, and Home 
   // Nobody can run it without the secret.
   expect((await runDaily(page, "wrong")).status()).toBe(401);
 
-  // Not due yet: nothing is made.
-  const early = await (await runDaily(page)).json();
-  expect(early.made).toBe(0);
+  // Not due yet (it starts next month): no draft has been made for this business.
+  await runDaily(page);
+  await page.goto("/app/invoices?show=drafts");
+  await expect(page.getByTestId("invoice-draft-row")).toHaveCount(1);
 
-  // Due today: one draft is made, however many times the run is called.
+  // Due today: one draft is made, however many times the run is called. (The run covers every business, so it is not
+  // asked how many in all, only that this one was made and that a second run makes nothing more.)
   await dueToday("Run Co");
   const first = await (await runDaily(page)).json();
-  expect(first.made).toBe(1);
+  expect(first.made).toBeGreaterThanOrEqual(1);
   const second = await (await runDaily(page)).json();
-  expect(second.made).toBe(0);
+  expect(second).toMatchObject({ made: 0 });
 
   await page.goto("/app");
   await expect(page.getByTestId("home-repeats-ready")).toHaveText("1");
@@ -184,17 +197,14 @@ test("a repeat that can no longer make a good invoice pauses itself, says why, a
   await expect(page).toHaveURL(/show=repeating$/);
 
   // Break what it repeats behind the app's back (an item that no longer checks out), and make it due.
-  const { url, secretKey } = localSupabase();
-  const headers = { apikey: secretKey, Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json", Prefer: "return=representation" };
-  const rows = await (await fetch(`${url}/rest/v1/recurrences?select=id,form`, { headers })).json();
-  const form = rows[0].form;
-  form.lines[0].unitPrice = "not a price";
-  const patched = await fetch(`${url}/rest/v1/recurrences?id=eq.${rows[0].id}`, { method: "PATCH", headers, body: JSON.stringify({ form, next_run_on: today() }) });
-  expect(patched.ok).toBe(true);
+  await patchRepeats("Pause Co", (rows) => {
+    const form = rows[0].form;
+    form.lines[0].unitPrice = "not a price";
+    return { form, next_run_on: today() };
+  });
 
   const result = await (await runDaily(page)).json();
-  expect(result.paused).toBe(1);
-  expect(result.made).toBe(0);
+  expect(result).toMatchObject({ paused: 1, made: 0 });
 
   await page.goto("/app");
   await expect(page.getByTestId("home-repeats-paused")).toHaveText("1");
